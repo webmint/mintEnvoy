@@ -1,0 +1,163 @@
+{
+  "generated_at": "2026-06-21T11:10:29Z",
+  "packages": {
+    ".": {
+      "files": [
+        "CLAUDE.md",
+        "README.md",
+        "constitution.md",
+        "dev-app-update.yml",
+        "electron-builder.yml",
+        "electron.vite.config.ts",
+        "eslint.config.mjs",
+        "package-lock.json",
+        "package.json",
+        "tsconfig.json",
+        "tsconfig.node.json",
+        "tsconfig.web.json",
+        "design/mintenvoy \u2014 a friendly API client.html",
+        "design/styles.css",
+        "design/tokens.json",
+        "docs/architecture.md",
+        "docs/overview.md",
+        "resources/icon.png",
+        "src/main/index.ts",
+        "src/preload/index.d.ts",
+        "src/preload/index.ts",
+        "src/renderer/index.html",
+        "src/renderer/src/App.tsx",
+        "src/renderer/src/env.d.ts",
+        "src/renderer/src/main.tsx",
+        "src/renderer/src/assets/base.css",
+        "src/renderer/src/assets/electron.svg",
+        "src/renderer/src/assets/main.css",
+        "src/renderer/src/assets/wavy-lines.svg",
+        "src/renderer/src/components/Versions.tsx",
+        "src/renderer/styles/tokens.css"
+      ],
+      "files_truncated": false,
+      "manifest_deps": [
+        {
+          "name": "@electron-toolkit/preload",
+          "version": "^3.0.2"
+        },
+        {
+          "name": "@electron-toolkit/utils",
+          "version": "^4.0.0"
+        },
+        {
+          "name": "electron-store",
+          "version": "^11.0.2"
+        },
+        {
+          "name": "electron-updater",
+          "version": "^6.3.9"
+        },
+        {
+          "name": "undici",
+          "version": "^8.5.0"
+        },
+        {
+          "name": "zustand",
+          "version": "^5.0.14"
+        },
+        {
+          "name": "@electron-toolkit/eslint-config-prettier",
+          "version": "^3.0.0"
+        },
+        {
+          "name": "@electron-toolkit/eslint-config-ts",
+          "version": "^3.1.0"
+        },
+        {
+          "name": "@electron-toolkit/tsconfig",
+          "version": "^2.0.0"
+        },
+        {
+          "name": "@types/node",
+          "version": "^22.19.1"
+        },
+        {
+          "name": "@types/react",
+          "version": "^19.2.7"
+        },
+        {
+          "name": "@types/react-dom",
+          "version": "^19.2.3"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "version": "^5.1.1"
+        },
+        {
+          "name": "electron",
+          "version": "^39.2.6"
+        },
+        {
+          "name": "electron-builder",
+          "version": "^26.0.12"
+        },
+        {
+          "name": "electron-vite",
+          "version": "^5.0.0"
+        },
+        {
+          "name": "eslint",
+          "version": "^9.39.1"
+        },
+        {
+          "name": "eslint-plugin-react",
+          "version": "^7.37.5"
+        },
+        {
+          "name": "eslint-plugin-react-hooks",
+          "version": "^7.0.1"
+        },
+        {
+          "name": "eslint-plugin-react-refresh",
+          "version": "^0.4.24"
+        },
+        {
+          "name": "prettier",
+          "version": "^3.7.4"
+        },
+        {
+          "name": "react",
+          "version": "^19.2.1"
+        },
+        {
+          "name": "react-dom",
+          "version": "^19.2.1"
+        },
+        {
+          "name": "typescript",
+          "version": "^5.9.3"
+        },
+        {
+          "name": "vite",
+          "version": "^7.2.6"
+        }
+      ],
+      "manifest_file": "package.json",
+      "manifest_parse_skipped": false,
+      "name": ".",
+      "scripts": {
+        "build": "npm run typecheck && electron-vite build",
+        "build:linux": "electron-vite build && electron-builder --linux",
+        "build:mac": "electron-vite build && electron-builder --mac",
+        "build:unpack": "npm run build && electron-builder --dir",
+        "build:win": "npm run build && electron-builder --win",
+        "dev": "electron-vite dev",
+        "format": "prettier --write .",
+        "lint": "eslint --cache .",
+        "postinstall": "electron-builder install-app-deps",
+        "start": "electron-vite preview",
+        "typecheck": "npm run typecheck:node && npm run typecheck:web",
+        "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
+        "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false"
+      }
+    }
+  },
+  "project_root": "/Users/mykolakudlyk/Projects/private/mintEnvoy",
+  "version": 1
+}

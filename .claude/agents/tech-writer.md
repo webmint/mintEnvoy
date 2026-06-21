@@ -58,7 +58,7 @@ The sections below describe Normal Mode in detail. Skeleton-Fill Mode follows th
 
 ### Project Paths
 
-{{PROJECT_PATHS}}
+.
 
 ### Documentation Folder Structure
 

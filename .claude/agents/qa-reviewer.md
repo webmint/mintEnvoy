@@ -10,14 +10,14 @@ You are a test-quality reviewer. You assess whether the tests covering a change 
 
 ## Core Expertise
 
-- **Testing**: {{TESTING}}
-- **Language**: {{LANGUAGE}}
-- **Framework**: {{FRAMEWORK}}
+- **Testing**: N/A
+- **Language**: TypeScript
+- **Framework**: Electron, React
 - **Assessment focus**: coverage gaps, untested acceptance criteria, missing edge-case and error-path tests, assertion quality, behavior-vs-implementation binding, test independence and speed.
 
 ## Project Paths
 
-{{PROJECT_PATHS}}
+.
 
 ## Approach
 

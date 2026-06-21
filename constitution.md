@@ -1,246 +1,212 @@
-# Project Constitution — {{PROJECT_NAME}}
+# Project Constitution — mintenvoy
 
-Generated: {{DATE}}
-Last updated: {{DATE}}
+Generated: 2026-06-21
+Last updated: 2026-06-21
+Mode: Existing Codebase
 
 > Sections marked `[universal]` are pre-populated with rules that apply to ALL projects.
-> Sections marked `[project-specific]` are populated by `constitute` based on your codebase or interview answers.
-> Header fields in Section 1 are populated by the setup wizard from Phase 1 detection + Phase 2 answers. Per-stack details for multi-stack projects (Sections 3.2 / 3.4) follow the same paired-rendering rules as agent files — see `CLAUDE.md` `## Packages` section for the per-package breakdown.
+> Sections marked `[project-specific]` are populated by `/constitute` based on your codebase or interview answers.
 
 ---
 
 ## 1. Project Identity
 
-**Name**: {{PROJECT_NAME}}
-**Type**: {{PROJECT_TYPE}}
-**Framework(s)**: {{FRAMEWORK}}
-**Language(s)**: {{LANGUAGE}}
-**Workspace Mode**: {{WORKSPACE_MODE}}
-**Project Root**: {{PROJECT_ROOT}}
-
-> For multi-package projects, per-package stack details (one row per package with language / framework / architecture / error-handling / API layer / testing) live in the `## Packages` section of `CLAUDE.md`, not duplicated here.
+**Name**: mintenvoy
+**Type**: desktop app
+**Domain**: Desktop tooling for composing, sending, and inspecting HTTP API requests
+**Stack**: TypeScript on Electron + React, three-process model (main / preload / renderer), bundled by electron-vite and packaged by electron-builder
 
 ---
 
-## 2. Architecture Rules [project-specific]
+## 2. Architecture Rules (NON-NEGOTIABLE)
 
-<!-- Populated by constitute — these depend on your chosen architecture -->
+These rules MUST be followed in every code change. Violating these rules requires explicit user approval.
 
-### 2.1 Layer Boundaries
-_Run constitute to populate_
+### 2.1 Process Boundaries
 
-### 2.2 File Organization
-_Run constitute to populate_
+mintEnvoy runs as three Electron processes — main (Node.js), preload (bridge), and renderer (React UI) — that communicate only over IPC; the renderer never touches Node APIs directly.
 
-### 2.3 Dependency Rules
-_Run constitute to populate_
+| Process | Path | Contains | Imports from |
+|---------|------|----------|--------------|
+| Main | src/main/ | Lifecycle, windows, native APIs, electron-store, electron-updater | Node.js, electron |
+| Preload | src/preload/ | contextBridge IPC surface | electron, @electron-toolkit/preload |
+| Renderer | src/renderer/src/ | React 19 UI, zustand state | react, @renderer alias |
+- [project-specific] Main process owns app lifecycle, windows, native APIs, persistence (electron-store), and auto-update (electron-updater).
+- [project-specific] Renderer is sandboxed React UI; it reaches privileged capability only through the preload bridge.
+- [project-specific] Outbound HTTP (undici) runs in main, not the renderer; the renderer requests it over IPC.
+
+### 2.2 IPC & Security
+
+All main-renderer communication crosses the preload contextBridge; contextIsolation stays on and nodeIntegration stays off.
+- [project-specific] Expose the IPC surface from src/preload via contextBridge.exposeInMainWorld; never enable nodeIntegration in the renderer.
+- [universal] Validate and narrow every IPC payload at the boundary before use.
+
+**CORRECT** — preload exposes a typed API surface
+
+```ts
+import { contextBridge, ipcRenderer } from 'electron'
+
+contextBridge.exposeInMainWorld('api', {
+  sendRequest: (req: ApiRequest) => ipcRenderer.invoke('http:send', req)
+})
+```
+
+**WRONG** — renderer reaching electron directly bypasses isolation
+
+```ts
+// in renderer code
+const { ipcRenderer } = require('electron')
+ipcRenderer.invoke('http:send', req) // nodeIntegration must be OFF
+```
+
+### 2.3 Module Organization & Imports
+
+Renderer modules resolve through the @renderer alias defined in electron.vite.config.ts.
+- [enforced] @renderer resolves to src/renderer/src (electron.vite.config.ts); import renderer modules via the alias, not deep relative paths.
+- [project-specific] Keep code in its process dir: src/main, src/preload, src/renderer — no cross-process imports except the preload-exposed API.
 
 ---
 
 ## 3. Code Quality Standards
 
 ### 3.1 Type Safety [project-specific]
-_Run constitute to populate with language-specific type rules_
+
+TypeScript runs in strict mode (@electron-toolkit/tsconfig base) across node + web configs.
+- [enforced] strict is on; do not weaken it per-file. Type-check via 'npm run typecheck' (node + web) before completing a task.
+- [enforced] No 'any'. Type external/IPC input as 'unknown' and narrow with a type guard.
+
+**CORRECT** — narrow unknown with a guard
+
+```ts
+function parse(input: unknown): ApiRequest {
+  if (!isApiRequest(input)) throw new Error('invalid request')
+  return input
+}
+```
+
+**WRONG** — any disables type checking
+
+```ts
+function parse(input: any) {
+  return input
+}
+```
 
 ### 3.2 Error Handling [project-specific]
-- **Pattern**: {{ERROR_HANDLING}}
 
-> For multi-stack projects, `{{ERROR_HANDLING}}` renders as paired bullets — one per stack (e.g., `"neverthrow Result<T,E> (TypeScript/Next.js), exceptions + returns.Result (Python/FastAPI)"`). `"TBD"` entries (user deferred in Q5) are omitted; `constitute` fills them in later.
+The project uses thrown exceptions.
+- [universal] Never swallow errors — no empty catch; handle, re-throw, or log with reason.
+- [universal] Handle both success and error paths of every fallible operation.
+- [project-specific] IPC handlers in main catch and convert errors into structured results the renderer can render — don't leak raw stack traces across the bridge.
 
-_Run constitute to populate details_
+### 3.3 Naming Conventions [universal]
 
-### 3.3 Naming Conventions [project-specific]
-_Run constitute to populate with project naming patterns_
+Consistent naming across React, hooks, stores, and IPC channels.
 
-### 3.4 Testing Requirements [project-specific]
-- **Framework**: {{TESTING}}
+| What | Convention | Example |
+|------|------------|---------|
+| React component | PascalCase | Versions |
+| Hook | camelCase, use-prefix | useRequestStore |
+| zustand store | camelCase, Store suffix | requestStore |
+| Component file | PascalCase.tsx | App.tsx |
+| IPC channel | namespaced colon | http:send |
 
-> For multi-stack projects, `{{TESTING}}` renders as paired bullets — one per stack (e.g., `"vitest (TypeScript/Next.js), pytest (Python/FastAPI)"`). `"N/A"` stacks (no tests) are kept with the stack label so it's explicit; `"TBD"` entries are omitted.
+### 3.4 Testing Requirements [universal]
 
-_Run constitute to populate details_
+No test infrastructure exists yet (testings: N/A).
+- [universal] When adding tests, cover acceptance criteria including edge + error paths; follow the chosen runner's existing patterns once established.
+- [project-specific] Pick a renderer test stack (e.g. Vitest + Testing Library) before the first feature that needs coverage; record it in docs/architecture.md.
 
-### 3.5 Universal Code Quality [universal]
+### 3.5 Documentation [universal]
 
-**No dead code.** Delete unused functions, variables, imports, and files. Do not comment them out "for later." Version control preserves history.
+Code discovery routes through codebase-memory-mcp; new code carries clear docs.
+- [enforced] Structural code queries use codebase-memory-mcp tools (search_graph / trace_path / get_code_snippet / search_code / query_graph), not raw Read/Grep/Glob over source — CBM hooks block raw discovery on first match per session.
+- [universal] docs/ is LLM-context-source first, dev-greppable second; structural metadata stays in CBM, not embedded in docs/.
+- [universal] All new functions and exported types carry clear documentation.
 
-**No debug artifacts in committed code.** Remove all `console.log`, `print()`, `debugger`, `binding.pry`, `dd()`, and similar statements before marking a task complete. Logging that is part of the application's intentional logging system is fine.
+### 3.6 Function Length & Complexity [universal]
 
-**No magic values.** Use named constants for numbers and strings that carry meaning. `if (status === 3)` is wrong. `if (status === ORDER_COMPLETE)` is right.
-
-**One function, one job.** If a function does two unrelated things, split it. If a function name has "and" in it, it probably does too much.
-
-**Early returns over deep nesting.** Check error conditions first and return early. Do not nest happy-path logic inside multiple `if` blocks.
-
-```
-// Bad
-function process(input) {
-  if (input) {
-    if (input.isValid) {
-      // 20 lines of logic
-    }
-  }
-}
-
-// Good
-function process(input) {
-  if (!input) return;
-  if (!input.isValid) return;
-  // 20 lines of logic
-}
-```
-
-**Keep functions short.** If a function exceeds ~40 lines, look for extraction opportunities. This is a guideline, not a hard rule — sometimes a long function is clearer than several small ones.
-
-**Consistent style within a file.** If a file uses one pattern (arrow functions, single quotes, specific import style), follow that pattern. Do not introduce a different style.
-
-*Backed by* `constitute_helper verify-magic-enum` when `forcing_functions.magic_enum_duplication.enabled = true` in `.devforge/constitute.json` — inline literals where a same-module enum-like declaration (TS `enum` / `as const` map / Python `Enum`) covers the same value surface as exit-2 findings when `constitute_helper verify-magic-enum` is run directly or via the optional `.devforge/templates/git-hooks/pre-commit-forcing-functions.sh` hook.
-
-*Backed by* `constitute_helper verify-any-leak` when `forcing_functions.any_with_generated_available.enabled = true` — `any` annotations (TypeScript) / `Any` (Python) in files importing from declared generated-types dirs surface as exit-2 findings when `constitute_helper verify-any-leak` is run directly or via the pre-commit hook.
-
-### 3.6 Design Principles [universal]
-
-**SOLID:**
-- **Single Responsibility** — a class/module/function has one reason to change. If you can't describe what it does without "and," split it.
-- **Open/Closed** — extend behavior through composition or new implementations, not by modifying existing working code.
-- **Liskov Substitution** — subtypes must be usable wherever their parent type is expected without breaking behavior.
-- **Interface Segregation** — don't force consumers to depend on methods they don't use. Prefer small, focused interfaces over large ones.
-- **Dependency Inversion** — depend on abstractions (interfaces, types), not concrete implementations. High-level modules should not import from low-level modules directly.
-
-**DRY (Don't Repeat Yourself):**
-- If the same logic appears in 3+ places, extract it into a shared function or utility.
-- 2 occurrences are fine — don't abstract prematurely. Wait for the third.
-- DRY applies to logic, not to code that looks similar but serves different purposes. Two functions that happen to look alike but handle different domain concepts should stay separate.
-
-**KISS (Keep It Simple, Stupid):**
-- Choose the simplest solution that works correctly.
-- Don't add abstractions, patterns, or layers "in case we need them later."
-- If a junior developer can't understand the code in 30 seconds, it's too complex.
-
-*Backed by* `constitute_helper verify-cross-layer-imports` when `forcing_functions.cross_layer_imports.enabled = true` in `.devforge/constitute.json` — import edges that cross declared layer boundaries (per the user-supplied DAG + per-layer dir mapping in the rule config) surface as exit-2 findings when `constitute_helper verify-cross-layer-imports` is run directly or via the optional `.devforge/templates/git-hooks/pre-commit-forcing-functions.sh` hook.
-
-### 3.7 Check Before You Build [universal]
-
-**Before writing anything generic or reusable, search first.** The codebase may already have:
-- A utility function that does what you need
-- A helper, composable, or hook that covers your use case
-- A shared component that handles this UI pattern
-- A type or interface that models this data
-
-Search for it using Grep and Glob before creating a new one. Duplicating existing functionality is worse than not having it — it creates confusion about which version to use and doubles the maintenance burden.
+Keep units small and single-purpose.
+- [universal] One responsibility per function; extract when a function grows past ~40 lines or mixes concerns.
+- [universal] SOLID, DRY (don't repeat logic 3+ times), KISS.
 
 ---
 
 ## 4. Patterns & Anti-Patterns
 
-### 4.1 ALWAYS Do [universal]
+### Always Do (Universal)
+- [universal] Validate inputs at module boundaries; trust internal code.
+- [universal] Read a file before modifying it.
+- [universal] Handle both success and error paths of every fallible operation.
 
-- **Read before write.** Always read a file before modifying it. Understand what exists before changing it.
-- **Handle both paths.** Every operation that can fail must handle the success case AND the error case. No unhandled promise rejections. No ignored return values from fallible operations.
-- **Validate at boundaries.** Validate all external input: user input, API responses, file content, environment variables. Trust internal code. Do not validate data that your own code just created.
-- **Name what things ARE, not what they DO temporarily.** Variable names describe the data. Function names describe the action. `userData` not `tempVar`. `calculateTotal` not `doStuff`.
-- **Test your assumptions.** If a change depends on "X should already be Y," verify it. Read the code. Don't assume.
+### Always Do (Project-Specific)
+- [project-specific] Shared renderer state lives in a zustand store.
+- [project-specific] Reach privileged capability only through the preload-exposed API.
+- [project-specific] Run outbound HTTP (undici) in main; the renderer requests it over IPC.
 
-### 4.1.1 ALWAYS Do [project-specific]
-_Run constitute to populate with concrete examples from your codebase_
+### Never Do (Universal)
+- [universal] Never swallow errors (no empty catch).
+- [universal] Never commit secrets, API keys, or tokens.
+- [universal] Never leave debug artifacts (console.log, debugger) behind.
 
-### 4.2 NEVER Do [universal]
+### Never Do (Project-Specific)
+- [project-specific] Never enable nodeIntegration in the renderer.
+- [project-specific] Never import Node or electron directly in renderer code.
+- [project-specific] Never mutate zustand state outside its store actions.
 
-- **Never swallow errors silently.** Empty `catch` blocks are forbidden. If you catch an error, you must either: (a) handle it meaningfully, (b) re-throw it, or (c) log it and explain why you're suppressing it.
+### Prefer (Universal)
+- [universal] Prefer composition over inheritance.
+- [universal] Prefer small, pure, single-purpose functions.
 
-```
-// Forbidden
-try { doThing(); } catch (e) {}
-
-// Forbidden
-try { doThing(); } catch (e) { /* ignore */ }
-
-// Acceptable
-try { doThing(); } catch (e) {
-  logger.warn('Non-critical: doThing failed, using fallback', e);
-  return fallbackValue;
-}
-```
-
-- **Never commit secrets.** No API keys, passwords, tokens, private keys, or credentials in code. Not in variables, not in comments, not in test files, not "temporarily." Use environment variables or secret management.
-- **Never leave a TODO without context.** `// TODO` alone is useless. Always include: what needs to be done, why it can't be done now, and a reference (ticket number, feature name). Example: `// TODO(FEAT-123): Add pagination after backend supports cursor-based queries`
-- **Never modify code outside your task scope.** Do not "fix" unrelated code you happen to see. Do not refactor surrounding code. Do not add type annotations to functions you didn't change. If you see a real problem, note it — don't fix it unless asked.
-- **Never guess at behavior.** If you are unsure how existing code works, read it. If you are unsure what the user wants, ask. Guessing leads to wrong implementations that waste time.
-
-### 4.2.1 NEVER Do [project-specific]
-_Run constitute to populate with project-specific anti-patterns_
-
-### 4.3 PREFER [universal]
-
-- **Explicit over implicit.** Named parameters over positional. Explicit types over inferred when the inference is non-obvious. Explicit imports over wildcards.
-- **Composition over inheritance.** Build behavior by combining small pieces, not by extending base classes. Deep inheritance hierarchies are fragile.
-- **Flat over nested.** Flat directory structures over deeply nested ones. Flat conditionals (early returns) over nested if/else chains. Flat data over deeply nested objects when possible.
-- **Boring over clever.** Readable, obvious code over clever one-liners. The person reading your code (including future you and other AI agents) should understand it without pausing.
-- **Existing patterns over new ones.** When the codebase already has a pattern for something, use it. Do not introduce a second way to do the same thing unless the existing way is clearly broken.
-- **Small PRs over large ones.** One concern per change. If a task touches more than 5-7 files, consider whether it can be split.
-
-### 4.3.1 PREFER [project-specific]
-_Run constitute to populate with project-specific preferences_
+### Prefer (Project-Specific)
+- [project-specific] Prefer zustand selectors over reading the whole store.
+- [project-specific] Prefer the @renderer alias over deep relative imports.
+- [project-specific] Prefer typed IPC wrappers over raw ipcRenderer calls in components.
 
 ---
 
-## 5. Domain Rules [project-specific]
+## 5. Domain Rules
 
-_Run constitute to populate with business domain terms, rules, and constraints_
+### 5.1 Key Entities
+
+The API-client domain centers on a small set of entities (design intent — not yet implemented in the scaffold).
+- [project-specific] Request — an HTTP call definition (method, URL, headers, body).
+- [project-specific] Response — the result of sending a Request (status, headers, body, timing).
+- [project-specific] Collection — a saved, organized group of Requests.
+- [project-specific] Environment — a named set of variables substituted into Requests at send time.
 
 ---
 
 ## 6. Workflow Rules
 
-### 6.1 Minimal Changes [universal]
-Every code change MUST impact as little code as possible. Do not refactor, improve, or "clean up" code outside the scope of the current task. A bug fix changes the bug. A feature adds the feature. Nothing more.
+### 6.1 Minimal Changes
 
-### 6.2 Semantic Understanding [universal]
-Before renaming or replacing any identifier, VERIFY:
-1. What the identifier semantically means
-2. All callers and consumers of the identifier
-3. That the new name correctly represents the concept
-4. That no external contracts (APIs, database columns, config keys) depend on the old name
+Keep every change as small as possible.
+- [universal] Every change impacts as little code as possible; don't fix unrelated code you happen to see.
 
-### 6.3 Read-First Principle [universal]
-Before writing ANY code:
-1. Read the files you plan to modify
-2. Read the files that import/use the code you plan to modify
-3. Check the constitution for relevant rules
-4. Check memory for past lessons about this area
+### 6.2 Read Before Write
 
-Skipping this step is the #1 cause of wrong implementations.
+Understand a file before changing it.
+- [universal] Always read a file before modifying it.
 
-### 6.4 Documentation [universal]
-- **Read docs before starting**: Before any task, read relevant docs in `docs/` for context about the area you're changing
-- **Write docs after completing**: After every task, the tech-writer agent updates `docs/` with changes. This is mandatory — not optional
-- All new public functions must have a brief inline description (JSDoc/docstring)
-- All new types/interfaces must have a brief inline description
-- Do NOT add documentation to code you didn't write or change
-- Update existing documentation when you change the behavior it describes
-- `docs/` is the source of truth for project documentation — organized by topic, not by task
+### 6.3 Search Before Building
 
-### 6.5 Deprecation Handling [project-specific]
-_Run constitute to populate_
+Reuse before reinventing.
+- [universal] Before writing anything generic/reusable, search the codebase for an existing utility, helper, or component that already does it.
 
-### 6.6 Project-Specific Workflow [project-specific]
-_Run constitute to populate_
+### 6.4 One Task At A Time
 
----
+Sequential execution along the dependency graph.
+- [universal] Execute tasks sequentially along the dependency graph; finish and verify one before starting the next.
 
-## 7. Scaffolding Guide [greenfield-only]
+### 6.5 Pre-flight Check
 
-_This section is populated by `constitute` when run on a greenfield project._
-_It contains the recommended directory structure, initial file setup, and bootstrapping steps._
+Load context before each task.
+- [universal] Before each task, read constitution.md + .devforge/memory.md so the task starts with the right context.
 
----
+### 6.6 Spec-Driven Workflow
 
-## Rule Tags
-
-Rules use these tags to indicate their origin:
-- `[universal]` — Applies to all projects. Pre-populated in template.
-- `[convention]` — Team convention discovered or decided during `constitute`.
-- `[extracted]` — Pattern extracted from existing codebase during `constitute`.
-- `[enforced]` — Hard rule with automated checking (linting, type checking, hooks).
-- `[recommended]` — Best practice suggestion. Can be overridden with good reason.
-- `[greenfield-only]` — Only applies during initial project scaffolding.
-- `[project-specific]` — Populated by `constitute` based on your project.
+Enforcement level: Strict — every pipeline step requires explicit approval.
+- [project-specific] Follow /specify, /plan, /breakdown, /implement, /review, /verify, /finalize; each hard gate needs explicit approval before advancing.
+- [project-specific] Commits follow Conventional Commits; WIP commits squash into one clean feature commit at /finalize.
+- [project-specific] Commit messages include the AI attribution footer.

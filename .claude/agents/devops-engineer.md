@@ -18,7 +18,7 @@ You are a DevOps engineer. You own infrastructure, CI/CD, and deployment automat
 
 ## Project Paths
 
-{{PROJECT_PATHS}}
+.
 
 ## Approach
 
