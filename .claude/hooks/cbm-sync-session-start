@@ -1,0 +1,72 @@
+#!/bin/bash
+# SessionStart hook (matcher: startup|resume|clear|compact).
+#
+# Compares the CBM (codebase-memory-mcp) stamp file to the parent
+# repo's current HEAD via .devforge/lib/cbm_sync_helper. When the
+# stamp is stale or missing, emits a verbatim instruction block on
+# stdout — Claude Code injects this into the new session's context,
+# steering Claude to refresh CBM before answering structural code
+# queries.
+#
+# Hook is non-blocking per SessionStart semantics: any unexpected
+# error exits 1, stderr is shown only with --verbose, the session
+# always starts.
+#
+# Stdin carries the SessionStart event JSON (session_id,
+# transcript_path, cwd, hook_event_name, source, model). MVP does
+# not branch on `source` — every source is treated identically.
+# Stdin is consumed and discarded so upstream pipes don't block.
+
+# Drain stdin without parsing.
+cat >/dev/null 2>&1 || true
+
+HELPER="${CLAUDE_PROJECT_DIR:-.}/.devforge/lib/cbm_sync_helper"
+
+# If the helper isn't installed, stay silent — DevForge may not be
+# fully provisioned yet (e.g., before /init-forge has run).
+if [ ! -x "$HELPER" ]; then
+    exit 0
+fi
+
+# Helper resolves the parent repo via Path.cwd() — pin cwd to
+# CLAUDE_PROJECT_DIR so `git rev-parse HEAD` reflects the project
+# the user is actually in, not whatever cwd Claude Code inherited.
+project_dir="${CLAUDE_PROJECT_DIR:-.}"
+if [ ! -d "$project_dir" ]; then
+    exit 0
+fi
+
+# Capture state token. Helper writes one of:
+#   current  /  missing  /  drift <a>..<b>  /  not-a-git-repo
+state="$(cd "$project_dir" && "$HELPER" check 2>/dev/null)" || true
+state="$(printf '%s' "$state" | tr -d '\r')"
+
+case "$state" in
+    current|not-a-git-repo|"")
+        # Stamp matches HEAD, no repo to track, or helper failed
+        # silently — emit nothing, never block the session.
+        exit 0
+        ;;
+    missing)
+        cat << 'CTX'
+The CBM (codebase-memory-mcp) index has no recorded stamp for this repo. Before answering structural code queries, call `mcp__codebase-memory-mcp__index_repository` to perform the initial index. After it completes, run `$CLAUDE_PROJECT_DIR/.devforge/lib/cbm_sync_helper write` to record the new stamp.
+CTX
+        exit 0
+        ;;
+    drift\ *)
+        # Strip the "drift " prefix, then split <a>..<b>.
+        body="${state#drift }"
+        a="${body%%..*}"
+        b="${body##*..}"
+        cat << CTX
+The CBM (codebase-memory-mcp) index is stale: stamp records \`$a\` but parent repo HEAD is \`$b\`. Before answering structural code queries, call \`mcp__codebase-memory-mcp__detect_changes\`. After it completes, run \`\$CLAUDE_PROJECT_DIR/.devforge/lib/cbm_sync_helper write\` to record the new stamp.
+CTX
+        exit 0
+        ;;
+    *)
+        # Unknown token — non-blocking. Log to stderr (visible only
+        # with --verbose) and continue.
+        echo "cbm-sync-session-start: unexpected helper output: $state" >&2
+        exit 1
+        ;;
+esac

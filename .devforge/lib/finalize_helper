@@ -1,0 +1,35 @@
+#!/bin/sh
+# POSIX launcher for finalize_helper.py.
+#
+# Selects the first available Python 3 interpreter in this order:
+#   python3     (macOS, Linux, WSL, Git Bash with a python3 shim)
+#   py -3       (Windows native — Python launcher 'py' selects 3.x)
+#   python      (fallback — verified 3.x before use; catches envs with only `python`)
+#
+# Exits 127 with a clear message if no Python 3 is found.
+
+# Locate this script's directory using pure shell builtins (dirname lives in
+# /usr/bin, which may be missing from a hostile PATH).
+HERE_DIR="${0%/*}"
+[ "$HERE_DIR" = "$0" ] && HERE_DIR="."
+HERE="$(cd "$HERE_DIR" && pwd)"
+PY_FILE="$HERE/finalize_helper.py"
+
+if command -v python3 >/dev/null 2>&1; then
+    exec python3 "$PY_FILE" "$@"
+fi
+
+if command -v py >/dev/null 2>&1; then
+    exec py -3 "$PY_FILE" "$@"
+fi
+
+if command -v python >/dev/null 2>&1; then
+    ver="$(python -c 'import sys; print(sys.version_info[0])' 2>/dev/null)"
+    if [ "$ver" = "3" ]; then
+        exec python "$PY_FILE" "$@"
+    fi
+fi
+
+echo "error: no Python 3 interpreter found (tried python3, py -3, python)" >&2
+echo "install Python 3.8+ and re-run. https://www.python.org/downloads/" >&2
+exit 127

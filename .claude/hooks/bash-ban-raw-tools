@@ -1,0 +1,21 @@
+#!/bin/bash
+# PreToolUse gate (matcher: Bash).
+# Once per Claude Code session (PPID-keyed) blocks raw `grep`/`find`/`cat`
+# invocations whose argv references a source-code file extension, nudging
+# the model toward codebase-memory-mcp tools. Subsequent matches in the
+# same session pass through (exit 0). Non-matching Bash commands always
+# pass through.
+GATE=/tmp/bash-ban-raw-tools-$PPID
+find /tmp -name 'bash-ban-raw-tools-*' -mtime +1 -delete 2>/dev/null
+if [ -f "$GATE" ]; then
+    exit 0
+fi
+CMD=$(python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('command',''))" 2>/dev/null)
+[ -z "$CMD" ] && exit 0
+if echo "$CMD" | grep -qE '\b(grep|find|cat)\b' && \
+   echo "$CMD" | grep -qE '\.(py|js|ts|tsx|jsx|vue|go|rb|java|rs|c|h|cpp|hpp|cs|swift|kt|php|scala)\b'; then
+    touch "$GATE"
+    echo 'BLOCKED: Raw grep/find/cat over source files. Use codebase-memory-mcp first: search_graph(name_pattern) for symbols/routes, search_code(pattern) for text fallback, get_code_snippet(qualified_name) instead of cat. If you must use raw shell tools (e.g. checking a file outside the indexed graph), retry — this gate fires once per session.' >&2
+    exit 2
+fi
+exit 0

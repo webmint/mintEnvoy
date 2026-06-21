@@ -1,0 +1,14 @@
+#!/bin/bash
+# PreToolUse gate (matcher: Read|Grep|Glob).
+# Once per Claude Code session (PPID-keyed) blocks the call so the model
+# is reminded to consult codebase-memory-mcp tools first. Subsequent calls
+# in the same session pass through (exit 0). Stale gate files older than
+# one day are reaped opportunistically.
+GATE=/tmp/cbm-code-discovery-gate-$PPID
+find /tmp -name 'cbm-code-discovery-gate-*' -mtime +1 -delete 2>/dev/null
+if [ -f "$GATE" ]; then
+    exit 0
+fi
+touch "$GATE"
+echo 'BLOCKED: For code discovery, use codebase-memory-mcp tools first: search_graph(name_pattern) to find functions/classes, trace_path(function_name) for call chains, get_code_snippet(qualified_name) to read source, search_code(pattern) for text fallback. If the graph is not indexed yet, call index_repository first. Fall back to Grep/Glob/Read only for non-source text content. If you still need this tool, retry — this gate fires once per session.' >&2
+exit 2

@@ -1,0 +1,10 @@
+workspace_mode: standalone
+project_root: .
+project_state: brownfield
+default_branch: null
+packages_detected: []
+test_infra:
+  frontend: null
+  backend: null
+  e2e: null
+  status: absent

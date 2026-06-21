@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# vue-extract — compile every .vue SFC under CWD to .vue.ts + .vue.ts.map
+# inside .devforge/vue-tmp/ at CWD. Designed for AIDevTeamForge wrapper-mode +
+# monorepo setups: walks DOWN from CWD looking for @vue/compiler-sfc in any
+# nested node_modules.
+#
+# Usage (from the project root you want to scan, typically the wrapper):
+#   ./.devforge/lib/vue-extract [--out <dir>]
+#
+# Default <dir> is ./.devforge/vue-tmp/. Output goes to
+# <CWD>/<dir>/<rel-of-vue-file>.vue.ts preserving full directory structure of
+# the source tree. Lives under .devforge/ so a single index pass at <CWD>
+# picks up both source .ts/.js and the compiled .vue.ts mirror.
+#
+# This script does NOT invoke an indexer. After extraction completes, run
+# whatever indexer you want against CWD; the .vue.ts + .vue.ts.map sidecars
+# in the mirror dir let the indexer cite back to original .vue files via the
+# Source Map V3 sidecar. Mirror is regenerable; safe to delete:
+#
+#   ./.devforge/lib/vue-extract
+#   <run your indexer here against the current directory>
+#   rm -rf .devforge/vue-tmp
+#
+# Flags:
+#   --out <dir>   Override the default mirror dir (relative to CWD).
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VUE_TO_TS="$SCRIPT_DIR/vue-to-ts.mjs"
+
+if [ ! -f "$VUE_TO_TS" ]; then
+  echo "vue-extract: vue-to-ts.mjs not found at $VUE_TO_TS" >&2
+  exit 1
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "vue-extract: 'node' command not found in PATH" >&2
+  echo "  install Node.js (>=18) in the project's runtime" >&2
+  exit 1
+fi
+
+OUT_DIR=".devforge/vue-tmp"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --out)
+      OUT_DIR="$2"
+      shift 2
+      ;;
+    -h|--help)
+      sed -n '2,30p' "$0"
+      exit 0
+      ;;
+    *)
+      echo "vue-extract: unknown argument '$1'" >&2
+      exit 2
+      ;;
+  esac
+done
+
+ABS_OUT="$(pwd)/$OUT_DIR"
+mkdir -p "$ABS_OUT"
+
+echo "→ Extracting Vue SFCs to $ABS_OUT ..."
+node "$VUE_TO_TS" . --mode mirror --out "$ABS_OUT" -q
+
+echo "→ Done. Run your indexer against $(pwd) now."
+echo "→ Cleanup when done:  rm -rf '$ABS_OUT'"

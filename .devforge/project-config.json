@@ -1,0 +1,45 @@
+{
+  "PROJECT_NAME": null,
+  "PROJECT_DESCRIPTION": null,
+  "PROJECT_TYPE": null,
+  "PROJECT_ROOT": null,
+  "WORKSPACE_MODE": null,
+  "PROJECT_STATE": null,
+  "DEFAULT_BRANCH": null,
+
+  "LANGUAGES": null,
+  "FRAMEWORKS": null,
+  "PRIMARY_LANGUAGE": null,
+
+  "ARCHITECTURES": null,
+  "ERROR_HANDLINGS": null,
+  "API_LAYERS": null,
+  "TESTINGS": null,
+
+  "BUILD_TOOLS": null,
+  "BUILD_COMMANDS": null,
+  "TYPE_CHECK_COMMANDS": null,
+  "LINT_COMMANDS": null,
+
+  "PACKAGES_DETECTED": null,
+  "PACKAGE_STACKS": null,
+
+  "PROJECT_STRUCTURE": null,
+  "DEV_COMMANDS": null,
+  "ARCHITECTURE_DETAILS": null,
+  "WRAPPER_MODE_SECTION": null,
+  "COMMIT_ATTRIBUTION": null,
+  "AGENT_LIST": null,
+
+  "WORKFLOW_ENFORCEMENT": null,
+  "AI_ATTRIBUTION": null,
+
+  "CLAUDE_TIER_THINK": null,
+  "CLAUDE_TIER_DO": null,
+  "CLAUDE_TIER_VERIFY": null,
+
+  "AC_VERIFICATION_MODE": null,
+  "AC_RUNTIME_URL": null,
+  "AC_RUNTIME_API_BASE": null,
+  "AC_RUNTIME_CLI_COMMAND": null
+}

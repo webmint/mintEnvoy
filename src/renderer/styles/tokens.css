@@ -1,0 +1,230 @@
+/* ============================================================
+   tokens.css — MintEnvoy design tokens
+   Generated from design/tokens.json (DTCG). Source of truth: tokens.json.
+   Do not hand-edit values here; change tokens.json and regenerate.
+   data-theme + data-mstyle live on <html>.
+   ============================================================ */
+
+:root {
+  /* accent */
+  --accent: #10b981;
+  --accent-soft: color-mix(in oklab, var(--accent) 14%, transparent);
+  --accent-hover: color-mix(in oklab, var(--accent) 88%, black);
+
+  /* surfaces */
+  --bg: #fbfaf9;
+  --bg-sunken: #f4f3f1;
+  --bg-elev: #ffffff;
+  --bg-hover: #f0efed;
+  --bg-active: #e8e6e3;
+
+  /* borders */
+  --border: #e8e6e3;
+  --border-strong: #d6d3d0;
+  --border-faint: #f0efed;
+
+  /* text */
+  --text: #18181b;
+  --text-muted: #71717a;
+  --text-faint: #a1a1aa;
+  --text-inverse: #ffffff;
+
+  /* shadows */
+  --shadow-sm: 0 1px 0 rgba(24, 24, 27, 0.04), 0 1px 2px rgba(24, 24, 27, 0.04);
+  --shadow-md: 0 4px 16px -4px rgba(24, 24, 27, 0.08), 0 2px 4px rgba(24, 24, 27, 0.04);
+  --shadow-lg: 0 16px 32px -8px rgba(24, 24, 27, 0.12), 0 4px 12px rgba(24, 24, 27, 0.06);
+
+  /* radii */
+  --radius-sm: 5px;
+  --radius: 7px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+
+  /* method colors */
+  --m-get: #0ea5e9;
+  --m-post: #22c55e;
+  --m-put: #f59e0b;
+  --m-patch: #a855f7;
+  --m-delete: #ef4444;
+  --m-options: #64748b;
+
+  /* status colors (theme-invariant) */
+  --status-2xx: #16a34a;
+  --status-3xx: #2563eb;
+  --status-4xx: #f59e0b;
+  --status-5xx: #ef4444;
+
+  /* fonts */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* font-size scale — NORMALIZED from the prototype's hardcoded px.
+     Reference these instead of re-hardcoding px in components.
+     --fs-base (12.5px) is the dominant UI body size. */
+  --fs-xs: 9px;
+  --fs-sm: 10.5px;
+  --fs-base: 12.5px;
+  --fs-md: 13px;
+  --fs-lg: 14px;
+}
+
+[data-theme="dark"] {
+  --bg: #0c0c0d;
+  --bg-sunken: #08080a;
+  --bg-elev: #141416;
+  --bg-hover: #1c1c1f;
+  --bg-active: #25252a;
+
+  --border: #25252a;
+  --border-strong: #34343a;
+  --border-faint: #1c1c1f;
+
+  --text: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --text-faint: #71717a;
+  --text-inverse: #0c0c0d;
+
+  --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 32px -8px rgba(0, 0, 0, 0.5);
+
+  --m-get: #38bdf8;
+  --m-post: #4ade80;
+  --m-put: #fbbf24;
+  --m-patch: #c084fc;
+  --m-delete: #f87171;
+  --m-options: #94a3b8;
+}
+
+/* ===== Method style variants — switched by [data-mstyle] on <html> =====
+   Default (no attribute) should match "soft". Six variants total. */
+
+/* Chip: solid bg, white text */
+[data-mstyle="chip"] .method {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  padding: 0 5px;
+  min-width: 42px;
+  height: 17px;
+  border-radius: 4px;
+  color: #fff;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+[data-mstyle="chip"] .method.GET { background: var(--m-get); }
+[data-mstyle="chip"] .method.POST { background: var(--m-post); }
+[data-mstyle="chip"] .method.PUT { background: var(--m-put); }
+[data-mstyle="chip"] .method.PATCH { background: var(--m-patch); }
+[data-mstyle="chip"] .method.DELETE { background: var(--m-delete); }
+[data-mstyle="chip"] .method.OPTIONS { background: var(--m-options); }
+
+/* Soft: tinted bg, colored text (default look) */
+[data-mstyle="soft"] .method {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  padding: 0 5px;
+  min-width: 42px;
+  height: 17px;
+  border-radius: 4px;
+  text-align: center;
+}
+[data-mstyle="soft"] .method.GET     { background: color-mix(in oklab, var(--m-get) 16%, transparent);     color: var(--m-get); }
+[data-mstyle="soft"] .method.POST    { background: color-mix(in oklab, var(--m-post) 16%, transparent);    color: var(--m-post); }
+[data-mstyle="soft"] .method.PUT     { background: color-mix(in oklab, var(--m-put) 18%, transparent);     color: var(--m-put); }
+[data-mstyle="soft"] .method.PATCH   { background: color-mix(in oklab, var(--m-patch) 16%, transparent);   color: var(--m-patch); }
+[data-mstyle="soft"] .method.DELETE  { background: color-mix(in oklab, var(--m-delete) 16%, transparent);  color: var(--m-delete); }
+[data-mstyle="soft"] .method.OPTIONS { background: color-mix(in oklab, var(--m-options) 16%, transparent); color: var(--m-options); }
+
+/* Outline: transparent bg, colored text + ring */
+[data-mstyle="outline"] .method {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  padding: 0 5px;
+  min-width: 42px;
+  height: 17px;
+  border-radius: 4px;
+  text-align: center;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+[data-mstyle="outline"] .method.GET     { color: var(--m-get); }
+[data-mstyle="outline"] .method.POST    { color: var(--m-post); }
+[data-mstyle="outline"] .method.PUT     { color: var(--m-put); }
+[data-mstyle="outline"] .method.PATCH   { color: var(--m-patch); }
+[data-mstyle="outline"] .method.DELETE  { color: var(--m-delete); }
+[data-mstyle="outline"] .method.OPTIONS { color: var(--m-options); }
+
+/* Dot: colored dot prefix + text */
+[data-mstyle="dot"] .method {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  min-width: 48px;
+}
+[data-mstyle="dot"] .method::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 2px color-mix(in oklab, currentColor 22%, transparent);
+  flex-shrink: 0;
+}
+[data-mstyle="dot"] .method.GET     { color: var(--m-get); }
+[data-mstyle="dot"] .method.POST    { color: var(--m-post); }
+[data-mstyle="dot"] .method.PUT     { color: var(--m-put); }
+[data-mstyle="dot"] .method.PATCH   { color: var(--m-patch); }
+[data-mstyle="dot"] .method.DELETE  { color: var(--m-delete); }
+[data-mstyle="dot"] .method.OPTIONS { color: var(--m-options); }
+
+/* Bar: thin vertical color bar prefix */
+[data-mstyle="bar"] .method {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  min-width: 48px;
+}
+[data-mstyle="bar"] .method::before {
+  content: "";
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+[data-mstyle="bar"] .method.GET     { color: var(--m-get); }
+[data-mstyle="bar"] .method.POST    { color: var(--m-post); }
+[data-mstyle="bar"] .method.PUT     { color: var(--m-put); }
+[data-mstyle="bar"] .method.PATCH   { color: var(--m-patch); }
+[data-mstyle="bar"] .method.DELETE  { color: var(--m-delete); }
+[data-mstyle="bar"] .method.OPTIONS { color: var(--m-options); }
+
+/* Text: plain colored label, no decoration */
+[data-mstyle="text"] .method {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  min-width: 44px;
+}
+[data-mstyle="text"] .method.GET     { color: var(--m-get); }
+[data-mstyle="text"] .method.POST    { color: var(--m-post); }
+[data-mstyle="text"] .method.PUT     { color: var(--m-put); }
+[data-mstyle="text"] .method.PATCH   { color: var(--m-patch); }
+[data-mstyle="text"] .method.DELETE  { color: var(--m-delete); }
+[data-mstyle="text"] .method.OPTIONS { color: var(--m-options); }
