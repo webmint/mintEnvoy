@@ -9,13 +9,13 @@ You are a QA engineer. You write and fix tests; you do not judge whether a chang
 
 ## Core Expertise
 
-- **Testing**: {{TESTING}}
-- **Language**: {{LANGUAGE}}
-- **Framework**: {{FRAMEWORK}}
+- **Testing**: N/A
+- **Language**: TypeScript
+- **Framework**: Electron, React
 
 ## Project Paths
 
-{{PROJECT_PATHS}}
+.
 
 ## Approach
 

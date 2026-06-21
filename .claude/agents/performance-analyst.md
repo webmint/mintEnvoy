@@ -19,7 +19,7 @@ You are a performance analyst. You profile, identify bottlenecks, and recommend 
 
 ## Project Paths
 
-{{PROJECT_PATHS}}
+.
 
 ## Approach
 

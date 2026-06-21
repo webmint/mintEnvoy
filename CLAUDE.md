@@ -4,33 +4,63 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Project Overview
 
-{{PROJECT_DESCRIPTION}}
+A desktop API client built with Electron, React, and TypeScript
 
-- **Name**: {{PROJECT_NAME}}
-- **Type**: {{PROJECT_TYPE}}
-- **Frameworks**: {{FRAMEWORK}}
-- **Languages**: {{LANGUAGE}}
-- **Build Tool**: {{BUILD_TOOL}}
-- **Build Command**: `{{BUILD_COMMAND}}`
-- **Type Check Command**: `{{TYPE_CHECK_COMMAND}}`
-- **Lint Command**: `{{LINT_COMMAND}}`
-- **Project Root**: {{PROJECT_ROOT}}
+- **Name**: mintenvoy
+- **Type**: desktop app
+- **Frameworks**: Electron, React
+- **Languages**: TypeScript
+- **Build Tool**: electron-vite, Vite, electron-builder
+- **Build Command**: `npm run typecheck && electron-vite build`
+- **Type Check Command**: `npm run typecheck:node && npm run typecheck:web`
+- **Lint Command**: `eslint --cache .`
+- **Project Root**: .
 
-{{WRAPPER_MODE_SECTION}}
+
 
 ## Project Structure
 
-{{PROJECT_STRUCTURE}}
+```text
+mintenvoy/
+├── src/
+│   ├── main/          # Electron main process (Node.js, app lifecycle)
+│   │   └── index.ts
+│   ├── preload/       # Preload bridge (contextIsolation-safe IPC)
+│   │   ├── index.ts
+│   │   └── index.d.ts
+│   └── renderer/      # React UI (renderer process)
+│       ├── index.html
+│       └── src/
+│           ├── App.tsx
+│           ├── main.tsx
+│           ├── components/
+│           └── assets/
+├── resources/         # App icons / static resources
+├── design/            # Design mockups + tokens
+└── electron.vite.config.ts
+```
 
 ## Development Commands
 
-{{DEV_COMMANDS}}
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start app in dev mode (electron-vite dev) |
+| `npm run build` | Type-check then build (electron-vite build) |
+| `npm run start` | Preview built app (electron-vite preview) |
+| `npm run lint` | Lint with ESLint (cached) |
+| `npm run format` | Format with Prettier |
+| `npm run typecheck` | Type-check node + web TS configs |
+| `npm run build:mac` | Build + package macOS |
+| `npm run build:win` | Build + package Windows |
+| `npm run build:linux` | Build + package Linux |
 
 ## Architecture
 
-{{ARCHITECTURE_DETAILS}}
+mintEnvoy follows Electron's three-process model: a **main** process (Node.js — app lifecycle + native APIs), a **preload** bridge (contextIsolation-safe IPC surface between main and renderer), and a **renderer** process (React 19 UI). UI state is held in zustand; local persistence via electron-store; outbound HTTP via undici; auto-update via electron-updater. Bundled by electron-vite, packaged by electron-builder.
 
-{{PACKAGE_STACKS_SECTION}}
+| Package | Language | Framework | Build Tool | Test Command |
+|---------|----------|-----------|------------|--------------|
+| . | TypeScript | React | vite |  |
 
 ## Workflow
 
@@ -124,7 +154,24 @@ When the user points out a defect AND you confirm it is real by reading the actu
 
 ## Available Agents
 
-{{AGENT_LIST}}
+- ac-verifier
+- api-designer
+- architect
+- backend-engineer
+- code-reviewer
+- db-engineer
+- design-auditor
+- devils-advocate
+- devops-engineer
+- frontend-engineer
+- migration-engineer
+- mobile-engineer
+- performance-analyst
+- qa-engineer
+- qa-reviewer
+- runtime-debugger
+- security-reviewer
+- tech-writer
 
 Agent selection is automatic in `/implement` based on the task's assigned agent.
 
@@ -175,7 +222,7 @@ The hook messages reference codebase-memory-mcp tools exclusively (`search_graph
 
 ## Placeholder Convention
 
-Any `{{UPPERCASE}}` marker (e.g., `{{PROJECT_NAME}}`, `{{LANGUAGE}}`) in a template file is a substitution placeholder. Each marker is replaced with the user's answer or a detected value before the file is presented to the user.
+Any `{{UPPERCASE}}` marker (e.g., `mintenvoy`, `TypeScript`) in a template file is a substitution placeholder. Each marker is replaced with the user's answer or a detected value before the file is presented to the user.
 
 Authors of template files — constitution, agent files, docs, this CLAUDE.md — may use these placeholders freely. Readers must never see literal `{{...}}` text in substituted output; if a placeholder reaches the user verbatim, the substitution step is broken or the marker name is wrong.
 
@@ -217,7 +264,9 @@ Authors of template files — constitution, agent files, docs, this CLAUDE.md �
 - **Checkpoint commits**: `[checkpoint] Pre-type: description` (squashed into final commit)
 
 ### Attribution
-{{COMMIT_ATTRIBUTION}}
+
+
+Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Rules
 - Keep commit title under 72 characters
@@ -267,7 +316,7 @@ docs/
 - Md files are auto-indexed by codebase-memory-mcp; `search_graph(query="<fuzzy topic>")` plus `search_code(pattern)` together surface md narrative + code structure
 - `docs/glossary.md` is the project-tier consolidated glossary produced by Phase B — 30-150 CBM-classified terms (code-anchored / fuzzy-anchored / prose-only) with 1-2 sentence definitions and cite-back paths; concern-tier Purpose paragraphs still carry inline disambiguation
 - See `.devforge/storage-rules.md` for full conventions including density rules + cite-back validation
-- **Wrapper mode**: All artifacts (`specs/`, `docs/`, `constitution.md`) live in the wrapper root, NOT inside `{{PROJECT_ROOT}}`
+- **Wrapper mode**: All artifacts (`specs/`, `docs/`, `constitution.md`) live in the wrapper root, NOT inside `.`
 
 ## Session Continuity
 

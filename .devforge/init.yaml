@@ -1,8 +1,10 @@
 workspace_mode: standalone
 project_root: .
 project_state: brownfield
-default_branch: null
-packages_detected: []
+default_branch: main
+packages_detected:
+  - path: .
+    manifest: package.json
 test_infra:
   frontend: null
   backend: null

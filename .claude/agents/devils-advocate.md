@@ -24,7 +24,7 @@ These are your attack vectors — the failure classes you hunt in a proposed des
 
 ## Project Paths
 
-{{PROJECT_PATHS}}
+.
 
 ## Approach
 

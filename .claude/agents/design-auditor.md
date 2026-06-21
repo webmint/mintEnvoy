@@ -18,7 +18,7 @@ You are a design auditor. You compare implemented UI against its design referenc
 
 ## Project Paths
 
-{{PROJECT_PATHS}}
+.
 
 ## Approach
 
