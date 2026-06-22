@@ -16,8 +16,6 @@ A desktop API client built with Electron, React, and TypeScript
 - **Lint Command**: `eslint --cache .`
 - **Project Root**: .
 
-
-
 ## Project Structure
 
 ```text
@@ -42,34 +40,34 @@ mintenvoy/
 
 ## Development Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start app in dev mode (electron-vite dev) |
-| `npm run build` | Type-check then build (electron-vite build) |
-| `npm run start` | Preview built app (electron-vite preview) |
-| `npm run lint` | Lint with ESLint (cached) |
-| `npm run format` | Format with Prettier |
-| `npm run typecheck` | Type-check node + web TS configs |
-| `npm run build:mac` | Build + package macOS |
-| `npm run build:win` | Build + package Windows |
-| `npm run build:linux` | Build + package Linux |
+| Command               | Description                                 |
+| --------------------- | ------------------------------------------- |
+| `npm run dev`         | Start app in dev mode (electron-vite dev)   |
+| `npm run build`       | Type-check then build (electron-vite build) |
+| `npm run start`       | Preview built app (electron-vite preview)   |
+| `npm run lint`        | Lint with ESLint (cached)                   |
+| `npm run format`      | Format with Prettier                        |
+| `npm run typecheck`   | Type-check node + web TS configs            |
+| `npm run build:mac`   | Build + package macOS                       |
+| `npm run build:win`   | Build + package Windows                     |
+| `npm run build:linux` | Build + package Linux                       |
 
 ## Architecture
 
 mintEnvoy follows Electron's three-process model: a **main** process (Node.js — app lifecycle + native APIs), a **preload** bridge (contextIsolation-safe IPC surface between main and renderer), and a **renderer** process (React 19 UI). UI state is held in zustand; local persistence via electron-store; outbound HTTP via undici; auto-update via electron-updater. Bundled by electron-vite, packaged by electron-builder.
 
-| Package | Language | Framework | Build Tool | Test Command |
-|---------|----------|-----------|------------|--------------|
-| . | TypeScript | React | vite |  |
+| Package | Language   | Framework | Build Tool | Test Command |
+| ------- | ---------- | --------- | ---------- | ------------ |
+| .       | TypeScript | React     | vite       |              |
 
 ## Workflow
 
 ### Spec-Driven Development Flow
 
 ```
-/setup-wizard → /constitute → /onboard → /research OR /discover → /specify → /plan → [/grill] → /breakdown → /implement → /review → /verify → /summarize → /finalize
-   (once)         (once)       (once)    (per feat — required)     (per feat)  (per feat)  (optional,   (per feat)   (per task)    (per feat) (per feat) (per feat)  (per feat)
-                                                                                          high-stakes)
+/init-forge → /generate-docs → /configure → /constitute → /research OR /discover → /specify → /plan → [/grill] → /breakdown → /implement → /review → /verify → /summarize → /finalize
+  (once)         (once)         (once)       (once)     (per feat — required)     (per feat)  (per feat)  (optional,   (per feat)   (per task)    (per feat) (per feat) (per feat)  (per feat)
+                                                                                                        high-stakes)
 ```
 
 `/research` (bug/enhancement against existing code) OR `/discover` (greenfield) is a **required precondition** for `/specify` — `/specify` blocks until a research or discover handoff exists. Use `/research` when investigating existing code, `/discover` when surveying a greenfield idea; the two cover complementary intake lanes, and either one satisfies the `/specify` gate.
@@ -91,62 +89,75 @@ mintEnvoy follows Electron's three-process model: a **main** process (Node.js �
 `/research` and `/discover` are read-only and produce no spec themselves, but their handoffs are a required precondition for `/specify` — so they belong to the spec pipeline above, not to the standalone group below.
 
 Standalone (no pipeline connection — runs outside the spec pipeline):
+
 - `/audit` — Adversarial whole-codebase quality + system-design + best-practices review
 - `/report-bug` — Pure-capture bug report: writes one `bugs/NNN-<slug>.md` (Status Open, Source manual) and stops; dispatches no agent
 
 ### Command Details
 
 #### `/research "<topic>"` (required intake lane for `/specify`)
+
 Investigate a bug or enhancement against the existing codebase and produce a structured research report grounded in the codebase-memory-mcp graph + `docs/`. Hard-gated on the 4-command setup chain (`/init-forge` → `/generate-docs` → `/configure` → `/constitute`). Read-only — does not modify code; the run writes a research `handoff.json` that `/specify` auto-discovers and requires (see `/specify` Phase 0.4 — a research OR discover handoff is a mandatory precondition), plus a copy-pasteable `/specify` block (manual, no auto-dispatch). Proportionate: scales down to a fast pass for a trivial bug.
 
 #### `/discover "<feature idea>"` (required intake lane for `/specify`, greenfield)
+
 Pre-`/specify` discovery for a greenfield feature — surveys internal prior art then the web, and produces a fit-checked discovery report with design options (typically 2-3) and a build-vs-buy verdict. Same 4-command setup-chain hard gate. Read-only — does not modify code; the run writes a discover `handoff.json` that `/specify` auto-discovers and requires (the greenfield counterpart to `/research`'s handoff; either one satisfies the `/specify` Phase 0.4 gate), plus a copy-pasteable `/specify` block (manual, no auto-dispatch).
 
 #### `/specify "feature description"`
+
 Authors a structured 9-section feature spec at `specs/NNN-<feature-name>/spec.md` with EARS-validated acceptance criteria. Hard-gated on the 4-command setup chain (`/init-forge` → `/generate-docs` → `/configure` → `/constitute`). **Requires approval before proceeding**; on approve, writes a specify→plan `handoff.json` + a manual-next-step `/plan` block (no auto-dispatch). Auto-creates a `spec/NNN-short-desc` branch when on the default branch.
 
 #### `/plan [spec-file]`
+
 Takes an approved spec and produces a technical plan: architecture decisions, data model, API contracts, research. Saves to `specs/[feature]/plan.md`. **Requires approval before breakdown.**
 
 #### `/breakdown [plan-file]`
+
 Takes an approved plan and generates ordered, atomic tasks with dependencies, agent assignments, and verifiable Expects/Produces contracts. Saves task files to `specs/[feature]/tasks/` and writes a structured `specs/[feature]/breakdown-handoff.json` (the producer side of the breakdown→`/implement` handoff). **Requires approval before execution.**
 
 #### `/grill [plan-file]`
+
 **Optional, opt-in** design-time adversarial review of the completed `plan.md` — the design-level mirror of `/review`, positioned between `/plan` and `/breakdown` so a fatally-flawed design is killed before `/breakdown` decomposes it. Run it for high-stakes plans (new architecture / dependency / data model / security); it is NOT a mandatory gate. Dispatches the `devils-advocate` adversary plus a refutation pass (architect-excluded `[code-reviewer, qa-reviewer, security-reviewer]`), reusing the shared refutation engine. The adversary reads `plan.md` + `spec.md` + the recon dossier + `constitution.md` + a scoped three-ring codebase slice, with self-gated web-verification of the plan's external claims. Writes `specs/[feature]/grill.md` with a recommended 4-way disposition — PROCEED / REVISE-PLAN / RE-ENTER-UPSTREAM / KILL; on RE-ENTER-UPSTREAM it also emits a backward re-entry seed (`specs/[feature]/grill-seed.json`) for the upstream `/research`/`/discover`/`/specify` commands to consume. The USER owns the final verdict at the `/breakdown` approval gate.
 
 #### `/implement`
+
 Drains an approved feature's breakdown tasks one at a time — NO arguments; auto-resolves the lowest-numbered incomplete feature and its next dependency-ready task, and loops. Per task: dispatch the assigned agent → scope-aware verify with self-repair (type-check / lint / build / test) → an autonomous parallel review **panel of four read-only reviewers** (code-reviewer + qa-reviewer + security-reviewer + performance-analyst, merged to a single verdict) → forcing-functions gate → a per-task HARD GATE where all findings are fixed before approval (the human reviews the ready diff and approves/repairs/skips/stops; nothing is committed before approval; approval is reachable only from a fully-clean panel, and any reviewer conflicts surface as focused questions first). On approve: mark the task complete, single WIP commit, refresh the codebase-memory graph, advance. WIP commits accumulate and are squashed by `/finalize`. Writes a `.devforge/wip.md` marker + git checkpoint for crash recovery.
 
 #### `/review [spec-file]`
+
 Feature-level emergent cross-task review — runs after `/implement` drains a feature's tasks, before `/verify`. Dispatches a 5-finder ensemble (code-reviewer, architect, qa-reviewer, security-reviewer, performance-analyst) in emergent-cross-task mode over the ASSEMBLED feature diff (all the feature's tasks together), then a refutation pass cross-examines each finding — hunting the emergent cross-task issues the `/implement` per-task panel structurally cannot see (cross-task security holes, assembled-data-flow performance, cross-task duplication, architectural drift). Writes a findings-only report to `specs/[feature]/review.md` that `/verify` folds into its verdict and `/audit`'s recurring-issue scan reads. Read-only — findings only, NO verdict (the verdict is `/verify`'s).
 
 #### `/verify [spec-file]`
+
 The pipeline step after `/review`, before `/summarize`/`/finalize` — it OWNS the verdict (`/review` is findings-only). Proves the spec's acceptance criteria PASS/FAIL/PARTIAL via the **ac-verifier** agent, whose method is set by `ac_verification_mode` in `.devforge/project-config.json` (`runtime-assisted` probes the running app via Chrome DevTools MCP and/or API using the `ac_runtime_*` config; `tests` / `code-only` / `off` read code). Runs the assembled-feature mechanical checks (type-check / lint / build / test across all the feature's tasks together, reusing `implement_helper verify-touched` report-only — no self-repair), folds in `/review`'s findings (warns if `review.md` is missing), and renders the single APPROVED / NEEDS WORK / REJECTED verdict to `specs/[feature]/verification.md`. On APPROVED it flips the spec `**Status**:` → Complete (after a task-completion cross-check) and ticks the passed AC boxes; on NEEDS WORK it can file bugs to `bugs/`; on REJECTED (a spec-level problem) the user revises the spec via `/specify` → `/plan` → `/breakdown` and re-implements, rather than filing bugs. It does NOT re-review — `/review` owns cross-task code-quality reasoning.
 
 #### `/fix`
+
 **Proposal-only gated remediation loop** — NOT a linear pipeline step and NOT a cold bug-fixer. OFFERED (never auto-invoked — the model proposes, the user types `/fix`) off `/review`'s findings, `/verify`'s NEEDS WORK verdict, or an in-window conversational defect the user raised and the model code-confirmed, all inside the post-`/implement`/pre-`/summarize` window. Consumes those already-diagnosed findings (`specs/[feature]/review.md` / `specs/[feature]/verification.md`) — it never invents a defect — triages and scopes them, then reuses `/implement`'s back half by CALLING the `implement_helper` verbs (scope-aware verify + self-repair → four-reviewer panel → forcing-functions gate → two-stage hard gate → `[WIP] fix:` commit); it copies no machinery. Writes NO `bugs/` file (`/report-bug` is the separate "defer" arm). A "fix" that turns out to need an architectural/behavior change bounces to `/specify` instead.
 
 #### `/summarize [spec-file]`
+
 The pipeline step after `/verify` approves, before `/finalize` — pure SYNTHESIS that renders a PR-ready feature narrative: what was built (in user terms), change stats, key decisions, deviations, and AC status. Gates on the spec `**Status**: Complete` flip that `/verify` owns. Agent-free and renders NO verdict — the AC status is read from `/verify`'s `specs/[feature]/verification.md`, NOT re-derived from the spec. Consumes the spec + plan + each task's `## Completion Notes` + git change stats + `verification.md`, and writes ONLY `specs/[feature]/summary.md` (mutates none of its inputs). Idempotent — a re-run overwrites `summary.md`; the run makes a `[WIP]` commit that `/finalize` squashes.
 
 #### `/finalize [spec-file]`
+
 Dispatches tech-writer for surgical `docs/` updates (`docs/<package>/`, `docs/architecture.md`) — not a dropped `docs/features/` tier — then squashes all WIP commits into a single clean feature commit. Gate-checked: spec must be Complete (set by `/verify`). The last step before creating a PR.
 
+#### `/generate-docs`
+
+One-time brownfield doc generation (second command in the 4-command setup chain) — reads the indexed codebase and builds the `docs/` knowledge base in bottom-up tiers (concern → package → project + glossary) via the `generate_docs_helper` setter API (tech-writer in Skeleton-Fill Mode). Handles both monorepo and standalone single-root layouts. The replacement for the retired `/onboard`. Re-run when the codebase structure changes significantly.
+
 #### `/constitute`
+
 One-time deep codebase analysis (or interview for greenfield projects) that generates `constitution.md` — non-negotiable rules, architecture decisions, patterns.
 
-#### `/onboard`
-One-time deep codebase scan for existing projects. Uses the tech-writer agent to generate comprehensive documentation in `docs/` — the knowledge base for all agents. Run once after `/constitute`.
-
 #### `/audit [--full | --uncommitted | --top N | path] [--passes N]`
+
 Standalone adversarial whole-codebase audit for periodic "second opinion" quality reviews. Three scope modes: **broad** (`--full` / empty — whole codebase), **hotspot** (`--top N`, default 25 — risk-scored files by churn × CBM-callers × size, for large repos), **narrow** (file / directory / `--uncommitted`). **Full-spectrum** — one run hunts five dimensions: mislogic (lying names/comments, dead branches, cross-file contradictions) + **system design** (layering/SOLID/god-component) + **language/framework best practices** (type-safety suppression, untyped boundaries, reactivity/lifecycle misuse, perf-idiom smells) + **duplication/divergence** + **constitution-principle adherence** — system/software design, NOT visual. Launches code-reviewer, architect, qa-reviewer, and security-reviewer in **adversarial mode** with two structured checklists (Mislogic Hunt + Best-Practices/System-Design); each finding declares a `Category` (`mislogic | system_design | best_practice | duplication | security | blind_spot`) and the report buckets by it. Subjective best-practice findings are marked `Likely`/`Speculative`, never `Certain`. Reads up to 5 recent `specs/*/review.md` files to track recurring/unresolved issues across features. Anti-hallucination grounding: every finding must include a verbatim Evidence quote from the actual code; Phase 4 validation re-reads cited files and discards ungrounded findings. Writes dated reports to `audits/YYYY-MM-DD-audit.md` and prints inline summary. `--passes N` (clamped 1–3) overrides the **mode-conditional default** — broad/hotspot default to 2 passes (union findings to widen recall), narrow defaults to 1 — and composes with all three scope modes; multi-pass costs K× and is for periodic deep audits, and multi-pass recurrence is descriptive only — it no longer inflates a finding's confidence. Before ranking, a **refutation pass** cross-examines each finding (routed to a non-author reviewer; default-dismiss unless the defect is demonstrated from quoted code) and gates which findings reach the report. The report then separates CONFIRMED findings (the `## Top N Priorities` + `## Findings by File` headline) from DISMISSED + low-stakes uncertain findings (a `## Dismissed / Worth a Glance` appendix); high-stakes `[CONTESTED]` findings (`security` / `[CONSTITUTION-VIOLATION]` the refuter could not confirm) are surfaced in the headline flagged, never buried. Read-only, not auto-committed, **NOT part of any workflow chain** — invoke manually after several specs ship.
 
 #### `/report-bug "<description>" [--file <path>] [--severity Critical|Warning|Info]`
+
 Standalone **pure-capture** bug report — writes one `bugs/NNN-<slug>.md` record (`**Status**: Open`, `**Source**: manual`, the description, the optional `--file`, and the severity — default `Warning`) and stops. The `NNN` prefix is assigned by the helper (it scans `bugs/` for the highest number and increments); the file lands in the working tree uncommitted. Dispatches no agent, reads no source to confirm the defect, and does NOT advance or close the bug — the `Open → In Progress → Fixed` lifecycle is manual. The file-it-for-later counterpart to `/fix`'s remediate-now path; it never proposes or chains into `/fix`. Forward pointer only: `/research "<description>"` to investigate, or `/specify "<description>"` to address it as a feature. **NOT part of any workflow chain.**
-
-#### Additional Commands
-
-- `/setup-wizard` — Re-run initial project setup (regenerates config files)
 
 ### Conversational fix-or-file offer
 
@@ -178,6 +189,7 @@ Agent selection is automatic in `/implement` based on the task's assigned agent.
 ## Enforced Quality Gates
 
 ### Hard Gates (block until approved)
+
 - Spec approval → before `/plan` can run
 - Plan approval → before `/breakdown` can run
 - Task breakdown approval → before `/implement` can start
@@ -204,13 +216,13 @@ Full specification in `/implement`.
 
 Four hook scripts ship at `.claude/hooks/` and are wired in `.claude/settings.json` to enforce the codebase-memory-mcp (CBM) discovery protocol at runtime. They steer code exploration toward `search_graph`, `trace_path`, `get_code_snippet`, `search_code`, and `query_graph` instead of raw `Read`/`Grep`/`Glob` or shell `grep`/`find`/`cat` over source files.
 
-| Hook | Event | Matcher | Behavior |
-|---|---|---|---|
-| `cbm-code-discovery-gate` | `PreToolUse` | `Read\|Grep\|Glob` | Blocks (exit 2) on the first matched call of the session and sets the gate file, with a stderr reminder to use CBM tools; subsequent matches in the same session pass through (exit 0). Gate file: `/tmp/cbm-code-discovery-gate-$PPID`. |
-| `bash-ban-raw-tools` | `PreToolUse` | `Bash` | First call per session whose `command` contains `grep`/`find`/`cat` over a source-extension file (`.py`, `.ts`, `.tsx`, `.vue`, `.go`, …) blocks (exit 2); other Bash calls and subsequent same-session matches pass through. Gate file: `/tmp/bash-ban-raw-tools-$PPID`. |
-| `cbm-mcp-marker` | `PostToolUse` | `Bash\|mcp__codebase-memory-mcp__.*` | Appends `<UTC timestamp> <tool_name>` to `.devforge/cbm-usage.log` for every matched call (Bash + every CBM MCP tool); filter the log on the `mcp__` prefix to isolate the CBM-adoption signal. Always exit 0; never blocks. |
-| `cbm-session-reminder` | `SessionStart` | `startup\|resume\|clear\|compact` | Stdout is injected as session context; re-states the CBM-first protocol after compaction / resume / clear. |
-| `cbm-sync-session-start` | `SessionStart` | `startup\|resume\|clear\|compact` | Calls `.devforge/lib/cbm_sync_helper check`; emits stdout context block instructing Claude to run `mcp__codebase-memory-mcp__detect_changes` (drift) or `mcp__codebase-memory-mcp__index_repository` (missing) plus `cbm_sync_helper write` to refresh the stamp. Silent on `current` / `not-a-git-repo`. Stamp file: `.devforge/cbm-last-indexed-sha`. |
+| Hook                      | Event          | Matcher                              | Behavior                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------- | -------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cbm-code-discovery-gate` | `PreToolUse`   | `Read\|Grep\|Glob`                   | Blocks (exit 2) on the first matched call of the session and sets the gate file, with a stderr reminder to use CBM tools; subsequent matches in the same session pass through (exit 0). Gate file: `/tmp/cbm-code-discovery-gate-$PPID`.                                                                                                                |
+| `bash-ban-raw-tools`      | `PreToolUse`   | `Bash`                               | First call per session whose `command` contains `grep`/`find`/`cat` over a source-extension file (`.py`, `.ts`, `.tsx`, `.vue`, `.go`, …) blocks (exit 2); other Bash calls and subsequent same-session matches pass through. Gate file: `/tmp/bash-ban-raw-tools-$PPID`.                                                                               |
+| `cbm-mcp-marker`          | `PostToolUse`  | `Bash\|mcp__codebase-memory-mcp__.*` | Appends `<UTC timestamp> <tool_name>` to `.devforge/cbm-usage.log` for every matched call (Bash + every CBM MCP tool); filter the log on the `mcp__` prefix to isolate the CBM-adoption signal. Always exit 0; never blocks.                                                                                                                            |
+| `cbm-session-reminder`    | `SessionStart` | `startup\|resume\|clear\|compact`    | Stdout is injected as session context; re-states the CBM-first protocol after compaction / resume / clear.                                                                                                                                                                                                                                              |
+| `cbm-sync-session-start`  | `SessionStart` | `startup\|resume\|clear\|compact`    | Calls `.devforge/lib/cbm_sync_helper check`; emits stdout context block instructing Claude to run `mcp__codebase-memory-mcp__detect_changes` (drift) or `mcp__codebase-memory-mcp__index_repository` (missing) plus `cbm_sync_helper write` to refresh the stamp. Silent on `current` / `not-a-git-repo`. Stamp file: `.devforge/cbm-last-indexed-sha`. |
 
 ### Disabling individual hooks
 
@@ -229,6 +241,7 @@ Authors of template files — constitution, agent files, docs, this CLAUDE.md �
 ## Key Rules
 
 ### Always
+
 1. **Read before write** — always read files before modifying them
 2. **Constitution is law** — `constitution.md` rules override everything except user instructions
 3. **Minimal changes** — every change should impact as little code as possible
@@ -245,6 +258,7 @@ Authors of template files — constitution, agent files, docs, this CLAUDE.md �
 14. **Crash recovery** — `/implement` writes a WIP marker (`.devforge/wip.md`) before execution and creates git checkpoints at each phase. If interrupted, the next run detects it and offers resume/rollback/skip options.
 
 ### Never
+
 1. **Never swallow errors** — empty catch blocks are forbidden; handle, re-throw, or log with reason
 2. **Never commit secrets** — no API keys, tokens, or credentials in code
 3. **Never commit debug artifacts** — no console.log, debugger, print() left behind
@@ -255,6 +269,7 @@ Authors of template files — constitution, agent files, docs, this CLAUDE.md �
 ## Commit Convention
 
 ### Format
+
 - **Final commits**: Conventional Commits — `type(scope): description`
   - `feat(scope):` — new feature
   - `fix(scope):` — bug fix
@@ -265,10 +280,10 @@ Authors of template files — constitution, agent files, docs, this CLAUDE.md �
 
 ### Attribution
 
-
 Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Rules
+
 - Keep commit title under 72 characters
 - No period at end of title
 - Body is optional; use for non-obvious "why"
@@ -323,6 +338,7 @@ docs/
 At the start of each session, read `.devforge/session-state.md` if it exists. It contains a compact snapshot from the last completed task — current feature, progress, recent decisions, and recently modified files.
 
 This file is:
+
 - **Fixed-size** — always fully overwritten, never appended, max ~40 lines
 - **A sliding window** — only tracks the last 3 tasks' modifications and last 3 decisions
 - **Not a history log** — history lives in task completion notes (`specs/`) and `MEMORY.md`
@@ -339,4 +355,4 @@ If a task execution is interrupted (power loss, terminal crash, network drop), t
 - [Constitution](constitution.md) — Project rules and patterns
 - [Specs](specs/) — Feature specifications, plans, and tasks
 - [Memory](.devforge/memory.md) — Persistent learnings
-- [Project Config](.devforge/project-config.json) — Wizard answers plus per-stack arrays (`LANGUAGES`, `FRAMEWORKS`, `ARCHITECTURES`, `ERROR_HANDLINGS`, `API_LAYERS`, `TESTINGS`) and per-package `PACKAGE_STACKS` records
+- [Project Config](.devforge/project-config.json) — `/configure` answers plus per-stack arrays (`LANGUAGES`, `FRAMEWORKS`, `ARCHITECTURES`, `ERROR_HANDLINGS`, `API_LAYERS`, `TESTINGS`) and per-package `PACKAGE_STACKS` records

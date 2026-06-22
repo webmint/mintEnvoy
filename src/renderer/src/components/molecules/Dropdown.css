@@ -1,0 +1,234 @@
+/*
+ * Dropdown.css — Semantic styles for the Dropdown molecule component.
+ *
+ * Styling uses design tokens (CSS custom properties) from tokens.css, which is
+ * imported globally in main.tsx (task 006) and therefore resolves at runtime.
+ * Every var() call includes a defensive fallback literal so the rule is still
+ * legible if the sheet loads before tokens.css in an isolated test environment.
+ * Token names used: --bg-elev, --border, --border-faint, --text, --text-muted,
+ * --text-faint, --accent, --bg-hover, --bg-active, --radius-md, --radius-sm,
+ * --shadow-md, --fs-base, --fs-sm.
+ *
+ * Content: floating menu card with elevation shadow and border.
+ *
+ * Positioning: handled entirely by Radix DropdownMenu.Content via floating-ui:
+ *   - avoidCollisions: flips from the preferred side when the viewport edge
+ *     would clip the menu (AC-5).
+ *   - collisionPadding: guarantees an 8 px gap from every viewport edge (AC-5).
+ *   - sideOffset: sets the gap between the trigger and the menu edge.
+ * No CSS or JS positioning is written here.
+ *
+ * Motion: scale + fade animations are gated behind prefers-reduced-motion
+ * per AC-14 — users who prefer reduced motion get instant transitions.
+ *
+ * No inline styles are set here or in Dropdown.tsx (AC-18).
+ */
+
+/* ---------------------------------------------------------------------------
+ * Content panel (the floating menu)
+ * Radix appends this via a Portal so it escapes stacking contexts.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * The floating menu card.
+ * Layout: vertical flex column of items with a border + shadow.
+ * Radix data-state attribute drives entry/exit animations.
+ */
+.dropdown-content {
+  min-width: 160px;
+  max-width: 280px;
+  padding: 0.25rem;
+  border-radius: var(--radius-md, 9px);
+  border: 1px solid var(--border, #e8e6e3);
+  background-color: var(--bg-elev, #ffffff);
+  color: var(--text, #18181b);
+  box-shadow: var(--shadow-md, 0 4px 16px -4px rgba(24, 24, 27, 0.08));
+  /* Stack above most app content; Portal placement avoids z-index wars */
+  z-index: 1000;
+  /* Scale + fade-in animation — disabled for reduced-motion users below */
+  animation: dropdown-content-in 140ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+}
+
+/* Radix sets data-state="closed" while the exit animation plays. */
+.dropdown-content[data-state='closed'] {
+  animation: dropdown-content-out 100ms ease-in;
+}
+
+/* Focus-visible ring on the panel itself when navigated to by keyboard */
+.dropdown-content:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Items
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Interactive menu item.
+ * Uses CSS data-highlighted (set by Radix on keyboard/pointer focus)
+ * to drive the hover/active appearance so keyboard and pointer parity is
+ * maintained without separate :hover and :focus rules.
+ */
+.dropdown-item {
+  /* Reset button defaults — items may be rendered on <div> by Radix */
+  appearance: none;
+  background: none;
+  border: none;
+  margin: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radius-sm, 5px);
+  font-size: var(--fs-base, 12.5px);
+  font-family: inherit;
+  line-height: 1.4;
+  color: var(--text, #18181b);
+  cursor: default;
+  /* Prevent text selection while navigating */
+  user-select: none;
+  /* Smooth background transition for hover/highlight */
+  transition: background-color 80ms ease, color 80ms ease;
+  /* Ensure full-width layout inside the content panel */
+  box-sizing: border-box;
+  text-align: left;
+}
+
+/* Radix sets data-highlighted when this item is the focused item
+   (works for both keyboard focus and pointer hover — AC-2). */
+.dropdown-item[data-highlighted] {
+  background-color: var(--bg-hover, #f0efed);
+  color: var(--text, #18181b);
+  /* Remove the default browser focus outline — highlight bg carries the signal */
+  outline: none;
+}
+
+.dropdown-item[data-highlighted]:active {
+  background-color: var(--bg-active, #e8e6e3);
+}
+
+/* ---------------------------------------------------------------------------
+ * Disabled item modifier
+ * Radix also sets aria-disabled; we scope to our class for style specificity.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Disabled state — item is rendered but not interactive.
+ * Radix prevents selection via `aria-disabled` and the `disabled` prop.
+ */
+.dropdown-item--disabled,
+.dropdown-item[data-disabled] {
+  color: var(--text-faint, #a1a1aa);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.dropdown-item--disabled[data-highlighted],
+.dropdown-item[data-disabled][data-highlighted] {
+  background-color: transparent;
+}
+
+/* ---------------------------------------------------------------------------
+ * Item icon (leading column)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Leading icon cell.  The Icon atom renders an aria-hidden SVG so the icon
+ * is decorative; the label text is the accessible name for the item.
+ */
+.dropdown-item__icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--text-muted, #71717a);
+  /* Nudge down 1 px to optically align icon with cap height */
+  margin-top: 1px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Item label (text column)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Label text.  Rendered as escaped JSX text by the component (CWE-79).
+ * Truncates with an ellipsis rather than overflowing the menu panel.
+ */
+.dropdown-item__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+ * Separator
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Horizontal rule between groups of menu items.
+ * Rendered as `DropdownMenu.Separator` (role="separator" in the DOM).
+ */
+.dropdown-separator {
+  height: 1px;
+  background-color: var(--border-faint, #f0efed);
+  margin: 0.25rem 0.375rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Group label
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Non-interactive group label above a set of related items.
+ */
+.dropdown-label {
+  padding: 0.375rem 0.625rem 0.125rem;
+  font-size: var(--fs-sm, 10.5px);
+  font-weight: 600;
+  color: var(--text-muted, #71717a);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  user-select: none;
+  cursor: default;
+}
+
+/* ---------------------------------------------------------------------------
+ * Entry / exit keyframe animations
+ * Gated behind prefers-reduced-motion: reduce (AC-14).
+ * The transform-origin is provided by Radix via --radix-dropdown-menu-content-
+ * transform-origin so the scale originates from the trigger position.
+ * ------------------------------------------------------------------------- */
+
+@keyframes dropdown-content-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dropdown-content-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropdown-content,
+  .dropdown-content[data-state='closed'] {
+    animation: none;
+  }
+}

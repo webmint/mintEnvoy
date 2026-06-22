@@ -1,7 +1,7 @@
 ---
 name: pr-review
 description: Personal-overlay PR review of a foreign-repo PR — fetch diff + ticket, run code-smell heuristics, compute blast radius via CBM, check scope drift, dispatch cavecrew-reviewer, render terse findings locally.
-argument-hint: "<PR#>"
+argument-hint: '<PR#>'
 arguments: [pr_number]
 disable-model-invocation: true
 allowed-tools:
@@ -93,7 +93,7 @@ Branch on `status`:
 
 - **`ok`** → continue to Phase 0.
 - **`stale`** → surface the helper's JSON to the reviewer verbatim as a fenced code block, then dispatch `mcp__codebase-memory-mcp__detect_changes` per the `mcp_tool_hint`. After the MCP call returns, run `.devforge/lib/cbm_sync_helper write` to refresh the stamp. Continue to Phase 0.
-- **`absent`** → surface the helper's JSON to the reviewer verbatim as a fenced code block. The dict carries `cost_estimate_usd` (rule-of-thumb $1 per 1000 source files, capped at 10 000 files). Quote that estimate to the reviewer as plain prose alongside the JSON, then ask via AskUserQuestion: `"CBM index missing; estimated indexing cost ~$<value> USD. Run index_repository?"` with options `["index", "skip"]`. Single-line question text. End the turn. The reviewer's reply opens the next turn. On `index`: dispatch `mcp__codebase-memory-mcp__index_repository` per the `mcp_tool_hint`, then run `.devforge/lib/cbm_sync_helper write`. Continue to Phase 0. On `skip`: continue to Phase 0; Phase 3.5 blast-radius fill will skip (no graph to query).
+- **`absent`** → surface the helper's JSON to the reviewer verbatim as a fenced code block. The dict carries `cost_estimate_usd` (rule-of-thumb $1 per 1000 source files, capped at 10 000 files). Quote that estimate to the reviewer as plain prose alongside the JSON, then ask via AskUserQuestion: `"CBM index missing; estimated indexing cost ~$<value> USD. Run index_repository?"`with options`["index", "skip"]`. Single-line question text. End the turn. The reviewer's reply opens the next turn. On `index`: dispatch `mcp**codebase-memory-mcp**index_repository`per the`mcp_tool_hint`, then run `.devforge/lib/cbm_sync_helper write`. Continue to Phase 0. On `skip`: continue to Phase 0; Phase 3.5 blast-radius fill will skip (no graph to query).
 - **`not-a-git-repo`** → surface the helper's JSON to the reviewer verbatim as a fenced code block. End the turn with: `"Target is not a git repository. /pr-review requires a git working tree."` No further phases run.
 
 ### Phase 0 — Forge-state tier detection
@@ -272,13 +272,13 @@ Observable success criteria (the reviewer can check each in the order below):
 
 The reviewer's primary read target is `findings.md`. The full artefact set, with consumer:
 
-| Artefact | Path | Consumer |
-|---|---|---|
-| Findings report | `.devforge/pr-reviews/$pr_number/findings.md` | Reviewer reads + manually translates to PR comments |
-| Reviewer brief | `.devforge/pr-reviews/$pr_number/brief.md` | Cavecrew agent during Phase 6.5; reviewer may read for debugging |
-| Canonical state | `.devforge/pr-reviews/$pr_number/state.json` | Helper verbs across phases; reviewer may inspect with `jq` |
-| Replay bundle | `.devforge/pr-reviews/$pr_number/pr-review-bundle.json` | Regression-test replay corpus; future heuristic-catalog validation |
-| Corpus index | `.devforge/pr-reviews/_corpus_index.json` | Reviewer cross-PR lookup; corpus-replay tooling |
+| Artefact        | Path                                                    | Consumer                                                           |
+| --------------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
+| Findings report | `.devforge/pr-reviews/$pr_number/findings.md`           | Reviewer reads + manually translates to PR comments                |
+| Reviewer brief  | `.devforge/pr-reviews/$pr_number/brief.md`              | Cavecrew agent during Phase 6.5; reviewer may read for debugging   |
+| Canonical state | `.devforge/pr-reviews/$pr_number/state.json`            | Helper verbs across phases; reviewer may inspect with `jq`         |
+| Replay bundle   | `.devforge/pr-reviews/$pr_number/pr-review-bundle.json` | Regression-test replay corpus; future heuristic-catalog validation |
+| Corpus index    | `.devforge/pr-reviews/_corpus_index.json`               | Reviewer cross-PR lookup; corpus-replay tooling                    |
 
 Findings are NEVER posted to the PR automatically. The reviewer translates each finding into team-appropriate PR-comment language manually — this is the explicit design contract and the reason `/pr-review` is private-overlay rather than team-shared.
 
@@ -294,13 +294,13 @@ This reminder is surfaced to the reviewer as plain prose after the three pre-con
 
 Per-invocation cost estimate (rough Haiku pricing — actual cost varies with diff size, brief size, and CBM index scale):
 
-| Operation | Cost range | When it fires |
-|---|---|---|
-| `cavecrew-reviewer` dispatch (Phase 6.5) | $0.10–0.50 | Every run |
-| CBM `index_repository` (Phase -1, `absent` branch) | $0.10–1.00 | First run against a new repo only; helper surfaces a per-target estimate before dispatch |
-| CBM `detect_changes` (Phase -1, `stale` branch) | <$0.01 | When the local stamp is behind the working tree |
-| CBM `trace_path` per blast probe (Phase 3.5) | ~$0.001 | 100 probes ≈ $0.10 |
-| Helper verbs (Phases -1 through 7.5, helper-side only) | $0 | Every run — helpers are pure-Python + filesystem |
+| Operation                                              | Cost range | When it fires                                                                            |
+| ------------------------------------------------------ | ---------- | ---------------------------------------------------------------------------------------- |
+| `cavecrew-reviewer` dispatch (Phase 6.5)               | $0.10–0.50 | Every run                                                                                |
+| CBM `index_repository` (Phase -1, `absent` branch)     | $0.10–1.00 | First run against a new repo only; helper surfaces a per-target estimate before dispatch |
+| CBM `detect_changes` (Phase -1, `stale` branch)        | <$0.01     | When the local stamp is behind the working tree                                          |
+| CBM `trace_path` per blast probe (Phase 3.5)           | ~$0.001    | 100 probes ≈ $0.10                                                                       |
+| Helper verbs (Phases -1 through 7.5, helper-side only) | $0         | Every run — helpers are pure-Python + filesystem                                         |
 
 **Total typical cost: $0.50–2.00 per medium-sized PR review.** Phase -1's `absent` branch surfaces the per-target indexing cost estimate to the reviewer as plain prose before any spend; the reviewer can opt out via the `skip` branch.
 

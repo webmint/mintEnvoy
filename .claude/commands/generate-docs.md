@@ -256,7 +256,9 @@ Retry on validation failure: re-run Steps 2.S.2–2.S.5 (re-init wipes parent sk
 
 After Phase 2's concern docs are all rendered + validated, run the package tier for every package whose concerns appeared in the concern-tier loop. Two docs per package: `overview.md` + `architecture.md`. Domain glossary lives inline in each Purpose paragraph for in-context disambiguation; project-tier consolidated glossary lives at `docs/glossary.md` produced by Phase B.
 
-For each in-scope package P (derive the unique set from preflight's `concerns[*].package`):
+Derive the unique package set from preflight's `concerns[*].package`. If that set is exactly `{"."}` — a standalone single-root project (one root package, not a monorepo) — SKIP Phase 3 entirely: write NO package-tier `overview.md` / `architecture.md`. With `P="."` the package-overview target `docs/<P>/overview.md` normalizes to `docs/overview.md`, which collides with Phase 4's project-tier `docs/overview.md`. Phase 2's concern docs feed Phase 4 directly in this case (see Step 4.1). Otherwise — any non-`.` package present (monorepo / multi-package) — run Phase 3 as written below.
+
+For each in-scope package P (the unique set just derived from `concerns[*].package`):
 
 ### Step 3.1 — Pull batch input
 
@@ -316,9 +318,9 @@ Frontmatter (same shape as 3.2). Sections:
 
 Same retry semantics as Step 3.2.
 
-## Phase 4 — Project tier loop (after package tier completes)
+## Phase 4 — Project tier loop (after the package tier completes — or, for a single-root project, after the concern tier)
 
-After Phase 3's package overviews + architectures are all rendered + validated, run the project tier. Two docs at `docs/overview.md` and `docs/architecture.md` (NO `<package>` subdir at this tier).
+After Phase 3's package overviews + architectures are all rendered + validated, run the project tier. Two docs at `docs/overview.md` and `docs/architecture.md` (NO `<package>` subdir at this tier). For a single-root project where Phase 3 was skipped, run the project tier directly after Phase 2's concern docs — `project-input` (Step 4.1) seeds the project-tier docs from those concern docs, so no package overviews are required here.
 
 ### Step 4.1 — Pull batch input
 
@@ -327,7 +329,7 @@ After Phase 3's package overviews + architectures are all rendered + validated, 
 ```
 
 Returns JSON with:
-- `package_seeds[]` — frontmatter + Purpose text from each rendered package overview
+- `package_seeds[]` — frontmatter + Purpose text from each rendered package overview. When no package overviews exist under `docs/` (the single-root case where Phase 3 was skipped), `project-input` falls back to seeding `package_seeds[]` from the Phase 2 concern docs (`docs/<concern>/index.md`) instead — so the project tier still has Purpose text to synthesize from.
 - `project_root_files[]` — top-level README/CHANGELOG/package.json comment-rich spans
 - `source_stamp`
 
@@ -379,6 +381,8 @@ The skeleton emits eleven sections — five Phase 1 mechanical (verbatim from `p
 | Navigation Guards | LLM Reads `project-input.nav_guard_files` + router config, extracts `{name, role}` in chain order | `set-overview-navigation-guards` |
 | Test Files | `project-input.test_file_paths` (verbatim) | `set-overview-test-files` |
 | Packages | LLM synthesis from `package_seeds[*]` | `set-doc-packages` |
+
+For single-root projects (Phase 3 skipped), `project-input`'s fallback (Step 4.1) seeds `package_seeds[]` from the concern docs; list those here as the project's top-level source areas, citing each `docs/<concern>/`. Frame them as source areas / modules, not as separate packages — there are no npm/workspace packages on this path. Call `set-doc-packages` with this non-empty array so `validate-doc`'s section-presence check passes naturally — never leave the section empty, or the concern docs are linked nowhere in the project overview.
 
 After Project Structure tree is set, Phase 2 also augments tree leaves with directory-level annotations:
 
@@ -464,9 +468,9 @@ For Conventions: the orchestrator composes all six buckets — including `stylin
 ./.devforge/lib/generate_docs_helper validate-doc --tier project-architecture --target "<project-label>"
 ```
 
-Phase 0 callers using bullet-list `set-doc-cross-cuts` remain functional; Phase 3 callers use the enriched `set-architecture-cross-cuts-detailed` (subsections with code samples). Both target the same `## Cross-Cuts` anchor — last setter call wins.
+Phase 0 callers using bullet-list `set-doc-cross-cuts` remain functional; Track 4 Phase 3 callers use the enriched `set-architecture-cross-cuts-detailed` (subsections with code samples). Both target the same `## Cross-Cuts` anchor — last setter call wins.
 
-Phase 3 ships presence-only validation (sections required + bullet caps). Snippet-fidelity validation (helper reads cited file + diffs against rendered snippet) is a deferred follow-up — same evolution pattern as concern-tier validation (F.5 v0 → enrichment).
+Track 4 Phase 3 ships presence-only validation (sections required + bullet caps). Snippet-fidelity validation (helper reads cited file + diffs against rendered snippet) is a deferred follow-up — same evolution pattern as concern-tier validation (F.5 v0 → enrichment).
 
 ---
 
@@ -578,7 +582,7 @@ Phase B assumes CBM is indexed. Phase 1's `preflight` SUBCMD calls `index_reposi
 ./.devforge/lib/generate_docs_helper verify-all
 ```
 
-Exit 0 = every rendered concern + package doc passes `validate-doc`. Exit 2 = stderr enumerates failures; surface verbatim + STOP (the user re-runs the failed concern / package phase before continuing to Phase 6 Report).
+Exit 0 = every rendered concern doc (and package doc, when Phase 3 ran) passes `validate-doc`. On a single-root project where Phase 3 was skipped, `verify-all` silently no-ops on the absent package-tier docs (no error) and checks the concern + project docs only. Exit 2 = stderr enumerates failures; surface verbatim + STOP (the user re-runs the failed concern or package-tier phase (whichever applied) before continuing to Phase 6 Report).
 
 ---
 
@@ -590,9 +594,12 @@ Print:
 - Concerns skipped via stamp gate: `unchanged`
 - Concerns rendered + validated: count of green
 - Concerns failed after 3 retries: list with paths
-- Packages dispatched (Phase 3): count + skipped count
-- Package overview docs rendered + validated: N
-- Package architecture docs rendered + validated: N
-- Package-tier failures: list with paths
+- Package tier (Phase 3) — print conditionally:
+  - IF Phase 3 was skipped (single-root project): print one line — `Phase 3 (package tier): SKIPPED — single-root project; concern docs feed Phase 4 directly`
+  - OTHERWISE: print the four package-tier lines —
+    - Packages dispatched (Phase 3): count + skipped count
+    - Package overview docs rendered + validated: N
+    - Package architecture docs rendered + validated: N
+    - Package-tier failures: list with paths
 - Glossary (Phase B): rendered N entries; M entries marked `[TODO: human-define]` (list those terms); failed-after-retries: yes/no
 

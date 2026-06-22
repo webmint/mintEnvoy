@@ -1,0 +1,211 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/001-ui-primitives/tasks",
+  "breakdown_completed_at": "2026-06-21T16:05:35Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/001-ui-primitives/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/001-ui-primitives/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/001-ui-primitives/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "set up renderer test stack and radix dependency",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": ["002", "004", "005", "006", "007"],
+      "touched_files": [
+        "package.json",
+        "vitest.config.ts",
+        "playwright.config.ts",
+        "docs/architecture.md"
+      ],
+      "expects": [
+        "`package.json` has no test runner and no `radix-ui` dependency.",
+        "`zustand` and `react` 19 are already present in `package.json`.",
+        "The `@renderer` alias is defined in `electron.vite.config.ts`."
+      ],
+      "produces": [
+        "`package.json` lists `radix-ui` under dependencies and `vitest` + `@testing-library/react` + `@testing-library/user-event` + `jsdom` + a Playwright CT package under devDependencies, plus a `test` script.",
+        "`vitest.config.ts` exists and configures the jsdom environment + the `@renderer` alias.",
+        "`playwright.config.ts` exists configuring component testing.",
+        "`docs/architecture.md` names the renderer test stack (Vitest + Testing Library + Playwright)."
+      ],
+      "ac_addressed": ["AC-20", "AC-24", "AC-16", "AC-17"],
+      "doc_refs": ["docs/architecture.md"],
+      "review_checkpoint": true
+    },
+    {
+      "number": "002",
+      "title": "define the project-owned icon set and lookup",
+      "agent": "frontend-engineer",
+      "depends_on": ["001"],
+      "blocks": ["003"],
+      "touched_files": [
+        "src/renderer/src/components/atoms/icons.ts",
+        "src/renderer/src/lib/icons-glue.ts"
+      ],
+      "expects": [
+        "`src/renderer/src/components/atoms/` and `src/renderer/src/lib/` are creatable (greenfield; no existing icon module)."
+      ],
+      "produces": [
+        "`icons.ts` exports `ICONS` and a typed `IconName` union covering the project icon set.",
+        "`icons-glue.ts` exports `resolveIcon` that returns a fallback for an unknown name and never throws.",
+        "`icons-glue.ts` contains no import from `components/` (dependency-direction guard)."
+      ],
+      "ac_addressed": ["AC-1", "AC-13", "AC-21", "AC-19"],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "003",
+      "title": "build the inline SVG Icon component",
+      "agent": "frontend-engineer",
+      "depends_on": ["002"],
+      "blocks": ["009"],
+      "touched_files": [
+        "src/renderer/src/components/atoms/Icon.tsx",
+        "(Icon stylesheet under atoms/)"
+      ],
+      "expects": ["`IconName` and `resolveIcon` are exported (task 002)."],
+      "produces": [
+        "`Icon.tsx` exports an `Icon` component rendering an inline SVG with a 16x16 viewBox for a known name.",
+        "Unknown name renders the fallback without throwing.",
+        "The component carries no inline `style={{ }}`; styling is via semantic classes bound to tokens.",
+        "The exported `Icon` and its props are documented (AC-15)."
+      ],
+      "ac_addressed": ["AC-23", "AC-13", "AC-14", "AC-18", "AC-15", "AC-21"],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "004",
+      "title": "build the zustand toastStore and imperative toast() API",
+      "agent": "frontend-engineer",
+      "depends_on": ["001"],
+      "blocks": ["005"],
+      "touched_files": ["src/renderer/src/lib/toastStore.ts"],
+      "expects": ["`zustand` is available (task 001 / existing dependency)."],
+      "produces": [
+        "`toastStore.ts` exports a module-level `toastStore` and a `toast(message, opts)` function.",
+        "The store exposes `enqueue`, `dismiss`, `pauseTimer`, `resumeTimer` actions; auto-dismiss is timer-driven.",
+        "`toast()` enqueues through a single store instance (no per-call store creation).",
+        "No import from `components/`; no `node`/`electron` import."
+      ],
+      "ac_addressed": ["AC-22", "AC-8", "AC-9", "AC-10", "AC-15", "AC-19"],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "005",
+      "title": "build the Toast component over Radix Toast",
+      "agent": "frontend-engineer",
+      "depends_on": ["004", "001"],
+      "blocks": ["008", "009"],
+      "touched_files": [
+        "src/renderer/src/components/molecules/Toast.tsx",
+        "(Toast stylesheet under molecules/)"
+      ],
+      "expects": [
+        "`toastStore`, `toast()`, and the store actions exist (task 004).",
+        "The `radix-ui` package and its `Toast` namespace are installed (task 001)."
+      ],
+      "produces": [
+        "`Toast.tsx` exports a Toast view (e.g. `ToastViewport`) rendering Radix `Toast.Root` per `toastStore` item.",
+        "Hover/focus pause is wired to `pauseTimer`/`resumeTimer`; close is wired to `dismiss`.",
+        "No inline `style={{ }}`; styling via semantic classes bound to tokens.",
+        "Exported component + props documented (AC-15)."
+      ],
+      "ac_addressed": ["AC-8", "AC-9", "AC-10", "AC-18", "AC-14", "AC-15", "AC-21"],
+      "doc_refs": ["specs/001-ui-primitives/research.md"],
+      "review_checkpoint": false
+    },
+    {
+      "number": "006",
+      "title": "build the Modal component over Radix Dialog",
+      "agent": "frontend-engineer",
+      "depends_on": ["001"],
+      "blocks": ["008", "009"],
+      "touched_files": [
+        "src/renderer/src/components/molecules/Modal.tsx",
+        "(Modal stylesheet under molecules/)"
+      ],
+      "expects": ["The `radix-ui` package and its `Dialog` namespace are installed (task 001)."],
+      "produces": [
+        "`Modal.tsx` exports a controlled `Modal` (`open` + `onOpenChange`) wrapping Radix Dialog.",
+        "While open: focus is trapped, a scrim renders, body scroll is locked; Escape closes; focus returns to the trigger on close.",
+        "No inline `style={{ }}`; styling via semantic classes bound to tokens.",
+        "Exported component + props documented (AC-15)."
+      ],
+      "ac_addressed": ["AC-6", "AC-7", "AC-3", "AC-11", "AC-18", "AC-14", "AC-15"],
+      "doc_refs": ["specs/001-ui-primitives/research.md"],
+      "review_checkpoint": false
+    },
+    {
+      "number": "007",
+      "title": "build the Dropdown/popover component over Radix",
+      "agent": "frontend-engineer",
+      "depends_on": ["001"],
+      "blocks": ["008", "009"],
+      "touched_files": [
+        "src/renderer/src/components/molecules/Dropdown.tsx",
+        "(Dropdown stylesheet under molecules/)"
+      ],
+      "expects": [
+        "The `radix-ui` package and its `DropdownMenu`/`Popover` namespace are installed (task 001)."
+      ],
+      "produces": [
+        "`Dropdown.tsx` exports a controlled `Dropdown` (`open` + `onOpenChange`) wrapping Radix DropdownMenu/Popover.",
+        "Open menu supports Arrow/Home/End focus movement; click-outside + Escape dismiss; focus returns to the trigger on close; content flips/shifts to stay in the viewport.",
+        "No inline `style={{ }}`; styling via semantic classes bound to tokens.",
+        "Exported component + props documented (AC-15)."
+      ],
+      "ac_addressed": ["AC-2", "AC-3", "AC-4", "AC-5", "AC-11", "AC-18", "AC-14", "AC-15"],
+      "doc_refs": ["specs/001-ui-primitives/research.md"],
+      "review_checkpoint": false
+    },
+    {
+      "number": "008",
+      "title": "mount overlay substrate at the App root",
+      "agent": "frontend-engineer",
+      "depends_on": ["005", "006", "007"],
+      "blocks": [],
+      "touched_files": ["src/renderer/src/App.tsx"],
+      "expects": [
+        "`Toast`/`ToastViewport` (task 005), `Modal` (task 006), and `Dropdown` (task 007) are exported and importable via `@renderer`."
+      ],
+      "produces": [
+        "`App.tsx` mounts exactly one `Toast.Provider` + `ToastViewport`.",
+        "A stable portal container exists for overlays; z-order/scrim renders correctly.",
+        "Nested overlays compose: Escape closes only the topmost; focus trap/return nest."
+      ],
+      "ac_addressed": ["AC-12"],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "009",
+      "title": "build the dev-only primitives demo route",
+      "agent": "frontend-engineer",
+      "depends_on": ["003", "005", "006", "007"],
+      "blocks": [],
+      "touched_files": ["src/renderer/src/components/PrimitivesDemo.tsx"],
+      "expects": [
+        "`Icon` (003), `Toast`/`ToastViewport` (005), `Modal` (006), `Dropdown` (007) are exported and importable via `@renderer`."
+      ],
+      "produces": [
+        "`PrimitivesDemo.tsx` exports a demo component rendering every primitive in its states.",
+        "The demo is dev-only / route-guarded (e.g. behind `import.meta.env.DEV`) so it does not reach packaged production builds."
+      ],
+      "ac_addressed": ["AC-21"],
+      "doc_refs": [],
+      "review_checkpoint": true
+    }
+  ],
+  "additions": [
+    "None \u2014 every task file maps to a file in the plan's File Impact table. The `App.tsx` modification (task 008) and per-component CSS were already enumerated in the plan, not discovered during decomposition."
+  ],
+  "dependency_graph": "001 (test stack + radix) \u2500\u2500\u2192 002 (icon set + lookup) \u2500\u2500\u2192 003 (Icon component) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n                         \u2500\u2500\u2192 004 (toastStore) \u2500\u2500\u2192 005 (Toast component) \u2500\u2500\u2510                 \u2502\n                         \u2500\u2500\u2192 006 (Modal component) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524                 \u2502\n                         \u2500\u2500\u2192 007 (Dropdown component) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524                 \u2502\n                                                                          \u251c\u2500\u2192 008 (App-root integration)\n                                                                          \u2514\u2500\u2192 009 (demo route) \u2190\u2500 003,005,006,007"
+}

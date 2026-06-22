@@ -22,6 +22,7 @@ from ._cmds_read import (
     cmd_read_init,
     cmd_read_manifests,
 )
+from ._cmds_lint_ignore import cmd_lint_ignore
 from ._cmds_render import (
     cmd_prune_agents,
     cmd_render_config,
@@ -377,6 +378,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="Actually delete dropped agent files (default: dry-run).",
     )
     sp.set_defaults(func=cmd_prune_agents)
+
+    # ------------------------------------------------------------------
+    # Step 6: lint-ignore — exclude framework folders from consumer linters.
+    # ------------------------------------------------------------------
+
+    sp = subparsers.add_parser(
+        "lint-ignore",
+        help=(
+            "Detect linter/formatter configs and compute framework-folder excludes. "
+            "Without --apply: dry-run, JSON report to stdout. "
+            "With --apply: writes auto-tier changes, leaves manual-tier as instructions. "
+            "Exit 0 = report emitted."
+        ),
+    )
+    sp.add_argument(
+        "--apply",
+        action="store_true",
+        default=False,
+        help="Actually write the exclude entries (default: dry-run).",
+    )
+    sp.set_defaults(func=cmd_lint_ignore)
 
     return parser
 

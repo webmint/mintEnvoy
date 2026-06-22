@@ -1,0 +1,103 @@
+{
+  "topic": "Reusable headless UI primitives layer (Dropdown/popover, Modal, Toast) plus a project-owned inline SVG Icon component for an Electron+React desktop app; styled via design tokens, build-vs-buy evaluated against headless libraries",
+  "topic_slug": "reusable-headless-ui-primitives-layer-dropdown-popover",
+  "date": "2026-06-21",
+  "verbatim_prompt": "A reusable UI primitives layer for a desktop app: a Dropdown / popover anchored to a trigger element (keyboard navigation, focus return, click-outside and Escape dismiss, edge-aware positioning), a Modal dialog (focus trap, scrim, Escape close), and a transient Toast. These overlay/focus/keyboard primitives are exactly the area where hand-rolled implementations accumulate accessibility and edge-case bugs, so EVALUATE HEADLESS PRIMITIVE LIBRARIES (e.g. Radix UI, React Aria, Ark UI, Headless UI) against a hand-rolled implementation as an explicit build-vs-buy decision \u2014 styling is supplied separately via design tokens, so a headless (unstyled) approach is viable and likely preferred for the overlay primitives. Separately, an inline SVG Icon component driven by a small project-owned icon set (~40 icons, 1.5px stroke, 16x16 viewBox) \u2014 the icon set already exists as hand-authored SVG paths, so keep it project-owned rather than pulling an icon dependency. All presentation-only; no request/response/persistence logic. Visual reference: design/reference.html (a Claude Design export) \u2014 look and behavior only, never reproduce its markup; it carries generated cruft (data-om-* attributes, __OmT wrappers, inline styles, a tweaks-panel) that must not enter the build. Whatever the build-vs-buy outcome, style with semantic class names from each component's role and design/tokens.json, not inline styles.",
+  "dimensions": {
+    "functional_scope": {
+      "value": "A reusable presentation-only primitives layer for the Electron+React renderer, delivering four user-facing components plus their shared overlay substrate. Components: (1) Dropdown/popover anchored to a trigger \u2014 keyboard navigation, focus return, click-outside + Escape dismiss, edge-aware positioning; (2) Modal dialog \u2014 focus trap, scrim/backdrop, Escape close, body scroll lock; (3) transient Toast \u2014 stacked, auto + manual dismiss, hover-pause; (4) inline SVG Icon driven by a project-owned ~40-icon set (1.5px stroke, 16x16 viewBox). First-class shared substrate (in lib/): a Portal, a focus-trap/focus-return hook, a click-outside hook, centralized Escape/keyboard handling, and an edge-aware positioning helper \u2014 reusable by future primitives. An explicit build-vs-buy evaluation (headless libs Radix/React Aria/Ark/Headless UI vs hand-rolled) governs the overlay substrate. Styling via semantic class names mapped to design/tokens.json; visual/behavior reference is the design export, never its markup.",
+      "state": "Clear",
+      "turns": 0
+    },
+    "users": {
+      "value": "App-internal only. Direct consumers are mintEnvoy renderer feature components (and the developers wiring them) \u2014 these primitives are an internal building-block layer, not a published package. End-users of the desktop app interact with the rendered overlays (dropdown menus, modals, toasts) and icons. No external-consumer API-stability concern.",
+      "state": "Clear",
+      "turns": 0
+    },
+    "inputs_outputs": {
+      "value": "All inputs are component props / imperative calls; all outputs are rendered DOM + callbacks. No external/network data crosses the boundary. Toast: imperative API (e.g. toast(message, opts)) backed by a provider/context that owns the live toast queue; outputs are stacked transient notifications + auto/manual dismiss callbacks. Dropdown/popover + Modal: controlled (open + onOpenChange props) \u2014 caller owns open state; inputs include trigger ref/element, menu items or children, placement hints; outputs are select/close callbacks and focus-return side effects. Icon: props are name (key into the project-owned SVG path set), size, and className; output is an inline <svg>. Styling inputs come only from semantic class names mapped to design tokens.",
+      "state": "Clear",
+      "turns": 0
+    },
+    "integration_points": {
+      "value": "Renderer process only (src/renderer/src). Atomic-design layout: Icon in src/renderer/src/components/atoms/; Dropdown/popover, Modal, Toast in src/renderer/src/components/molecules/; shared overlay/focus/keyboard hooks and positioning helpers in src/renderer/src/lib/. Styling sourced from design/tokens.json via semantic class names (likely CSS module or token-driven stylesheet under the same dirs). No main/preload-process involvement. Existing renderer is electron-vite boilerplate (App.tsx, components/Versions.tsx, main.tsx) \u2014 greenfield for primitives. NOTE: two user mechanism guesses still to reconcile in Phase 2 fit-check \u2014 (a) headless lib 'likely preferred' for overlays, (b) Icon kept project-owned.",
+      "state": "Clear",
+      "turns": 0
+    },
+    "constraints": {
+      "value": "Presentation-only \u2014 no request/response/persistence logic. Styling exclusively via semantic class names (from each component's role) + design/tokens.json; no inline styles. Target stack: Electron renderer process, React 19, TypeScript, electron-vite. Accessibility: WCAG keyboard + focus expectations (focus trap/return, escape, ARIA roles). Dependency policy: a well-maintained headless library (Radix/React Aria/Ark) is acceptable as a runtime dep where it wins on a11y/edge-case correctness \u2014 bundle size a minor concern for desktop Electron; build-vs-buy decided per-primitive. Icon stays project-owned (no icon dependency). design/reference.html consulted for look/behavior only; its generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks-panel) must never enter the build.",
+      "state": "Clear",
+      "turns": 0
+    },
+    "non_goals": {
+      "value": "Beyond scope: (1) any network, request/response, or persistence logic \u2014 this set does no fetching or storing; (2) extra widgets beyond those named here (no buttons, fields, tabs, tables, and so on); (3) a theming engine, runtime theme switcher, or authoring of new style files.",
+      "state": "Clear",
+      "turns": 0
+    },
+    "success_criteria": {
+      "value": "All four primitives (Dropdown/popover, Modal, Toast, Icon) render per the visual reference look and behave correctly: keyboard nav, focus trap + focus return, click-outside + Escape dismiss, edge-aware positioning, scrim, toast auto-dismiss \u2014 meeting WCAG keyboard/focus expectations. Gated by automated interaction tests (keyboard/focus/dismiss). A demo/gallery harness exercises every primitive in its states as the visual + manual-QA surface.",
+      "state": "Clear",
+      "turns": 0
+    },
+    "edge_cases": {
+      "value": "Dropdown/popover: edge-aware flip/shift to stay within viewport (small Electron windows), overflowing content scrolls; trigger unmount while open. Modal + nested overlays: stacked overlays (modal->dropdown, toast over modal) compose \u2014 Escape closes the topmost overlay, focus trap + focus-return nest correctly, scrim/z-order sane, body scroll lock. Toast: multiple stack and auto-dismiss independently, rapid-fire queue, hover/focus pauses timer, manual dismiss. Keyboard: Tab wrap inside trap, arrow keys + Home/End in menu, return focus to trigger on close. Icon: safe fallback for unknown name; every animation respects prefers-reduced-motion.",
+      "state": "Clear",
+      "turns": 0
+    }
+  },
+  "references": [
+    "Radix UI (headless primitives)",
+    "React Aria / React Aria Components (Adobe)",
+    "Ark UI (Zag.js state machines)",
+    "Headless UI",
+    "design/reference.html (Claude Design export \u2014 look/behavior reference only)",
+    "design/tokens.json (W3C DTCG design tokens)"
+  ],
+  "gaps": [
+    {
+      "dimension": "integration_points",
+      "description": "user-supplied mechanism guess (confirm via Phase 2 fit-check): keep Icon project-owned rather than pulling an icon dependency (icon set already exists as hand-authored SVG paths)"
+    }
+  ],
+  "override_recorded": false,
+  "conflicts": [
+    {
+      "type": "direct",
+      "dimensions": ["non_goals", "success_criteria"],
+      "description": "'design' appears in both non_goals and success_criteria",
+      "resolution": "false positive (substring 'components'); reword non_goals collision-light, both kept"
+    }
+  ],
+  "intake_classifications": [
+    {
+      "statement": "Build reusable presentation-only UI primitives: Dropdown/popover (keyboard nav, focus return, click-outside + Escape dismiss, edge-aware positioning), Modal dialog (focus trap, scrim, Escape close), transient Toast",
+      "kind": "requirement",
+      "minimal_fix": "Three overlay primitives + the Icon component below, presentation-only, styled via design tokens, no request/response/persistence logic"
+    },
+    {
+      "statement": "Explicitly evaluate headless primitive libraries (Radix UI, React Aria, Ark UI, Headless UI) vs hand-rolled as a build-vs-buy decision",
+      "kind": "requirement",
+      "minimal_fix": "Build-vs-buy section in the report covering the overlay primitives"
+    },
+    {
+      "statement": "Inline SVG Icon component driven by a project-owned icon set (~40 icons, 1.5px stroke, 16x16 viewBox); keep project-owned, icon set already exists as hand-authored SVG paths",
+      "kind": "requirement",
+      "minimal_fix": "Single Icon component reading from project-owned SVG path set"
+    },
+    {
+      "statement": "Style with semantic class names from each component role + design/tokens.json, not inline styles; design/reference.html is look/behavior reference only, never reproduce its markup/cruft",
+      "kind": "requirement",
+      "minimal_fix": "Semantic-class styling sourced from tokens; reference.html consulted for look only"
+    },
+    {
+      "statement": "Headless (unstyled) approach is viable and likely preferred for the overlay primitives",
+      "kind": "hypothesis",
+      "minimal_fix": null
+    },
+    {
+      "statement": "Keep Icon project-owned rather than pulling an icon dependency",
+      "kind": "hypothesis",
+      "minimal_fix": null
+    }
+  ]
+}

@@ -1,0 +1,201 @@
+/*
+ * Toast.css — Semantic styles for the Toast molecule component.
+ *
+ * All color values are bound to design tokens (CSS custom properties) from
+ * tokens.css. Status-variant colors map to: --status-2xx (success), --status-3xx
+ * (info/blue, but info uses --accent for the brand green accent), --status-4xx
+ * (warning), --status-5xx (error). The --accent token is used for the
+ * focus-visible outline and info variant accent (matches the app's primary
+ * brand color). No hardcoded color literals are used here.
+ *
+ * Layout: toasts are absolutely-positioned by Radix Toast.Viewport via its own
+ * default positioning; we do NOT set top/bottom/right on the viewport here
+ * because Radix handles fixed positioning itself. Override the viewport class
+ * below if you need a custom position.
+ *
+ * Motion: slide-in and fade animations are gated behind the prefers-reduced-
+ * motion media query per AC-14 — users who prefer reduced motion get instant
+ * transitions only.
+ */
+
+/* ---------------------------------------------------------------------------
+ * Viewport (ordered list of toasts)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Position the viewport in the bottom-right corner of the screen.
+ * Radix renders this as a fixed <ol>; we layer our positioning on top.
+ */
+.toast-viewport {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 22rem;
+  max-width: calc(100vw - 2rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  z-index: 2147483647; /* max z-index, toasts must sit above all overlays */
+  outline: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Toast root
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Base toast container. All variants share this layout and decoration;
+ * variant modifiers override only the color properties below.
+ */
+.toast {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md, 9px);
+  border: 1px solid var(--border, #e8e6e3);
+  background-color: var(--bg-elev, #ffffff);
+  color: var(--text, #18181b);
+  box-shadow: var(--shadow-md, 0 4px 16px -4px rgba(24, 24, 27, 0.08));
+  user-select: none;
+  /* Slide-in animation — disabled for reduced-motion users below */
+  animation: toast-slide-in 200ms ease-out;
+}
+
+/* ---------------------------------------------------------------------------
+ * Variant modifiers
+ * Each variant changes only the left accent border color and icon tint;
+ * the background stays the same neutral dark surface.
+ * ------------------------------------------------------------------------- */
+
+.toast--info {
+  border-left: 3px solid var(--accent, #10b981);
+}
+
+.toast--success {
+  border-left: 3px solid var(--status-2xx, #16a34a);
+}
+
+.toast--warning {
+  border-left: 3px solid var(--status-4xx, #f59e0b);
+}
+
+.toast--error {
+  border-left: 3px solid var(--status-5xx, #ef4444);
+}
+
+/* ---------------------------------------------------------------------------
+ * Icon area (leading column)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Icon cell — vertically aligned with the first line of the toast text.
+ * The icon inherits the current text color, which is tinted by variant below.
+ */
+.toast__icon {
+  display: flex;
+  align-items: center;
+  margin-top: 1px; /* nudge down to align with text cap height */
+}
+
+.toast--info .toast__icon {
+  color: var(--accent, #10b981);
+}
+
+.toast--success .toast__icon {
+  color: var(--status-2xx, #16a34a);
+}
+
+.toast--warning .toast__icon {
+  color: var(--status-4xx, #f59e0b);
+}
+
+.toast--error .toast__icon {
+  color: var(--status-5xx, #ef4444);
+}
+
+/* ---------------------------------------------------------------------------
+ * Body (title + description)
+ * ------------------------------------------------------------------------- */
+
+.toast__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0; /* allow text to wrap rather than overflow the grid */
+}
+
+.toast__title {
+  font-size: var(--fs-base, 12.5px);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text, #18181b);
+  word-break: break-word;
+}
+
+.toast__description {
+  font-size: var(--fs-base, 12.5px);
+  line-height: 1.4;
+  color: var(--text-muted, #71717a);
+  word-break: break-word;
+}
+
+/* ---------------------------------------------------------------------------
+ * Close button (trailing column)
+ * ------------------------------------------------------------------------- */
+
+.toast__close {
+  /* Reset button defaults */
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 4px;
+  color: var(--text-muted, #71717a);
+  transition: color 120ms ease, background-color 120ms ease;
+  flex-shrink: 0;
+}
+
+.toast__close:hover {
+  color: var(--text, #18181b);
+  background-color: var(--bg-hover, #f0efed);
+}
+
+.toast__close:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: 1px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Slide-in animation
+ * Gated behind prefers-reduced-motion: reduce (AC-14)
+ * ------------------------------------------------------------------------- */
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

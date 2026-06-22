@@ -1,7 +1,7 @@
 ---
 name: review
 description: Feature-level emergent cross-task review. Runs after `/implement` drains a feature's tasks and before `/verify`. Dispatches a 5-finder ensemble (code-reviewer, architect, qa-reviewer, security-reviewer, performance-analyst) in emergent-cross-task mode over the assembled feature diff, cross-examines every finding with a refutation pass, and writes a findings-only `specs/[feature]/review.md` for `/verify` to consume.
-argument-hint: "[spec-file/feature-dir]"
+argument-hint: '[spec-file/feature-dir]'
 disable-model-invocation: true
 ---
 
@@ -140,7 +140,7 @@ The 5 finders are `code-reviewer`, `architect`, `qa-reviewer`, `security-reviewe
 
 ### 2.1 — Finder-existence check (graceful degradation)
 
-Before dispatching, check which finders exist. For each of the five finders, an agent file is present when `.claude/agents/<finder>.md` exists. Skip any finder whose agent file is ABSENT and note it for the report's "Finders skipped (not installed)" line — a missing finder is never fatal (graceful degradation; mirror how `/audit` notes missing agents). Carry the PRESENT-finders list and the SKIPPED-finders list forward: PHASE 3's `route-refutation --finders` takes the present list, and PHASE 4's `render-report --finders` / `--finders-skipped` take both. If ALL five are missing, tell the user to run `/setup-wizard` to install the reviewer agents and end the turn.
+Before dispatching, check which finders exist. For each of the five finders, an agent file is present when `.claude/agents/<finder>.md` exists. Skip any finder whose agent file is ABSENT and note it for the report's "Finders skipped (not installed)" line — a missing finder is never fatal (graceful degradation; mirror how `/audit` notes missing agents). Carry the PRESENT-finders list and the SKIPPED-finders list forward: PHASE 3's `route-refutation --finders` takes the present list, and PHASE 4's `render-report --finders` / `--finders-skipped` take both. If ALL five are missing, tell the user to re-run `update.sh` to (re)generate the reviewer agents and end the turn.
 
 ### 2.2 — Build each finder brief
 
@@ -318,6 +318,6 @@ Then, ONLY when the report's confirmed-or-high-stakes findings set is non-empty 
 5. **Constitution violations are always Critical** — never downgraded, regardless of confidence; a `[CONSTITUTION-VIOLATION]` the refuter dismissed is surfaced `[CONTESTED]` in the headline, never buried.
 6. **Evidence-first** — every finding must be grounded in a verbatim quote from real cross-task code; `validate-findings` discards ungrounded ones, and the refutation pass cross-examines each survivor before it reaches the headline.
 7. **Wrapper-mode aware** — finders read source files from the resolved Source Root (`--source-root` to `resolve-feature-scope`; `--install-root` for wrapper-mode path prefixing); `specs/[feature]/` always lives at the workspace root.
-8. **Graceful degradation** — a **finder** whose `.claude/agents/<name>.md` is absent is skipped (PHASE 2.1) and noted (the report's "Finders skipped" line), never fatal; only ALL five finders missing stops the run with a `/setup-wizard` prompt. There is no separate refuter-existence check: because `route-refutation --finders` receives only the present-finders list, an absent agent simply never serves as a refuter — refuter absence is handled automatically.
+8. **Graceful degradation** — a **finder** whose `.claude/agents/<name>.md` is absent is skipped (PHASE 2.1) and noted (the report's "Finders skipped" line), never fatal; only ALL five finders missing stops the run with an `update.sh` re-run prompt. There is no separate refuter-existence check: because `route-refutation --finders` receives only the present-finders list, an absent agent simply never serves as a refuter — refuter absence is handled automatically.
 9. **Read-only** — no source modifications, no fixes, no auto-commit of the report.
 10. **Cleanup is last** — all intermediate scratch lives in `$WORKDIR` (`${TMPDIR:-/tmp}/forge-review`), outside the repo, and is swept by the single `rm -rf "$WORKDIR"` at the end of PHASE 4 (after the inline summary), never mid-run.

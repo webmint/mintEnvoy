@@ -28,11 +28,12 @@ Plus the `mechanical-status` string carried from `verify-touched` (PHASE 4.1) an
 
 ## Acceptance Criteria
 
-| AC | Status | Evidence |
-|---|---|---|
-| AC-1 | PASS | [snapshot/response/file:line evidence] |
-| AC-2 | FAIL | [expected-vs-observed] |
+| AC   | Status      | Evidence                                          |
+| ---- | ----------- | ------------------------------------------------- |
+| AC-1 | PASS        | [snapshot/response/file:line evidence]            |
+| AC-2 | FAIL        | [expected-vs-observed]                            |
 | AC-3 | PASS (code) | [implementation in file:line satisfies criterion] |
+
 ...
 
 (When the spec defines no ACs, the table is replaced by "_No ACs defined in spec._")
@@ -59,12 +60,14 @@ Severity breakdown: N Critical, N High, N Medium, N Info
 (Grouped by severity — Critical → High → Medium → Info — drawn from the confirmed + contested findings of the review report. Each entry names the severity, the file:line, the pattern, and any tags such as [CONTESTED].)
 
 ### Critical
-- [Critical] src/auth.py:42 — [description]  [CONTESTED]
-...
+
+- [Critical] src/auth.py:42 — [description] [CONTESTED]
+  ...
 
 ### High
+
 - [High] src/orders.py:88 — [description]
-...
+  ...
 
 (When there are no confirmed or contested findings: "_No confirmed or contested findings in the review report._"; when review.md is missing: "_No review report — run /review to identify issues._")
 
@@ -73,9 +76,10 @@ Severity breakdown: N Critical, N High, N Medium, N Info
 **APPROVED** | **NEEDS WORK** | **REJECTED**
 
 **Reasons**:
+
 - [reason line 1 — e.g. "AC failure: 1 of 5 verifiable ACs did not pass."]
 - [reason line 2 — e.g. "Mechanical checks failed: verify-touched reported status='failed'."]
-...
+  ...
 
 (On a clean APPROVED with no reasons: "All acceptance criteria satisfied, no blocking issues found.")
 

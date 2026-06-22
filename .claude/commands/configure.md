@@ -105,7 +105,7 @@ Orchestrator-direct compose (NO Task-tool dispatch to any subagent — same conv
 - `LANGUAGES` — comma-separated list across all detected packages, derived per-package from `MANIFESTS_JSON.packages[].manifest` (e.g., `package.json` → JavaScript/TypeScript inferred from `.ts` files in the package, `pyproject.toml` → Python).
 - `FRAMEWORKS` — Tech Stack `Framework` row from `DOCS_JSON.overview`, comma-separated.
 - `ARCHITECTURES` — comma-separated; extract from `DOCS_JSON.architecture.architecture_overview` (e.g., "Clean Architecture", "Turborepo monorepo").
-- `PROJECT_NATURES` — comma-separated atomic nature labels derived from `PROJECT_TYPE` + `FRAMEWORKS`. Closed vocabulary: `web`, `backend`, `mobile`, `desktop`, `cli`, `library`, `plugin`, `data`, `ml`, `game`, `infra`, `docs`. Phase 5.2 (`prune-agents`) consumes this field to decide which `.claude/agents/*.md` to delete; empty value blocks Phase 5.2 with helper exit 2 and is flagged by Phase 6 `verify`. Composition rules (apply LLM judgment when input doesn't fit cleanly):
+- `PROJECT_NATURES` — comma-separated atomic nature labels derived from `PROJECT_TYPE` + `FRAMEWORKS`. Closed vocabulary: `web`, `backend`, `mobile`, `desktop`, `cli`, `library`, `plugin`, `data`, `ml`, `game`, `infra`, `docs`. Phase 5.2 (`prune-agents`) consumes this field to decide which `.claude/agents/*.md` to delete; empty value blocks Phase 5.2 with helper exit 2 and is flagged by Phase 7 `verify`. Composition rules (apply LLM judgment when input doesn't fit cleanly):
   - `PROJECT_TYPE == "web app"` + frontend frameworks (Vue/React/Angular/Svelte/etc.) → `web`
   - `PROJECT_TYPE == "web service"` + backend frameworks (Express/FastAPI/Django/Rails/etc.) → `backend`
   - `PROJECT_TYPE == "fullstack"` OR (frontend AND backend frameworks present in the same project) → `web, backend`
@@ -153,7 +153,7 @@ Plain prose echo, NOT AskUserQuestion (multi-line content cannot fit AskUserQues
 
 Echo template (substitute `<...>` with the Phase 2 composed values):
 
-````
+```
 Here's what /init-forge + /generate-docs found and what /configure proposes:
 
 Project:
@@ -190,7 +190,7 @@ AC runtime (detected):
 - ac_runtime_cli_command: <AC_RUNTIME_CLI_COMMAND>
 
 Reply 'yes' to confirm all, 'cancel' to abort, or list overrides one per line as 'field: value' (e.g., 'project_type: CLI tool'). For string-array fields whose values contain literal commas (e.g., TypeScript generic syntax `Either<DataError, T>`), supply the value as a JSON array: `error_handlings: ["Either<DataError, T>", "BLoC notifications"]`.
-````
+```
 
 For the three verbatim fields (`project_structure`, `dev_commands`, `architecture_details`), echo the line count instead of inlining the full text — they are large blocks already visible in `docs/overview.md` + `docs/architecture.md`. The user can override by re-typing the field followed by the replacement text on the same line; multi-line overrides for these three fields are rare in practice.
 
@@ -205,30 +205,30 @@ For the three verbatim fields (`project_structure`, `dev_commands`, `architectur
 
 Apply each accepted/overridden value via the matching setter. Setter argument shape is taken verbatim from the helper's argparse:
 
-| Field | Setter |
-|---|---|
-| `project_name` | `set-project-name <value>` |
-| `project_description` | `set-project-description <value>` |
-| `project_type` | `set-project-type <value>` |
-| `primary_language` | `set-primary-language <value>` |
-| `languages` | `set-languages <comma-sep-list>` |
-| `frameworks` | `set-frameworks <comma-sep-list>` |
-| `architectures` | `set-architectures <comma-sep-list>` |
-| `project_natures` | `set-project-natures <comma-sep-list>` |
-| `error_handlings` | `set-error-handlings <comma-sep-list>` |
-| `api_layers` | `set-api-layers <comma-sep-list>` |
-| `testings` | `set-testings <comma-sep-list>` |
-| `build_tools` | `set-build-tools <comma-sep-list>` |
-| `build_commands` | `set-build-commands <comma-sep-list>` |
-| `type_check_commands` | `set-type-check-commands <comma-sep-list>` |
-| `lint_commands` | `set-lint-commands <comma-sep-list>` |
-| `test_commands` | `set-test-commands <comma-sep-list>` |
-| `project_structure` | `set-project-structure --text <verbatim>` |
-| `dev_commands` | `set-dev-commands --text <verbatim>` |
-| `architecture_details` | `set-architecture-details --text <verbatim>` |
-| `ac_runtime_url` | `set-ac-runtime-url <value>` |
-| `ac_runtime_api_base` | `set-ac-runtime-api-base <value>` |
-| `ac_runtime_cli_command` | `set-ac-runtime-cli-command <value>` |
+| Field                    | Setter                                       |
+| ------------------------ | -------------------------------------------- |
+| `project_name`           | `set-project-name <value>`                   |
+| `project_description`    | `set-project-description <value>`            |
+| `project_type`           | `set-project-type <value>`                   |
+| `primary_language`       | `set-primary-language <value>`               |
+| `languages`              | `set-languages <comma-sep-list>`             |
+| `frameworks`             | `set-frameworks <comma-sep-list>`            |
+| `architectures`          | `set-architectures <comma-sep-list>`         |
+| `project_natures`        | `set-project-natures <comma-sep-list>`       |
+| `error_handlings`        | `set-error-handlings <comma-sep-list>`       |
+| `api_layers`             | `set-api-layers <comma-sep-list>`            |
+| `testings`               | `set-testings <comma-sep-list>`              |
+| `build_tools`            | `set-build-tools <comma-sep-list>`           |
+| `build_commands`         | `set-build-commands <comma-sep-list>`        |
+| `type_check_commands`    | `set-type-check-commands <comma-sep-list>`   |
+| `lint_commands`          | `set-lint-commands <comma-sep-list>`         |
+| `test_commands`          | `set-test-commands <comma-sep-list>`         |
+| `project_structure`      | `set-project-structure --text <verbatim>`    |
+| `dev_commands`           | `set-dev-commands --text <verbatim>`         |
+| `architecture_details`   | `set-architecture-details --text <verbatim>` |
+| `ac_runtime_url`         | `set-ac-runtime-url <value>`                 |
+| `ac_runtime_api_base`    | `set-ac-runtime-api-base <value>`            |
+| `ac_runtime_cli_command` | `set-ac-runtime-cli-command <value>`         |
 
 For `package_stacks`: serialize Phase 2's composed package list (already in memory) into a SINGLE JSON object and pipe it once to the bulk verb `set-package-stacks`, which validates each record, then replaces the whole `package_stacks` list in one call. The JSON top-level shape is `{"package_stacks": [<record>, ...]}`; every record carries all 8 keys `{path, language, framework, build_tool, build_command, type_check_command, lint_command, test_command}`. Absent values are explicit JSON `null` — never omitted, never an empty string. `path` and `language` are required and must be non-null; the other 6 keys accept `null`.
 
@@ -276,6 +276,7 @@ These six fields cannot be derived from filesystem scan; each requires a user ch
 ### Q9: Workflow Enforcement
 
 Use AskUserQuestion: "How strict should workflow enforcement be?"
+
 - `Strict` (Recommended) — every step requires explicit approval; no shortcuts
 - `Moderate` — approval gates at major milestones; smaller decisions auto-proceed
 - `Light` — minimal gating; rely on conventions over enforcement
@@ -285,6 +286,7 @@ Save via `.devforge/lib/configure_helper set-workflow-enforcement <choice>`.
 ### Q10: AI Attribution
 
 Use AskUserQuestion: "Add AI attribution footer to commit messages?"
+
 - `Yes` (Recommended) — commits include `Generated with Claude Code` footer
 - `No` — commit messages stay clean of attribution
 
@@ -339,7 +341,7 @@ Exit-code interpretation:
 
 Echo template (plain prose; substitute `<...>` with values from `PRUNE_REPORT` and `state["project_natures"]`):
 
-````
+```
 Pruning .claude/agents/ for project natures: <project_natures>.
 
 Will KEEP (<N> agents):
@@ -352,7 +354,7 @@ Will DROP (<M> agents):
   - <agent-name-2> — applies_to: <applies_to-2>
 
 Reply 'yes' to apply, 'cancel' to skip pruning, or list overrides one per line as 'keep <name>' or 'drop <name>'.
-````
+```
 
 For each `decisions[]` entry, render `applies_to` as a comma-separated list (or the literal token `<missing>` when the helper reported `applies_to: null`).
 
@@ -397,7 +399,66 @@ For each `decisions[]` entry, render `applies_to` as a comma-separated list (or 
 - Exit 1 → `project-config.json` missing or malformed, OR `CLAUDE.md` missing, OR a per-file write failed. Surface stderr verbatim and ABORT. (Note: `.devforge/init.yaml` missing is NOT an exit-1 condition for this subcommand — substitute-templates falls back to empty `packages_detected` when init.yaml is absent. The init.yaml dependency is enforced earlier by Phase 0's pre-flight gate and by `render-config` exit 1.)
 - Exit 2 → at least one template contained a placeholder the helper cannot resolve. Stderr enumerates the unknown placeholders per file. Failed files are NOT modified (atomic per-file). Surface stderr verbatim and ABORT — the project state is partial; the user must extend the substitution map (helper-side) before re-running.
 
-## Phase 6 — Verify + report
+## Phase 6 — Exclude framework folders from project linters
+
+Exclude the framework's installed folders (`.claude/`, `.devforge/`, `specs/`, `bugs/`, `research/`, `discover/`, `audits/` — NOT `docs/`) from the CONSUMER project's own linters and formatters, so the project's prettier/ruff/eslint/etc. don't reformat or flag the framework's templates + helper code. Run `lint-ignore` in dry-run first to surface what would change, then ask the user to confirm before applying. This phase is NON-FATAL and writes into the user's OWN tooling config files — on any error it SKIPS rather than aborts, and on an ambiguous reply it defaults to SKIP rather than apply.
+
+```bash
+.devforge/lib/configure_helper lint-ignore
+```
+
+The dry-run subcommand scans `<install_root>` for each tool's config file (`--install-root` defaults to the parent of `--devforge-dir`, same as other configure verbs) and emits a JSON report to stdout with shape `{entries: [...], summary: {...}}`. Handlers run by config-file PRESENCE — a handler is a no-op when its tool's config file is absent under `<install_root>`; there is no language-based scoping. The scanned tool set is prettier, eslint, markdownlint (cli + cli2), flake8, biome, ruff, black, isort, mypy, pylint, rustfmt, rubocop, golangci-lint, VS Code, and JetBrains. Each `entries[]` record carries `tool` + `action` (`auto` or `manual`):
+
+- `auto` entries get written by `--apply`. Shape: `{tool, file, action: "auto", status, lines: [...], preemptive}` where `status` is `would-add` / `would-create` / `already-present`, `lines[]` are the ignore-file lines that would be added, and `preemptive: bool` is `true` when at least one framework folder does not yet exist under `install_root` at setup (the exclusion registers the folder before workflow commands create it). The AUTO-tier tools (written by `--apply`) are prettier, eslint with a legacy `.eslintrc`, markdownlint-cli (`.markdownlintignore`), markdownlint-cli2 in its JSON variant, flake8, biome when its JSON config parses, ruff / black / isort / mypy / pylint in their clean `pyproject.toml` cases, rustfmt in its clean case, and VS Code (`.vscode/settings.json`).
+- `manual` entries are printed instructions the user must hand-add — the helper NEVER edits those files. Shape: `{tool, file, action: "manual", status: "pending-manual", preemptive, instruction}`. The always-manual tools (eslint flat-config `eslint.config.*`, golangci-lint, rubocop, JetBrains) are never auto-edited. Some AUTO-tier tools also fall back to a `manual` entry when a safe auto-edit isn't possible — markdownlint-cli2 in its YAML variant, biome when its JSONC config fails to parse, ruff / black / isort / mypy / pylint when the `pyproject.toml` table already exists in a non-idempotent state or only a sub-table exists, and rustfmt when its `ignore` key exists non-idempotently. In every `manual` case the user applies the exclusion themselves from the printed `instruction` text. (VS Code is AUTO-tier, not manual.)
+
+Capture the JSON as `LINT_REPORT`.
+
+Exit-code interpretation:
+
+- Exit 1 → unexpected scanning error (stderr has the message). Surface stderr verbatim and SKIP this phase — do NOT abort `/configure`. Linter-exclusion is a convenience, not a correctness gate; advance to Phase 7. (Contrast: Phase 5.3 `substitute-templates` and Phase 7 `verify` ABORT on failure; this phase does not.)
+- Exit 0 with no actionable entries — no `auto` entry in `would-add` / `would-create` status AND no `manual` entry in `pending-manual` status → nothing to do (every applicable ignore file already excludes the framework folders). Skip the bulk-confirmation prompt entirely; advance to Phase 7 silently.
+- Exit 0 with actionable entries (any `auto` entry in `would-add` / `would-create`, or any `manual` entry) → proceed to the bulk-confirmation echo.
+
+Echo template (plain prose; substitute `<...>` with values from `LINT_REPORT`):
+
+````
+Excluding framework folders (.claude/, .devforge/, specs/, bugs/, research/, discover/, audits/) from your project's linters.
+
+Automatic — will add/create these (reply 'yes' to apply):
+  <tool-1> → <file-1>:
+    + <line-1>
+    + <line-2>
+  <tool-2> → <file-2>:  (folder not present yet — pre-emptive)
+    + <line-1>
+  ...
+
+Manual — add these yourself:
+  - <tool-3>: <instruction-3>
+  - <tool-4>: <instruction-4>
+
+Reply 'yes' to apply the automatic exclusions, or 'cancel' to skip.
+````
+
+List each `auto` entry grouped by `tool` → `file`, showing each line from its `lines[]` (mark `would-create` and `preemptive` entries, e.g. append `(folder not present yet — pre-emptive)`). List each `manual` entry's `instruction` under the separate "Manual — add these yourself" section. Omit either section when it has no entries.
+
+**Stop discipline (mandatory).** After emitting the echo block, this phase MUST end the assistant turn and wait for the user's reply. Do NOT call `lint-ignore --apply` in the same turn. Do NOT call any setter or any other tool. Same rule as Phase 3's bulk-confirmation echo and Phase 5.2's prune-agents echo: plain-prose prompts have no harness-level "wait for user" affordance, so the LLM-level stop is the only mechanism preventing accidental auto-advance.
+
+### Parsing the user reply
+
+- Reply equals `yes` (case-insensitive, exact after strip) → invoke `lint-ignore --apply` to write the `auto`-tier changes (the `manual`-tier files are left untouched):
+
+  ```bash
+  .devforge/lib/configure_helper lint-ignore --apply
+  ```
+
+  Surface its stdout JSON (what was written) for transparency, then restate each `manual` entry's `instruction` so the user can hand-apply those exclusions. Advance to Phase 7.
+
+- Reply equals `cancel` (case-insensitive, exact after strip) → SKIP this phase; no ignore files written. Note that the `manual` instructions are still worth doing. Advance to Phase 7.
+
+- Reply unparseable (no `yes`, no `cancel`) → re-prompt once with the choice restated. On the second invalid reply, default to SKIP — write nothing — and warn the user: "Skipping framework-folder linter exclusions; re-run `/configure` to apply them." Do NOT auto-apply on an ambiguous reply: unlike Phase 5.2's prune-agents (which defaults to apply), this phase writes into the user's OWN project tooling configs, so default-skip is the safer fallback.
+
+## Phase 7 — Verify + report
 
 ```bash
 .devforge/lib/configure_helper verify
@@ -405,7 +466,7 @@ For each `decisions[]` entry, render `applies_to` as a comma-separated list (or 
 
 `verify` cross-checks `.devforge/configure.yaml` + `.devforge/project-config.json`: every required field populated; AC runtime fields exempt unless `ac_verification_mode == runtime-assisted`; round-trip identity between the two files. Exit 0 = pass; exit 2 = at least one violation (each enumerated on stderr). On exit 2, surface stderr verbatim and ABORT — the user must address the violations before `/constitute`.
 
-`project_natures` is one of the required fields: an empty value is flagged as a violation (no AC-mode exemption applies). Phase 2's composition rule and Phase 3's `set-project-natures` setter are jointly responsible for populating it; if `verify` reports `PROJECT_NATURES is empty`, Phase 5.2's `prune-agents` would have already aborted with exit 2 before reaching Phase 6, so this violation only appears when `verify` is invoked standalone after a partial earlier run.
+`project_natures` is one of the required fields: an empty value is flagged as a violation (no AC-mode exemption applies). Phase 2's composition rule and Phase 3's `set-project-natures` setter are jointly responsible for populating it; if `verify` reports `PROJECT_NATURES is empty`, Phase 5.2's `prune-agents` would have already aborted with exit 2 before reaching Phase 7, so this violation only appears when `verify` is invoked standalone after a partial earlier run.
 
 Scope note: `verify` does NOT re-scan `CLAUDE.md` or `.claude/agents/*.md` for remaining `{{KEY}}` markers. Template-substitution completeness is enforced by Phase 5's `substitute-templates` exit 0; if Phase 5 succeeded, the templates are clean. If you re-run only `verify` standalone after a partial Phase 5 (e.g., aborted mid-substitution), it will not re-detect template markers — re-run `substitute-templates` to re-establish that guarantee.
 
@@ -417,4 +478,4 @@ Scope note: `verify` does NOT re-scan `CLAUDE.md` or `.claude/agents/*.md` for r
 
 ## Closing
 
-`/configure` is complete. The 29 configuration fields are persisted in `.devforge/configure.yaml`; `.devforge/project-config.json` carries all 37 keys; `.claude/agents/` is pruned to the agents whose `applies_to` overlaps `project_natures` (or every shipped agent retained when the user replied `cancel` in Phase 5.2); `CLAUDE.md` and every remaining file under `.claude/agents/` is fully substituted. Tell the user: "Run `/constitute` next."
+`/configure` is complete. The 29 configuration fields are persisted in `.devforge/configure.yaml`; `.devforge/project-config.json` carries all 37 keys; `.claude/agents/` is pruned to the agents whose `applies_to` overlaps `project_natures` (or every shipped agent retained when the user replied `cancel` in Phase 5.2); `CLAUDE.md` and every remaining file under `.claude/agents/` is fully substituted; the framework's folders were excluded from the project's linters (Phase 6 — applied, skipped on `cancel`/error, or nothing-to-do). Tell the user: "Run `/constitute` next."

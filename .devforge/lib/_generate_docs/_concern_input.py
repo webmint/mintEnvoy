@@ -67,7 +67,7 @@ import argparse
 import hashlib
 import json
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Dict, List, Optional, Tuple
 
 from ._setters_concern import _path_contains_trivial_dir
@@ -403,7 +403,7 @@ def cmd_concern_input(args: argparse.Namespace) -> int:
             )
         return 2
 
-    subfolder_prefix = f"{pkg}/src/{concern}/"
+    subfolder_prefix = str(PurePosixPath(pkg) / "src" / concern) + "/"
 
     # Split-aware path: build all spans uncapped first so we can measure
     # true total size + regroup by child dir if we decide to split.
@@ -423,11 +423,12 @@ def cmd_concern_input(args: argparse.Namespace) -> int:
         immediate_dirs = _enumerate_immediate_dirs(subfolder_abs, project_root)
         should_split = total_bytes > threshold_bytes and len(immediate_dirs) >= 2
 
+    loose_files: List[str] = []
+    sub_concerns: List[Dict[str, object]] = []
     if should_split:
         subdir_groups, loose_files = _partition_files_by_immediate_dir(
             concern_files, subfolder_prefix, immediate_dirs
         )
-        sub_concerns: List[Dict[str, object]] = []
         sub_stamps: List[str] = []
         for child_name in immediate_dirs:
             child_files = subdir_groups.get(child_name, [])
@@ -440,6 +441,14 @@ def cmd_concern_input(args: argparse.Namespace) -> int:
             sub_concerns.append(sc)
             sub_stamps.append(str(sc["source_stamp"]))
 
+        # Defensive: if every immediate child group ended up empty (only
+        # loose files survive the walk), the split branch would emit
+        # `split:true, sub_concerns:[]` — a shape no downstream consumer
+        # handles. Fall back to single-batch in that case.
+        if not sub_concerns:
+            should_split = False
+
+    if should_split:
         loose_set = set(loose_files)
         loose_hash_parts = [
             f"{p}\t{h}" for p, h in sorted(all_hashes) if p in loose_set

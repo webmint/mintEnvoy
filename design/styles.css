@@ -42,11 +42,11 @@
   --status-4xx: #f59e0b;
   --status-5xx: #ef4444;
 
-  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Text', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
   --bg: #0c0c0d;
   --bg-sunken: #08080a;
   --bg-elev: #141416;
@@ -89,7 +89,7 @@ body {
   font-size: 13px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: "ss01", "cv11";
+  font-feature-settings: 'ss01', 'cv11';
   overflow: hidden;
 }
 
@@ -160,13 +160,19 @@ textarea {
   width: 18px;
   height: 18px;
   border-radius: 5px;
-  background: linear-gradient(135deg, var(--accent), color-mix(in oklab, var(--accent) 60%, #06b6d4));
+  background: linear-gradient(
+    135deg,
+    var(--accent),
+    color-mix(in oklab, var(--accent) 60%, #06b6d4)
+  );
   display: grid;
   place-items: center;
   color: #fff;
   font-size: 11px;
   font-weight: 700;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15);
 }
 
 .tb-divider {
@@ -299,7 +305,7 @@ textarea {
   position: relative;
 }
 
-.main[data-sidebar="hidden"] {
+.main[data-sidebar='hidden'] {
   grid-template-columns: 0 1fr !important;
 }
 
@@ -404,7 +410,7 @@ textarea {
   background: var(--bg-active);
 }
 .tree-row.selected::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   top: 0;
@@ -420,7 +426,9 @@ textarea {
   place-items: center;
   opacity: 0.5;
   flex-shrink: 0;
-  transition: transform 0.1s, opacity 0.1s;
+  transition:
+    transform 0.1s,
+    opacity 0.1s;
 }
 .tree-row:hover .chev {
   opacity: 0.85;
@@ -489,17 +497,29 @@ textarea {
   min-width: 38px;
   text-align: left;
 }
-.method.GET { color: var(--m-get); }
-.method.POST { color: var(--m-post); }
-.method.PUT { color: var(--m-put); }
-.method.PATCH { color: var(--m-patch); }
-.method.DELETE { color: var(--m-delete); }
-.method.OPTIONS { color: var(--m-options); }
+.method.GET {
+  color: var(--m-get);
+}
+.method.POST {
+  color: var(--m-post);
+}
+.method.PUT {
+  color: var(--m-put);
+}
+.method.PATCH {
+  color: var(--m-patch);
+}
+.method.DELETE {
+  color: var(--m-delete);
+}
+.method.OPTIONS {
+  color: var(--m-options);
+}
 
 /* ===== Method style variants — switched by [data-mstyle] on <html> ===== */
 
 /* Chip: solid bg, white text */
-[data-mstyle="chip"] .method {
+[data-mstyle='chip'] .method {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -513,15 +533,27 @@ textarea {
   text-align: center;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
-[data-mstyle="chip"] .method.GET { background: var(--m-get); }
-[data-mstyle="chip"] .method.POST { background: var(--m-post); }
-[data-mstyle="chip"] .method.PUT { background: var(--m-put); }
-[data-mstyle="chip"] .method.PATCH { background: var(--m-patch); }
-[data-mstyle="chip"] .method.DELETE { background: var(--m-delete); }
-[data-mstyle="chip"] .method.OPTIONS { background: var(--m-options); }
+[data-mstyle='chip'] .method.GET {
+  background: var(--m-get);
+}
+[data-mstyle='chip'] .method.POST {
+  background: var(--m-post);
+}
+[data-mstyle='chip'] .method.PUT {
+  background: var(--m-put);
+}
+[data-mstyle='chip'] .method.PATCH {
+  background: var(--m-patch);
+}
+[data-mstyle='chip'] .method.DELETE {
+  background: var(--m-delete);
+}
+[data-mstyle='chip'] .method.OPTIONS {
+  background: var(--m-options);
+}
 
 /* Soft: tinted bg, colored text */
-[data-mstyle="soft"] .method {
+[data-mstyle='soft'] .method {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -533,15 +565,33 @@ textarea {
   border-radius: 4px;
   text-align: center;
 }
-[data-mstyle="soft"] .method.GET    { background: color-mix(in oklab, var(--m-get) 16%, transparent);    color: var(--m-get); }
-[data-mstyle="soft"] .method.POST   { background: color-mix(in oklab, var(--m-post) 16%, transparent);   color: var(--m-post); }
-[data-mstyle="soft"] .method.PUT    { background: color-mix(in oklab, var(--m-put) 18%, transparent);    color: var(--m-put); }
-[data-mstyle="soft"] .method.PATCH  { background: color-mix(in oklab, var(--m-patch) 16%, transparent);  color: var(--m-patch); }
-[data-mstyle="soft"] .method.DELETE { background: color-mix(in oklab, var(--m-delete) 16%, transparent); color: var(--m-delete); }
-[data-mstyle="soft"] .method.OPTIONS{ background: color-mix(in oklab, var(--m-options) 16%, transparent);color: var(--m-options); }
+[data-mstyle='soft'] .method.GET {
+  background: color-mix(in oklab, var(--m-get) 16%, transparent);
+  color: var(--m-get);
+}
+[data-mstyle='soft'] .method.POST {
+  background: color-mix(in oklab, var(--m-post) 16%, transparent);
+  color: var(--m-post);
+}
+[data-mstyle='soft'] .method.PUT {
+  background: color-mix(in oklab, var(--m-put) 18%, transparent);
+  color: var(--m-put);
+}
+[data-mstyle='soft'] .method.PATCH {
+  background: color-mix(in oklab, var(--m-patch) 16%, transparent);
+  color: var(--m-patch);
+}
+[data-mstyle='soft'] .method.DELETE {
+  background: color-mix(in oklab, var(--m-delete) 16%, transparent);
+  color: var(--m-delete);
+}
+[data-mstyle='soft'] .method.OPTIONS {
+  background: color-mix(in oklab, var(--m-options) 16%, transparent);
+  color: var(--m-options);
+}
 
 /* Outline: transparent bg, colored text + ring */
-[data-mstyle="outline"] .method {
+[data-mstyle='outline'] .method {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -557,7 +607,7 @@ textarea {
 }
 
 /* Dot: a colored dot prefix + uppercase text */
-[data-mstyle="dot"] .method {
+[data-mstyle='dot'] .method {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -565,8 +615,8 @@ textarea {
   font-weight: 600;
   min-width: 48px;
 }
-[data-mstyle="dot"] .method::before {
-  content: "";
+[data-mstyle='dot'] .method::before {
+  content: '';
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -576,7 +626,7 @@ textarea {
 }
 
 /* Bar: thin vertical color bar prefix */
-[data-mstyle="bar"] .method {
+[data-mstyle='bar'] .method {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -585,8 +635,8 @@ textarea {
   letter-spacing: 0.05em;
   min-width: 48px;
 }
-[data-mstyle="bar"] .method::before {
-  content: "";
+[data-mstyle='bar'] .method::before {
+  content: '';
   width: 3px;
   height: 12px;
   border-radius: 2px;
@@ -658,7 +708,7 @@ textarea {
   color: var(--text);
 }
 .tab.active::after {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   right: 0;
@@ -667,7 +717,7 @@ textarea {
   background: var(--bg);
 }
 .tab.active::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   right: 0;
@@ -790,7 +840,9 @@ textarea {
   background: var(--accent);
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 .btn-primary:hover {
   background: var(--accent-hover);
@@ -872,7 +924,7 @@ textarea {
   color: var(--text);
 }
 .pane-tab.active::after {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   right: 0;
@@ -955,7 +1007,7 @@ textarea {
   place-items: center;
   padding-left: 8px;
 }
-.kv-row input[type="checkbox"] {
+.kv-row input[type='checkbox'] {
   accent-color: var(--accent);
   width: 12px;
   height: 12px;
@@ -1091,20 +1143,47 @@ textarea {
 }
 
 /* Token colors */
-.tk-key { color: #0369a1; }
-.tk-str { color: #15803d; }
-.tk-num { color: #b45309; }
-.tk-bool { color: #be185d; }
-.tk-null { color: var(--text-faint); }
-.tk-punc { color: var(--text-muted); }
-.tk-var { color: var(--accent); font-weight: 600; }
+.tk-key {
+  color: #0369a1;
+}
+.tk-str {
+  color: #15803d;
+}
+.tk-num {
+  color: #b45309;
+}
+.tk-bool {
+  color: #be185d;
+}
+.tk-null {
+  color: var(--text-faint);
+}
+.tk-punc {
+  color: var(--text-muted);
+}
+.tk-var {
+  color: var(--accent);
+  font-weight: 600;
+}
 
-[data-theme="dark"] .tk-key { color: #7dd3fc; }
-[data-theme="dark"] .tk-str { color: #86efac; }
-[data-theme="dark"] .tk-num { color: #fcd34d; }
-[data-theme="dark"] .tk-bool { color: #f0abfc; }
-[data-theme="dark"] .tk-null { color: var(--text-faint); }
-[data-theme="dark"] .tk-punc { color: var(--text-muted); }
+[data-theme='dark'] .tk-key {
+  color: #7dd3fc;
+}
+[data-theme='dark'] .tk-str {
+  color: #86efac;
+}
+[data-theme='dark'] .tk-num {
+  color: #fcd34d;
+}
+[data-theme='dark'] .tk-bool {
+  color: #f0abfc;
+}
+[data-theme='dark'] .tk-null {
+  color: var(--text-faint);
+}
+[data-theme='dark'] .tk-punc {
+  color: var(--text-muted);
+}
 
 /* Auth panel */
 .auth-panel {
@@ -1190,10 +1269,18 @@ textarea {
   font-weight: 600;
   font-family: var(--font-mono);
 }
-.response-meta .stat-value.ok { color: var(--status-2xx); }
-.response-meta .stat-value.warn { color: var(--status-3xx); }
-.response-meta .stat-value.err { color: var(--status-4xx); }
-.response-meta .stat-value.fatal { color: var(--status-5xx); }
+.response-meta .stat-value.ok {
+  color: var(--status-2xx);
+}
+.response-meta .stat-value.warn {
+  color: var(--status-3xx);
+}
+.response-meta .stat-value.err {
+  color: var(--status-4xx);
+}
+.response-meta .stat-value.fatal {
+  color: var(--status-5xx);
+}
 
 .response-empty {
   flex: 1;
@@ -1259,7 +1346,9 @@ textarea {
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ---- Status bar ---- */
@@ -1291,8 +1380,12 @@ textarea {
   height: 6px;
   border-radius: 50%;
 }
-.statusbar .dot.green { background: var(--status-2xx); }
-.statusbar .dot.amber { background: var(--m-put); }
+.statusbar .dot.green {
+  background: var(--status-2xx);
+}
+.statusbar .dot.amber {
+  background: var(--m-put);
+}
 
 /* ---- Snippet panel (overlay-ish on right) ---- */
 .snippet-bar {
@@ -1377,11 +1470,23 @@ textarea {
   overflow: auto;
   color: var(--text);
 }
-.snippet-code .cm-kw { color: var(--m-patch); font-weight: 600; }
-.snippet-code .cm-str { color: var(--status-2xx); }
-.snippet-code .cm-fn { color: var(--m-get); }
-.snippet-code .cm-cmt { color: var(--text-faint); font-style: italic; }
-.snippet-code .cm-flag { color: var(--m-put); }
+.snippet-code .cm-kw {
+  color: var(--m-patch);
+  font-weight: 600;
+}
+.snippet-code .cm-str {
+  color: var(--status-2xx);
+}
+.snippet-code .cm-fn {
+  color: var(--m-get);
+}
+.snippet-code .cm-cmt {
+  color: var(--text-faint);
+  font-style: italic;
+}
+.snippet-code .cm-flag {
+  color: var(--m-put);
+}
 
 .snippet-copy {
   position: absolute;
@@ -1414,9 +1519,18 @@ textarea {
   padding: 2px 8px;
   border-radius: var(--radius-sm);
 }
-.status-chip.ok { background: color-mix(in oklab, var(--status-2xx) 15%, transparent); color: var(--status-2xx); }
-.status-chip.warn { background: color-mix(in oklab, var(--status-4xx) 15%, transparent); color: var(--status-4xx); }
-.status-chip.err { background: color-mix(in oklab, var(--status-5xx) 15%, transparent); color: var(--status-5xx); }
+.status-chip.ok {
+  background: color-mix(in oklab, var(--status-2xx) 15%, transparent);
+  color: var(--status-2xx);
+}
+.status-chip.warn {
+  background: color-mix(in oklab, var(--status-4xx) 15%, transparent);
+  color: var(--status-4xx);
+}
+.status-chip.err {
+  background: color-mix(in oklab, var(--status-5xx) 15%, transparent);
+  color: var(--status-5xx);
+}
 
 /* Resize divider */
 .divider {
@@ -1448,7 +1562,7 @@ textarea {
   background: var(--accent-soft);
 }
 .v-divider::after {
-  content: "";
+  content: '';
   position: absolute;
   left: 2px;
   top: 0;
@@ -1466,7 +1580,7 @@ textarea {
   flex-shrink: 0;
 }
 .h-divider::after {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   right: 0;
@@ -1496,8 +1610,15 @@ textarea {
   pointer-events: none;
 }
 @keyframes fadeToast {
-  0%, 80% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-4px); }
+  0%,
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 /* Inline indicator dot per response status */
@@ -1508,8 +1629,14 @@ textarea {
   background: var(--status-2xx);
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--status-2xx) 20%, transparent);
 }
-.indicator.warn { background: var(--status-4xx); box-shadow: 0 0 0 2px color-mix(in oklab, var(--status-4xx) 20%, transparent); }
-.indicator.err { background: var(--status-5xx); box-shadow: 0 0 0 2px color-mix(in oklab, var(--status-5xx) 20%, transparent); }
+.indicator.warn {
+  background: var(--status-4xx);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--status-4xx) 20%, transparent);
+}
+.indicator.err {
+  background: var(--status-5xx);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--status-5xx) 20%, transparent);
+}
 
 /* ============ Dropdown ============ */
 .dropdown {
@@ -1526,8 +1653,14 @@ textarea {
   animation: ddIn 0.08s ease-out;
 }
 @keyframes ddIn {
-  from { opacity: 0; transform: translateY(-2px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .dd-item {
   display: flex;
@@ -1597,7 +1730,14 @@ textarea {
   z-index: 200;
   animation: scrimIn 0.12s ease-out;
 }
-@keyframes scrimIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scrimIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 
 .modal {
   background: var(--bg-elev);
@@ -1608,8 +1748,14 @@ textarea {
   animation: modalIn 0.15s ease-out;
 }
 @keyframes modalIn {
-  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* CmdK */
@@ -1720,6 +1866,12 @@ textarea {
   animation: toastIn 0.2s ease-out;
 }
 @keyframes toastIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }

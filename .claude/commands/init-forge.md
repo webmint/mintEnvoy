@@ -33,6 +33,7 @@ Determines `workspace_mode` and `project_root` by asking the user, then drilling
 ### 1.1: Ask Workspace Mode
 
 Use AskUserQuestion: "Is this a standalone project, or a wrapper workspace around a client project folder?"
+
 - `Standalone project` (Recommended)
 - `Wrapper workspace`
 
@@ -48,6 +49,7 @@ Invoke `.devforge/lib/init_helper find-nested-git` to enumerate directories at d
 
 **If exactly one nested `.git` directory is found:**
 Use AskUserQuestion (replace `<folder-name>` with the path from the scan above): "I found a nested git repository at `<folder-name>/`. Is this the wrapper's source root?"
+
 - `Yes` — wrapper around `<folder-name>` (Recommended)
 - `No` — the source root is a different folder
 
@@ -58,6 +60,7 @@ Use a plain free-text prompt: "Which folder contains the client's source code?",
 
 **If two or more nested `.git` directories are found:**
 Use AskUserQuestion (replace each `<folder-N>` with the corresponding path from the scan above; omit option lines that have no corresponding candidate): "I found multiple nested git repositories. Which folder is the wrapper's primary source root?"
+
 - `<folder-1>` (Recommended)
 - `<folder-2>`
 - `<folder-3>`
@@ -92,6 +95,7 @@ For all three probes, treat any non-zero exit (missing directory, non-git worksp
 **If a branch name was produced:** invoke `.devforge/lib/init_helper set-default-branch <name>`.
 
 **If all three probes produced no result**, use AskUserQuestion: "I couldn't detect the default branch from git. What is it?"
+
 - `main` (Recommended)
 - `master`
 - `None of these — let me type the name`

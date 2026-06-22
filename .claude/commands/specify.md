@@ -1,7 +1,7 @@
 ---
 name: specify
 description: Author a 9-section feature spec under specs/NNN-name/spec.md with EARS-validated AC, coverage-rule enforcement, and a manual-next-step /plan block.
-argument-hint: "<feature description>"
+argument-hint: '<feature description>'
 disable-model-invocation: true
 ---
 
@@ -545,13 +545,13 @@ Each AC must be testable and unambiguous. **Cover each category that applies. Ma
 
 Every AC `statement` uses EARS notation (Easy Approach to Requirements Syntax, IEEE 29148-2018 / Kiro convention). Choose one of 5 variants; helper validates the statement matches the declared variant via regex. Malformed statements are rejected.
 
-| Variant | Pattern | Use when |
-|---|---|---|
-| `ubiquitous` | `The <system> shall <response>.` | always-true requirement |
-| `event_driven` | `WHEN <trigger>, the <system> shall <response>.` | event response |
-| `state_driven` | `WHILE <state>, the <system> shall <response>.` | state-dependent behavior |
-| `optional` | `WHERE <feature>, the <system> shall <response>.` | feature-flag / conditional |
-| `unwanted` | `IF <trigger>, THEN the <system> shall <response>.` | unwanted-behavior prevention |
+| Variant        | Pattern                                             | Use when                     |
+| -------------- | --------------------------------------------------- | ---------------------------- |
+| `ubiquitous`   | `The <system> shall <response>.`                    | always-true requirement      |
+| `event_driven` | `WHEN <trigger>, the <system> shall <response>.`    | event response               |
+| `state_driven` | `WHILE <state>, the <system> shall <response>.`     | state-dependent behavior     |
+| `optional`     | `WHERE <feature>, the <system> shall <response>.`   | feature-flag / conditional   |
+| `unwanted`     | `IF <trigger>, THEN the <system> shall <response>.` | unwanted-behavior prevention |
 
 **Subsection-EARS constraints.** §5.1 (`tooling_artifact_presence`) and §5.7 (`hygiene`) accept only the `ubiquitous` variant AND require a `--verification-command`. The other five subsections accept any of the five EARS variants; `--verification-command` is optional. The helper rejects an AC that violates these constraints.
 

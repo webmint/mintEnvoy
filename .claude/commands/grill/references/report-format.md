@@ -78,25 +78,30 @@ finding it DISMISSED; both are surfaced in the headline, never buried).
 [the orchestrator's CLASSIFY rationale — why this disposition]
 
 > [verdict-specific guidance — the helper renders one of:]
+>
 > - PROCEED — the grill attack found no disqualifying plan-level defect; the plan is sound to execute (run `/breakdown`).
 > - REVISE-PLAN — the defects are real but correctable at the plan level; revise `plan.md`, then re-run (re-`/plan` / hand-patch, optionally re-`/grill`).
 > - RE-ENTER-UPSTREAM — the defect is rooted upstream; re-enter at the named stage (`/specify` for `spec`, `/discover` for `discovery`, `/research` for `research`) with the emitted `grill-seed.json` so the re-run is directed, not a repeat.
 > - KILL — the defect is fundamental; the plan should be abandoned (re-`/plan` with a wholly different approach).
 
 ## Confirmed — Top Priorities
+
 Force-ranked across the confirmed findings. Fix these first.
+
 1. [severity] [file:line] — [one-line description] [confidence] [tags]
-...
+   ...
 
 ## Confirmed Findings
+
 (Grouped by file — each file with findings gets one `### <file path>` section,
 files ordered by path; within a file, findings grouped by `#### <category>` and
 sorted by severity Critical → Info. High-stakes `[CONTESTED]` findings appear here
 too, flagged.)
 
-### [plan.md  OR  relative/path/to/source.ext]
+### [plan.md OR relative/path/to/source.ext]
 
 #### Security
+
 - [F-001] [Critical] :42 — [description]
   Severity: Critical
   File: [plan.md or the anchor file named above]
@@ -105,15 +110,17 @@ too, flagged.)
   Confidence: Certain | Likely | Speculative
   Category: security
   Evidence:
-  ```
-  [one verbatim snippet copied from the anchor file named in File: above]
-  ```
-  Why it's wrong: [the design defect this instance triggers — name any partner
-  artifact by path and line here, e.g. "duplicates the existing helper in
-  src/util/foo.py:12"; the partner is referenced in prose, not quoted]
-  Remediation: [specific design change]
+```
+
+[one verbatim snippet copied from the anchor file named in File: above]
+
+```
+Why it's wrong: [the design defect this instance triggers — name any partner
+artifact by path and line here, e.g. "duplicates the existing helper in
+src/util/foo.py:12"; the partner is referenced in prose, not quoted]
+Remediation: [specific design change]
 - [F-007] [High] :88 — [description]
-  [same finding format]
+[same finding format]
 
 #### System Design
 [same finding format — Category: system_design]

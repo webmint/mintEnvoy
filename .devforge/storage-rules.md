@@ -67,18 +67,21 @@ consolidation, not a replacement.
 ## Naming Rules
 
 ### Feature Directories
+
 - **Format**: `NNN-feature-name` where NNN is a zero-padded sequential number
 - Scan existing `specs/` directories to determine the next number
 - Examples: `001-user-auth`, `002-cart-pricing`, `003-order-history`
 - Feature name part: lowercase kebab-case, 2-4 words
 
 ### Task Files
+
 - **Format**: `NNN-short-task-title.md` where NNN is a zero-padded sequential number within the feature
 - Numbers are sequential within the feature: 001, 002, 003...
 - Title part: lowercase kebab-case, concise description of the task
 - Examples: `001-define-types.md`, `002-create-repository.md`, `003-build-form-component.md`
 
 ### How to Determine Next Feature Number
+
 1. List all directories in `specs/`
 2. Extract the highest NNN prefix
 3. Next feature = highest + 1 (or 001 if empty)
@@ -101,8 +104,8 @@ Each task file (`specs/NNN-feature/tasks/NNN-title.md`) contains:
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File   | Action        | Description    |
+| ------ | ------------- | -------------- |
 | [path] | Create/Modify | [what changes] |
 
 ## Description
@@ -119,9 +122,11 @@ Each task file (`specs/NNN-feature/tasks/NNN-title.md`) contains:
 ## Contracts
 
 ### Expects (checked before execution)
+
 - [precondition: what must be true in the codebase before this task runs]
 
 ### Produces (checked after execution)
+
 - [postcondition: what must be true in the codebase after this task completes]
 
 ## Done When
@@ -163,16 +168,19 @@ audit        → creates audits/YYYY-MM-DD-audit.md (dated, not overwritten; sta
 ## Status Tracking
 
 ### Spec Status (in spec.md header)
+
 - `Draft` — initial creation, not yet approved
 - `Approved` — user approved, ready for plan command
 - `In Progress` — tasks are being executed
 - `Complete` — all acceptance criteria verified
 
 ### Plan Status (in plan.md header)
+
 - `Draft` — initial creation
 - `Approved` — user approved, ready for breakdown
 
 ### Task Status (in each task file header)
+
 - `Pending` — not yet started
 - `In Progress` — currently being executed
 - `Complete` — done and verified
@@ -188,14 +196,17 @@ audit        → creates audits/YYYY-MM-DD-audit.md (dated, not overwritten; sta
 ## Documentation Rules
 
 ### Audience
+
 Docs/ are LLM context source first, dev-greppable second. Density and structure are optimized for LLM consumption (compact, parseable, cite-backed); humans grep them as a side benefit.
 
 ### File Naming
+
 - Tier files use fixed names: `overview.md`, `architecture.md`
 - Concern dirs use the source-subfolder name verbatim (e.g., `docs/<package>/order/index.md` for `<package>/src/order/`)
 - Package dirs mirror the package's index.json key (e.g., `docs/module/apps/app/`)
 
 ### When Docs Are Generated
+
 - /generate-docs (Plan F) walks all tiers bottom-up: concerns → packages → project
 - Incremental: each doc carries `source_stamp` in frontmatter; helper skips regeneration when the stamp matches the current source-subfolder content hash
 - Manual `--full` flag forces regeneration of everything
@@ -205,7 +216,8 @@ Docs/ are LLM context source first, dev-greppable second. Density and structure 
 Every doc opens with YAML-subset frontmatter, then fixed section anchors.
 
 **Concern doc** (`docs/<package>/<concern>/index.md`):
-```markdown
+
+````markdown
 ---
 concern: <name>
 package: <package-path>
@@ -217,6 +229,7 @@ last_indexed: <YYYY-MM-DD>
 # <concern>
 
 ## Purpose
+
 <1-2 sentences; no preamble>
 
 ## Structure
@@ -224,7 +237,9 @@ last_indexed: <YYYY-MM-DD>
 ```text
 <ASCII tree of files in subfolder; each leaf annotated `  # <≤60 chars>`>
 ```
-```
+````
+
+````
 
 **Package architecture** (`docs/<package>/architecture.md`): `## Layers` + `## Patterns` sections, each entry cite-backed.
 
@@ -307,19 +322,22 @@ Md files are walked by `codebase-memory-mcp index_repository` automatically. The
 ## Fix Notes
 
 [Filled in after resolution — root cause, what was changed, commit reference]
-```
+````
 
 **Field notes:**
+
 - `Feature` and `AC` are populated by verify. report-bug sets them to N/A.
 - `Expected Behavior` and `Actual Behavior` are populated by verify (from spec + verification evidence). report-bug may omit them if unknown.
 - `Related Issues` is populated when multiple bugs are filed in the same batch. Helps whoever resolves the batch know what else is being addressed.
 - `File(s)` should use area/function references, not line numbers — line numbers shift after other fixes are applied.
 
 ### How Bug Files Are Created
+
 - verify Phase 9 — user requests batch bug filing for verification issues
 - report-bug — standalone manual bug reporting
 
 ### How Bug Files Are Resolved
+
 - Manual: the user edits `**Status**: Fixed` after resolving the issue (the `Open → In Progress → Fixed` lifecycle is not driven by any command)
 - Re-running `/verify` re-proves the ACs against the remediated diff
 

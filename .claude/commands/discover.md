@@ -1,7 +1,7 @@
 ---
 name: discover
 description: Pre-spec exploration of a greenfield feature; produce a structured discovery report grounded in prior-art survey + codebase fit-check.
-argument-hint: "<topic>"
+argument-hint: '<topic>'
 disable-model-invocation: true
 ---
 
@@ -158,16 +158,16 @@ Convert the vague topic into a structured scoping memo across 8 dimensions. The 
 
 ### Rubric dimensions
 
-| Dimension (underscore form) | Setter (kebab form) | Captures |
-|---|---|---|
-| `functional_scope` | `set-scope-functional-scope` | Core behavior the feature delivers |
-| `users` | `set-scope-users` | Who consumes the feature (role, surface) |
-| `inputs_outputs` | `set-scope-inputs-outputs` | Data in / data out of the feature boundary |
-| `integration_points` | `set-scope-integration-points` | Where in the existing architecture this lives (user's BELIEF — fit-check reconciles vs reality in Phase 2) |
-| `constraints` | `set-scope-constraints` | Non-negotiable limits (latency, schema, security, compliance) |
-| `non_goals` | `set-scope-non-goals` | Behaviors explicitly out of scope |
-| `success_criteria` | `set-scope-success-criteria` | How "done" is recognized |
-| `edge_cases` | `set-scope-edge-cases` | Failure modes, boundary conditions, adversarial inputs |
+| Dimension (underscore form) | Setter (kebab form)            | Captures                                                                                                   |
+| --------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `functional_scope`          | `set-scope-functional-scope`   | Core behavior the feature delivers                                                                         |
+| `users`                     | `set-scope-users`              | Who consumes the feature (role, surface)                                                                   |
+| `inputs_outputs`            | `set-scope-inputs-outputs`     | Data in / data out of the feature boundary                                                                 |
+| `integration_points`        | `set-scope-integration-points` | Where in the existing architecture this lives (user's BELIEF — fit-check reconciles vs reality in Phase 2) |
+| `constraints`               | `set-scope-constraints`        | Non-negotiable limits (latency, schema, security, compliance)                                              |
+| `non_goals`                 | `set-scope-non-goals`          | Behaviors explicitly out of scope                                                                          |
+| `success_criteria`          | `set-scope-success-criteria`   | How "done" is recognized                                                                                   |
+| `edge_cases`                | `set-scope-edge-cases`         | Failure modes, boundary conditions, adversarial inputs                                                     |
 
 Per-dimension state enum: `Clear` / `Partial` / `Missing` (default `Clear` when a setter is called without `--state`). Turn cap: 3 follow-ups per dimension before the helper auto-marks `Partial` on the next set with `--increment-turn`.
 
@@ -279,6 +279,7 @@ If the user is clarifying all the way to `Clear`, finalize without the flag:
 ```
 
 Exit code:
+
 - `0` → memo accepted; advance to Phase 2.
 - non-zero → blocked. Stderr enumerates the reason (unresolved direct conflict OR Partial/Missing without `--accept-gaps`). Copy stderr VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase), end the turn, address the cited issue on the next user reply.
 

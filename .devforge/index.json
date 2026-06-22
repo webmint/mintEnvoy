@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-21T11:10:29Z",
+  "generated_at": "2026-06-22T20:24:13Z",
   "packages": {
     ".": {
       "files": [
@@ -12,15 +12,46 @@
         "eslint.config.mjs",
         "package-lock.json",
         "package.json",
+        "playwright.config.ts",
         "tsconfig.json",
         "tsconfig.node.json",
         "tsconfig.web.json",
+        "vitest.config.ts",
         "design/mintenvoy \u2014 a friendly API client.html",
         "design/styles.css",
         "design/tokens.json",
+        "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.handoff.json",
+        "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
         "docs/architecture.md",
+        "docs/glossary.md",
         "docs/overview.md",
+        "docs/structure.md",
+        "playwright/index.html",
+        "playwright/index.tsx",
+        "playwright-report/index.html",
+        "playwright-report/data/2f481f89c44a472d10ea2bbf76d848ef01408737.md",
         "resources/icon.png",
+        "specs/001-ui-primitives/breakdown-handoff.json",
+        "specs/001-ui-primitives/handoff.json",
+        "specs/001-ui-primitives/plan-handoff.json",
+        "specs/001-ui-primitives/plan.md",
+        "specs/001-ui-primitives/research.md",
+        "specs/001-ui-primitives/review-state.json",
+        "specs/001-ui-primitives/review.md",
+        "specs/001-ui-primitives/spec.md",
+        "specs/001-ui-primitives/summary.md",
+        "specs/001-ui-primitives/verification.md",
+        "specs/001-ui-primitives/verify-state.json",
+        "specs/001-ui-primitives/tasks/001-set-up-test-stack-and-radix.md",
+        "specs/001-ui-primitives/tasks/002-icon-set-and-lookup.md",
+        "specs/001-ui-primitives/tasks/003-icon-component.md",
+        "specs/001-ui-primitives/tasks/004-toast-store.md",
+        "specs/001-ui-primitives/tasks/005-toast-component.md",
+        "specs/001-ui-primitives/tasks/006-modal-component.md",
+        "specs/001-ui-primitives/tasks/007-dropdown-component.md",
+        "specs/001-ui-primitives/tasks/008-app-root-integration.md",
+        "specs/001-ui-primitives/tasks/009-primitives-demo-route.md",
+        "specs/001-ui-primitives/tasks/README.md",
         "src/main/index.ts",
         "src/preload/index.d.ts",
         "src/preload/index.ts",
@@ -28,11 +59,42 @@
         "src/renderer/src/App.tsx",
         "src/renderer/src/env.d.ts",
         "src/renderer/src/main.tsx",
+        "src/renderer/src/__tests__/app-toast-mount.test.tsx",
+        "src/renderer/src/__tests__/setup.ts",
+        "src/renderer/src/__tests__/smoke.ct.tsx",
+        "src/renderer/src/__tests__/smoke.test.tsx",
         "src/renderer/src/assets/base.css",
-        "src/renderer/src/assets/electron.svg",
         "src/renderer/src/assets/main.css",
-        "src/renderer/src/assets/wavy-lines.svg",
-        "src/renderer/src/components/Versions.tsx",
+        "src/renderer/src/components/PrimitivesDemo.css",
+        "src/renderer/src/components/PrimitivesDemo.tsx",
+        "src/renderer/src/components/__tests__/PrimitivesDemo.test.tsx",
+        "src/renderer/src/components/atoms/Icon.css",
+        "src/renderer/src/components/atoms/Icon.tsx",
+        "src/renderer/src/components/atoms/icons.ts",
+        "src/renderer/src/components/atoms/__tests__/Icon.ct.tsx",
+        "src/renderer/src/components/atoms/__tests__/Icon.test.tsx",
+        "src/renderer/src/components/molecules/Dropdown.css",
+        "src/renderer/src/components/molecules/Dropdown.tsx",
+        "src/renderer/src/components/molecules/Modal.css",
+        "src/renderer/src/components/molecules/Modal.tsx",
+        "src/renderer/src/components/molecules/Toast.css",
+        "src/renderer/src/components/molecules/Toast.tsx",
+        "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx",
+        "src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx",
+        "src/renderer/src/components/molecules/__tests__/Dropdown.test.tsx",
+        "src/renderer/src/components/molecules/__tests__/Modal.ct.tsx",
+        "src/renderer/src/components/molecules/__tests__/Modal.stories.tsx",
+        "src/renderer/src/components/molecules/__tests__/Modal.test.tsx",
+        "src/renderer/src/components/molecules/__tests__/Toast.ct.tsx",
+        "src/renderer/src/components/molecules/__tests__/Toast.stories.tsx",
+        "src/renderer/src/components/molecules/__tests__/Toast.test.tsx",
+        "src/renderer/src/components/molecules/__tests__/nested-overlays.ct.tsx",
+        "src/renderer/src/components/molecules/__tests__/nested-overlays.stories.tsx",
+        "src/renderer/src/lib/cx.ts",
+        "src/renderer/src/lib/icons-glue.ts",
+        "src/renderer/src/lib/toastStore.ts",
+        "src/renderer/src/lib/__tests__/icons-glue.test.ts",
+        "src/renderer/src/lib/__tests__/toastStore.test.ts",
         "src/renderer/styles/tokens.css"
       ],
       "files_truncated": false,
@@ -54,6 +116,10 @@
           "version": "^6.3.9"
         },
         {
+          "name": "radix-ui",
+          "version": "^1.1.3"
+        },
+        {
           "name": "undici",
           "version": "^8.5.0"
         },
@@ -72,6 +138,22 @@
         {
           "name": "@electron-toolkit/tsconfig",
           "version": "^2.0.0"
+        },
+        {
+          "name": "@playwright/experimental-ct-react",
+          "version": "^1.50.1"
+        },
+        {
+          "name": "@testing-library/jest-dom",
+          "version": "^6.6.3"
+        },
+        {
+          "name": "@testing-library/react",
+          "version": "^16.3.0"
+        },
+        {
+          "name": "@testing-library/user-event",
+          "version": "^14.5.2"
         },
         {
           "name": "@types/node",
@@ -118,6 +200,10 @@
           "version": "^0.4.24"
         },
         {
+          "name": "jsdom",
+          "version": "^26.1.0"
+        },
+        {
           "name": "prettier",
           "version": "^3.7.4"
         },
@@ -136,6 +222,10 @@
         {
           "name": "vite",
           "version": "^7.2.6"
+        },
+        {
+          "name": "vitest",
+          "version": "^3.2.4"
         }
       ],
       "manifest_file": "package.json",
@@ -152,6 +242,8 @@
         "lint": "eslint --cache .",
         "postinstall": "electron-builder install-app-deps",
         "start": "electron-vite preview",
+        "test": "vitest run",
+        "test:ct": "playwright test -c playwright.config.ts",
         "typecheck": "npm run typecheck:node && npm run typecheck:web",
         "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
         "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false"

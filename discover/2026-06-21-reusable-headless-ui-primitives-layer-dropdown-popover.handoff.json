@@ -1,0 +1,384 @@
+{
+  "schema_version": "1.1",
+  "handoff_kind": "discover",
+  "report_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
+  "discover_completed_at": "2026-06-21T13:12:31+00:00",
+  "intent": {
+    "feature_concept": "Reusable headless UI primitives layer (Dropdown/popover, Modal, Toast) plus a project-owned inline SVG Icon component for an Electron+React desktop app; styled via design tokens, build-vs-buy evaluated against headless libraries",
+    "topic": "Reusable headless UI primitives layer (Dropdown/popover, Modal, Toast) plus a project-owned inline SVG Icon component for an Electron+React desktop app; styled via design tokens, build-vs-buy evaluated against headless libraries",
+    "topic_slug": "reusable-headless-ui-primitives-layer-dropdown-popover",
+    "scope_summary": "A reusable presentation-only primitives layer for the Electron+React renderer, delivering four user-facing components plus their shared overlay substrate. Components: (1) Dropdown/popover anchored to a trigger \u2014 keyboard navigation, focus return, click-outside + Escape dismiss, edge-aware positioning; (2) Modal dialog \u2014 focus trap, scrim/backdrop, Escape close, body scroll lock; (3) transient Toast \u2014 stacked, auto + manual dismiss, hover-pause; (4) inline SVG Icon driven by a project-owned ~40-icon set (1.5px stroke, 16x16 viewBox). First-class shared substrate (in lib/): a Portal, a focus-trap/focus-return hook, a click-outside hook, centralized Escape/keyboard handling, and an edge-aware positioning helper \u2014 reusable by future primitives. An explicit build-vs-buy evaluation (headless libs Radix/React Aria/Ark/Headless UI vs hand-rolled) governs the overlay substrate. Styling via semantic class names mapped to design/tokens.json; visual/behavior reference is the design export, never its markup.",
+    "verbatim_prompt": "A reusable UI primitives layer for a desktop app: a Dropdown / popover anchored to a trigger element (keyboard navigation, focus return, click-outside and Escape dismiss, edge-aware positioning), a Modal dialog (focus trap, scrim, Escape close), and a transient Toast. These overlay/focus/keyboard primitives are exactly the area where hand-rolled implementations accumulate accessibility and edge-case bugs, so EVALUATE HEADLESS PRIMITIVE LIBRARIES (e.g. Radix UI, React Aria, Ark UI, Headless UI) against a hand-rolled implementation as an explicit build-vs-buy decision \u2014 styling is supplied separately via design tokens, so a headless (unstyled) approach is viable and likely preferred for the overlay primitives. Separately, an inline SVG Icon component driven by a small project-owned icon set (~40 icons, 1.5px stroke, 16x16 viewBox) \u2014 the icon set already exists as hand-authored SVG paths, so keep it project-owned rather than pulling an icon dependency. All presentation-only; no request/response/persistence logic. Visual reference: design/reference.html (a Claude Design export) \u2014 look and behavior only, never reproduce its markup; it carries generated cruft (data-om-* attributes, __OmT wrappers, inline styles, a tweaks-panel) that must not enter the build. Whatever the build-vs-buy outcome, style with semantic class names from each component's role and design/tokens.json, not inline styles."
+  },
+  "spec_seeds": {
+    "spec_type_hint": "greenfield_feature",
+    "constraints": [
+      {
+        "kind": "nfr",
+        "content": "Presentation-only \u2014 no request/response/persistence logic. Styling exclusively via semantic class names (from each component's role) + design/tokens.json; no inline styles. Target stack: Electron renderer process, React 19, TypeScript, electron-vite. Accessibility: WCAG keyboard + focus expectations (focus trap/return, escape, ARIA roles). Dependency policy: a well-maintained headless library (Radix/React Aria/Ark) is acceptable as a runtime dep where it wins on a11y/edge-case correctness \u2014 bundle size a minor concern for desktop Electron; build-vs-buy decided per-primitive. Icon stays project-owned (no icon dependency). design/reference.html consulted for look/behavior only; its generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks-panel) must never enter the build.",
+        "quantifier": "see discovery report constraints dimension",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "nfr",
+        "content": "Out of scope: Beyond scope: (1) any network, request/response, or persistence logic \u2014 this set does no fetching or storing; (2) extra widgets beyond those named here (no buttons, fields, tabs, tables, and so on); (3) a theming engine, runtime theme switcher, or authoring of new style files.",
+        "quantifier": "non-goal boundary from scoping session",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.4 Testing Requirements",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.1 Type Safety",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a72.3 Module Organization & Imports",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a74 Always (project): shared renderer state in zustand + Never mutate outside store actions",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.3 Naming Conventions",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "Primitives directory (atoms/molecules)",
+        "files": ["src/renderer/src/components/"],
+        "impact": "greenfield \u2014 new atoms/ (Icon) + molecules/ (Dropdown/Modal/Toast) subdirs; grounded by existing components/Versions.tsx",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "Shared overlay substrate (lib)",
+        "files": ["src/renderer/src/"],
+        "impact": "new lib/ subdir for Portal + focus-trap/click-outside/positioning hooks; grounded by App.tsx/main.tsx prefix",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "Design-token stylesheet",
+        "files": ["src/renderer/styles/tokens.css"],
+        "impact": "design tokens ALREADY compiled to CSS custom properties here; semantic-class styling via these CSS vars is the established wiring",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "Test tooling",
+        "files": ["(unverified)"],
+        "impact": "unverified path \u2014 NO test framework in package.json; automated interaction tests (success_criteria) require adding a runner + RTL/dom",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "Renderer import alias",
+        "files": ["electron.vite.config.ts"],
+        "impact": "@renderer -> src/renderer/src alias already configured; primitives import surface ready",
+        "is_internal_extension_candidate": false
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Spike: render a Radix Dialog + DropdownMenu styled SOLELY via semantic classes bound to tokens.css CSS vars \u2014 confirm zero inline styles and a look matching the design reference",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Stand up the renderer test stack (Vitest + @testing-library/react + user-event + jsdom/happy-dom) and write one keyboard/focus interaction test as a smoke proof; record the stack in docs/architecture.md per constitution 3.4",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Verify Radix Toast covers stacking + hover/focus pause + rapid-fire queue; if not, scope the small project-owned zustand toast queue instead",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Prototype nested-overlay behavior (modal opens a dropdown; toast over modal) to confirm Escape closes topmost-only and focus-trap/return compose correctly",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Author the Icon contract: derive the typed name union from the ~40 SVG paths, define size/stroke props and the unknown-name fallback, confirm prefers-reduced-motion handling",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "no test framework \u2014 must add vitest + @testing-library/react + jsdom/happy-dom (or Playwright component tests)",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      }
+    ],
+    "open_questions": [
+      {
+        "question": "user-supplied mechanism guess (confirm via Phase 2 fit-check): keep Icon project-owned rather than pulling an icon dependency (icon set already exists as hand-authored SVG paths)",
+        "blocking": true
+      }
+    ]
+  },
+  "plan_seeds": {
+    "design_options": [
+      {
+        "id": "A",
+        "name": "Radix primitives + token-styled wrappers",
+        "shape": "Thin project-owned PascalCase components wrap Radix Dialog/DropdownMenu/Popover/Toast; behavior, ARIA, focus-trap/return, keyboard nav, and edge-aware positioning come from Radix (official React 19 support). Styling supplied only as semantic class names bound to the existing tokens.css CSS custom properties. Icon stays fully project-owned (typed name union over the ~40 SVG paths). Toast queue lives in a zustand store driving an imperative toast(msg,opts) API.",
+        "pros": [
+          "Least code; the exact a11y/edge-case bug class the user flagged is offloaded to a battle-tested lib",
+          "Radix Dialog/Dropdown/Popover are stable + React 19 supported; only complex combobox/multiselect lagged (not needed)",
+          "Styling stays project-owned via semantic classes; no inline styles, fits tokens.css wiring directly"
+        ],
+        "cons": [
+          "Runtime dependency on Radix (acceptable per dep policy)",
+          "Must learn Radix data-attribute/state hooks to style states (open/closed, side)",
+          "Some bundle weight (minor for desktop Electron)"
+        ],
+        "complexity": "Low"
+      },
+      {
+        "id": "B",
+        "name": "Hand-rolled on Floating UI + native dialog",
+        "shape": "Project-owned components with minimal deps: Modal built on native <dialog> (free focus trap, scrim, Escape, top-layer); Dropdown/popover positioned by Floating UI (flip/shift, ~3kB) with FloatingFocusManager; Toast via a zustand queue + Portal. Shared lib/ hooks (useClickOutside, useFocusReturn, useKeyboardNav) supply the rest. One small positioning dep.",
+        "pros": [
+          "Minimal dependency surface; full source ownership",
+          "Leverages the platform \u2014 single known Chromium makes <dialog>/Popover-API/top-layer reliable",
+          "Floating UI is version-agnostic and tiny"
+        ],
+        "cons": [
+          "Re-incurs the exact a11y/edge-case risk the user called out: menu typeahead, roving tabindex, nested focus-trap composition, ARIA wiring",
+          "Largest test + maintenance burden",
+          "Toast stacking/hover-pause + nested-overlay Escape ordering are all hand-built"
+        ],
+        "complexity": "High"
+      },
+      {
+        "id": "C",
+        "name": "shadcn-style copy-in over Radix",
+        "shape": "Copy Radix-based component source (shadcn-style) directly into components/, own and restyle it with token CSS vars rather than depending on a wrapper library. Behavior is Radix's, but the source lives in-repo with no release-cadence coupling. Icon + Toast store remain project-authored.",
+        "pros": [
+          "Project-owned source AND battle-tested behavior",
+          "Full styling control; no opaque wrapper layer",
+          "No runtime coupling to a wrapper lib release cadence"
+        ],
+        "cons": [
+          "More component code to maintain in-repo",
+          "Must manually track upstream a11y/security fixes",
+          "Still carries the underlying Radix dependency"
+        ],
+        "complexity": "Med"
+      }
+    ],
+    "build_vs_buy": {
+      "recommendation": "Hybrid",
+      "build_path": "Build project-owned: the Icon component (typed name union over the ~40 hand-authored SVG paths, unknown-name fallback), all styling (semantic class names -> tokens.css CSS vars), the Toast queue (zustand store + imperative toast() API), and thin wrappers/composition around the bought behavior.",
+      "buy_path": "Adopt Radix Primitives for the overlay behavior/a11y of Dropdown/popover, Modal (Dialog), and Toast \u2014 focus trap/return, keyboard nav, ARIA roles, edge-aware positioning, light-dismiss \u2014 restyled via semantic classes. (Alternatives if Radix is rejected: React Aria for deepest a11y, or Floating UI for a hand-rolled positioning substrate.)",
+      "reasoning": "Buy the behavior that is expensive and risky to get right (the overlay/focus/keyboard correctness the user flagged), build the parts that are cheap, project-specific, and dependency-free (Icon, styling, Toast queue). Pure build re-incurs the flagged bug class; pure buy would fight the token-styled, project-owned, no-inline-styles requirement. Hybrid satisfies both."
+    },
+    "cited_canonical_patterns": [
+      {
+        "reference": "Radix UI Primitives",
+        "kind": "library",
+        "source": "https://www.radix-ui.com/primitives",
+        "relevance": "Mature unstyled Dialog/DropdownMenu/Popover/Toast with full a11y, keyboard, focus mgmt, RTL; official React 19 support. WorkOS-acquired \u2014 velocity slowed for COMPLEX comps (combobox/multiselect, not needed here); Dialog/Dropdown/Popover stable. Heavy prod usage via shadcn.",
+        "is_internal": false
+      },
+      {
+        "reference": "React Aria Components (Adobe)",
+        "kind": "library",
+        "source": "https://react-spectrum.adobe.com/react-aria/",
+        "relevance": "Deepest a11y primitives available (ARIA APG-compliant), Modal/Popover/Menu/Toast; more code per component, unstyled. Strongest correctness bar.",
+        "is_internal": false
+      },
+      {
+        "reference": "Base UI (MUI team)",
+        "kind": "library",
+        "source": "https://base-ui.com/",
+        "relevance": "Emerging primitive layer, now the more actively-maintained Radix alternative; Dialog/Popover/Menu unstyled. Newer = smaller battle-test surface.",
+        "is_internal": false
+      },
+      {
+        "reference": "Ark UI (Zag.js state machines)",
+        "kind": "library",
+        "source": "https://ark-ui.com/",
+        "relevance": "Cross-framework headless primitives backed by XState machines; predictable complex-component behavior. Heavier abstraction than needed for app-internal React-only layer.",
+        "is_internal": false
+      },
+      {
+        "reference": "Headless UI (Tailwind team)",
+        "kind": "library",
+        "source": "https://headlessui.com/",
+        "relevance": "~10 unstyled comps incl. Dialog/Menu/Popover; simplest API but Tailwind-oriented and no Toast. Smallest scope.",
+        "is_internal": false
+      },
+      {
+        "reference": "Floating UI (+ FloatingFocusManager)",
+        "kind": "library",
+        "source": "https://floating-ui.com/docs/react",
+        "relevance": "Best low-level positioning (~3kB, edge-aware flip/shift, virtual elements) + modal/non-modal focus trapping. Used UNDER THE HOOD by Radix/Base UI. The realistic substrate for a hand-rolled overlay path.",
+        "is_internal": false
+      },
+      {
+        "reference": "Native Popover API + dialog element + CSS anchor positioning",
+        "kind": "pattern",
+        "source": "https://developer.mozilla.org/en-US/docs/Web/API/Popover_API",
+        "relevance": "Electron bundles a single known Chromium \u2192 no browser-matrix concern; <dialog> gives free focus trap + scrim + Escape, Popover API gives top-layer + light-dismiss. Anchor-positioning availability is Chromium-version-gated (derisk).",
+        "is_internal": false
+      },
+      {
+        "reference": "shadcn/ui (copy-in over Radix)",
+        "kind": "pattern",
+        "source": "https://ui.shadcn.com/",
+        "relevance": "Dominant consumption pattern: copy component source (built on Radix) into the repo, own + restyle it. Project-owned source with battle-tested behavior \u2014 directly relevant to a token-styled, project-owned layer.",
+        "is_internal": false
+      }
+    ],
+    "complexity": {
+      "changes": "Med",
+      "risk": "Low",
+      "verify_cost": "Med"
+    },
+    "recommended_option_id": "A",
+    "recommended_option_rationale": "Best matches the stated intent and constraints. The user explicitly framed overlay/focus/keyboard as the bug-prone area and the dep policy permits a well-maintained headless library \u2014 so offloading that behavior to Radix (stable Dialog/Dropdown/Popover/Toast, React 19 supported) buys the most correctness for the least code, while semantic-class styling against the existing tokens.css keeps presentation fully project-owned. Icon stays project-owned (no icon dependency) since the SVG set already exists. Tradeoffs acknowledged: a Radix runtime dep and learning its state/data-attribute styling hooks; if a zero-overlay-dependency rule ever emerges, fall back to 'Hand-rolled on Floating UI + native dialog', or choose 'shadcn-style copy-in over Radix' if in-repo source ownership outweighs the maintenance cost.",
+    "_effort_estimate": "Medium",
+    "_overall_fit": "Good",
+    "_derisk_count": 3
+  },
+  "discovery_block": {
+    "overall_fit": "Good",
+    "effort_estimate": "Medium",
+    "fit_rationale": "Strong structural fit: greenfield renderer with React 19 + TS + a configured @renderer alias, and design tokens already compiled to CSS custom properties (src/renderer/styles/tokens.css) \u2014 exactly the semantic-class styling channel the spec wants, so styling needs no new infrastructure. The atomic-design dirs (atoms/molecules/lib) are clean additions. The one non-trivial gap is test tooling: the automated-interaction-test success criterion has no runner/library installed, so a vitest + @testing-library setup task is required (Medium effort). Both user mechanism guesses hold up: headless-lib-preferred is reasonable (Radix/Base UI/React Aria all support React 19) BUT a native <dialog>+Popover-API+Floating-UI hybrid is a real contender given Electron's single Chromium; Icon-project-owned is sound since the icon set already exists and needs no dependency.",
+    "fit_assessments": [
+      {
+        "touchpoint": "Primitives directory (atoms/molecules)",
+        "user_expected": "atomic-design dirs (atoms/Icon, molecules/overlays) under components/",
+        "reality": "greenfield: only components/Versions.tsx exists; clean to add atoms/ + molecules/",
+        "effort": "Low",
+        "blockers": []
+      },
+      {
+        "touchpoint": "Shared overlay substrate (lib)",
+        "user_expected": "shared overlay/focus/keyboard hooks + positioning helper in lib/",
+        "reality": "no lib/ dir yet; clean greenfield add",
+        "effort": "Low",
+        "blockers": []
+      },
+      {
+        "touchpoint": "Design-token stylesheet",
+        "user_expected": "style via design/tokens.json semantic class names, no inline styles",
+        "reality": "tokens already emitted as CSS custom properties in src/renderer/styles/tokens.css \u2014 semantic-class approach is the existing pattern; strong fit",
+        "effort": "Low",
+        "blockers": []
+      },
+      {
+        "touchpoint": "Test tooling",
+        "user_expected": "automated keyboard/focus/dismiss interaction tests gate the feature",
+        "reality": "no test runner or component-testing library installed at all",
+        "effort": "Medium",
+        "blockers": [
+          "no test framework \u2014 must add vitest + @testing-library/react + jsdom/happy-dom (or Playwright component tests)"
+        ]
+      },
+      {
+        "touchpoint": "Renderer import alias",
+        "user_expected": "primitives importable as a reusable internal layer",
+        "reality": "@renderer alias configured in electron.vite.config.ts",
+        "effort": "Low",
+        "blockers": []
+      }
+    ],
+    "verdict": "Worth pursuing",
+    "override_recorded": false,
+    "memo_dimensions": {
+      "functional_scope": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "A reusable presentation-only primitives layer for the Electron+React renderer, delivering four user-facing components plus their shared overlay substrate. Components: (1) Dropdown/popover anchored to a trigger \u2014 keyboard navigation, focus return, click-outside + Escape dismiss, edge-aware positioning; (2) Modal dialog \u2014 focus trap, scrim/backdrop, Escape close, body scroll lock; (3) transient Toast \u2014 stacked, auto + manual dismiss, hover-pause; (4) inline SVG Icon driven by a project-owned ~40-icon set (1.5px stroke, 16x16 viewBox). First-class shared substrate (in lib/): a Portal, a focus-trap/focus-return hook, a click-outside hook, centralized Escape/keyboard handling, and an edge-aware positioning helper \u2014 reusable by future primitives. An explicit build-vs-buy evaluation (headless libs Radix/React Aria/Ark/Headless UI vs hand-rolled) governs the overlay substrate. Styling via semantic class names mapped to design/tokens.json; visual/behavior reference is the design export, never its markup."
+      },
+      "users": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "App-internal only. Direct consumers are mintEnvoy renderer feature components (and the developers wiring them) \u2014 these primitives are an internal building-block layer, not a published package. End-users of the desktop app interact with the rendered overlays (dropdown menus, modals, toasts) and icons. No external-consumer API-stability concern."
+      },
+      "inputs_outputs": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "All inputs are component props / imperative calls; all outputs are rendered DOM + callbacks. No external/network data crosses the boundary. Toast: imperative API (e.g. toast(message, opts)) backed by a provider/context that owns the live toast queue; outputs are stacked transient notifications + auto/manual dismiss callbacks. Dropdown/popover + Modal: controlled (open + onOpenChange props) \u2014 caller owns open state; inputs include trigger ref/element, menu items or children, placement hints; outputs are select/close callbacks and focus-return side effects. Icon: props are name (key into the project-owned SVG path set), size, and className; output is an inline <svg>. Styling inputs come only from semantic class names mapped to design tokens."
+      },
+      "integration_points": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Renderer process only (src/renderer/src). Atomic-design layout: Icon in src/renderer/src/components/atoms/; Dropdown/popover, Modal, Toast in src/renderer/src/components/molecules/; shared overlay/focus/keyboard hooks and positioning helpers in src/renderer/src/lib/. Styling sourced from design/tokens.json via semantic class names (likely CSS module or token-driven stylesheet under the same dirs). No main/preload-process involvement. Existing renderer is electron-vite boilerplate (App.tsx, components/Versions.tsx, main.tsx) \u2014 greenfield for primitives. NOTE: two user mechanism guesses still to reconcile in Phase 2 fit-check \u2014 (a) headless lib 'likely preferred' for overlays, (b) Icon kept project-owned."
+      },
+      "constraints": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Presentation-only \u2014 no request/response/persistence logic. Styling exclusively via semantic class names (from each component's role) + design/tokens.json; no inline styles. Target stack: Electron renderer process, React 19, TypeScript, electron-vite. Accessibility: WCAG keyboard + focus expectations (focus trap/return, escape, ARIA roles). Dependency policy: a well-maintained headless library (Radix/React Aria/Ark) is acceptable as a runtime dep where it wins on a11y/edge-case correctness \u2014 bundle size a minor concern for desktop Electron; build-vs-buy decided per-primitive. Icon stays project-owned (no icon dependency). design/reference.html consulted for look/behavior only; its generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks-panel) must never enter the build."
+      },
+      "non_goals": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Beyond scope: (1) any network, request/response, or persistence logic \u2014 this set does no fetching or storing; (2) extra widgets beyond those named here (no buttons, fields, tabs, tables, and so on); (3) a theming engine, runtime theme switcher, or authoring of new style files."
+      },
+      "success_criteria": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "All four primitives (Dropdown/popover, Modal, Toast, Icon) render per the visual reference look and behave correctly: keyboard nav, focus trap + focus return, click-outside + Escape dismiss, edge-aware positioning, scrim, toast auto-dismiss \u2014 meeting WCAG keyboard/focus expectations. Gated by automated interaction tests (keyboard/focus/dismiss). A demo/gallery harness exercises every primitive in its states as the visual + manual-QA surface."
+      },
+      "edge_cases": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Dropdown/popover: edge-aware flip/shift to stay within viewport (small Electron windows), overflowing content scrolls; trigger unmount while open. Modal + nested overlays: stacked overlays (modal->dropdown, toast over modal) compose \u2014 Escape closes the topmost overlay, focus trap + focus-return nest correctly, scrim/z-order sane, body scroll lock. Toast: multiple stack and auto-dismiss independently, rapid-fire queue, hover/focus pauses timer, manual dismiss. Keyboard: Tab wrap inside trap, arrow keys + Home/End in menu, return focus to trigger on close. Icon: safe fallback for unknown name; every animation respects prefers-reduced-motion."
+      }
+    },
+    "references": [
+      "Radix UI (headless primitives)",
+      "React Aria / React Aria Components (Adobe)",
+      "Ark UI (Zag.js state machines)",
+      "Headless UI",
+      "design/reference.html (Claude Design export \u2014 look/behavior reference only)",
+      "design/tokens.json (W3C DTCG design tokens)"
+    ],
+    "gaps": [
+      {
+        "dimension": "integration_points",
+        "description": "user-supplied mechanism guess (confirm via Phase 2 fit-check): keep Icon project-owned rather than pulling an icon dependency (icon set already exists as hand-authored SVG paths)"
+      }
+    ]
+  },
+  "downstream_links": {
+    "spec_path": "specs/001-reusable-headless-ui-primitives-layer-dropdown-popover/spec.md",
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}

@@ -1,0 +1,51 @@
+/*
+ * Icon.css — Semantic styles for the Icon atom component.
+ *
+ * All color inherits from currentColor (text color of the parent context).
+ * No hardcoded color values — references design tokens from tokens.css only.
+ * Size is driven by the svg width/height attributes set on the element, NOT
+ * via CSS; the stylesheet does NOT set width or height here.
+ */
+
+/**
+ * Base class applied to every Icon instance.
+ * - display:inline-block collapses vertical whitespace in inline contexts.
+ * - vertical-align:middle aligns icons with adjacent text baselines.
+ * - flex-shrink:0 prevents the icon from shrinking inside flex containers.
+ * - pointer-events:none ensures icons never capture mouse events
+ *   unintentionally (they are decorative in button/link contexts).
+ */
+.icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  pointer-events: none;
+  /* Color always inherits from the surrounding text via currentColor on the
+     svg stroke attribute — no explicit color property needed here. */
+}
+
+/**
+ * Modifier: spinning animation (e.g. loading indicator).
+ * Apply the class "icon--spin" alongside "icon" for a continuous rotation.
+ *
+ * The animation is disabled entirely for users who prefer reduced motion
+ * (prefers-reduced-motion: reduce), satisfying AC-14.
+ */
+.icon--spin {
+  animation: icon-spin 1s linear infinite;
+}
+
+@keyframes icon-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon--spin {
+    animation: none;
+  }
+}

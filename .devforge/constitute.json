@@ -31,12 +31,7 @@
       ],
       "tables": [
         {
-          "columns": [
-            "Process",
-            "Path",
-            "Contains",
-            "Imports from"
-          ],
+          "columns": ["Process", "Path", "Contains", "Imports from"],
           "rows": [
             [
               "Main",
@@ -173,37 +168,13 @@
       "rules": [],
       "tables": [
         {
-          "columns": [
-            "What",
-            "Convention",
-            "Example"
-          ],
+          "columns": ["What", "Convention", "Example"],
           "rows": [
-            [
-              "React component",
-              "PascalCase",
-              "Versions"
-            ],
-            [
-              "Hook",
-              "camelCase, use-prefix",
-              "useRequestStore"
-            ],
-            [
-              "zustand store",
-              "camelCase, Store suffix",
-              "requestStore"
-            ],
-            [
-              "Component file",
-              "PascalCase.tsx",
-              "App.tsx"
-            ],
-            [
-              "IPC channel",
-              "namespaced colon",
-              "http:send"
-            ]
+            ["React component", "PascalCase", "Versions"],
+            ["Hook", "camelCase, use-prefix", "useRequestStore"],
+            ["zustand store", "camelCase, Store suffix", "requestStore"],
+            ["Component file", "PascalCase.tsx", "App.tsx"],
+            ["IPC channel", "namespaced colon", "http:send"]
           ]
         }
       ],

@@ -19,6 +19,7 @@ per-task panel structurally never saw — it never reviews two tasks' diffs at
 once.
 
 THE OUT-OF-SCOPE RULE:
+
 - If a finding is fully contained within ONE task's changes, it is OUT OF
   SCOPE. The per-task panel already owned it and forced it clean. Do not
   re-flag it.

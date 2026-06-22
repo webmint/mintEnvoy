@@ -25,7 +25,7 @@ import shutil
 import subprocess
 import sys
 import time
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Dict, List, Optional, Tuple
 
 from ._concern_input import (
@@ -49,13 +49,26 @@ def _enumerate_concerns(
 ) -> List[Tuple[str, str]]:
     """List (project_relative_package_path, concern) pairs.
 
-    Source of packages: index.json's `packages` map (excluding the `.`
-    project-root entry). Each package key in index.json is relative to
-    index.json's own `project_root` field, which in wrapper-mode setups
-    differs from `<devforge_dir>/..` (e.g., wrapper root vs monorepo root
-    one level deeper). This function bridges by prefixing the wrapper-to-
-    monorepo path component so the returned package path is always
-    relative to the wrapper (i.e., to the F.0 caller's project_root).
+    Source of packages: index.json's `packages` map. Each package key in
+    index.json is relative to index.json's own `project_root` field, which
+    in wrapper-mode setups differs from `<devforge_dir>/..` (e.g., wrapper
+    root vs monorepo root one level deeper). This function bridges by
+    prefixing the wrapper-to-monorepo path component so the returned package
+    path is always relative to the wrapper (i.e., to the F.0 caller's
+    project_root).
+
+    The `.` key (project root) is handled as follows:
+    - Monorepo layout (`.` AND at least one other package key): `.` is
+      skipped. The root entry is a workspaces orchestration root with no
+      documentable `src/` of its own.
+    - Standalone single-root layout (`.` is the only package key): `.` IS
+      enumerated and its `src/` is walked for immediate subdirs. This is the
+      correct behavior for non-monorepo projects where `packages == {"."}`.
+
+    Accepted edge case: a monorepo that has both sub-packages AND a real
+    `src/` at the root keeps its root `src/` skipped (same as today;
+    workspaces-root-with-real-src is an anti-pattern this helper does not
+    need to support).
 
     For each resolved package path, walks `<project_root>/<full_pkg>/src/`
     for direct subdirs; each non-trivial subdir is a concern. Packages
@@ -85,9 +98,14 @@ def _enumerate_concerns(
         except (ValueError, OSError):
             prefix = ""
 
+    # When `.` is the sole package, it is a standalone single-root project
+    # and must be enumerated. When other (non-`.`) packages exist, `.` is a
+    # monorepo workspaces orchestration root and must be skipped.
+    has_non_dot = any(p != "." for p in packages)
+
     pairs: List[Tuple[str, str]] = []
     for pkg in sorted(packages.keys()):
-        if pkg == ".":
+        if pkg == "." and has_non_dot:  # monorepo orchestration root → skip
             continue
         full_pkg = prefix + pkg
         src_dir = project_root / full_pkg / "src"
@@ -181,7 +199,7 @@ def _diff_concern(
         should_split = False
 
     if should_split:
-        subfolder_prefix = f"{pkg}/src/{concern}/"
+        subfolder_prefix = str(PurePosixPath(pkg) / "src" / concern) + "/"
         subdir_groups, loose_files = _partition_files_by_immediate_dir(
             concern_files, subfolder_prefix, immediate_dirs
         )

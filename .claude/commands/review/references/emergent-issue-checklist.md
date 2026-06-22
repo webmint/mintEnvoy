@@ -11,8 +11,8 @@ below states which Category its findings map to. The available Category values
 are: mislogic | system_design | best_practice | duplication | security |
 blind_spot. Use only these.
 
+Cross-task security holes (Category: security)
 
-Cross-task security holes  (Category: security)
 - A trust/auth boundary one task establishes that another task bypasses — task
   A adds the guard, task B adds an endpoint, route, or code path that reaches
   the protected resource WITHOUT going through it. Anchor on the bypassing path
@@ -27,10 +27,10 @@ Cross-task security holes  (Category: security)
   Anchor on the widening / untrusted-source side and name the narrowing /
   trusting side by path and line.
 
-
-Assembled-data-flow performance  (Category: system_design for an
+Assembled-data-flow performance (Category: system_design for an
 architecture/data-flow cost; best_practice for a local idiom smell — see the
 rule below)
+
 - A query / loop / fetch pattern that is fine WITHIN one task but becomes N+1,
   O(n²), or a redundant refetch once the tasks COMPOSE into the full data flow
   — task A adds a per-row fetch helper, task B calls it inside a loop over a
@@ -45,8 +45,8 @@ rule below)
   per-render heavy computation now sitting on a composed render path), it is
   `best_practice`. State which one and why.
 
+Cross-task duplication / divergence (Category: duplication)
 
-Cross-task duplication / divergence  (Category: duplication)
 - Multiple tasks each adding a near-identical helper, type, validation, or
   component that should have been unified — each task open-coded its own copy
   of the same logic because neither saw the other's. Anchor on one copy (quote
@@ -58,8 +58,8 @@ Cross-task duplication / divergence  (Category: duplication)
   contradictory copies of one thing. Anchor on the diverged copy, name the
   original copy by path and line, and point out the drift between them.
 
+Cross-task architectural drift (Category: system_design)
 
-Cross-task architectural drift  (Category: system_design)
 - Two tasks that each made a locally-reasonable choice that are GLOBALLY
   inconsistent — different patterns for the same concern (one task handles
   errors one way, another a contradictory way; one names/structures a thing one
@@ -77,7 +77,6 @@ Cross-task architectural drift  (Category: system_design)
   reaches around it to the underlying resource directly. Anchor on the bypass
   (quote it in `Evidence:`) and name the abstraction it reaches around by path
   and line.
-
 
 Grounding rule (mandatory — same single-anchor discipline as /audit)
 Every finding MUST include a verbatim Evidence quote copy-pasted from the actual
@@ -113,9 +112,9 @@ that demonstrably bypasses the named boundary, a copy that demonstrably diverged
 from the named original). The verbatim quote stops fabrication; the Confidence
 tier keeps subjective cross-task judgments honest.
 
-
 For each finding from this checklist, write a `## Finding N` block with these
 exact fields (the report parser reads them by name — match the labels verbatim):
+
 - Severity (Critical | High | Medium | Info)
 - File (relative path of the file the finding is anchored to)
 - Line (the line number the finding is anchored to)
