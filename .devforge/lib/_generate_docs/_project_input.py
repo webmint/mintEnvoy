@@ -168,12 +168,16 @@ def _enumerate_packages_with_overviews(project_root: Path) -> List[str]:
     return out
 
 
-def _read_package_seed(
-    project_root: Path, pkg: str
+def _read_seed_doc(
+    doc_path: Path, label: str
 ) -> Optional[Dict[str, Any]]:
-    """Read frontmatter + Purpose section from a rendered package overview doc."""
-    project_root = project_root.resolve()
-    doc_path = project_root / _DOCS_DIR / pkg / "overview.md"
+    """Parse frontmatter + Purpose section from an already-resolved doc path.
+
+    Returns ``{"package": label, "frontmatter": record, "purpose_text": text}``
+    or None when the file is missing, unreadable, or has malformed frontmatter.
+    The "package" key name is kept for downstream compatibility — callers fill
+    it with whatever logical label (package path or concern dir name) applies.
+    """
     if not doc_path.is_file():
         return None
     try:
@@ -195,10 +199,59 @@ def _read_package_seed(
         if in_purpose:
             purpose_lines.append(line)
     return {
-        "package": pkg,
+        "package": label,
         "frontmatter": record,
         "purpose_text": "\n".join(purpose_lines).strip(),
     }
+
+
+def _read_package_seed(
+    project_root: Path, pkg: str
+) -> Optional[Dict[str, Any]]:
+    """Read frontmatter + Purpose section from a rendered package overview doc."""
+    project_root = project_root.resolve()
+    doc_path = project_root / _DOCS_DIR / pkg / "overview.md"
+    return _read_seed_doc(doc_path, pkg)
+
+
+def _enumerate_concern_docs(project_root: Path) -> List[str]:
+    """List depth-1 concern dirs under docs/ that contain an index.md.
+
+    Only examines immediate subdirectories of docs/ (depth-1). A nested
+    layout such as docs/<pkg>/<concern>/index.md does NOT register the
+    grandparent pkg — only docs/<concern>/index.md at depth-1 counts.
+
+    Returns sorted concern dir names (relative to docs/).
+    """
+    project_root = project_root.resolve()
+    docs_dir = (project_root / _DOCS_DIR).resolve()
+    if not docs_dir.is_dir():
+        return []
+    out: List[str] = []
+    try:
+        entries = sorted(docs_dir.iterdir())
+    except OSError:
+        return []
+    for entry in entries:
+        if not entry.is_dir():
+            continue
+        if (entry / "index.md").is_file():
+            out.append(entry.name)
+    return out
+
+
+def _read_concern_seed(
+    project_root: Path, concern: str
+) -> Optional[Dict[str, Any]]:
+    """Read frontmatter + Purpose section from a rendered concern index doc.
+
+    Reads docs/<concern>/index.md — the concern-tier output format — and
+    returns the same shape as _read_package_seed so that downstream code
+    can consume concern seeds without change.
+    """
+    project_root = project_root.resolve()
+    doc_path = project_root / _DOCS_DIR / concern / "index.md"
+    return _read_seed_doc(doc_path, concern)
 
 
 def _collect_project_root_files(
@@ -1018,29 +1071,45 @@ def cmd_project_input(args: argparse.Namespace) -> int:
     project_root = devforge_dir.parent.resolve()
 
     pkg_paths = _enumerate_packages_with_overviews(project_root)
+    using_concern_fallback = False
     if not pkg_paths:
-        print(
-            f"no package overviews found under {project_root / 'docs'} — "
-            f"run /generate-docs through Phase 3 (package tier) first",
-            file=sys.stderr,
-        )
-        return 2
+        concern_paths = _enumerate_concern_docs(project_root)
+        if not concern_paths:
+            print(
+                f"no package overviews or concern docs found under "
+                f"{project_root / 'docs'} — run /generate-docs through the "
+                f"concern/package tier first",
+                file=sys.stderr,
+            )
+            return 2
+        pkg_paths = concern_paths
+        using_concern_fallback = True
 
     package_seeds: List[Dict[str, Any]] = []
     missing: List[str] = []
     for pkg in pkg_paths:
-        seed = _read_package_seed(project_root, pkg)
+        if using_concern_fallback:
+            seed = _read_concern_seed(project_root, pkg)
+        else:
+            seed = _read_package_seed(project_root, pkg)
         if seed is None:
             missing.append(pkg)
             continue
         package_seeds.append(seed)
 
     if not package_seeds:
-        print(
-            f"no readable package overviews under {project_root / 'docs'} "
-            f"(every overview frontmatter parse failed)",
-            file=sys.stderr,
-        )
+        if using_concern_fallback:
+            print(
+                f"no readable concern docs under {project_root / 'docs'} "
+                f"(every concern index.md frontmatter parse failed)",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                f"no readable package overviews under {project_root / 'docs'} "
+                f"(every overview frontmatter parse failed)",
+                file=sys.stderr,
+            )
         return 2
 
     root_records, root_hashes = _collect_project_root_files(project_root)

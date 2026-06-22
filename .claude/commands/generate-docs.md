@@ -49,11 +49,9 @@ This catches mid-session `git pull` / `git checkout` drift that the SessionStart
 ## Phase 0 — Pre-flight gate
 
 1. `.devforge/index.json` exists:
-
    ```
    test -f .devforge/index.json
    ```
-
    If non-zero → ABORT: "missing .devforge/index.json — run /init-forge first."
 
 2. `codebase-memory-mcp` binary on PATH:
@@ -71,7 +69,6 @@ This catches mid-session `git pull` / `git checkout` drift that the SessionStart
 ```
 
 Captures stdout JSON. Key fields used downstream:
-
 - `concerns[]` — list of `{package, concern, source_stamp, prior_stamp, status, [split, sub_concerns[]]}`. Split parents carry `split:true` + embedded `sub_concerns[]` (each sub_concern is `{concern, source_stamp, prior_stamp, status}`).
 - `concern_counts` — `{unchanged, changed, new, empty}` over concern-tier entries.
 - `subconcern_counts` — `{unchanged, changed, new}` aggregated across every split parent's children. Used for cost estimation.
@@ -88,7 +85,6 @@ Before kicking off Phase 2, surface to the user the dispatch volume + cost estim
 - **Skipped via stamp gate** = scoped concerns with `status == unchanged` + scoped split parents' children with `status == unchanged`.
 
 Cost model (Haiku, ~$0.20 per dispatch + ~10s wall-clock):
-
 - `total_dispatches = single_batch + sub_concerns_changed_or_new`
 - `total_cost ≈ total_dispatches × $0.20`
 - `total_wall_clock ≈ total_dispatches × 10s` (sequential, single-thread)
@@ -111,7 +107,6 @@ Then for each kept entry where `status` is `changed` or `new`, run Steps 2.1–2
 ```
 
 Capture full JSON output to a variable. Fields used downstream:
-
 - `tree_text` — mechanical ASCII tree from index.json, fed to `set-doc-structure`
 - `files[].path` — project-relative file paths
 - `files[].comment_rich_span` — top-of-file lines + TODO context windows; used by orchestrator to infer leaf annotations
@@ -130,7 +125,6 @@ Capture full JSON output to a variable. Fields used downstream:
 ```
 
 Frontmatter values:
-
 - `concern`, `package` — string literals from the preflight entry
 - `files` — count from `concern-input`'s JSON `files` field
 - `source_stamp` — `concerns[*].source_stamp` from preflight
@@ -165,7 +159,6 @@ Two setter calls (Hazards dropped — `/audit` territory). Setters edit the skel
 `set-doc-structure` walks lines inside the ` ```text ` fence and appends `  # <annotation>` to each leaf line whose basename matches an entry in `--annotations`. Idempotent — leaves already annotated are passed through.
 
 The orchestrator MUST NOT:
-
 - Write the markdown directly via the Write tool
 - Run custom Python or bash that emits markdown directly to docs/
 
@@ -194,7 +187,6 @@ When the Step 2.1 JSON has `"split": true`, the concern was over the threshold +
 #### Step 2.S.1 — Per-child sub_concern pass
 
 For each entry in `sub_concerns[]`, run the existing Steps 2.2–2.5 unchanged with these substitutions:
-
 - `--target` → `"$pkg/$concern/$sub_name"` (where `$sub_name` is `sub_concerns[i].concern`)
 - Frontmatter `concern` → `$sub_name`; `package` → `$pkg`; `parent_concern` → `$concern`; `source_stamp` → `sub_concerns[i].source_stamp`; `files` → `len(sub_concerns[i].files)` (Step 2.2 originally pulls `files_count` from the top-level `files` field, but that field is absent in split-batch — use the per-child entry instead)
 - `--tree` → `sub_concerns[i].tree_text` (rooted at `<pkg>/src/<concern>/<sub_name>/`)
@@ -216,7 +208,6 @@ After all children pass (or are surfaced as failed):
 ```
 
 Notes:
-
 - `--split` is a bare flag for `init-doc` (no value; `action="store_true"`). Do NOT write `--split true` here — argparse would treat `true` as an unexpected positional argument.
 - `--split` flag triggers the parent skeleton (Purpose + Sub-concerns; NO Structure section).
 - `--tree` is omitted; the parent has no Structure tree.
@@ -265,7 +256,9 @@ Retry on validation failure: re-run Steps 2.S.2–2.S.5 (re-init wipes parent sk
 
 After Phase 2's concern docs are all rendered + validated, run the package tier for every package whose concerns appeared in the concern-tier loop. Two docs per package: `overview.md` + `architecture.md`. Domain glossary lives inline in each Purpose paragraph for in-context disambiguation; project-tier consolidated glossary lives at `docs/glossary.md` produced by Phase B.
 
-For each in-scope package P (derive the unique set from preflight's `concerns[*].package`):
+Derive the unique package set from preflight's `concerns[*].package`. If that set is exactly `{"."}` — a standalone single-root project (one root package, not a monorepo) — SKIP Phase 3 entirely: write NO package-tier `overview.md` / `architecture.md`. With `P="."` the package-overview target `docs/<P>/overview.md` normalizes to `docs/overview.md`, which collides with Phase 4's project-tier `docs/overview.md`. Phase 2's concern docs feed Phase 4 directly in this case (see Step 4.1). Otherwise — any non-`.` package present (monorepo / multi-package) — run Phase 3 as written below.
+
+For each in-scope package P (the unique set just derived from `concerns[*].package`):
 
 ### Step 3.1 — Pull batch input
 
@@ -280,9 +273,8 @@ If all of P's concerns were `status=unchanged` AND the prior package overview/ar
 ### Step 3.2 — package-overview pipeline
 
 Frontmatter:
-
 ```json
-{ "package": "<P>", "last_indexed": "<today>", "source_stamp": "<from package-input>" }
+{"package": "<P>", "last_indexed": "<today>", "source_stamp": "<from package-input>"}
 ```
 
 ```
@@ -291,7 +283,6 @@ Frontmatter:
 ```
 
 Compose orchestrator-direct (no subagent):
-
 - **Purpose** (1-3 sentences) — synthesize across `concern_seeds[*].purpose_text` + `package_root_files[*].comment_rich_span`. Cross-cuts named. Banned phrases absent.
 - **Concerns** (bullet list) — one entry per `concern_seeds[*]`: `{name: <concern>, role: <one-line role from concern_seeds[*].purpose_text>, cite: <docs/<P>/<concern>/>}`.
 - **Files** (bullet list) — one entry per `src_root_files[*]`: `{name: <basename>, role: <1-line description from comment_rich_span>}`. Loose files at `<P>/src/` root (e.g. `index.ts` barrel, `env.d.ts`, `apolloClient.ts`) are NOT inside any concern subfolder; this section surfaces them at package tier so they don't fall through unannotated.
@@ -311,7 +302,6 @@ On validate-doc failure: re-init the slot + re-compose with stderr as feedback. 
 ### Step 3.3 — package-architecture pipeline
 
 Frontmatter (same shape as 3.2). Sections:
-
 - **Layers** (bullet list) — derived from concern groupings in `concern_seeds[]` (e.g., concerns under `presentation/`, `domain/`, `data/`) + cross-package layer cites. Each entry `{name, role, cite}`.
 - **Patterns** (bullet list) — package-wide conventions from `package_root_files[]` + cross-concern patterns observed in `concern_seeds[]`. Each entry `{name, rule, cite}`.
 
@@ -328,9 +318,9 @@ Frontmatter (same shape as 3.2). Sections:
 
 Same retry semantics as Step 3.2.
 
-## Phase 4 — Project tier loop (after package tier completes)
+## Phase 4 — Project tier loop (after the package tier completes — or, for a single-root project, after the concern tier)
 
-After Phase 3's package overviews + architectures are all rendered + validated, run the project tier. Two docs at `docs/overview.md` and `docs/architecture.md` (NO `<package>` subdir at this tier).
+After Phase 3's package overviews + architectures are all rendered + validated, run the project tier. Two docs at `docs/overview.md` and `docs/architecture.md` (NO `<package>` subdir at this tier). For a single-root project where Phase 3 was skipped, run the project tier directly after Phase 2's concern docs — `project-input` (Step 4.1) seeds the project-tier docs from those concern docs, so no package overviews are required here.
 
 ### Step 4.1 — Pull batch input
 
@@ -339,13 +329,11 @@ After Phase 3's package overviews + architectures are all rendered + validated, 
 ```
 
 Returns JSON with:
-
-- `package_seeds[]` — frontmatter + Purpose text from each rendered package overview
+- `package_seeds[]` — frontmatter + Purpose text from each rendered package overview. When no package overviews exist under `docs/` (the single-root case where Phase 3 was skipped), `project-input` falls back to seeding `package_seeds[]` from the Phase 2 concern docs (`docs/<concern>/index.md`) instead — so the project tier still has Purpose text to synthesize from.
 - `project_root_files[]` — top-level README/CHANGELOG/package.json comment-rich spans
 - `source_stamp`
 
 **Phase 1 mechanical fields** (verbatim passthrough to setters):
-
 - `tech_stack_candidates[]` — `[{layer, technology}]` derived from `package.json` deps + manifest detection
 - `key_commands[]` — `[{command, description}]` from `package.json scripts` block
 - `test_file_paths[]` — `[{path, description}]` from filesystem walk for test directories + `*.test.ts` / `test_*.py` style suffixes
@@ -353,7 +341,6 @@ Returns JSON with:
 - `project_structure_tree` — ASCII directory tree, depth=3, ignore-filtered
 
 **Phase 2 candidate fields** (mechanical pre-extraction; LLM augments with purpose/description/role text):
-
 - `entry_point_candidates[]` — `[{label, path}]` for `main.ts` / `index.ts` / `App.vue` / `router/`-`plugins/`-`store/` files; LLM fills `purpose`
 - `router_route_files[]` — file paths under `**/router/routes/`; LLM Reads + extracts `path` literals + components
 - `nav_guard_files[]` — file paths in `**/router-guards/`, `**/guards/`; LLM Reads + extracts guard name + role + chain order
@@ -368,9 +355,8 @@ If all packages were `unchanged` AND prior project overview/architecture docs' `
 ### Step 4.2 — project-overview pipeline
 
 Frontmatter:
-
 ```json
-{ "last_indexed": "<today>", "source_stamp": "<from project-input>" }
+{"last_indexed": "<today>", "source_stamp": "<from project-input>"}
 ```
 
 `--target` is used as the H1 label only (no per-target subdir at this tier). Pass the project label.
@@ -382,24 +368,26 @@ Frontmatter:
 
 The skeleton emits eleven sections — five Phase 1 mechanical (verbatim from `project-input`), four Phase 2 mixed (helper renders structure; LLM provides purpose/description/role text), two LLM-synthesized:
 
-| Section                   | Source                                                                                            | Setter                                |
-| ------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| Purpose                   | LLM synthesis from `package_seeds[*].purpose_text` + `project_root_files`                         | `set-doc-purpose`                     |
-| Tech Stack                | `project-input.tech_stack_candidates` (verbatim)                                                  | `set-overview-tech-stack`             |
-| Project Structure         | `project-input.project_structure_tree` (verbatim tree)                                            | `set-overview-project-structure-tree` |
-| Entry Points              | `project-input.entry_point_candidates` + LLM `purpose` per row                                    | `set-overview-entry-points`           |
-| Key Commands              | `project-input.key_commands` (verbatim)                                                           | `set-overview-key-commands`           |
-| Module Map                | `project-input.package_classification_hints` + LLM `purpose` per package; LLM may regroup         | `set-overview-module-map`             |
-| Cross-Module Dependencies | `project-input.cross_module_deps_tree` (verbatim)                                                 | `set-overview-cross-module-deps`      |
-| Application Routes        | LLM Reads `project-input.router_route_files`, extracts `{path, component}` + writes `description` | `set-overview-application-routes`     |
-| Navigation Guards         | LLM Reads `project-input.nav_guard_files` + router config, extracts `{name, role}` in chain order | `set-overview-navigation-guards`      |
-| Test Files                | `project-input.test_file_paths` (verbatim)                                                        | `set-overview-test-files`             |
-| Packages                  | LLM synthesis from `package_seeds[*]`                                                             | `set-doc-packages`                    |
+| Section | Source | Setter |
+|---|---|---|
+| Purpose | LLM synthesis from `package_seeds[*].purpose_text` + `project_root_files` | `set-doc-purpose` |
+| Tech Stack | `project-input.tech_stack_candidates` (verbatim) | `set-overview-tech-stack` |
+| Project Structure | `project-input.project_structure_tree` (verbatim tree) | `set-overview-project-structure-tree` |
+| Entry Points | `project-input.entry_point_candidates` + LLM `purpose` per row | `set-overview-entry-points` |
+| Key Commands | `project-input.key_commands` (verbatim) | `set-overview-key-commands` |
+| Module Map | `project-input.package_classification_hints` + LLM `purpose` per package; LLM may regroup | `set-overview-module-map` |
+| Cross-Module Dependencies | `project-input.cross_module_deps_tree` (verbatim) | `set-overview-cross-module-deps` |
+| Application Routes | LLM Reads `project-input.router_route_files`, extracts `{path, component}` + writes `description` | `set-overview-application-routes` |
+| Navigation Guards | LLM Reads `project-input.nav_guard_files` + router config, extracts `{name, role}` in chain order | `set-overview-navigation-guards` |
+| Test Files | `project-input.test_file_paths` (verbatim) | `set-overview-test-files` |
+| Packages | LLM synthesis from `package_seeds[*]` | `set-doc-packages` |
+
+For single-root projects (Phase 3 skipped), `project-input`'s fallback (Step 4.1) seeds `package_seeds[]` from the concern docs; list those here as the project's top-level source areas, citing each `docs/<concern>/`. Frame them as source areas / modules, not as separate packages — there are no npm/workspace packages on this path. Call `set-doc-packages` with this non-empty array so `validate-doc`'s section-presence check passes naturally — never leave the section empty, or the concern docs are linked nowhere in the project overview.
 
 After Project Structure tree is set, Phase 2 also augments tree leaves with directory-level annotations:
 
-| Augmentation                  | Source                                                           | Setter                                       |
-| ----------------------------- | ---------------------------------------------------------------- | -------------------------------------------- |
+| Augmentation | Source | Setter |
+|---|---|---|
 | Project Structure annotations | LLM provides `{dir_basename: annotation_text}` per top-level dir | `set-overview-project-structure-annotations` |
 
 Compose order:
@@ -442,16 +430,16 @@ Retry semantics same as Phase 3.
 
 The skeleton emits eight sections (Track 4 Phase 3 expansion). Six are LLM-judgment-heavy + cite-back-via-CBM-snippet; two (Layers, Dependency Overview) accept verbatim mechanical input.
 
-| Section                    | Source                                                                                                                                                                                                              | Setter                                         |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| Architecture Overview      | LLM multi-paragraph narrative synthesizing across `package_seeds[*]`                                                                                                                                                | `set-architecture-overview-narrative`          |
-| Module / Package Structure | LLM emits annotated tree of workspace + per-feature subdir layout                                                                                                                                                   | `set-architecture-module-structure`            |
-| Patterns                   | LLM via CBM `get_code_snippet` — `[{name, applies_in, rule, language, code_snippet, cite}]` per pattern                                                                                                             | `set-architecture-patterns`                    |
-| Conventions                | LLM extracts from concern docs + filesystem patterns + tech stack (`project-input.tech_stack_candidates`) — `{naming, file_organization, import_style, error_handling, styling, state_management}` 6-bucket bullets | `set-architecture-conventions`                 |
-| Layers                     | LLM `[{name, role, cite}]` (Phase 0 shape)                                                                                                                                                                          | `set-doc-layers`                               |
-| Cross-Cuts                 | LLM via CBM — `[{name, description, language, code_snippet, cite}]` per cross-cut subsection                                                                                                                        | `set-architecture-cross-cuts-detailed`         |
-| Dependency Direction Rules | LLM `[bullet_strings]` per package layer                                                                                                                                                                            | `set-architecture-dependency-direction-rules`  |
-| Dependency Overview        | `project-input.dep_graph_mermaid` (verbatim) OR LLM-curated mermaid graph                                                                                                                                           | `set-architecture-dependency-overview-mermaid` |
+| Section | Source | Setter |
+|---|---|---|
+| Architecture Overview | LLM multi-paragraph narrative synthesizing across `package_seeds[*]` | `set-architecture-overview-narrative` |
+| Module / Package Structure | LLM emits annotated tree of workspace + per-feature subdir layout | `set-architecture-module-structure` |
+| Patterns | LLM via CBM `get_code_snippet` — `[{name, applies_in, rule, language, code_snippet, cite}]` per pattern | `set-architecture-patterns` |
+| Conventions | LLM extracts from concern docs + filesystem patterns + tech stack (`project-input.tech_stack_candidates`) — `{naming, file_organization, import_style, error_handling, styling, state_management}` 6-bucket bullets | `set-architecture-conventions` |
+| Layers | LLM `[{name, role, cite}]` (Phase 0 shape) | `set-doc-layers` |
+| Cross-Cuts | LLM via CBM — `[{name, description, language, code_snippet, cite}]` per cross-cut subsection | `set-architecture-cross-cuts-detailed` |
+| Dependency Direction Rules | LLM `[bullet_strings]` per package layer | `set-architecture-dependency-direction-rules` |
+| Dependency Overview | `project-input.dep_graph_mermaid` (verbatim) OR LLM-curated mermaid graph | `set-architecture-dependency-overview-mermaid` |
 
 For Patterns + Cross-Cuts: orchestrator queries CBM `get_code_snippet(qualified_name)` to fetch verbatim source + line range, then passes the snippet + `<file>:<line>` cite into the setter. Helper renders subsection-style (`### <name>` + applies-in + rule prose + cite-back HTML comment + fenced code block).
 
@@ -480,9 +468,9 @@ For Conventions: the orchestrator composes all six buckets — including `stylin
 ./.devforge/lib/generate_docs_helper validate-doc --tier project-architecture --target "<project-label>"
 ```
 
-Phase 0 callers using bullet-list `set-doc-cross-cuts` remain functional; Phase 3 callers use the enriched `set-architecture-cross-cuts-detailed` (subsections with code samples). Both target the same `## Cross-Cuts` anchor — last setter call wins.
+Phase 0 callers using bullet-list `set-doc-cross-cuts` remain functional; Track 4 Phase 3 callers use the enriched `set-architecture-cross-cuts-detailed` (subsections with code samples). Both target the same `## Cross-Cuts` anchor — last setter call wins.
 
-Phase 3 ships presence-only validation (sections required + bullet caps). Snippet-fidelity validation (helper reads cited file + diffs against rendered snippet) is a deferred follow-up — same evolution pattern as concern-tier validation (F.5 v0 → enrichment).
+Track 4 Phase 3 ships presence-only validation (sections required + bullet caps). Snippet-fidelity validation (helper reads cited file + diffs against rendered snippet) is a deferred follow-up — same evolution pattern as concern-tier validation (F.5 v0 → enrichment).
 
 ---
 
@@ -561,8 +549,8 @@ The helper validates the entries (count, definition shape, term-uniqueness case-
 - Entries sorted alphabetically (case-insensitive). Per entry:
   - `## TermName` heading
   - Definition paragraph
-  - `- **Defined**: \`qn:line\``line — omitted for prose-only; gets`(fuzzy)` suffix for fuzzy-anchored
-  - `- **Used in**: \`path1\`, \`path2\`, \`path3\``line — capped at 3 inline; if more, append` (and N others)` with the overflow count
+  - `- **Defined**: \`qn:line\`` line — omitted for prose-only; gets `(fuzzy)` suffix for fuzzy-anchored
+  - `- **Used in**: \`path1\`, \`path2\`, \`path3\`` line — capped at 3 inline; if more, append ` (and N others)` with the overflow count
   - `- **Related**: term1, term2` line — omitted if `related_terms` is empty
   - `- **Aliases to AVOID**: synonym1, synonym2` line — omitted if `aliases_to_avoid` is empty/absent
 
@@ -594,21 +582,24 @@ Phase B assumes CBM is indexed. Phase 1's `preflight` SUBCMD calls `index_reposi
 ./.devforge/lib/generate_docs_helper verify-all
 ```
 
-Exit 0 = every rendered concern + package doc passes `validate-doc`. Exit 2 = stderr enumerates failures; surface verbatim + STOP (the user re-runs the failed concern / package phase before continuing to Phase 6 Report).
+Exit 0 = every rendered concern doc (and package doc, when Phase 3 ran) passes `validate-doc`. On a single-root project where Phase 3 was skipped, `verify-all` silently no-ops on the absent package-tier docs (no error) and checks the concern + project docs only. Exit 2 = stderr enumerates failures; surface verbatim + STOP (the user re-runs the failed concern or package-tier phase (whichever applied) before continuing to Phase 6 Report).
 
 ---
 
 ## Phase 6 — Report
 
 Print:
-
 - Total concerns from preflight: `concern_counts.unchanged + .changed + .new + .empty`
 - Concerns dispatched: count of `changed + new`
 - Concerns skipped via stamp gate: `unchanged`
 - Concerns rendered + validated: count of green
 - Concerns failed after 3 retries: list with paths
-- Packages dispatched (Phase 3): count + skipped count
-- Package overview docs rendered + validated: N
-- Package architecture docs rendered + validated: N
-- Package-tier failures: list with paths
+- Package tier (Phase 3) — print conditionally:
+  - IF Phase 3 was skipped (single-root project): print one line — `Phase 3 (package tier): SKIPPED — single-root project; concern docs feed Phase 4 directly`
+  - OTHERWISE: print the four package-tier lines —
+    - Packages dispatched (Phase 3): count + skipped count
+    - Package overview docs rendered + validated: N
+    - Package architecture docs rendered + validated: N
+    - Package-tier failures: list with paths
 - Glossary (Phase B): rendered N entries; M entries marked `[TODO: human-define]` (list those terms); failed-after-retries: yes/no
+
