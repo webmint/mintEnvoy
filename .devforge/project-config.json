@@ -6,47 +6,19 @@
   "WORKSPACE_MODE": "standalone",
   "PROJECT_STATE": "brownfield",
   "DEFAULT_BRANCH": "main",
-  "LANGUAGES": [
-    "TypeScript"
-  ],
-  "FRAMEWORKS": [
-    "Electron",
-    "React"
-  ],
+  "LANGUAGES": ["TypeScript"],
+  "FRAMEWORKS": ["Electron", "React"],
   "PRIMARY_LANGUAGE": "TypeScript",
-  "ARCHITECTURES": [
-    "Electron multi-process (main / preload / renderer)"
-  ],
-  "PROJECT_NATURES": [
-    "desktop",
-    "web"
-  ],
-  "ERROR_HANDLINGS": [
-    "thrown exceptions"
-  ],
-  "API_LAYERS": [
-    "Electron IPC"
-  ],
-  "TESTINGS": [
-    "N/A"
-  ],
-  "BUILD_TOOLS": [
-    "electron-vite",
-    "Vite",
-    "electron-builder"
-  ],
-  "BUILD_COMMANDS": [
-    "npm run typecheck && electron-vite build"
-  ],
-  "TYPE_CHECK_COMMANDS": [
-    "npm run typecheck:node && npm run typecheck:web"
-  ],
-  "LINT_COMMANDS": [
-    "eslint --cache ."
-  ],
-  "TEST_COMMANDS": [
-    "N/A"
-  ],
+  "ARCHITECTURES": ["Electron multi-process (main / preload / renderer)"],
+  "PROJECT_NATURES": ["desktop", "web"],
+  "ERROR_HANDLINGS": ["thrown exceptions"],
+  "API_LAYERS": ["Electron IPC"],
+  "TESTINGS": ["N/A"],
+  "BUILD_TOOLS": ["electron-vite", "Vite", "electron-builder"],
+  "BUILD_COMMANDS": ["npm run typecheck && electron-vite build"],
+  "TYPE_CHECK_COMMANDS": ["npm run typecheck:node && npm run typecheck:web"],
+  "LINT_COMMANDS": ["eslint --cache ."],
+  "TEST_COMMANDS": ["N/A"],
   "PACKAGES_DETECTED": [
     {
       "path": ".",

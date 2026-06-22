@@ -12,16 +12,16 @@ This command runs once after `/setup-wizard` for brownfield projects. Re-run whe
 
 For this run, `/onboard` operates in single-unit verification mode:
 
-| Phase | Behavior |
-|---|---|
-| §1.0 Pre-scan baseline check | Run normally |
-| §1.1 Gather project knowledge | Run normally |
-| §1.2 Discover documentation units | **Override** — skip `packages[]` iteration. Hardcode unit = `apps/app` (path: `apps/app`, doc target: `docs/apps/app/index.md`). |
-| §1.3 Subagent strategy | **Override** — direct mode. No subagents. Orchestrator runs Pass 2A inline. |
-| Pass 2A (per-package) | Run **once** for `apps/app` only. Use the per-package subagent prompt as your own instruction set. |
-| Pass 2B (architecture) | **SKIPPED** — architecture observations need cross-package signal we won't have. |
-| Pass 2C (memory archaeology) | **SKIPPED** — cross-codebase pass; out of scope for single-unit verification. |
-| Pass 2D (compose-onboard) | **SKIPPED** — compose's per-package-coverage gate (gate 2.1) requires every detected package to have a registration. With 25+ unregistered packages, compose would reject. Instead: after Pass 2A registers content via `add-package-doc`, run `onboard_helper status` and report the registered content verbatim to the user for shape evaluation. |
+| Phase                             | Behavior                                                                                                                                                                                                                                                                                                                                            |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §1.0 Pre-scan baseline check      | Run normally                                                                                                                                                                                                                                                                                                                                        |
+| §1.1 Gather project knowledge     | Run normally                                                                                                                                                                                                                                                                                                                                        |
+| §1.2 Discover documentation units | **Override** — skip `packages[]` iteration. Hardcode unit = `apps/app` (path: `apps/app`, doc target: `docs/apps/app/index.md`).                                                                                                                                                                                                                    |
+| §1.3 Subagent strategy            | **Override** — direct mode. No subagents. Orchestrator runs Pass 2A inline.                                                                                                                                                                                                                                                                         |
+| Pass 2A (per-package)             | Run **once** for `apps/app` only. Use the per-package subagent prompt as your own instruction set.                                                                                                                                                                                                                                                  |
+| Pass 2B (architecture)            | **SKIPPED** — architecture observations need cross-package signal we won't have.                                                                                                                                                                                                                                                                    |
+| Pass 2C (memory archaeology)      | **SKIPPED** — cross-codebase pass; out of scope for single-unit verification.                                                                                                                                                                                                                                                                       |
+| Pass 2D (compose-onboard)         | **SKIPPED** — compose's per-package-coverage gate (gate 2.1) requires every detected package to have a registration. With 25+ unregistered packages, compose would reject. Instead: after Pass 2A registers content via `add-package-doc`, run `onboard_helper status` and report the registered content verbatim to the user for shape evaluation. |
 
 **Helper invocation in this mode:**
 
@@ -42,6 +42,7 @@ The user evaluates the registered content against their target shape and gives f
 If the project has 23 packages, the result is 23 package docs. If it has 4 large composite packages, the result is 4 doc folders, each with sub-docs for internal concerns. The depth adapts; the coverage does not.
 
 The docs are a **substitute for first-pass code reading**. An agent should be able to read `docs/<package>/index.md` and:
+
 - Know what the package provides (Overview)
 - See real code (lifted, not paraphrased) for every public export
 - Identify "to add a new X, I touch Y" — from the doc alone
@@ -56,15 +57,15 @@ The docs are a **substitute for first-pass code reading**. An agent should be ab
 
 The helper exposes 7 verbs. These are the only sanctioned doc-write paths:
 
-| Verb | Used for | Required args |
-|---|---|---|
-| `set` | top-level scalar (mode = overwrite\|merge\|fresh) | `<field> --value <v>` |
-| `add-package-doc` | one package's index.md | `--unit --path --content --block-count --ref-count` |
-| `add-concern-doc` | one concern doc inside a package | `--unit --concern --content --block-count --ref-count` |
-| `add-architecture-doc` | workspace `docs/architecture.md` | `--content --block-count --ref-count` |
-| `add-memory-finding` | one observation for `.devforge/memory.md` | `--category --unit --observation` |
-| `status` | machine-readable progress | (none) |
-| `compose-onboard` | atomic finalization with all validation gates | (none) |
+| Verb                   | Used for                                          | Required args                                          |
+| ---------------------- | ------------------------------------------------- | ------------------------------------------------------ |
+| `set`                  | top-level scalar (mode = overwrite\|merge\|fresh) | `<field> --value <v>`                                  |
+| `add-package-doc`      | one package's index.md                            | `--unit --path --content --block-count --ref-count`    |
+| `add-concern-doc`      | one concern doc inside a package                  | `--unit --concern --content --block-count --ref-count` |
+| `add-architecture-doc` | workspace `docs/architecture.md`                  | `--content --block-count --ref-count`                  |
+| `add-memory-finding`   | one observation for `.devforge/memory.md`         | `--category --unit --observation`                      |
+| `status`               | machine-readable progress                         | (none)                                                 |
+| `compose-onboard`      | atomic finalization with all validation gates     | (none)                                                 |
 
 **Why this contract exists.** R5/R6 evidence shows that "produce N similar artifacts" framings activate generator-build defaults that produce mechanically-extracted, semantically-thin output. The helper's verb surface forces per-unit + per-concern dispatch (one tool call per doc) and enforces 7 validation gates at compose time:
 
@@ -159,7 +160,7 @@ Do NOT include layer boundaries, domain entities, or naming conventions — thos
 
 ### 1.2: Discover Documentation Units
 
-Read `.devforge/detection_report.yaml` (or `project-config.json` if the wizard exposes it differently) to get the `packages[]` array. Each entry has a `path` field — the actual filesystem location of a manifest (package.json, Cargo.toml, pyproject.toml, go.mod, pom.xml, *.csproj, Gemfile, composer.json).
+Read `.devforge/detection_report.yaml` (or `project-config.json` if the wizard exposes it differently) to get the `packages[]` array. Each entry has a `path` field — the actual filesystem location of a manifest (package.json, Cargo.toml, pyproject.toml, go.mod, pom.xml, \*.csproj, Gemfile, composer.json).
 
 **A documentation unit is one of:**
 
@@ -179,11 +180,11 @@ Read `.devforge/detection_report.yaml` (or `project-config.json` if the wizard e
 
 ### 1.3: Determine Subagent Strategy
 
-| Source files | Strategy |
-|---|---|
-| < 50 | Direct: orchestrator writes everything itself, no subagents. |
-| 50–500 | One subagent per documentation unit. Sequential or small parallel batches respecting runtime concurrency limits. |
-| 500+ | One subagent per unit, parallel batches. |
+| Source files | Strategy                                                                                                         |
+| ------------ | ---------------------------------------------------------------------------------------------------------------- |
+| < 50         | Direct: orchestrator writes everything itself, no subagents.                                                     |
+| 50–500       | One subagent per documentation unit. Sequential or small parallel batches respecting runtime concurrency limits. |
+| 500+         | One subagent per unit, parallel batches.                                                                         |
 
 **Subagent dispatch rule**: invoke subagents WITHOUT full-history fork. Each subagent receives a self-contained prompt with: unit identifier, scope path, project brief from §1.1, per-doc template (Section A.2), write target. They do not need the orchestrator's conversation history.
 
@@ -193,12 +194,12 @@ Read `.devforge/detection_report.yaml` (or `project-config.json` if the wizard e
 
 Phase 2 runs as **four distinct passes**, each with its own prompt template. **The orchestrator never writes to `docs/` directly** — every doc registration goes through `.devforge/lib/onboard_helper`. This separation is load-bearing: each pass has its own focus and its own per-doc template.
 
-| Pass | Dispatch shape | Helper verb |
-|---|---|---|
-| **2A — Per-package** | One subagent per documentation unit (parallel-per-unit per §1.3) | `add-package-doc` (one per package) + `add-concern-doc` (per substantive subfolder) |
-| **2B — Architecture** | Single dispatch (orchestrator or one subagent) | `add-architecture-doc` (single call) |
-| **2C — Memory archaeology** | Single dispatch with explicit source-reading mandate | `add-memory-finding` × N (multiple calls) |
-| **2D — Compose** | Orchestrator | `compose-onboard` (validation + atomic write) |
+| Pass                        | Dispatch shape                                                   | Helper verb                                                                         |
+| --------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **2A — Per-package**        | One subagent per documentation unit (parallel-per-unit per §1.3) | `add-package-doc` (one per package) + `add-concern-doc` (per substantive subfolder) |
+| **2B — Architecture**       | Single dispatch (orchestrator or one subagent)                   | `add-architecture-doc` (single call)                                                |
+| **2C — Memory archaeology** | Single dispatch with explicit source-reading mandate             | `add-memory-finding` × N (multiple calls)                                           |
+| **2D — Compose**            | Orchestrator                                                     | `compose-onboard` (validation + atomic write)                                       |
 
 The passes run in order. 2A and 2B can be parallelized; 2C must run after 2A so its source-reading pass is informed by what was registered (but it does NOT summarize the docs — it reads source for archaeology). 2D runs last.
 
@@ -206,7 +207,7 @@ The passes run in order. 2A and 2B can be parallelized; 2C must run after 2A so 
 
 For each documentation unit, dispatch one subagent (or run direct for small projects per §1.3). Subagent prompt:
 
-```
+````
 You are operating in ONBOARDING MODE — pass 2A (per-package). Generate complete documentation for ONE unit by registering content through the onboard_helper CLI.
 
 ## Project Brief
@@ -311,7 +312,7 @@ The visibility model is the language's, not ours. The LLM knows each language's 
 [Insert full Section A instructions below — A.1 Smart Extraction, A.2 Per-Doc Templates, A.3 Bare Command Names, A.4 Quality Checks.]
 
 After your registrations complete, return a brief summary noting how many add-package-doc + add-concern-doc calls you made.
-```
+````
 
 ### Pass 2B — Architecture subagent prompt
 
@@ -402,6 +403,7 @@ After 2A, 2B, 2C all complete, the orchestrator invokes:
 This runs all 7 validation gates and atomically writes registered content to `docs/` if validation passes. State is preserved on failure for retry. Errors are LLM-readable with specific guidance per failure.
 
 If compose fails, the orchestrator reports the errors to the user and offers:
+
 - **Re-run the relevant pass** to fix the errors.
 - **Accept** — user explicitly waives the gap (rare).
 - **Abort** — user reconciles manually.
@@ -417,11 +419,13 @@ The helper's `compose-onboard` already enforces all 7 validation gates (per-pack
 ### 3.1: Report compose result
 
 If `compose-onboard` exited 0:
+
 - Read the helper's stdout summary (count of doc files written, baselines dropped, memory findings appended).
 - Run `find docs/ -name "*.md"` to confirm written files.
 - Proceed to Phase 4 summary.
 
 If `compose-onboard` exited 2 (validation failed):
+
 - Read the error list from stderr.
 - Identify which pass produced the offending registration (per-package, per-concern, architecture, memory).
 - Re-dispatch the relevant pass with explicit error context (the specific gate failures).
@@ -431,6 +435,7 @@ If `compose-onboard` exited 2 (validation failed):
 ### 3.2: Spot-check (post-compose, optional sanity)
 
 The helper has already validated structurally and semantically. Spot-checks here are optional sanity-only:
+
 - Confirm `docs/architecture.md` exists.
 - Confirm `.devforge/baseline/docs/` mirrors `docs/`.
 - Confirm `.devforge/memory.md` has new dated subsections.
@@ -475,18 +480,18 @@ These instructions are inlined into the tech-writer agent prompt at the placehol
 
 Context is finite. Extract the high-information content from each file type; skip the rest.
 
-| File Type | What to Extract | What to Skip |
-|---|---|---|
-| Type/interface/trait/protocol definitions (`.d.ts`, `types.ts`, `.pyi`, `interfaces/`, `entities/`; Rust `trait`/`struct`/`enum`; Python `Protocol`/`TypedDict`/dataclass; Go `type`; Swift `protocol`/`struct`; Kotlin `sealed`/`data class`) | Read full content — highest information density | Nothing |
-| Index/barrel/module entry files (`index.ts`, `__init__.py`, `mod.rs`, `lib.rs`; Go `package`; Swift `@_exported import`; Java/Kotlin module-info) | Read full content — defines module boundaries | Nothing |
-| Route/API definitions (HTTP routes, gRPC services, GraphQL resolvers, RPC controllers, message handlers) | Read full content — defines API surface | Nothing |
-| Config files (`.env.example`, config modules, framework config) | Read full content | `.env` (secrets) |
-| Implementation files (services, repositories, helpers) | Function/method signatures, class/struct/trait definitions, imports, exports | Function bodies |
-| UI component files (`.vue`, `.tsx`, `.svelte`, `.dart`; Android `@Composable` + XML; SwiftUI `View`; native mobile view classes) | Props/interface, template/view structure, emits/events, composable/hook usage | Template HTML/CSS details, style internals |
-| Test files (JS/TS `describe`/`it`, Python `def test_*`, Rust `#[test]`, Go `func TestXxx`, JUnit `@Test`, XCTest, RSpec) | Test names only — these reveal WHAT the code does | Test bodies, assertions, mocks |
-| Migrations/schemas (SQL, Alembic, Prisma, TypeORM, ActiveRecord, Flyway, Liquibase) | Schema definitions, table/type structures | Individual migration steps |
-| Generated/vendored code (protobuf outputs, GraphQL codegen, SwiftGen, vendored deps) | Skip entirely | Everything |
-| Assets (images, fonts, static) | Skip entirely | Everything |
+| File Type                                                                                                                                                                                                                                      | What to Extract                                                               | What to Skip                               |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------ |
+| Type/interface/trait/protocol definitions (`.d.ts`, `types.ts`, `.pyi`, `interfaces/`, `entities/`; Rust `trait`/`struct`/`enum`; Python `Protocol`/`TypedDict`/dataclass; Go `type`; Swift `protocol`/`struct`; Kotlin `sealed`/`data class`) | Read full content — highest information density                               | Nothing                                    |
+| Index/barrel/module entry files (`index.ts`, `__init__.py`, `mod.rs`, `lib.rs`; Go `package`; Swift `@_exported import`; Java/Kotlin module-info)                                                                                              | Read full content — defines module boundaries                                 | Nothing                                    |
+| Route/API definitions (HTTP routes, gRPC services, GraphQL resolvers, RPC controllers, message handlers)                                                                                                                                       | Read full content — defines API surface                                       | Nothing                                    |
+| Config files (`.env.example`, config modules, framework config)                                                                                                                                                                                | Read full content                                                             | `.env` (secrets)                           |
+| Implementation files (services, repositories, helpers)                                                                                                                                                                                         | Function/method signatures, class/struct/trait definitions, imports, exports  | Function bodies                            |
+| UI component files (`.vue`, `.tsx`, `.svelte`, `.dart`; Android `@Composable` + XML; SwiftUI `View`; native mobile view classes)                                                                                                               | Props/interface, template/view structure, emits/events, composable/hook usage | Template HTML/CSS details, style internals |
+| Test files (JS/TS `describe`/`it`, Python `def test_*`, Rust `#[test]`, Go `func TestXxx`, JUnit `@Test`, XCTest, RSpec)                                                                                                                       | Test names only — these reveal WHAT the code does                             | Test bodies, assertions, mocks             |
+| Migrations/schemas (SQL, Alembic, Prisma, TypeORM, ActiveRecord, Flyway, Liquibase)                                                                                                                                                            | Schema definitions, table/type structures                                     | Individual migration steps                 |
+| Generated/vendored code (protobuf outputs, GraphQL codegen, SwiftGen, vendored deps)                                                                                                                                                           | Skip entirely                                                                 | Everything                                 |
+| Assets (images, fonts, static)                                                                                                                                                                                                                 | Skip entirely                                                                 | Everything                                 |
 
 **Ignore set** (never scan, never count): `node_modules/`, `target/`, `build/`, `dist/`, `.next/`, `.nuxt/`, `vendor/`, `.gradle/`, `.cargo/`, `__pycache__/`, `.venv/`, `venv/`, `.tox/`, `.mypy_cache/`, `.ruff_cache/`, `coverage/`, `.coverage`, `.cache/`, `tmp/`, `.tmp/`, `bin/`, `obj/`, `Pods/`, `.bundle/`, `.dart_tool/`, plus forge-managed artifacts (`.claude/`, `.devforge/`, `specs/`, `docs/`), lock files, and binary/asset files.
 
@@ -497,6 +502,7 @@ Context is finite. Extract the high-information content from each file type; ski
 For each `docs/<unit-path>/index.md` and each meaningful concern sub-doc, the template defined in Phase 2's prompt applies (Overview / Directory Structure / Main Exports with sourced code blocks / Types inline / Dependencies with cross-links / Usage Example).
 
 Length adapts to scope:
+
 - Tiny utility folder: 30–80 lines (folded into parent if even smaller).
 - Small library / single-concern subdir: 80–200 lines.
 - Mid-size unit: 200–400 lines.
@@ -511,6 +517,7 @@ Required sections:
 1. **Architecture overview** — what the project IS at the architectural level.
 2. **Module/package structure** — workspace layout, how units relate.
 3. **Patterns** — every architectural pattern observed in the codebase. **A project may legitimately have multiple coexisting patterns** (e.g., MVC in backend services + Clean Architecture in frontend; legacy procedural code being phased out alongside modern layered code; different paradigms in different microservices). When multiple patterns coexist, document each with explicit "where it applies" scope:
+
    ```
    ### <Pattern A> (applies in: <unit-paths or module-paths>)
    <observed description, conventions, decision rules>
@@ -518,7 +525,9 @@ Required sections:
    ### <Pattern B> (applies in: <other paths>)
    <observed description>
    ```
+
    Do NOT force-fit the project into a single pattern when more than one exists.
+
 4. **Conventions** — naming, file organization, import style, error handling — all observed. If conventions vary across patterns, scope each accordingly.
 5. **Cross-cutting concerns** — auth flow, data flow, state management, error propagation — all observed.
 6. **Dependency direction rules** — observed (where inward/outward dependencies go); per-pattern when patterns diverge.
@@ -592,13 +601,13 @@ Include:
 
 These terms have precise meanings in onboard's output and downstream consumers:
 
-| Term | Means |
-|---|---|
-| **package** | A self-contained unit detected by the wizard — one entry in `packages[]`. Has its own manifest (package.json, Cargo.toml, etc.). |
-| **unit** (documentation unit) | A package, OR the project itself if `packages[]` has only a root entry. The thing onboard generates a `docs/<unit-path>/` folder for. |
-| **concern** | A meaningful subfolder within a unit's source root (e.g., `components/`, `services/`, `routing/`, `handlers/`). Each substantive concern gets its own sub-doc. |
-| **boundary surface** | Symbols that cross a file/class/component boundary (exports, public class members, props/emits/slots, route handlers). What docs enumerate. |
-| **module** | Used loosely to mean a directory inside a unit; not a fixed-meaning term in this command's output. Prefer "concern" for sub-folder docs and "package"/"unit" for top-level. |
+| Term                          | Means                                                                                                                                                                       |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **package**                   | A self-contained unit detected by the wizard — one entry in `packages[]`. Has its own manifest (package.json, Cargo.toml, etc.).                                            |
+| **unit** (documentation unit) | A package, OR the project itself if `packages[]` has only a root entry. The thing onboard generates a `docs/<unit-path>/` folder for.                                       |
+| **concern**                   | A meaningful subfolder within a unit's source root (e.g., `components/`, `services/`, `routing/`, `handlers/`). Each substantive concern gets its own sub-doc.              |
+| **boundary surface**          | Symbols that cross a file/class/component boundary (exports, public class members, props/emits/slots, route handlers). What docs enumerate.                                 |
+| **module**                    | Used loosely to mean a directory inside a unit; not a fixed-meaning term in this command's output. Prefer "concern" for sub-folder docs and "package"/"unit" for top-level. |
 
 ---
 

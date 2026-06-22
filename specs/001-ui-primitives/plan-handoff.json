@@ -1,0 +1,238 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/001-ui-primitives/plan.md",
+  "plan_completed_at": "2026-06-21T15:52:21Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/001-ui-primitives/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/001-ui-primitives/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "Renderer presentation \u2014 atoms",
+        "what": "Inline SVG Icon component + project-owned typed icon-path set (40 icons, 16x16, 1.5px stroke)",
+        "files": "src/renderer/src/components/atoms/Icon.tsx, src/renderer/src/components/atoms/icons.ts"
+      },
+      {
+        "layer": "Renderer presentation \u2014 molecules",
+        "what": "Dropdown/popover, Modal, Toast wrapping Radix behavior, styled via semantic classes",
+        "files": "src/renderer/src/components/molecules/Dropdown.tsx, src/renderer/src/components/molecules/Modal.tsx, src/renderer/src/components/molecules/Toast.tsx"
+      },
+      {
+        "layer": "Renderer support sublayer \u2014 lib/ (thin)",
+        "what": "zustand toastStore (queue + auto/manual/pause) + imperative toast() API + minimal Icon glue \u2014 only what Radix does not provide",
+        "files": "src/renderer/src/lib/toastStore.ts, src/renderer/src/lib/icons-glue.ts"
+      },
+      {
+        "layer": "Renderer presentation \u2014 demo/QA surface",
+        "what": "Dev-only in-app route rendering every primitive in all states",
+        "files": "src/renderer/src/components/PrimitivesDemo.tsx"
+      },
+      {
+        "layer": "Styling (token-bound)",
+        "what": "Per-component semantic-class stylesheets bound to existing CSS custom properties; no inline styles; no token authoring",
+        "files": "src/renderer/styles/tokens.css (consume only), per-component CSS under atoms/ + molecules/"
+      },
+      {
+        "layer": "Tooling / config",
+        "what": "Add Vitest + @testing-library/react + user-event (jsdom) + Playwright component tests; record stack in docs",
+        "files": "package.json, vitest.config.ts, playwright.config.ts, docs/architecture.md"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "(a) Headless overlay library",
+        "chosen_approach": "Radix unified `radix-ui` package \u2014 `import { Dialog, DropdownMenu, Popover, Toast } from \"radix-ui\"`",
+        "why": "Mature Dialog/DropdownMenu/Popover/Toast; official React 19; unstyled + className styling; best correctness-per-line for bug-prone focus/keyboard/a11y (research.md)",
+        "alternatives_rejected": "React Aria (more code/heavier API); Base UI (smaller battle-test surface); Ark UI (heavier XState abstraction); Headless UI (Tailwind-oriented, no Toast); hand-rolled Floating UI + `<dialog>` (re-incurs the a11y bug class)"
+      },
+      {
+        "decision": "(b) lib/ substrate",
+        "chosen_approach": "THIN: only toastStore + toast() API + minimal Icon glue; Radix owns focus-trap/positioning",
+        "why": "constitution \u00a76.3 + \u00a77 \"keep lib/ thin\"; hand-rolling focus-trap/positioning duplicates Radix",
+        "alternatives_rejected": "Hand-rolled overlay substrate (focus-trap/positioning utilities) \u2014 duplicates Radix, largest test burden"
+      },
+      {
+        "decision": "(c) Toast queue",
+        "chosen_approach": "zustand `toastStore` owns the stack (enqueue/dequeue/auto-dismiss/manual-dismiss/hover-focus-pause); drives Radix `Toast.Root`/`Toast.Viewport` render",
+        "why": "constitution \u00a74 shared-state-in-zustand; Radix Toast is a render/a11y primitive, not a queue. Covers AC-8/AC-9/AC-10/AC-22",
+        "alternatives_rejected": "Radix-only Toast (cannot own stacking/rapid-fire/pause \u2014 \u00a79 risk 1); component-local useState queue (violates \u00a74)"
+      },
+      {
+        "decision": "(d) Icon",
+        "chosen_approach": "Project-owned typed string-literal-union `IconName` over the 40-icon set + safe fallback for unknown name",
+        "why": "constitution \u00a73.1 typed union, no any; \u00a77 Icon project-owned. Covers AC-23 (known \u2192 render) + AC-13 (unknown \u2192 fallback, no throw)",
+        "alternatives_rejected": "Icon-library dependency (violates \u00a77); untyped `name: string` (violates \u00a73.1); throw on unknown (violates AC-13)"
+      },
+      {
+        "decision": "(e) Styling",
+        "chosen_approach": "Semantic class names bound to existing tokens.css CSS custom properties; per-component stylesheets; zero inline styles",
+        "why": "constitution \u00a77 + AC-18; Radix parts accept className, satisfying the constraint directly",
+        "alternatives_rejected": "Inline styles (violates AC-18); CSS-in-JS runtime (new dep, not token-bound); token authoring/switching (\u00a76 OOS theming engine)"
+      },
+      {
+        "decision": "(f) Test stack",
+        "chosen_approach": "Vitest + @testing-library/react + user-event (jsdom) for interaction; Playwright component tests for real-browser focus/keyboard fidelity",
+        "why": "constitution \u00a73.4; jsdom focus/keyboard gaps covered by Playwright (research.md). Set up first per \u00a79 risk 2; record in docs per AC-24",
+        "alternatives_rejected": "happy-dom (less complete focus/range API); jsdom-only (focus/keyboard fidelity gaps hide a11y defects)"
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "src/renderer/src/components/atoms/Icon.tsx",
+        "action": "Create",
+        "what_changes": "Inline SVG Icon component (typed `name`, size, className; fallback on unknown)"
+      },
+      {
+        "file": "src/renderer/src/components/atoms/icons.ts",
+        "action": "Create",
+        "what_changes": "Project-owned typed icon-path set (40 icons) + `IconName` union"
+      },
+      {
+        "file": "src/renderer/src/components/molecules/Dropdown.tsx",
+        "action": "Create",
+        "what_changes": "Dropdown/popover wrapping Radix DropdownMenu/Popover, semantic-class styled"
+      },
+      {
+        "file": "src/renderer/src/components/molecules/Modal.tsx",
+        "action": "Create",
+        "what_changes": "Modal wrapping Radix Dialog (focus trap, scrim, Escape, body scroll lock)"
+      },
+      {
+        "file": "src/renderer/src/components/molecules/Toast.tsx",
+        "action": "Create",
+        "what_changes": "Toast rendering Radix Toast.Root/Viewport driven by toastStore"
+      },
+      {
+        "file": "src/renderer/src/lib/toastStore.ts",
+        "action": "Create",
+        "what_changes": "Module-level zustand store + `toast()` imperative API (queue/auto/manual/pause)"
+      },
+      {
+        "file": "src/renderer/src/lib/icons-glue.ts",
+        "action": "Create",
+        "what_changes": "Minimal Icon lookup/fallback helper"
+      },
+      {
+        "file": "src/renderer/src/components/PrimitivesDemo.tsx",
+        "action": "Create",
+        "what_changes": "Dev-only route exercising every primitive in all states"
+      },
+      {
+        "file": "(per-component CSS under atoms/ + molecules/)",
+        "action": "Create",
+        "what_changes": "Semantic-class stylesheets bound to tokens.css custom properties"
+      },
+      {
+        "file": "package.json",
+        "action": "Modify",
+        "what_changes": "Add `radix-ui` dep; add vitest/@testing-library/react/user-event/jsdom/Playwright dev deps + `test` script"
+      },
+      {
+        "file": "vitest.config.ts",
+        "action": "Create",
+        "what_changes": "Vitest + jsdom config for renderer interaction tests"
+      },
+      {
+        "file": "playwright.config.ts",
+        "action": "Create",
+        "what_changes": "Playwright component-test config"
+      },
+      {
+        "file": "docs/architecture.md",
+        "action": "Modify",
+        "what_changes": "Record the chosen renderer test stack (AC-24)"
+      },
+      {
+        "file": "(App root) src/renderer/src/App.tsx",
+        "action": "Modify",
+        "what_changes": "Mount the single Radix Toast.Provider/Viewport + portal container once"
+      }
+    ],
+    "doc_impact": [
+      {
+        "doc_file": "docs/architecture.md",
+        "action": "Update",
+        "what_changes": "Record the renderer test stack (Vitest + Testing Library + Playwright) per constitution \u00a73.4 / AC-24; note the primitives layer + layering (presentation \u2192 thin lib support)"
+      },
+      {
+        "doc_file": "docs/overview.md",
+        "action": "Update",
+        "what_changes": "Note the UI primitives layer as a building block once it lands"
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Radix Toast may not natively cover stacking + hover/focus pause + rapid-fire queue",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "The zustand toastStore owns the queue; Radix Toast renders individual items. Derisk spike before broad rollout"
+      },
+      {
+        "risk": "No test framework exists \u2014 Vitest + Playwright setup is a gating prerequisite that could slip",
+        "likelihood": "High",
+        "impact": "Med",
+        "mitigation": "Make test-stack setup the first task; record the stack in docs/architecture.md (\u00a73.4)"
+      },
+      {
+        "risk": "Nested-overlay composition (Escape topmost-only, nested focus-trap/return) is the most failure-prone behavior",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Prototype nested behavior early; dedicated interaction + Playwright tests"
+      },
+      {
+        "risk": "Styling Radix component state (open/closed, side) via semantic classes may fight the token-driven stylesheet",
+        "likelihood": "Med",
+        "impact": "Low",
+        "mitigation": "Spike a Radix Dialog + DropdownMenu styled solely via token CSS vars before broad rollout"
+      },
+      {
+        "risk": "jsdom may not faithfully reproduce focus/keyboard behavior, hiding real a11y defects",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Run Playwright component tests in a real browser for focus/keyboard fidelity"
+      },
+      {
+        "risk": "Dependency-direction leak: molecules using deep relative imports, or lib/ importing from components/ (support \u2192 presentation inversion)",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Mandate `@renderer` alias; lib/ must not import from components/; lint/CBM import-direction check"
+      },
+      {
+        "risk": "Toast singleton boundary: multiple toastStore instances split the queue",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Single module-level store export; `toast()` calls `toastStore.getState().enqueue(...)`, never instantiates per-consumer"
+      },
+      {
+        "risk": "Radix portal mount point not established at renderer root \u2014 detached node breaks z-order/scrim",
+        "likelihood": "Med",
+        "impact": "Low",
+        "mitigation": "Mount the single Provider/Viewport + portal container at App root once; document it"
+      },
+      {
+        "risk": "Demo route (PrimitivesDemo) ships in the production bundle",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Gate behind a dev-only conditional / route guard so it is unreachable / tree-shaken in packaged builds"
+      }
+    ],
+    "specialist_consultation": [
+      {
+        "specialist": "architect",
+        "sub_question": "Layer map, key design decisions, risks, constitution flags, minimal change, OOS-respect for the primitives layer",
+        "input_summary": "Authored all Phase 2 table rows; Radix-backed overlays + project-owned Icon/Toast-queue/styling; thin lib/; no departures; all decisions in-scope",
+        "verdict": "accepted",
+        "cites": "specs/001-ui-primitives/spec.md, specs/001-ui-primitives/research.md"
+      }
+    ],
+    "dependencies": [
+      "- **Runtime**: `radix-ui` (unified package \u2014 Dialog, DropdownMenu, Popover, Toast).",
+      "- **Dev (test stack)**: `vitest`, `@testing-library/react`, `@testing-library/user-event`, `jsdom`, Playwright component testing (`@playwright/experimental-ct-react` or `@playwright/test`).",
+      "- **Existing (reused)**: `zustand` (toastStore), React 19, the `@renderer` alias, and `src/renderer/styles/tokens.css`.",
+      "- No services, env vars, or main/preload changes."
+    ]
+  }
+}

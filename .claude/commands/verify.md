@@ -1,7 +1,7 @@
 ---
 name: verify
 description: Post-implementation acceptance-criteria verification + assembled mechanical checks for one feature. Runs after `/review` drains a feature's tasks and before `/summarize`/`/finalize`. Proves each AC item PASS/FAIL/PARTIAL (via the ac-verifier agent or code-reading, per `ac_verification_mode`), runs the assembled-feature type-check/lint/build/test together as a REPORT, folds in `/review`'s findings, renders the single APPROVED / NEEDS WORK / REJECTED verdict to `specs/[feature]/verification.md`, and on APPROVED flips the spec `**Status**:` to Complete + ticks the passed AC boxes.
-argument-hint: "[spec-file]"
+argument-hint: '[spec-file]'
 disable-model-invocation: true
 ---
 
@@ -149,7 +149,7 @@ WORKDIR="${TMPDIR:-/tmp}/forge-verify"
 
 `read-review-findings` accepts the feature directory (it appends `/review.md`) and parses `specs/[feature]/review.md` into a folded-findings dict: `missing`, `confirmed` (the confirmed-findings list), `contested` (the `[CONTESTED]`-tagged list), and `summary` (severity + partition counts). On a non-zero exit, copy the helper's stderr VERBATIM and end the turn.
 
-**Missing-review warning (proceed weakened).** If the stdout JSON has `"missing": true`, warn the user: *no review report was found — run `/review` first for a complete verdict; proceeding with AC + mechanical checks only.* Do NOT stop — `compute-verdict` handles a missing review report as a non-blocking note (the verdict is computed from AC + mechanical + hygiene, and the missing report is recorded in the verdict reasons). Keep `$WORKDIR/review.json` and pass it forward unchanged.
+**Missing-review warning (proceed weakened).** If the stdout JSON has `"missing": true`, warn the user: _no review report was found — run `/review` first for a complete verdict; proceeding with AC + mechanical checks only._ Do NOT stop — `compute-verdict` handles a missing review report as a non-blocking note (the verdict is computed from AC + mechanical + hygiene, and the missing report is recorded in the verdict reasons). Keep `$WORKDIR/review.json` and pass it forward unchanged.
 
 ## PHASE 3 — Acceptance-criteria verification
 
@@ -326,7 +326,7 @@ Compose `$WORKDIR/issues.json` as a JSON array of issue dicts and write it with 
     "expected": "Total reflects the discount after the code is applied.",
     "actual": "Total is unchanged; the discount is parsed but never subtracted.",
     "files": [
-      {"path": "src/cart/total.ts", "detail": "applyDiscount() computes but discards the delta"}
+      { "path": "src/cart/total.ts", "detail": "applyDiscount() computes but discards the delta" }
     ],
     "evidence": "AC-3 FAIL: expected $90.00, observed $100.00 (see verification.md)",
     "ac_ref": "AC-3"

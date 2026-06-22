@@ -1,0 +1,224 @@
+/*
+ * PrimitivesDemo.css — Dev-only gallery layout styles.
+ *
+ * Styling uses design tokens (CSS custom properties) from tokens.css, which is
+ * imported globally in main.tsx and resolves at runtime. Every var() call
+ * includes a fallback literal so rules remain legible without tokens.css.
+ *
+ * Tokens used: --bg, --bg-elev, --bg-hover, --text, --text-muted, --text-faint,
+ *              --border, --border-faint, --accent, --radius-md, --radius-sm,
+ *              --fs-base, --fs-sm, --fs-lg, --shadow-sm.
+ *
+ * No inline styles are written here or in PrimitivesDemo.tsx (AC-18).
+ */
+
+/* ---------------------------------------------------------------------------
+ * Root container
+ * Fills the available viewport and provides the page-level scroll context.
+ * ------------------------------------------------------------------------- */
+
+.demo-root {
+  /* Fixed overlay that covers the full viewport — this is the scroll container.
+   *
+   * WHY fixed+inset instead of height:100vh / min-height:100vh:
+   * main.css sets `body { overflow: hidden }` for the app shell's centred layout.
+   * Any in-flow element with min-height:100vh overflows the viewport but body
+   * clips it, so there is no scrollbar and content below the fold is unreachable.
+   *
+   * By taking the demo out of normal flow (position:fixed; inset:0) and giving
+   * it its own overflow-y:auto we create an independent scroll container that
+   * is not subject to the body clipping rule.  The fixed element covers the
+   * viewport (100 vw × 100 vh) and scrolls its own content — the global body
+   * rule is never touched.
+   *
+   * z-index: 100 — above default-flow app content (no z-index) but safely below
+   * the modal overlay (900), modal content (901), dropdown (1000), and the
+   * toast viewport (2147483647), so all overlays and toasts still render above
+   * the gallery as intended.
+   */
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  z-index: 100;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  padding-bottom: 4rem; /* extra clearance so the last section clears the viewport edge */
+  font-size: var(--fs-base, 12.5px);
+  color: var(--text, #18181b);
+  background-color: var(--bg, #fafaf9);
+  box-sizing: border-box;
+}
+
+/* ---------------------------------------------------------------------------
+ * Page header
+ * ------------------------------------------------------------------------- */
+
+.demo-header {
+  border-bottom: 1px solid var(--border, #e8e6e3);
+  padding-bottom: 1.25rem;
+}
+
+.demo-header__title {
+  margin: 0 0 0.25rem;
+  font-size: var(--fs-lg, 16px);
+  font-weight: 600;
+  color: var(--text, #18181b);
+  letter-spacing: -0.01em;
+}
+
+.demo-header__subtitle {
+  margin: 0;
+  font-size: var(--fs-sm, 10.5px);
+  color: var(--text-faint, #a1a1aa);
+}
+
+/* ---------------------------------------------------------------------------
+ * Section
+ * Each primitive has its own section with a title and one or more rows.
+ * ------------------------------------------------------------------------- */
+
+.demo-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border-faint, #f0efed);
+  border-radius: var(--radius-md, 9px);
+  background-color: var(--bg-elev, #ffffff);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(24, 24, 27, 0.04));
+}
+
+.demo-section__title {
+  margin: 0 0 0.25rem;
+  font-size: var(--fs-base, 12.5px);
+  font-weight: 700;
+  color: var(--text, #18181b);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.demo-section__note {
+  margin: -0.5rem 0 0;
+  font-size: var(--fs-sm, 10.5px);
+  color: var(--text-muted, #71717a);
+}
+
+/* ---------------------------------------------------------------------------
+ * Row
+ * A labeled horizontal strip inside a section.
+ * ------------------------------------------------------------------------- */
+
+.demo-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm, 5px);
+  background-color: var(--bg-hover, #f0efed);
+}
+
+.demo-row__label {
+  margin: 0;
+  font-size: var(--fs-sm, 10.5px);
+  font-weight: 600;
+  color: var(--text-muted, #71717a);
+  letter-spacing: 0.03em;
+}
+
+/* ---------------------------------------------------------------------------
+ * Icon grid
+ * Wrapping flex row of icon swatches.
+ * ------------------------------------------------------------------------- */
+
+.demo-icon-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.375rem 0;
+  color: var(--text, #18181b);
+}
+
+/* ---------------------------------------------------------------------------
+ * Shared demo button
+ * A minimal ghost-style button for triggering components in the demo.
+ * Does NOT modify the actual button atom (SOLID — OCP).
+ * ------------------------------------------------------------------------- */
+
+.demo-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-sm, 5px);
+  border: 1px solid var(--border, #e8e6e3);
+  background-color: var(--bg-elev, #ffffff);
+  color: var(--text, #18181b);
+  font-size: var(--fs-base, 12.5px);
+  font-family: inherit;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 80ms ease, border-color 80ms ease;
+  /* Prevents layout shifts when text changes between states */
+  white-space: nowrap;
+}
+
+.demo-button:hover {
+  background-color: var(--bg-hover, #f0efed);
+}
+
+.demo-button:active {
+  background-color: var(--bg-active, #e8e6e3);
+}
+
+.demo-button:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: 2px;
+}
+
+/* Primary emphasis variant — used for the confirm action in the modal demo */
+.demo-button--primary {
+  background-color: var(--accent, #10b981);
+  border-color: var(--accent, #10b981);
+  color: #fff;
+}
+
+.demo-button--primary:hover {
+  opacity: 0.9;
+  background-color: var(--accent, #10b981);
+}
+
+/* ---------------------------------------------------------------------------
+ * Button row (horizontal group of demo-buttons)
+ * ------------------------------------------------------------------------- */
+
+.demo-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Modal demo internals
+ * These classes style only the content that lives INSIDE the demo's modals —
+ * they do NOT override any .modal-* class from Modal.css.
+ * ------------------------------------------------------------------------- */
+
+.demo-modal-body {
+  padding: 0.5rem 0 1rem;
+  font-size: var(--fs-base, 12.5px);
+  color: var(--text-muted, #71717a);
+  line-height: 1.5;
+}
+
+.demo-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-faint, #f0efed);
+}

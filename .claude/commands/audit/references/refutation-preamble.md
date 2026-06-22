@@ -23,6 +23,7 @@ does have this off-by-one" — good. "The author was sloppy to raise this" —
 forbidden. No hostility toward the agent that produced the finding.
 
 THE LINE BETWEEN A VERDICT AND A FABRICATION:
+
 - A confirmed verdict re-quotes the offending code VERBATIM from the file and
   states in one line why it is a defect. The quote must be a literal substring
   of the actual file — copy-pasted, not paraphrased, not reconstructed from
@@ -101,6 +102,7 @@ Evidence:
 ````
 
 The `Evidence:` fenced block content depends on the `Verdict:`:
+
 - **confirmed** — the verbatim re-quote of the offending code, copied literally
   from the file (no edits, no `...`, no paraphrase).
 - **dismissed** — the counter-quote (the guard / code path that makes the
@@ -113,6 +115,7 @@ The `Evidence:` fenced block content depends on the `Verdict:`:
   the Evidence block.
 
 **Hard rules for the refuter**:
+
 - **Emit exactly one `## Verdict N` block for every finding handed to you** — no
   more, no fewer. Do not merge two findings into one verdict; do not skip a
   finding because it looks obviously wrong (dismiss it explicitly instead).

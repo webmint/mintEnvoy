@@ -153,7 +153,7 @@ Plain prose echo, NOT AskUserQuestion (multi-line content cannot fit AskUserQues
 
 Echo template (substitute `<...>` with the Phase 2 composed values):
 
-````
+```
 Here's what /init-forge + /generate-docs found and what /configure proposes:
 
 Project:
@@ -190,7 +190,7 @@ AC runtime (detected):
 - ac_runtime_cli_command: <AC_RUNTIME_CLI_COMMAND>
 
 Reply 'yes' to confirm all, 'cancel' to abort, or list overrides one per line as 'field: value' (e.g., 'project_type: CLI tool'). For string-array fields whose values contain literal commas (e.g., TypeScript generic syntax `Either<DataError, T>`), supply the value as a JSON array: `error_handlings: ["Either<DataError, T>", "BLoC notifications"]`.
-````
+```
 
 For the three verbatim fields (`project_structure`, `dev_commands`, `architecture_details`), echo the line count instead of inlining the full text — they are large blocks already visible in `docs/overview.md` + `docs/architecture.md`. The user can override by re-typing the field followed by the replacement text on the same line; multi-line overrides for these three fields are rare in practice.
 
@@ -205,30 +205,30 @@ For the three verbatim fields (`project_structure`, `dev_commands`, `architectur
 
 Apply each accepted/overridden value via the matching setter. Setter argument shape is taken verbatim from the helper's argparse:
 
-| Field | Setter |
-|---|---|
-| `project_name` | `set-project-name <value>` |
-| `project_description` | `set-project-description <value>` |
-| `project_type` | `set-project-type <value>` |
-| `primary_language` | `set-primary-language <value>` |
-| `languages` | `set-languages <comma-sep-list>` |
-| `frameworks` | `set-frameworks <comma-sep-list>` |
-| `architectures` | `set-architectures <comma-sep-list>` |
-| `project_natures` | `set-project-natures <comma-sep-list>` |
-| `error_handlings` | `set-error-handlings <comma-sep-list>` |
-| `api_layers` | `set-api-layers <comma-sep-list>` |
-| `testings` | `set-testings <comma-sep-list>` |
-| `build_tools` | `set-build-tools <comma-sep-list>` |
-| `build_commands` | `set-build-commands <comma-sep-list>` |
-| `type_check_commands` | `set-type-check-commands <comma-sep-list>` |
-| `lint_commands` | `set-lint-commands <comma-sep-list>` |
-| `test_commands` | `set-test-commands <comma-sep-list>` |
-| `project_structure` | `set-project-structure --text <verbatim>` |
-| `dev_commands` | `set-dev-commands --text <verbatim>` |
-| `architecture_details` | `set-architecture-details --text <verbatim>` |
-| `ac_runtime_url` | `set-ac-runtime-url <value>` |
-| `ac_runtime_api_base` | `set-ac-runtime-api-base <value>` |
-| `ac_runtime_cli_command` | `set-ac-runtime-cli-command <value>` |
+| Field                    | Setter                                       |
+| ------------------------ | -------------------------------------------- |
+| `project_name`           | `set-project-name <value>`                   |
+| `project_description`    | `set-project-description <value>`            |
+| `project_type`           | `set-project-type <value>`                   |
+| `primary_language`       | `set-primary-language <value>`               |
+| `languages`              | `set-languages <comma-sep-list>`             |
+| `frameworks`             | `set-frameworks <comma-sep-list>`            |
+| `architectures`          | `set-architectures <comma-sep-list>`         |
+| `project_natures`        | `set-project-natures <comma-sep-list>`       |
+| `error_handlings`        | `set-error-handlings <comma-sep-list>`       |
+| `api_layers`             | `set-api-layers <comma-sep-list>`            |
+| `testings`               | `set-testings <comma-sep-list>`              |
+| `build_tools`            | `set-build-tools <comma-sep-list>`           |
+| `build_commands`         | `set-build-commands <comma-sep-list>`        |
+| `type_check_commands`    | `set-type-check-commands <comma-sep-list>`   |
+| `lint_commands`          | `set-lint-commands <comma-sep-list>`         |
+| `test_commands`          | `set-test-commands <comma-sep-list>`         |
+| `project_structure`      | `set-project-structure --text <verbatim>`    |
+| `dev_commands`           | `set-dev-commands --text <verbatim>`         |
+| `architecture_details`   | `set-architecture-details --text <verbatim>` |
+| `ac_runtime_url`         | `set-ac-runtime-url <value>`                 |
+| `ac_runtime_api_base`    | `set-ac-runtime-api-base <value>`            |
+| `ac_runtime_cli_command` | `set-ac-runtime-cli-command <value>`         |
 
 For `package_stacks`: serialize Phase 2's composed package list (already in memory) into a SINGLE JSON object and pipe it once to the bulk verb `set-package-stacks`, which validates each record, then replaces the whole `package_stacks` list in one call. The JSON top-level shape is `{"package_stacks": [<record>, ...]}`; every record carries all 8 keys `{path, language, framework, build_tool, build_command, type_check_command, lint_command, test_command}`. Absent values are explicit JSON `null` — never omitted, never an empty string. `path` and `language` are required and must be non-null; the other 6 keys accept `null`.
 
@@ -276,6 +276,7 @@ These six fields cannot be derived from filesystem scan; each requires a user ch
 ### Q9: Workflow Enforcement
 
 Use AskUserQuestion: "How strict should workflow enforcement be?"
+
 - `Strict` (Recommended) — every step requires explicit approval; no shortcuts
 - `Moderate` — approval gates at major milestones; smaller decisions auto-proceed
 - `Light` — minimal gating; rely on conventions over enforcement
@@ -285,6 +286,7 @@ Save via `.devforge/lib/configure_helper set-workflow-enforcement <choice>`.
 ### Q10: AI Attribution
 
 Use AskUserQuestion: "Add AI attribution footer to commit messages?"
+
 - `Yes` (Recommended) — commits include `Generated with Claude Code` footer
 - `No` — commit messages stay clean of attribution
 
@@ -339,7 +341,7 @@ Exit-code interpretation:
 
 Echo template (plain prose; substitute `<...>` with values from `PRUNE_REPORT` and `state["project_natures"]`):
 
-````
+```
 Pruning .claude/agents/ for project natures: <project_natures>.
 
 Will KEEP (<N> agents):
@@ -352,7 +354,7 @@ Will DROP (<M> agents):
   - <agent-name-2> — applies_to: <applies_to-2>
 
 Reply 'yes' to apply, 'cancel' to skip pruning, or list overrides one per line as 'keep <name>' or 'drop <name>'.
-````
+```
 
 For each `decisions[]` entry, render `applies_to` as a comma-separated list (or the literal token `<missing>` when the helper reported `applies_to: null`).
 

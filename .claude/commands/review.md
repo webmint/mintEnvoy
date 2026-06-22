@@ -1,7 +1,7 @@
 ---
 name: review
 description: Feature-level emergent cross-task review. Runs after `/implement` drains a feature's tasks and before `/verify`. Dispatches a 5-finder ensemble (code-reviewer, architect, qa-reviewer, security-reviewer, performance-analyst) in emergent-cross-task mode over the assembled feature diff, cross-examines every finding with a refutation pass, and writes a findings-only `specs/[feature]/review.md` for `/verify` to consume.
-argument-hint: "[spec-file/feature-dir]"
+argument-hint: '[spec-file/feature-dir]'
 disable-model-invocation: true
 ---
 

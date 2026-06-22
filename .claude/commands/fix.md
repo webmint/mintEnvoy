@@ -1,7 +1,7 @@
 ---
 name: fix
 description: Proposal-only gated remediation of pipeline-surfaced findings for one feature. OFFERED (never auto-invoked) when `/review` surfaces findings, when `/verify` returns NEEDS WORK, or conversationally when the user raises a defect the model code-confirms in-window. Intakes the surfaced findings, triages + scopes them, then delegates to `/implement`'s back-half engine (scope-aware verify + self-repair → four-reviewer panel → forcing-functions gate → two-stage hard gate → WIP commit). Never invents a defect, never accepts a free-text bug description, never writes `bugs/`.
-argument-hint: "[spec-file/feature-dir]"
+argument-hint: '[spec-file/feature-dir]'
 disable-model-invocation: true
 allowed-tools:
   - Bash(.devforge/lib/fix_helper preflight *)
@@ -194,6 +194,7 @@ Start the loop iteration counter at 0 and run:
    ```
 
    The helper parses each reviewer's `### Verdict:` line against that reviewer's vocabulary and emits JSON `{clean, escalate, iteration, per_reviewer}` (exit 0). `clean` is `true` IFF EVERY reviewer returned its own clean token (`code-reviewer` `APPROVE`, `qa-reviewer` `ADEQUATE`, `security-reviewer` `PASS`, `performance-analyst` `MEETS TARGETS`); one dirty reviewer keeps the loop going. `escalate` is `true` when `N >= 3` (the helper-owned cap). Exit 2 means one reviewer's verdict line was missing, was the unfilled template, or carried a token outside that reviewer's vocabulary — copy the helper's stderr VERBATIM (it names WHICH reviewer failed), then re-invoke ONLY that named reviewer for a properly-formed verdict, rewrite its scratch file, and re-run `merge-review-panel`.
+
 4. Branch on the JSON:
    - **`clean: true`** → exit the panel loop. Carry any reviewer warnings into PHASE 6 Stage B. Proceed to the forcing-functions gate (PHASE 5).
    - **`clean: false` and `escalate: false`** → the autonomous repair leg (no human). Synthesize ALL findings across the four reviewers into ONE implementing-agent repair brief, relaunch the **implementing agent** ONCE with the synthesized findings, then re-run PHASE 3 (verify) over the same scope and **re-fan-out the FULL panel** (all four reviewers) at iteration `N + 1`. Full-panel re-review each round closes the cross-file-regression hole a repair could open.
@@ -242,6 +243,7 @@ End the turn. The user's reply opens the next turn.
   This is `wip-commit`'s **task-less mode** — `/fix` passes ONLY `--files` and `--title`, omitting `--task-file`/`--index`/`--number` (which are optional; when absent, the verb stages only the touched files and writes a fix-shaped message). The commit lands as a `[WIP] fix: <title>` commit in standalone mode, or a `[TICKET-ID] - <title>` commit on the source branch in wrapper mode. It never uses `git add -A` — in standalone mode it stages ONLY the touched `--files` in the single repo (no task file, no index); in wrapper mode it stages ONLY the source `touched_files` to the source repo on its branch (deriving the `[TICKET-ID]` from the source branch and SUPPRESSING attribution). It composes the message per the wrapper/non-wrapper convention (reading `WORKSPACE_MODE` + `COMMIT_ATTRIBUTION` from `.devforge/project-config.json`), commits, captures the new source HEAD SHA, and clears `.devforge/wip.md` (exit 0 → `{"committed": true, head_sha, message}`). Exit 1 (missing/malformed config, non-JSON or non-array `--files`, missing `--title`, or config/I/O error); exit 2 (git staging/commit failure — including an empty `--files '[]'`, which stages nothing and fails the commit) — copy the helper's stderr VERBATIM into a fenced code block and resolve before re-running. (`/implement` PHASE 7 still passes all of `--task-file`/`--index`/`--number` and is unaffected by this mode — its behavior is unchanged.)
 
   Proceed to PHASE 7.
+
 - **`repair`** → ask the user via free-text follow-up for the repair direction, relaunch the implementing agent with those notes, then re-run PHASE 3 (verify) → PHASE 4 (panel) → PHASE 5 (forcing-functions) → return to this hard gate.
 - **`stop`** → keep the working tree as-is; tell the user the remediation stopped with work uncommitted; clean up `$WORKDIR` and end the turn.
 
@@ -271,4 +273,7 @@ rm -rf "$WORKDIR" "${TMPDIR:-/tmp}/forge-implement-review"
 8. **Nothing commits before `approve`** — the remediation + all self-repair / panel-repair edits sit in the working tree until the Stage B gate approves them. A blocked verify cap, an unconverged panel, or a failed forcing-functions gate ends the turn with nothing committed.
 9. **Relay machine reports VERBATIM** — where a helper emits a user-facing finding report on stdout (blocked verify, forcing-functions exit 2), copy its stdout VERBATIM into a fenced code block; for helper failures, copy the stderr VERBATIM. Do not summarize or paraphrase.
 10. **Cleanup is last** — all intermediate scratch lives in `$WORKDIR` (`${TMPDIR:-/tmp}/forge-fix`) plus the reused `${TMPDIR:-/tmp}/forge-implement-review/` panel dir, both outside the repo, swept by the single PHASE-7 (or `stop`-path) `rm -rf`.
+
+```
+
 ```

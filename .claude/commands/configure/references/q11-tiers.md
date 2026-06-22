@@ -5,6 +5,7 @@
 ## Q11.1 — Think tier
 
 Use AskUserQuestion: "Which Claude model handles the 'think' tier (architecture, plan, breakdown)?"
+
 - `Opus` (Recommended) — most capable; default for design-heavy work
 - `Sonnet` — balanced; cheaper than Opus, more capable than Haiku
 - `Haiku` — fastest + cheapest; suitable for very small projects only
@@ -17,6 +18,7 @@ If the user picks `Opus`, `Sonnet`, or `Haiku`, save via `.devforge/lib/configur
 ## Q11.2 — Do tier
 
 Use AskUserQuestion: "Which Claude model handles the 'do' tier (code execution, edits, refactors)?"
+
 - `Sonnet` (Recommended) — balanced cost/capability for execution work
 - `Opus` — overkill for most do-tier tasks; use only for very complex implementations
 - `Haiku` — too limited for most engineering work; suitable for simple edits only
@@ -29,6 +31,7 @@ If the user picks `Sonnet`, `Opus`, or `Haiku`, save via `.devforge/lib/configur
 ## Q11.3 — Verify tier
 
 Use AskUserQuestion: "Which Claude model handles the 'verify' tier (review, audit, ac-verification)?"
+
 - `Haiku` (Recommended) — fast + cheap; mechanical verification work
 - `Sonnet` — when verification needs more judgment (security, architecture review)
 - `Opus` — heavy review work only

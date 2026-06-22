@@ -4,3 +4,8 @@ out
 .DS_Store
 .eslintcache
 *.log*
+
+# Playwright test output
+playwright-report/
+test-results/
+playwright/.cache/
