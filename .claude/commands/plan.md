@@ -512,10 +512,10 @@ On `approve`, first write the structured plan→breakdown handoff via the helper
 
 The helper parses the rendered `plan.md` and atomic-writes `specs/NNN-<feature>/plan-handoff.json` (a structured handoff carrying the breakdown seeds — layer map, file impact, decisions, risks, specialist consultation, dependencies — plus provenance to the sibling `/specify` handoff). Handle the exit code:
 
-- Exit 0 → the helper wrote `specs/NNN-<feature>/plan-handoff.json` and printed its path on stdout. Surface the written path to the user in one line, e.g. `"Structured plan handoff written: <path> (for /breakdown to consume once its reader is built)."`
+- Exit 0 → the helper wrote `specs/NNN-<feature>/plan-handoff.json` and printed its path on stdout. Surface the written path to the user in one line, e.g. `"Structured plan handoff written: <path> (consumed by /breakdown Phase 0 via breakdown_helper read-plan-handoff)."`
 - Non-zero exit (Exit 2 → `plan.md` not found or rendered content failed schema validation; Exit 1 → I/O error writing `plan-handoff.json`, e.g. permissions or disk-full) → the helper could not write or validate the handoff. Copy the helper's stderr VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase). Do NOT abort — continue to the `render-breakdown-handoff` text block below. The structured handoff is best-effort; the manual text block is the guaranteed human bridge.
 
-The `plan-handoff.json` is the **producer side** of the plan→breakdown handoff. The `/breakdown` consumer/reader does not exist yet — it will conform to this producer when it is built. There is no auto-dispatch and no auto-consume: the manual text block below remains how the user launches `/breakdown`.
+The `plan-handoff.json` is the **producer side** of the plan→breakdown handoff, consumed by `breakdown_helper read-plan-handoff` in `/breakdown` Phase 0. There is no auto-dispatch and no auto-consume: the manual text block below remains how the user launches `/breakdown`.
 
 Then emit the deterministic handoff block via the helper:
 
@@ -528,7 +528,7 @@ Handle the exit code:
 - Exit 2 → the spec or plan file could not be read. Copy the helper's stderr VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase), tell the user to verify `specs/NNN-<feature>/plan.md` exists and re-run `/plan`, and end the turn. Unlike `finalize-handoff`'s non-blocking exit 2 above (which continues to this block), a failure here DOES end the turn — this block is the guaranteed human bridge, and if it cannot render there is no fallback next-step to fall through to.
 - Exit 0 → stdout is the deterministic manual-next-step block — copy it VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase). The block heading reads `## Manual next step — run /breakdown`; it carries the spec AC count, plan file-impact count, plan risk count, and the literal `/breakdown <plan-path>` invocation. The block also instructs the user to **restart Claude Code** before running `/breakdown` so any newly-installed command is picked up.
 
-After the block lands in the user-facing message, end the turn with one short confirmation: `"/plan is done. Plan status: Draft — plan stays Draft until /breakdown runs (forward reference: /breakdown spec — not yet ported into this framework). Restart Claude Code, then copy the /breakdown command above to continue."` Do NOT restate the `/breakdown` invocation in your closing sentence — the block already contains the literal `/breakdown <plan-path>` line.
+After the block lands in the user-facing message, end the turn with one short confirmation: `"/plan is done. Plan status: Draft — plan stays Draft until /breakdown runs. Restart Claude Code, then copy the /breakdown command above to continue."` Do NOT restate the `/breakdown` invocation in your closing sentence — the block already contains the literal `/breakdown <plan-path>` line.
 
 ## IMPORTANT RULES
 

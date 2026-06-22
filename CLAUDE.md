@@ -65,9 +65,9 @@ mintEnvoy follows Electron's three-process model: a **main** process (Node.js �
 ### Spec-Driven Development Flow
 
 ```
-/setup-wizard → /constitute → /onboard → /research OR /discover → /specify → /plan → [/grill] → /breakdown → /implement → /review → /verify → /summarize → /finalize
-   (once)         (once)       (once)    (per feat — required)     (per feat)  (per feat)  (optional,   (per feat)   (per task)    (per feat) (per feat) (per feat)  (per feat)
-                                                                                          high-stakes)
+/init-forge → /generate-docs → /configure → /constitute → /research OR /discover → /specify → /plan → [/grill] → /breakdown → /implement → /review → /verify → /summarize → /finalize
+  (once)         (once)         (once)       (once)     (per feat — required)     (per feat)  (per feat)  (optional,   (per feat)   (per task)    (per feat) (per feat) (per feat)  (per feat)
+                                                                                                        high-stakes)
 ```
 
 `/research` (bug/enhancement against existing code) OR `/discover` (greenfield) is a **required precondition** for `/specify` — `/specify` blocks until a research or discover handoff exists. Use `/research` when investigating existing code, `/discover` when surveying a greenfield idea; the two cover complementary intake lanes, and either one satisfies the `/specify` gate.
@@ -143,13 +143,13 @@ The pipeline step after `/verify` approves, before `/finalize` — pure SYNTHESI
 
 Dispatches tech-writer for surgical `docs/` updates (`docs/<package>/`, `docs/architecture.md`) — not a dropped `docs/features/` tier — then squashes all WIP commits into a single clean feature commit. Gate-checked: spec must be Complete (set by `/verify`). The last step before creating a PR.
 
+#### `/generate-docs`
+
+One-time brownfield doc generation (second command in the 4-command setup chain) — reads the indexed codebase and builds the `docs/` knowledge base in bottom-up tiers (concern → package → project + glossary) via the `generate_docs_helper` setter API (tech-writer in Skeleton-Fill Mode). Handles both monorepo and standalone single-root layouts. The replacement for the retired `/onboard`. Re-run when the codebase structure changes significantly.
+
 #### `/constitute`
 
 One-time deep codebase analysis (or interview for greenfield projects) that generates `constitution.md` — non-negotiable rules, architecture decisions, patterns.
-
-#### `/onboard`
-
-One-time deep codebase scan for existing projects. Uses the tech-writer agent to generate comprehensive documentation in `docs/` — the knowledge base for all agents. Run once after `/constitute`.
 
 #### `/audit [--full | --uncommitted | --top N | path] [--passes N]`
 
@@ -158,10 +158,6 @@ Standalone adversarial whole-codebase audit for periodic "second opinion" qualit
 #### `/report-bug "<description>" [--file <path>] [--severity Critical|Warning|Info]`
 
 Standalone **pure-capture** bug report — writes one `bugs/NNN-<slug>.md` record (`**Status**: Open`, `**Source**: manual`, the description, the optional `--file`, and the severity — default `Warning`) and stops. The `NNN` prefix is assigned by the helper (it scans `bugs/` for the highest number and increments); the file lands in the working tree uncommitted. Dispatches no agent, reads no source to confirm the defect, and does NOT advance or close the bug — the `Open → In Progress → Fixed` lifecycle is manual. The file-it-for-later counterpart to `/fix`'s remediate-now path; it never proposes or chains into `/fix`. Forward pointer only: `/research "<description>"` to investigate, or `/specify "<description>"` to address it as a feature. **NOT part of any workflow chain.**
-
-#### Additional Commands
-
-- `/setup-wizard` — Re-run initial project setup (regenerates config files)
 
 ### Conversational fix-or-file offer
 
@@ -359,4 +355,4 @@ If a task execution is interrupted (power loss, terminal crash, network drop), t
 - [Constitution](constitution.md) — Project rules and patterns
 - [Specs](specs/) — Feature specifications, plans, and tasks
 - [Memory](.devforge/memory.md) — Persistent learnings
-- [Project Config](.devforge/project-config.json) — Wizard answers plus per-stack arrays (`LANGUAGES`, `FRAMEWORKS`, `ARCHITECTURES`, `ERROR_HANDLINGS`, `API_LAYERS`, `TESTINGS`) and per-package `PACKAGE_STACKS` records
+- [Project Config](.devforge/project-config.json) — `/configure` answers plus per-stack arrays (`LANGUAGES`, `FRAMEWORKS`, `ARCHITECTURES`, `ERROR_HANDLINGS`, `API_LAYERS`, `TESTINGS`) and per-package `PACKAGE_STACKS` records

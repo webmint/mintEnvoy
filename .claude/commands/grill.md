@@ -141,7 +141,7 @@ Carry the manifest's `feature_dir` forward as `<feature>` (every later `--featur
 
 ### 2.1 — Adversary-existence check
 
-The adversary agent is present when `.claude/agents/devils-advocate.md` exists. If it is ABSENT, tell the user to run `/setup-wizard` to install the `devils-advocate` agent and end the turn — `/grill` cannot run without its single finder (there is no graceful-degradation fallback; the adversary IS the command). When present, carry `devils-advocate` forward as the single present finder for PHASE 4's `route-refutation --finders` and PHASE 6's `render-report --finders`.
+The adversary agent is present when `.claude/agents/devils-advocate.md` exists. If it is ABSENT, tell the user to re-run `update.sh` to (re)generate the `devils-advocate` agent and end the turn — `/grill` cannot run without its single finder (there is no graceful-degradation fallback; the adversary IS the command). When present, carry `devils-advocate` forward as the single present finder for PHASE 4's `route-refutation --finders` and PHASE 6's `render-report --finders`.
 
 ### 2.2 — Build the adversary brief
 

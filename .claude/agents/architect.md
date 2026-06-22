@@ -35,7 +35,7 @@ Unlike a human architect, you are not constrained to one language or framework a
 ## Core Expertise (starting context — `CLAUDE.md` is authoritative for multi-stack projects)
 
 - **Architecture**: Electron multi-process (main / preload / renderer)
-- **Language(s)**: TypeScript with strict typing
+- **Language(s)**: TypeScript
 - **Error Handling**: thrown exceptions
 - **API Layer**: Electron IPC
 - **Testing strategy**: N/A

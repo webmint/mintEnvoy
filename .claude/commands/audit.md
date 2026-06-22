@@ -136,7 +136,7 @@ Carry the `passes` value forward and commit to the matching structure before Pha
 .devforge/lib/audit_helper check-agents
 ```
 
-Detects which of the four audit-capable agents exist in `.claude/agents/`: `code-reviewer`, `architect`, `qa-reviewer`, `security-reviewer`. The result is always JSON on **stdout** — `present` + `missing` lists plus an `all_missing` boolean; nothing is written to stderr. The verb exits **3** when `all_missing` is true (zero agents installed): copy the stdout JSON VERBATIM as a fenced block and end the turn — the user must run `/setup-wizard` to install at least one. When 1–3 exist (exit 0), proceed and carry the `missing` list forward for the report's "Agents skipped (not installed)" section.
+Detects which of the four audit-capable agents exist in `.claude/agents/`: `code-reviewer`, `architect`, `qa-reviewer`, `security-reviewer`. The result is always JSON on **stdout** — `present` + `missing` lists plus an `all_missing` boolean; nothing is written to stderr. The verb exits **3** when `all_missing` is true (zero agents installed): copy the stdout JSON VERBATIM as a fenced block and end the turn — the user must re-run `update.sh` to (re)generate the agent files. When 1–3 exist (exit 0), proceed and carry the `missing` list forward for the report's "Agents skipped (not installed)" section.
 
 ### 1.3 — Preflight context + constitution guard
 

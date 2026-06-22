@@ -1,11 +1,11 @@
-"""detect_report — composes the Phase 1 Detection Report for /setup-wizard.
+"""detect_report — composes the Phase 1 Detection Report (legacy /setup-wizard).
 
-DEPRECATED — candidate for removal. This helper served the legacy
-`/setup-wizard` flow. The architecture pivot replaces it with per-command
-helpers (`init_helper` for `/init-forge`, future helpers for `/configure`,
-`/generate-docs`, `/constitute`). Do not extend this file; new work goes to
-the per-command helpers. Removal happens when `/setup-wizard` is decommissioned
-(see `ARCHITECTURE-PIVOT-PLAN.md` Step 7).
+ORPHANED — its sole consumer `/setup-wizard` was retired in plan 30 (2026-06-21).
+The architecture pivot replaced it with per-command helpers (`init_helper` for
+`/init-forge`, `configure_helper` for `/configure`, etc.). No 2.0 command or
+helper invokes this file (verified: only comment references remain). It is dead
+code retained pending an explicit deletion pass — do NOT extend it; new work
+goes to the per-command helpers.
 
 This helper writes `.devforge/detection_report.yaml` containing project facts
 discovered by the wizard's detection phase (workspace mode, languages,
@@ -1202,7 +1202,7 @@ def _add_value_or_null_args(parser):
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="detect_report",
-        description="Compose the Phase 1 Detection Report for /setup-wizard.",
+        description="Compose the Phase 1 Detection Report (legacy /setup-wizard; orphaned).",
     )
     subparsers = parser.add_subparsers(dest="subcommand")
 
