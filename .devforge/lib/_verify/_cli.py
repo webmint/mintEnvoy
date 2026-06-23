@@ -410,7 +410,8 @@ def cmd_check_hygiene(args):
         "leftover_artifacts":  [...],   # per-line findings
         "scope_creep_checked": bool,    # True when a baseline was used
         "files_checked":       int,
-        "files_unreadable":    [...]
+        "files_unreadable":    [...],
+        "files_skipped":       int      # non-code prose/data files bypassed by the gate
       }
 
     Returns:
@@ -571,6 +572,7 @@ def cmd_compute_verdict(args):
             "scope_creep_checked": False,
             "files_checked": 0,
             "files_unreadable": [],
+            "files_skipped": 0,
         }
 
     result = compute_verdict(
@@ -641,6 +643,7 @@ def cmd_render_report(args):
         "scope_creep_checked": False,
         "files_checked": 0,
         "files_unreadable": [],
+        "files_skipped": 0,
     }
 
     verdict = _load_json_or_default(verdict_path, None)

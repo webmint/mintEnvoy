@@ -13,7 +13,7 @@ This report ENDS in a verdict. `/verify` owns the verdict; `/review` does not. T
 1. **The verdict** (`compute-verdict` → `$WORKDIR/verdict.json`) — `verdict` (APPROVED / NEEDS WORK / REJECTED), `reasons` (explanation lines), `blockers` (structured blocker dicts). The verdict is deterministic; the report never re-derives it.
 2. **The merged AC results** (`merge-ac-results` → `$WORKDIR/ac-results.json`) — one dict per AC with `id`, `status` (`PASS` / `FAIL` / `PARTIAL` / `MANUAL` / `PASS (code)` / `FAIL (code)` / `PARTIAL (code)` / `UNVERIFIED`), and `evidence`. Drives the Acceptance Criteria table.
 3. **The folded review findings** (`read-review-findings` → `$WORKDIR/review.json`) — `missing`, `confirmed`, `contested`, `summary`. Drives the Review Findings block and the Issues Found listing. When `missing` is true, the report says so and points the reader at `/review`.
-4. **The hygiene result** (`check-hygiene` → `$WORKDIR/hygiene.json`) — `scope_creep`, `leftover_artifacts`, `scope_creep_checked`. Drives the scope-creep + leftover-artifact lines of the Code Quality block.
+4. **The hygiene result** (`check-hygiene` → `$WORKDIR/hygiene.json`) — `scope_creep`, `leftover_artifacts`, `scope_creep_checked`, `files_skipped`. Drives the scope-creep + leftover-artifact lines of the Code Quality block.
 
 Plus the `mechanical-status` string carried from `verify-touched` (PHASE 4.1) and the `ac_verification_mode` (PHASE 3.1), both threaded as flags.
 
@@ -42,8 +42,8 @@ Plus the `mechanical-status` string carried from `verify-touched` (PHASE 4.1) an
 
 **Mechanical checks**: [PASS | not run | SELF-REPAIR (warnings) | FAILED | ISOLATION FAILURE | TOOLING UNAVAILABLE]
 **Cross-task consistency**: see /review report at specs/[feature]/review.md
-**Scope creep**: [none detected | N changed file(s) outside the planned scope: <files> | not checked (no breakdown-handoff.json baseline)]
-**Leftover artifacts**: [none detected | N flagged (debug prints / bare TODOs / commented-out code)]
+**Scope creep**[ _(advisory — does not block the verdict)_ when populated]: [none detected | N changed file(s) outside the planned scope: <files> | not checked (no breakdown-handoff.json baseline)]
+**Leftover artifacts**[ _(advisory — does not block the verdict)_ when populated]: [N flagged (debug prints / bare TODOs / commented-out code) | none detected]
 
 (NOTE: the Mechanical checks line is a REPORT of the assembled type-check / lint / build / test run ONCE via verify-touched. /verify does NOT self-repair. The Cross-task consistency line POINTS TO the /review report — /verify does NOT re-review; cross-task code-quality reasoning is /review's job.)
 
@@ -91,7 +91,7 @@ Severity breakdown: N Critical, N High, N Medium, N Info
 The verdict is deterministic (`compute-verdict`), in priority order:
 
 - **REJECTED** — a confirmed `[CONSTITUTION-VIOLATION]` (D7), OR a spec-level AC failure pattern (mode != `off` AND ≥ 2 failing ACs AND ≥ 50% failure rate).
-- **NEEDS WORK** — any blocker present: a failing/partial AC (mode != `off`), a mechanical failure, a Critical/High review finding (confirmed or contested, **excluding** constitution-violation-tagged findings — those route to the constitution paths above/below, not this one), a contested `[CONSTITUTION-VIOLATION]` (D7 — always at least NEEDS WORK), or a hygiene flag.
+- **NEEDS WORK** — any blocker present: a failing/partial AC (mode != `off`), a mechanical failure, a Critical/High review finding (confirmed or contested, **excluding** constitution-violation-tagged findings — those route to the constitution paths above/below, not this one), a contested `[CONSTITUTION-VIOLATION]` (D7 — always at least NEEDS WORK). Hygiene flags (`scope_creep` / `leftover_artifacts`) are **advisory only** — they appear in `reasons` but never in `blockers` and never cause NEEDS WORK on their own.
 - **APPROVED** — no blockers. Under `ac_verification_mode=off`, AC failures are advisory (they appear in `reasons` but do not block), and the verdict notes ACs were verified by code-reading only.
 
 Constitution violations ALWAYS block APPROVED — a confirmed one forces REJECTED, a contested one forces at least NEEDS WORK. This is the D7 invariant and is enforced structurally in `compute-verdict`; the report never relaxes it.

@@ -35,7 +35,7 @@ Public surface
             Each blocker dict: {type, detail}  where type is one of:
               "constitution_confirmed", "constitution_contested",
               "ac_failure", "mechanical_failed",
-              "critical_high_finding", "hygiene_flags"
+              "critical_high_finding"
 
 Verdict rule (deterministic — document every branch here)
 ----------------------------------------------------------
@@ -49,7 +49,12 @@ Step 1 — gather facts:
     or category "constitution".
   - critical_high: any confirmed OR contested finding with severity Critical or High.
   - mechanical_failed: mechanical_status not in {"pass", "", None}.
+
+Advisory (never blocks verdict):
   - hygiene_flags: scope_creep non-empty OR leftover_artifacts non-empty.
+    Surfaced as a reason line for visibility but NEVER added to blockers and
+    NEVER causes NEEDS WORK on its own.  Hygiene is a heuristic over a heuristic;
+    a clean feature should not be demoted to NEEDS WORK by it.
 
 Step 2 — mode-aware AC blocking:
   Under ac_verification_mode == "off", AC failures are ADVISORY only — they
@@ -73,8 +78,11 @@ Step 3 — verdict (priority order):
     - critical_high finding
     - constitution_contested (always Critical — D7 invariant: a contested
       constitution violation is at least NEEDS WORK, never APPROVED)
-    - hygiene_flags
   APPROVED   otherwise (no blockers)
+
+  NOTE: hygiene_flags (scope_creep / leftover_artifacts) are ADVISORY and
+  are intentionally NOT in the blocker list above.  They appear in reasons
+  for visibility; they never cause NEEDS WORK on an otherwise-clean feature.
 
 D7 invariant (constitution violations always block APPROVED):
   - confirmed [CONSTITUTION-VIOLATION] → always REJECTED
@@ -306,7 +314,7 @@ def compute_verdict(
             "Critical/High review findings: {0}.".format(sev_summary)
         )
 
-    # Hygiene flags
+    # Hygiene flags — ADVISORY only, never added to blockers
     if hygiene_flags:
         detail_parts = []
         if scope_creep:
@@ -315,12 +323,9 @@ def compute_verdict(
             detail_parts.append(
                 "{0} leftover artifact(s)".format(len(leftover_artifacts))
             )
-        blockers.append({
-            "type": "hygiene_flags",
-            "detail": ", ".join(detail_parts),
-        })
         reasons.append(
-            "Hygiene issues: {0}.".format(", ".join(detail_parts))
+            "Hygiene (advisory, non-blocking): {0} — review but does not "
+            "block the verdict.".format(", ".join(detail_parts))
         )
 
     # Missing review report — not a blocker, but noted

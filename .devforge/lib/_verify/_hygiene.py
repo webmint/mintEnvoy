@@ -27,6 +27,8 @@ Public surface
         "scope_creep" : list[str]
             Files in ``changed_files`` not found in ``scope_baseline`` (after
             normalisation).  Empty list when scope-creep check is skipped.
+            Non-code files (prose artifacts, forge-managed dirs) are never
+            reported as scope-creep regardless of baseline contents.
         "leftover_artifacts" : list[dict]
             One dict per flagged line:
               "file"    : str  — path as given in ``changed_files``
@@ -38,9 +40,24 @@ Public surface
         "scope_creep_checked" : bool
             True when a scope baseline was supplied and the check ran.
         "files_checked" : int
-            Number of changed files that were successfully read.
+            Number of changed files that were successfully read and scanned
+            for artifacts.  Non-code files are not counted here.
         "files_unreadable" : list[str]
             Files that could not be read (missing, binary, permission error).
+        "files_skipped" : int
+            Number of changed files that were skipped by the file-type gate
+            (non-code prose/data files).  Additive and back-compatible key.
+
+File-type gate (_is_code_file)
+--------------------------------
+The artifact scanner and scope-creep check operate only on source-code files.
+Pipeline prose artifacts (specs/, docs/, design/, audits/, research/, etc.)
+and data/lock files (.json, .yaml, .lock, etc.) are excluded via a DENYLIST
+approach — we exclude KNOWN prose/data, rather than allowlisting code languages.
+Reason: this codebase targets polyglot consumers; hardcoding code-file extensions
+would be language-specific and would break on new stacks.  False negatives (a
+prose file slips through) are preferable to false positives (a legitimate source
+file in an unlisted language gets skipped).
 
 Design notes — conservative posture
 -------------------------------------
@@ -124,6 +141,72 @@ from __future__ import annotations
 import os
 import re
 from typing import Dict, List, Optional
+
+# ---------------------------------------------------------------------------
+# File-type gate — polyglot denylist (not a code-extension allowlist)
+# ---------------------------------------------------------------------------
+# We exclude KNOWN prose/data path segments and extensions rather than
+# enumerating source-code languages.  This avoids false negatives on
+# unlisted language extensions (Go, Rust, Kotlin, …) at the cost of
+# occasionally letting a prose file slip through — which is the correct
+# trade-off for a framework that targets polyglot consumer projects.
+#
+# Skip-dirs: matched against every SEGMENT of the normalised path so that
+# both top-level "specs/foo.md" and wrapper-prefixed "subdir/specs/foo.md"
+# are caught.  The check is case-insensitive to handle macOS/Windows paths.
+_SKIP_PATH_SEGMENTS = frozenset([
+    "specs", "docs", "design", "audits",
+    "research", "discover", "bugs", ".devforge",
+])
+
+# Skip-extensions: matched case-insensitively against the file's suffix.
+_SKIP_EXTENSIONS = frozenset([
+    ".md", ".html", ".htm", ".txt",
+    ".json", ".yaml", ".yml",
+    ".csv", ".svg", ".lock",
+])
+
+
+def _is_code_file(path):
+    # type: (str) -> bool
+    """Return True when path should be treated as a source-code file.
+
+    Returns False (skip) for:
+      - Files whose normalised path contains a known forge-artifact directory
+        segment (``specs``, ``docs``, ``design``, ``audits``, ``research``,
+        ``discover``, ``bugs``, ``.devforge``).  Matching is done on every
+        individual path segment so that wrapper-mode prefixes (e.g.
+        ``subproject/specs/…``) are also excluded.
+      - Files with known prose/data extensions (``.md``, ``.html``, etc.).
+
+    Returns True for everything else (prefer false negatives over false
+    positives — an unrecognised code extension passes through rather than
+    being silently skipped).
+
+    Note on dotfiles: ``.env``, ``.gitignore``, and similar dotfiles have an
+    empty string as their extension under ``os.path.splitext`` (the leading dot
+    is part of the name, not a suffix separator).  An empty extension is not in
+    ``_SKIP_EXTENSIONS``, so dotfiles pass through and are scanned — consistent
+    with the denylist design.
+    """
+    # Strip leading "./" and normalise separators, matching _normalise_path.
+    if path.startswith("./"):
+        path = path[2:]
+    path = path.replace("\\", "/")
+
+    # Check extension (case-insensitive).
+    _, ext = os.path.splitext(path)
+    if ext.lower() in _SKIP_EXTENSIONS:
+        return False
+
+    # Check every path segment against the known forge-artifact directories.
+    segments = path.split("/")
+    for seg in segments[:-1]:  # exclude the filename itself
+        if seg.lower() in _SKIP_PATH_SEGMENTS:
+            return False
+
+    return True
+
 
 # ---------------------------------------------------------------------------
 # Leftover-artifact regex patterns
@@ -356,12 +439,29 @@ def check_hygiene(changed_files, scope_baseline, source_root):
 
     Returns
     -------
-    dict
-        See module docstring for the full shape.
+    dict with keys:
+        scope_creep : list[str]
+            Files in ``changed_files`` not in ``scope_baseline``, after
+            normalisation.  Non-code files are never reported here.
+        leftover_artifacts : list[dict]
+            See module docstring for the per-finding shape.
+        scope_creep_checked : bool
+        files_checked : int
+            Count of code files actually read and scanned.
+        files_unreadable : list[str]
+            Code files that could not be read.
+        files_skipped : int
+            Count of files bypassed by the file-type gate (prose/data files).
+            Additive key — callers that only check the pre-existing keys are
+            not affected.
     """
     source_root = source_root or os.getcwd()
 
     # --- Scope-creep check ---
+    # Non-code files are excluded from scope-creep reporting: they live in
+    # forge-managed directories (specs/, docs/, …) that are never declared in
+    # the breakdown-handoff scope baseline, so they would always appear as
+    # "creep" without the gate.
     scope_creep_checked = scope_baseline is not None and len(scope_baseline) > 0
     scope_creep = []  # type: List[str]
 
@@ -370,6 +470,8 @@ def check_hygiene(changed_files, scope_baseline, source_root):
             _normalise_path(p, source_root) for p in scope_baseline
         }
         for cf in changed_files:
+            if not _is_code_file(cf):
+                continue  # prose/data file — never scope-creep
             norm = _normalise_path(cf, source_root)
             if norm not in baseline_set:
                 scope_creep.append(cf)
@@ -378,8 +480,16 @@ def check_hygiene(changed_files, scope_baseline, source_root):
     leftover_artifacts = []  # type: List[Dict]
     files_unreadable = []  # type: List[str]
     files_checked = 0
+    files_skipped = 0
 
     for cf in changed_files:
+        # Gate: skip prose/data files — artifact patterns are meaningless there
+        # and produce false positives (e.g. HTML comment blocks matching
+        # _DEBUG_PRINT_RE, spec headings matching commented-code rules).
+        if not _is_code_file(cf):
+            files_skipped += 1
+            continue
+
         # Resolve the path to read.
         if os.path.isabs(cf):
             full_path = cf
@@ -403,4 +513,5 @@ def check_hygiene(changed_files, scope_baseline, source_root):
         "scope_creep_checked": scope_creep_checked,
         "files_checked": files_checked,
         "files_unreadable": files_unreadable,
+        "files_skipped": files_skipped,
     }

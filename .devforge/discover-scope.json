@@ -1,101 +1,110 @@
 {
-  "topic": "Reusable headless UI primitives layer (Dropdown/popover, Modal, Toast) plus a project-owned inline SVG Icon component for an Electron+React desktop app; styled via design tokens, build-vs-buy evaluated against headless libraries",
-  "topic_slug": "reusable-headless-ui-primitives-layer-dropdown-popover",
-  "date": "2026-06-21",
-  "verbatim_prompt": "A reusable UI primitives layer for a desktop app: a Dropdown / popover anchored to a trigger element (keyboard navigation, focus return, click-outside and Escape dismiss, edge-aware positioning), a Modal dialog (focus trap, scrim, Escape close), and a transient Toast. These overlay/focus/keyboard primitives are exactly the area where hand-rolled implementations accumulate accessibility and edge-case bugs, so EVALUATE HEADLESS PRIMITIVE LIBRARIES (e.g. Radix UI, React Aria, Ark UI, Headless UI) against a hand-rolled implementation as an explicit build-vs-buy decision \u2014 styling is supplied separately via design tokens, so a headless (unstyled) approach is viable and likely preferred for the overlay primitives. Separately, an inline SVG Icon component driven by a small project-owned icon set (~40 icons, 1.5px stroke, 16x16 viewBox) \u2014 the icon set already exists as hand-authored SVG paths, so keep it project-owned rather than pulling an icon dependency. All presentation-only; no request/response/persistence logic. Visual reference: design/reference.html (a Claude Design export) \u2014 look and behavior only, never reproduce its markup; it carries generated cruft (data-om-* attributes, __OmT wrappers, inline styles, a tweaks-panel) that must not enter the build. Whatever the build-vs-buy outcome, style with semantic class names from each component's role and design/tokens.json, not inline styles.",
+  "topic": "Single-window shell and layout for a desktop HTTP client: titlebar (logo, workspace pill, sidebar toggle, command-palette search trigger, environment selector, account pill), left sidebar with draggable divider (width clamped 200-520px), main area split into request/response panes by draggable horizontal divider (ratio clamped 0.15-0.85), and statusbar. Theme (light/dark), accent, method-style toggles as data attributes on root; persistence of sidebar width/pane ratio/theme via settings store. Mounting points for sidebar, tabs, panes, modals (contents are separate tasks). Cmd-B toggles sidebar. Visual reference design/reference.html for look/behavior only; rebuild with semantic class names; colors/spacing from design/tokens.json.",
+  "topic_slug": "single-window-shell-and-layout-for-a-desktop-http-client",
+  "date": "2026-06-23",
+  "verbatim_prompt": "The single-window shell and layout for a desktop HTTP client: a titlebar (logo, workspace pill, sidebar toggle, command-palette search trigger, environment selector, account pill), a left sidebar with a draggable divider (width clamped 200\u2013520px), a main area split into request and response panes by a draggable horizontal divider (ratio clamped 0.15\u20130.85), and a statusbar. Plus theme (light/dark), accent, and method-style toggles applied as data attributes on the root, and persistence of sidebar width / pane ratio / theme via the settings store. Provides mounting points for sidebar, tabs, panes, and modals; their contents are separate tasks. \u2318B toggles the sidebar. Visual reference: design/reference.html (a Claude Design export) \u2014 use it for look and behavior only, never reproduce its markup; it carries generated cruft (data-om-* attributes, __OmT wrappers, inline styles, a tweaks-panel) that must not enter the build. Rebuild with semantic class names from each component's role and its tag's function. Colors and spacing come from design/tokens.json, not inline styles.",
   "dimensions": {
     "functional_scope": {
-      "value": "A reusable presentation-only primitives layer for the Electron+React renderer, delivering four user-facing components plus their shared overlay substrate. Components: (1) Dropdown/popover anchored to a trigger \u2014 keyboard navigation, focus return, click-outside + Escape dismiss, edge-aware positioning; (2) Modal dialog \u2014 focus trap, scrim/backdrop, Escape close, body scroll lock; (3) transient Toast \u2014 stacked, auto + manual dismiss, hover-pause; (4) inline SVG Icon driven by a project-owned ~40-icon set (1.5px stroke, 16x16 viewBox). First-class shared substrate (in lib/): a Portal, a focus-trap/focus-return hook, a click-outside hook, centralized Escape/keyboard handling, and an edge-aware positioning helper \u2014 reusable by future primitives. An explicit build-vs-buy evaluation (headless libs Radix/React Aria/Ark/Headless UI vs hand-rolled) governs the overlay substrate. Styling via semantic class names mapped to design/tokens.json; visual/behavior reference is the design export, never its markup.",
+      "value": "App-shell + layout component tree: titlebar (logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill), resizable left sidebar (clamped 200-520px) with draggable divider, main area split into request/response panes by a draggable horizontal divider (ratio clamped 0.15-0.85), statusbar. Theme(light/dark)/accent/method-style applied as root data-attributes. Cmd-B toggles sidebar. Empty named mount slots for sidebar/tabs/panes/modals (slot CONTENTS out of scope). A new zustand settings store (mirroring toastStore.ts) holds sidebar width + pane ratio + theme + accent + method-style IN-MEMORY only; disk persistence (electron-store wiring) deferred to a later persistence-port task. Styled from design/tokens.json with semantic class names per design/reference.html (markup never copied).",
       "state": "Clear",
       "turns": 0
     },
     "users": {
-      "value": "App-internal only. Direct consumers are mintEnvoy renderer feature components (and the developers wiring them) \u2014 these primitives are an internal building-block layer, not a published package. End-users of the desktop app interact with the rendered overlays (dropdown menus, modals, toasts) and icons. No external-consumer API-stability concern.",
+      "value": "Co-primary consumers: (1) Human end users \u2014 developers/API testers operating the mintEnvoy desktop window; the shell is the top-level chrome they see every session (titlebar, sidebar, panes, statusbar). (2) Downstream feature tasks \u2014 code that mounts content into the shell's named slots (sidebar tree, tab bodies, request/response editors, modal bodies); for them the shell is an integration contract (a stable slot API), not just visuals.",
       "state": "Clear",
       "turns": 0
     },
     "inputs_outputs": {
-      "value": "All inputs are component props / imperative calls; all outputs are rendered DOM + callbacks. No external/network data crosses the boundary. Toast: imperative API (e.g. toast(message, opts)) backed by a provider/context that owns the live toast queue; outputs are stacked transient notifications + auto/manual dismiss callbacks. Dropdown/popover + Modal: controlled (open + onOpenChange props) \u2014 caller owns open state; inputs include trigger ref/element, menu items or children, placement hints; outputs are select/close callbacks and focus-return side effects. Icon: props are name (key into the project-owned SVG path set), size, and className; output is an inline <svg>. Styling inputs come only from semantic class names mapped to design tokens.",
+      "value": "IN: design tokens from design/tokens.json (CSS custom properties), slot children (React nodes passed by parent/feature tasks), initial settings defaults (theme/accent/method-style + default sidebar width + default pane ratio). OUT: settings store state + setters exposed via the zustand hook (theme/accent/method-style, sidebar width, pane ratio), root data-attributes written to the DOM (data-theme/data-accent/data-method-style), Cmd-B toggle + drag-resize interaction events. NO network or disk I/O this task (persistence is in-memory; electron-store/IPC deferred).",
       "state": "Clear",
       "turns": 0
     },
     "integration_points": {
-      "value": "Renderer process only (src/renderer/src). Atomic-design layout: Icon in src/renderer/src/components/atoms/; Dropdown/popover, Modal, Toast in src/renderer/src/components/molecules/; shared overlay/focus/keyboard hooks and positioning helpers in src/renderer/src/lib/. Styling sourced from design/tokens.json via semantic class names (likely CSS module or token-driven stylesheet under the same dirs). No main/preload-process involvement. Existing renderer is electron-vite boilerplate (App.tsx, components/Versions.tsx, main.tsx) \u2014 greenfield for primitives. NOTE: two user mechanism guesses still to reconcile in Phase 2 fit-check \u2014 (a) headless lib 'likely preferred' for overlays, (b) Icon kept project-owned.",
+      "value": "Shell layout components under a new src/renderer/src/components/organisms/ tier (above existing atoms/molecules). Settings store as new src/renderer/src/lib/settingsStore.ts, mirroring src/renderer/src/lib/toastStore.ts zustand pattern. App.tsx (src/renderer/src/App.tsx) swaps current PrimitivesDemo mount for the new Shell organism. Tokens consumed from design/tokens.json. NOTE: user belief that persistence hooks an 'existing settings store' \u2014 Phase 2 fit-check must confirm; CBM scan shows NO settings store exists yet (only toastStore), so the store is net-new and persistence is in-memory this task.",
       "state": "Clear",
       "turns": 0
     },
     "constraints": {
-      "value": "Presentation-only \u2014 no request/response/persistence logic. Styling exclusively via semantic class names (from each component's role) + design/tokens.json; no inline styles. Target stack: Electron renderer process, React 19, TypeScript, electron-vite. Accessibility: WCAG keyboard + focus expectations (focus trap/return, escape, ARIA roles). Dependency policy: a well-maintained headless library (Radix/React Aria/Ark) is acceptable as a runtime dep where it wins on a11y/edge-case correctness \u2014 bundle size a minor concern for desktop Electron; build-vs-buy decided per-primitive. Icon stays project-owned (no icon dependency). design/reference.html consulted for look/behavior only; its generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks-panel) must never enter the build.",
+      "value": "Hard limits: sidebar width clamped 200-520px; pane ratio clamped 0.15-0.85; ALL color/spacing from design/tokens.json (no inline styles); semantic class names only (never copy reference.html markup, no data-om-*/__OmT/tweaks-panel cruft). Plus: (1) Drag perf must stay smooth \u2014 no setState-per-mousemove re-render storms; use rAF or CSS-var-driven resize. (2) Accessibility \u2014 dividers keyboard-operable with ARIA separator role + aria-valuenow, focus-visible on titlebar controls, honor prefers-reduced-motion. (3) No new UI dependency adopted unvetted \u2014 react-resizable-panels/allotment is a build-vs-buy decision, prefer zero-dep hand-roll if cheap. (4) Electron/CSP-safe \u2014 no remote resources, contextIsolation respected, renderer sandboxed, no inline-style injection.",
       "state": "Clear",
       "turns": 0
     },
     "non_goals": {
-      "value": "Beyond scope: (1) any network, request/response, or persistence logic \u2014 this set does no fetching or storing; (2) extra widgets beyond those named here (no buttons, fields, tabs, tables, and so on); (3) a theming engine, runtime theme switcher, or authoring of new style files.",
+      "value": "Out of scope: (1) Slot CONTENTS \u2014 sidebar tree, tab bodies, request/response editors, modal bodies (separate tasks). (2) Multi-window. (3) Keyboard shortcuts other than Cmd-B (each belongs to its feature). (4) On-storage/electron-store persistence \u2014 the settings store is in-memory only this task. (5) Collapsible-restore-width beyond simple re-show. (6) Command-palette overlay + search behavior \u2014 titlebar trigger is a button/slot only. (7) Environment selector / workspace pill / account pill behavior \u2014 static presentational slots; their dropdown data, switching, and auth are out of scope. (8) Defining the actual color palettes for each visual theme or method-style variant \u2014 the shell only sets the root data-attributes and persists the chosen preference, consuming the token file as-is.",
       "state": "Clear",
       "turns": 0
     },
     "success_criteria": {
-      "value": "All four primitives (Dropdown/popover, Modal, Toast, Icon) render per the visual reference look and behave correctly: keyboard nav, focus trap + focus return, click-outside + Escape dismiss, edge-aware positioning, scrim, toast auto-dismiss \u2014 meeting WCAG keyboard/focus expectations. Gated by automated interaction tests (keyboard/focus/dismiss). A demo/gallery harness exercises every primitive in its states as the visual + manual-QA surface.",
+      "value": "(1) Visual fidelity: rendered shell matches design/reference.html layout and design/tokens.json colors/spacing under design-auditor review (look/behavior only, never markup). (2) Behavior: both dividers drag and clamp to range (200-520px, 0.15-0.85); Cmd-B toggles sidebar; view settings (theme/accent/method-style) + sidebar width + pane ratio survive within the session via the settings store \u2014 all covered by component tests. (3) Decoupled slots: sidebar/tabs/panes/modals mount slots accept arbitrary children and render them without the shell knowing their contents. (4) Gates green: typecheck + lint + build + existing test suite pass; zero reference-export cruft (no data-om-*, __OmT, inline styles, tweaks-panel) anywhere in the build.",
       "state": "Clear",
       "turns": 0
     },
     "edge_cases": {
-      "value": "Dropdown/popover: edge-aware flip/shift to stay within viewport (small Electron windows), overflowing content scrolls; trigger unmount while open. Modal + nested overlays: stacked overlays (modal->dropdown, toast over modal) compose \u2014 Escape closes the topmost overlay, focus trap + focus-return nest correctly, scrim/z-order sane, body scroll lock. Toast: multiple stack and auto-dismiss independently, rapid-fire queue, hover/focus pauses timer, manual dismiss. Keyboard: Tab wrap inside trap, arrow keys + Home/End in menu, return focus to trigger on close. Icon: safe fallback for unknown name; every animation respects prefers-reduced-motion.",
+      "value": "(1) Window resize vs clamps: when the window shrinks below where clamped sidebar width + min pane sizes fit, width/ratio re-clamp gracefully \u2014 no negative or overflowing panes; pane divider stays within 0.15-0.85 after resize. (2) Sidebar collapsed: Cmd-B/toggle hides sidebar, its divider hides, main area reflows full-width; re-show restores prior width (in-memory this task). (3) Bad/empty persisted values: out-of-range or missing width/ratio (e.g. a future disk load) clamp or fall back to defaults rather than render a broken layout. (4) Drag release outside window: pointer leaving the window mid-drag or pointer-up off-target ends the drag cleanly \u2014 no stuck-dragging state, listeners removed.",
       "state": "Clear",
       "turns": 0
     }
   },
   "references": [
-    "Radix UI (headless primitives)",
-    "React Aria / React Aria Components (Adobe)",
-    "Ark UI (Zag.js state machines)",
-    "Headless UI",
-    "design/reference.html (Claude Design export \u2014 look/behavior reference only)",
-    "design/tokens.json (W3C DTCG design tokens)"
+    "Bruno (layout pattern)",
+    "VS Code (layout pattern)",
+    "react-resizable-panels (primary split/pane candidate)",
+    "allotment (pane alternative to compare)",
+    "in-repo src/renderer/src/lib/toastStore.ts (zustand pattern to mirror for settings store)"
   ],
   "gaps": [
     {
       "dimension": "integration_points",
-      "description": "user-supplied mechanism guess (confirm via Phase 2 fit-check): keep Icon project-owned rather than pulling an icon dependency (icon set already exists as hand-authored SVG paths)"
+      "description": "user-supplied placement guess (confirm via Phase 2 fit-check): persistence of sidebar width / pane ratio / theme via the existing settings store"
     }
   ],
   "override_recorded": false,
   "conflicts": [
     {
       "type": "direct",
-      "dimensions": ["non_goals", "success_criteria"],
-      "description": "'design' appears in both non_goals and success_criteria",
-      "resolution": "false positive (substring 'components'); reword non_goals collision-light, both kept"
+      "dimensions": [
+        "non_goals",
+        "integration_points"
+      ],
+      "description": "'memory' appears in both non_goals and integration_points",
+      "resolution": "not-a-contradiction: shared-vocabulary token-overlap false positive (non_goals consistently excludes what other dimensions include); no value discarded"
+    },
+    {
+      "type": "direct",
+      "dimensions": [
+        "non_goals",
+        "functional_scope"
+      ],
+      "description": "'account' appears in both non_goals and functional_scope",
+      "resolution": "not-a-contradiction: shared-vocabulary token-overlap false positive (non_goals consistently excludes what other dimensions include); no value discarded"
+    },
+    {
+      "type": "direct",
+      "dimensions": [
+        "non_goals",
+        "success_criteria"
+      ],
+      "description": "'behavior' appears in both non_goals and success_criteria",
+      "resolution": "not-a-contradiction: shared-vocabulary token-overlap false positive (non_goals consistently excludes what other dimensions include); no value discarded"
+    },
+    {
+      "type": "direct",
+      "dimensions": [
+        "non_goals",
+        "edge_cases"
+      ],
+      "description": "'memory' appears in both non_goals and edge_cases",
+      "resolution": "not-a-contradiction: shared-vocabulary token-overlap false positive (non_goals consistently excludes what other dimensions include); no value discarded"
     }
   ],
   "intake_classifications": [
     {
-      "statement": "Build reusable presentation-only UI primitives: Dropdown/popover (keyboard nav, focus return, click-outside + Escape dismiss, edge-aware positioning), Modal dialog (focus trap, scrim, Escape close), transient Toast",
+      "statement": "Build the single-window app shell + layout: titlebar (logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill), left sidebar with draggable divider (200-520px), main area split into request/response panes by a draggable horizontal divider (ratio 0.15-0.85), statusbar; theme/accent/method-style as root data-attributes; persist sidebar width/pane ratio/theme; mounting points for sidebar/tabs/panes/modals; Cmd-B toggles sidebar; semantic class names from design/reference.html; colors/spacing from design/tokens.json",
       "kind": "requirement",
-      "minimal_fix": "Three overlay primitives + the Icon component below, presentation-only, styled via design tokens, no request/response/persistence logic"
+      "minimal_fix": "One shell layout component tree (titlebar + resizable sidebar + split request/response panes + statusbar) with the two clamped drag dividers, root data-attributes for theme/accent/method-style, Cmd-B sidebar toggle, empty mount slots, persisting only sidebar width + pane ratio + theme; styled from tokens.json with semantic class names. Pane/sidebar/tab/modal CONTENTS excluded."
     },
     {
-      "statement": "Explicitly evaluate headless primitive libraries (Radix UI, React Aria, Ark UI, Headless UI) vs hand-rolled as a build-vs-buy decision",
-      "kind": "requirement",
-      "minimal_fix": "Build-vs-buy section in the report covering the overlay primitives"
-    },
-    {
-      "statement": "Inline SVG Icon component driven by a project-owned icon set (~40 icons, 1.5px stroke, 16x16 viewBox); keep project-owned, icon set already exists as hand-authored SVG paths",
-      "kind": "requirement",
-      "minimal_fix": "Single Icon component reading from project-owned SVG path set"
-    },
-    {
-      "statement": "Style with semantic class names from each component role + design/tokens.json, not inline styles; design/reference.html is look/behavior reference only, never reproduce its markup/cruft",
-      "kind": "requirement",
-      "minimal_fix": "Semantic-class styling sourced from tokens; reference.html consulted for look only"
-    },
-    {
-      "statement": "Headless (unstyled) approach is viable and likely preferred for the overlay primitives",
-      "kind": "hypothesis",
-      "minimal_fix": null
-    },
-    {
-      "statement": "Keep Icon project-owned rather than pulling an icon dependency",
+      "statement": "Persist sidebar width / pane ratio / theme via the existing settings store",
       "kind": "hypothesis",
       "minimal_fix": null
     }

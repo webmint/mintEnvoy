@@ -1,218 +1,183 @@
 {
-  "topic": "Reusable headless UI primitives layer (Dropdown/popover, Modal, Toast) plus a project-owned inline SVG Icon component for an Electron+React desktop app; styled via design tokens, build-vs-buy evaluated against headless libraries",
-  "date": "2026-06-21",
-  "topic_slug": "reusable-headless-ui-primitives-layer-dropdown-popover",
-  "summary": "A presentation-only UI primitives layer for the Electron+React renderer: Dropdown/popover, Modal, and Toast overlays plus a project-owned inline SVG Icon, styled exclusively via semantic class names bound to the existing design tokens. The codebase is greenfield for these (renderer is electron-vite boilerplate) and fits well \u2014 React 19, a configured @renderer alias, and design tokens already compiled to CSS custom properties (src/renderer/styles/tokens.css) mean styling needs no new infrastructure. Prior-art survey shows the overlay/focus/keyboard behavior the user flagged as bug-prone is exactly what mature headless libraries (Radix, React Aria, Base UI) solve, with Floating UI as the low-level positioning substrate and a native <dialog>+Popover-API path viable given Electron's single Chromium. Recommended direction is HYBRID: buy the overlay behavior/a11y (Radix primitives, restyled via token CSS vars) and build the Icon + Toast queue + styling project-owned. Primary risk: no test framework exists yet, so the automated-interaction-test success criterion requires a constitution-mandated Vitest+Testing-Library setup before the first primitive lands.",
+  "topic": "Single-window shell and layout for a desktop HTTP client: titlebar (logo, workspace pill, sidebar toggle, command-palette search trigger, environment selector, account pill), left sidebar with draggable divider (width clamped 200-520px), main area split into request/response panes by draggable horizontal divider (ratio clamped 0.15-0.85), and statusbar. Theme (light/dark), accent, method-style toggles as data attributes on root; persistence of sidebar width/pane ratio/theme via settings store. Mounting points for sidebar, tabs, panes, modals (contents are separate tasks). Cmd-B toggles sidebar. Visual reference design/reference.html for look/behavior only; rebuild with semantic class names; colors/spacing from design/tokens.json.",
+  "date": "2026-06-23",
+  "topic_slug": "single-window-shell-and-layout-for-a-desktop-http-client",
+  "summary": "A single-window app shell + layout for the mintEnvoy desktop HTTP client: titlebar, a resizable left sidebar (200-520px), a request/response split with a horizontal divider (ratio 0.15-0.85), and a statusbar \u2014 with named mount slots whose CONTENTS are separate tasks. The shell sets theme/accent/method-style as root data-attributes and holds sidebar width + pane ratio + view prefs in a net-new in-memory zustand settingsStore (mirroring the existing toastStore). Internal scan found the visual contract already done \u2014 tokens.css implements [data-theme] dark overrides + 6 [data-mstyle] method variants on <html> \u2014 so the shell EXTENDS that contract by setting attributes rather than defining palettes. Fit is Good with no refactor; the one open design decision is the resizable dividers (hand-roll vs react-resizable-panels vs allotment), where both libraries owning layout state internally conflicts with the requirement that the settings store be the single source of truth. Primary risk: a data-accent attribute is visually inert today (no [data-accent] CSS), so accent is persisted but drives no visuals this task.",
   "prior_art": [
     {
-      "reference": "Radix UI Primitives",
-      "kind": "library",
-      "relevance": "Mature unstyled Dialog/DropdownMenu/Popover/Toast with full a11y, keyboard, focus mgmt, RTL; official React 19 support. WorkOS-acquired \u2014 velocity slowed for COMPLEX comps (combobox/multiselect, not needed here); Dialog/Dropdown/Popover stable. Heavy prod usage via shadcn.",
-      "source": "https://www.radix-ui.com/primitives"
-    },
-    {
-      "reference": "React Aria Components (Adobe)",
-      "kind": "library",
-      "relevance": "Deepest a11y primitives available (ARIA APG-compliant), Modal/Popover/Menu/Toast; more code per component, unstyled. Strongest correctness bar.",
-      "source": "https://react-spectrum.adobe.com/react-aria/"
-    },
-    {
-      "reference": "Base UI (MUI team)",
-      "kind": "library",
-      "relevance": "Emerging primitive layer, now the more actively-maintained Radix alternative; Dialog/Popover/Menu unstyled. Newer = smaller battle-test surface.",
-      "source": "https://base-ui.com/"
-    },
-    {
-      "reference": "Ark UI (Zag.js state machines)",
-      "kind": "library",
-      "relevance": "Cross-framework headless primitives backed by XState machines; predictable complex-component behavior. Heavier abstraction than needed for app-internal React-only layer.",
-      "source": "https://ark-ui.com/"
-    },
-    {
-      "reference": "Headless UI (Tailwind team)",
-      "kind": "library",
-      "relevance": "~10 unstyled comps incl. Dialog/Menu/Popover; simplest API but Tailwind-oriented and no Toast. Smallest scope.",
-      "source": "https://headlessui.com/"
-    },
-    {
-      "reference": "Floating UI (+ FloatingFocusManager)",
-      "kind": "library",
-      "relevance": "Best low-level positioning (~3kB, edge-aware flip/shift, virtual elements) + modal/non-modal focus trapping. Used UNDER THE HOOD by Radix/Base UI. The realistic substrate for a hand-rolled overlay path.",
-      "source": "https://floating-ui.com/docs/react"
-    },
-    {
-      "reference": "Native Popover API + dialog element + CSS anchor positioning",
+      "reference": "tokens.css (theme + method-style CSS contract)",
       "kind": "pattern",
-      "relevance": "Electron bundles a single known Chromium \u2192 no browser-matrix concern; <dialog> gives free focus trap + scrim + Escape, Popover API gives top-layer + light-dismiss. Anchor-positioning availability is Chromium-version-gated (derisk).",
-      "source": "https://developer.mozilla.org/en-US/docs/Web/API/Popover_API"
+      "relevance": "internal \u2014 EXISTING implementation of theme + method-style application: :root light + [data-theme='dark'] overrides + 6 [data-mstyle] method variants. Header states data-theme + data-mstyle live on <html>. Shell EXTENDS by setting attributes; CSS already done. NOTE attr is data-mstyle not data-method-style; NO data-accent block exists.",
+      "source": "internal:src/renderer/styles/tokens.css"
     },
     {
-      "reference": "shadcn/ui (copy-in over Radix)",
+      "reference": "toastStore.ts (zustand store pattern)",
       "kind": "pattern",
-      "relevance": "Dominant consumption pattern: copy component source (built on Radix) into the repo, own + restyle it. Project-owned source with battle-tested behavior \u2014 directly relevant to a token-styled, project-owned layer.",
-      "source": "https://ui.shadcn.com/"
+      "relevance": "internal \u2014 existing zustand store the new settingsStore mirrors (create() + selector hooks + reset for tests). No settings store exists yet; settingsStore is net-new but follows this shape.",
+      "source": "internal:src/renderer/src/lib/toastStore.ts"
+    },
+    {
+      "reference": "react-resizable-panels (bvaughn)",
+      "kind": "library",
+      "relevance": "Most battle-tested React split lib (shadcn/ui Resizable wraps it). Flexbox PERCENTAGE model + accessible WAI-ARIA separator + onLayoutChanging/onLayoutChanged batching. Tension: % model awkward for the px sidebar clamp (200-520px), and the lib owns layout state internally \u2014 duplicates the requirement that the zustand settings store own width/ratio (controlled mode needs glue).",
+      "source": "https://github.com/bvaughn/react-resizable-panels"
+    },
+    {
+      "reference": "allotment (johnwalley)",
+      "kind": "library",
+      "relevance": "VS Code-derived split-view; supports px min/max sizes natively (better for the 200-520px sidebar clamp than %), IDE snap UX. Heavier/opinionated; also owns layout state internally (same single-source-of-truth tension with settings store).",
+      "source": "https://github.com/johnwalley/allotment"
+    },
+    {
+      "reference": "shadcn/ui Resizable",
+      "kind": "product",
+      "relevance": "Reference for idiomatic API shape over react-resizable-panels; copy-paste component pattern, not a dep \u2014 confirms react-resizable-panels is the mainstream React choice.",
+      "source": "https://ui.shadcn.com/docs/components/radix/resizable"
+    },
+    {
+      "reference": "Hand-rolled pointer-event divider (rAF + CSS var)",
+      "kind": "pattern",
+      "relevance": "Zero-dep pattern: useRef + pointer events writing a CSS custom property (no setState-per-move), clamp px/ratio exactly in JS, ARIA separator role + aria-valuenow by hand. Cheap for a fixed 2-divider layout; keeps the zustand settings store the single source of truth (no lib-owned layout state).",
+      "source": ""
     }
   ],
   "integration_touchpoints": [
     {
-      "name": "Primitives directory (atoms/molecules)",
-      "module_path": "src/renderer/src/components/",
-      "reason": "greenfield \u2014 new atoms/ (Icon) + molecules/ (Dropdown/Modal/Toast) subdirs; grounded by existing components/Versions.tsx"
-    },
-    {
-      "name": "Shared overlay substrate (lib)",
-      "module_path": "src/renderer/src/",
-      "reason": "new lib/ subdir for Portal + focus-trap/click-outside/positioning hooks; grounded by App.tsx/main.tsx prefix"
-    },
-    {
-      "name": "Design-token stylesheet",
+      "name": "tokens.css theme/method-style contract",
       "module_path": "src/renderer/styles/tokens.css",
-      "reason": "design tokens ALREADY compiled to CSS custom properties here; semantic-class styling via these CSS vars is the established wiring"
+      "reason": "existing CSS contract for [data-theme] + [data-mstyle] on <html> \u2014 shell sets these attributes; candidate for reuse over fresh build. accent NOT attribute-switched here."
     },
     {
-      "name": "Test tooling",
-      "module_path": "(unverified)",
-      "reason": "unverified path \u2014 NO test framework in package.json; automated interaction tests (success_criteria) require adding a runner + RTL/dom"
+      "name": "toastStore zustand pattern",
+      "module_path": "src/renderer/src/lib/toastStore.ts",
+      "reason": "existing zustand store shape \u2014 new settingsStore mirrors it; candidate for reuse over fresh build"
     },
     {
-      "name": "Renderer import alias",
-      "module_path": "electron.vite.config.ts",
-      "reason": "@renderer -> src/renderer/src alias already configured; primitives import surface ready"
+      "name": "App.tsx mount root",
+      "module_path": "src/renderer/src/App.tsx",
+      "reason": "current renderer mount (renders PrimitivesDemo) \u2014 shell organism mounts here, attribute-set on <html> root"
     }
   ],
   "fit_assessments": [
     {
-      "touchpoint": "Primitives directory (atoms/molecules)",
-      "user_expected": "atomic-design dirs (atoms/Icon, molecules/overlays) under components/",
-      "reality": "greenfield: only components/Versions.tsx exists; clean to add atoms/ + molecules/",
+      "touchpoint": "toastStore zustand pattern",
+      "user_expected": "Persist sidebar width / pane ratio / theme via the EXISTING settings store",
+      "reality": "No settings store exists. CBM scan shows only toastStore.ts; electron-store appears solely in config/docs, not src. settingsStore is net-new, mirroring toastStore's zustand shape; persistence is in-memory this task.",
       "effort": "Low",
-      "blockers": []
-    },
-    {
-      "touchpoint": "Shared overlay substrate (lib)",
-      "user_expected": "shared overlay/focus/keyboard hooks + positioning helper in lib/",
-      "reality": "no lib/ dir yet; clean greenfield add",
-      "effort": "Low",
-      "blockers": []
-    },
-    {
-      "touchpoint": "Design-token stylesheet",
-      "user_expected": "style via design/tokens.json semantic class names, no inline styles",
-      "reality": "tokens already emitted as CSS custom properties in src/renderer/styles/tokens.css \u2014 semantic-class approach is the existing pattern; strong fit",
-      "effort": "Low",
-      "blockers": []
-    },
-    {
-      "touchpoint": "Test tooling",
-      "user_expected": "automated keyboard/focus/dismiss interaction tests gate the feature",
-      "reality": "no test runner or component-testing library installed at all",
-      "effort": "Medium",
       "blockers": [
-        "no test framework \u2014 must add vitest + @testing-library/react + jsdom/happy-dom (or Playwright component tests)"
+        "user belief of an existing settings store is incorrect \u2014 store must be created net-new",
+        "disk persistence (electron-store/IPC) does not exist and is deferred"
       ]
     },
     {
-      "touchpoint": "Renderer import alias",
-      "user_expected": "primitives importable as a reusable internal layer",
-      "reality": "@renderer alias configured in electron.vite.config.ts",
+      "touchpoint": "tokens.css theme/method-style contract",
+      "user_expected": "Set theme + accent + method-style as data attributes on root; all three drive visuals via tokens",
+      "reality": "tokens.css already implements [data-theme='dark'] overrides and 6 [data-mstyle] method variants on <html> \u2014 theme + method-style fully wired (attr is data-mstyle, NOT data-method-style). BUT accent is a single --accent var with NO [data-accent] switch block: setting data-accent has zero CSS effect today, and defining accent palettes is a non_goal. So accent persistence is store-only/inert this task.",
+      "effort": "Low",
+      "blockers": [
+        "accent data-attribute is visually inert \u2014 no [data-accent] CSS exists; persist the value but expect no visual change",
+        "naming: use data-mstyle to match existing CSS, not data-method-style"
+      ]
+    },
+    {
+      "touchpoint": "App.tsx mount root",
+      "user_expected": "Shell mounts as the top-level renderer chrome",
+      "reality": "App.tsx currently renders PrimitivesDemo. Swap to the Shell organism is a small, contained edit; attributes set on <html> via effect from settingsStore.",
       "effort": "Low",
       "blockers": []
     }
   ],
   "overall_fit": "Good",
   "effort_estimate": "Medium",
-  "fit_rationale": "Strong structural fit: greenfield renderer with React 19 + TS + a configured @renderer alias, and design tokens already compiled to CSS custom properties (src/renderer/styles/tokens.css) \u2014 exactly the semantic-class styling channel the spec wants, so styling needs no new infrastructure. The atomic-design dirs (atoms/molecules/lib) are clean additions. The one non-trivial gap is test tooling: the automated-interaction-test success criterion has no runner/library installed, so a vitest + @testing-library setup task is required (Medium effort). Both user mechanism guesses hold up: headless-lib-preferred is reasonable (Radix/Base UI/React Aria all support React 19) BUT a native <dialog>+Popover-API+Floating-UI hybrid is a real contender given Electron's single Chromium; Icon-project-owned is sound since the icon set already exists and needs no dependency.",
+  "fit_rationale": "Fit is Good: the shell drops cleanly into the existing renderer as a net-new components/organisms/ tier plus a net-new settingsStore.ts that mirrors the existing toastStore zustand pattern, and it consumes an ALREADY-COMPLETE CSS contract (tokens.css implements [data-theme] dark overrides + 6 [data-mstyle] method variants on <html>). No existing code is refactored \u2014 App.tsx swaps PrimitivesDemo for the Shell. Two belief-vs-reality corrections, both minor: (1) there is no existing settings store to persist 'via' \u2014 it is created net-new and in-memory this task (disk/electron-store deferred); (2) accent is not attribute-switched in tokens.css, so a data-accent attribute is visually inert today and defining accent palettes is out of scope \u2014 the store persists the choice but it drives no CSS this task. Effort is Medium: integration is Low, but the resizable dividers (px + ratio clamp, smooth drag without re-render storms, ARIA separators, drag-release-outside-window) plus the slot API are the real build cost, and the divider build-vs-buy (hand-roll vs react-resizable-panels vs allotment) is the one open design decision \u2014 complicated by both libs owning layout state internally, which conflicts with the requirement that the settings store be the single source of truth for width/ratio.",
   "design_options": [
     {
-      "name": "Radix primitives + token-styled wrappers",
-      "shape": "Thin project-owned PascalCase components wrap Radix Dialog/DropdownMenu/Popover/Toast; behavior, ARIA, focus-trap/return, keyboard nav, and edge-aware positioning come from Radix (official React 19 support). Styling supplied only as semantic class names bound to the existing tokens.css CSS custom properties. Icon stays fully project-owned (typed name union over the ~40 SVG paths). Toast queue lives in a zustand store driving an imperative toast(msg,opts) API.",
+      "name": "Single settings store + CSS-var layout, hand-rolled dividers",
+      "shape": "One zustand settingsStore is the single source of truth: { theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed } + actions. The Shell organism writes sidebarWidth/paneRatio to CSS custom properties on its own root and sets data-theme/data-accent/data-mstyle on <html> via effect. Dividers are hand-rolled pointer-event components that clamp px/ratio in JS and write to a CSS var during drag (rAF-batched, store committed on release). Slots are named React children/context mount points.",
       "pros": [
-        "Least code; the exact a11y/edge-case bug class the user flagged is offloaded to a battle-tested lib",
-        "Radix Dialog/Dropdown/Popover are stable + React 19 supported; only complex combobox/multiselect lagged (not needed)",
-        "Styling stays project-owned via semantic classes; no inline styles, fits tokens.css wiring directly"
+        "Settings store is the single source of truth \u2014 no lib-owned layout state to sync (satisfies the stated requirement)",
+        "Exact px (200-520) + ratio (0.15-0.85) clamp control; full ARIA-separator + keyboard control",
+        "Zero new dependency (constraint: prefer zero-dep hand-roll if cheap)",
+        "Mirrors existing toastStore + extends existing tokens.css contract directly"
       ],
       "cons": [
-        "Runtime dependency on Radix (acceptable per dep policy)",
-        "Must learn Radix data-attribute/state hooks to style states (open/closed, side)",
-        "Some bundle weight (minor for desktop Electron)"
-      ],
-      "complexity": "Low"
-    },
-    {
-      "name": "Hand-rolled on Floating UI + native dialog",
-      "shape": "Project-owned components with minimal deps: Modal built on native <dialog> (free focus trap, scrim, Escape, top-layer); Dropdown/popover positioned by Floating UI (flip/shift, ~3kB) with FloatingFocusManager; Toast via a zustand queue + Portal. Shared lib/ hooks (useClickOutside, useFocusReturn, useKeyboardNav) supply the rest. One small positioning dep.",
-      "pros": [
-        "Minimal dependency surface; full source ownership",
-        "Leverages the platform \u2014 single known Chromium makes <dialog>/Popover-API/top-layer reliable",
-        "Floating UI is version-agnostic and tiny"
-      ],
-      "cons": [
-        "Re-incurs the exact a11y/edge-case risk the user called out: menu typeahead, roving tabindex, nested focus-trap composition, ARIA wiring",
-        "Largest test + maintenance burden",
-        "Toast stacking/hover-pause + nested-overlay Escape ordering are all hand-built"
-      ],
-      "complexity": "High"
-    },
-    {
-      "name": "shadcn-style copy-in over Radix",
-      "shape": "Copy Radix-based component source (shadcn-style) directly into components/, own and restyle it with token CSS vars rather than depending on a wrapper library. Behavior is Radix's, but the source lives in-repo with no release-cadence coupling. Icon + Toast store remain project-authored.",
-      "pros": [
-        "Project-owned source AND battle-tested behavior",
-        "Full styling control; no opaque wrapper layer",
-        "No runtime coupling to a wrapper lib release cadence"
-      ],
-      "cons": [
-        "More component code to maintain in-repo",
-        "Must manually track upstream a11y/security fixes",
-        "Still carries the underlying Radix dependency"
+        "Must hand-write ARIA separator + keyboard resize + drag-release-outside-window handling (the lib gives these free)",
+        "More component code to test than adopting a lib"
       ],
       "complexity": "Med"
+    },
+    {
+      "name": "Library-backed panels + thin settings store",
+      "shape": "Adopt react-resizable-panels (or allotment) for the split/resize surfaces. settingsStore holds only { theme, accent, mstyle } plus the library's serialized layout string; the library owns sidebar/pane sizing internally and is driven controlled-mode from the store. Dividers/ARIA come from the library.",
+      "pros": [
+        "Accessible WAI-ARIA separators + keyboard + edge-case drag handling come built-in and battle-tested",
+        "Less custom layout/drag code to write and maintain"
+      ],
+      "cons": [
+        "Two layout-state owners (library internal + settings store) need sync glue \u2014 violates the single-source-of-truth requirement",
+        "react-resizable-panels % model is awkward for the px sidebar clamp (allotment fits px better but is heavier/opinionated)",
+        "New dependency must be vetted (constraint) and adds bundle weight to an Electron renderer"
+      ],
+      "complexity": "Med"
+    },
+    {
+      "name": "Slot-registry layout reducer",
+      "shape": "A layout context exposes a register/unregister slot API (a registry of named mount points) backed by a reducer, instead of fixed named-children slots; settings still in the zustand store. Future panes/tabs/modals attach dynamically by id.",
+      "pros": [
+        "Most extensible slot API for future dynamic panes/tabs",
+        "Decouples shell from knowing its slot set at build time"
+      ],
+      "cons": [
+        "Over-engineered for the current fixed slot set (sidebar/tabs/panes/modals) \u2014 adds a registry abstraction with no current consumer needing it",
+        "More indirection to test; risks YAGNI against the minimal scope"
+      ],
+      "complexity": "High"
     }
   ],
   "recommended_option": {
-    "name": "Radix primitives + token-styled wrappers",
-    "rationale": "Best matches the stated intent and constraints. The user explicitly framed overlay/focus/keyboard as the bug-prone area and the dep policy permits a well-maintained headless library \u2014 so offloading that behavior to Radix (stable Dialog/Dropdown/Popover/Toast, React 19 supported) buys the most correctness for the least code, while semantic-class styling against the existing tokens.css keeps presentation fully project-owned. Icon stays project-owned (no icon dependency) since the SVG set already exists. Tradeoffs acknowledged: a Radix runtime dep and learning its state/data-attribute styling hooks; if a zero-overlay-dependency rule ever emerges, fall back to 'Hand-rolled on Floating UI + native dialog', or choose 'shadcn-style copy-in over Radix' if in-repo source ownership outweighs the maintenance cost."
+    "name": "Single settings store + CSS-var layout, hand-rolled dividers",
+    "rationale": "Best fit to the stated constraints. The requirement that the settings store own sidebar width + pane ratio makes a library-owned layout state (react-resizable-panels / allotment) a net liability \u2014 both would need controlled-mode sync glue and duplicate the source of truth. This option EXTENDS existing internal:src/renderer/src/lib/toastStore.ts (the zustand pattern settingsStore mirrors) and EXTENDS the already-complete CSS contract in internal:src/renderer/styles/tokens.css (which the existing implementation covers for [data-theme] + [data-mstyle] but does NOT cover for accent \u2014 no [data-accent] block exists, so this option persists accent in the store while accepting it is visually inert until accent palettes are added in a later task). The hand-roll cost (ARIA separator, keyboard resize, drag-release-outside-window) is bounded for a fixed 2-divider layout and is the price of exact px/ratio clamp control + zero new dependency. Acknowledged tradeoff: more divider/a11y code to write and test than option B; mitigated by the derisk spike below, with react-resizable-panels documented as the fallback if the hand-rolled a11y proves costly."
   },
   "build_vs_buy": {
-    "build": "Build project-owned: the Icon component (typed name union over the ~40 hand-authored SVG paths, unknown-name fallback), all styling (semantic class names -> tokens.css CSS vars), the Toast queue (zustand store + imperative toast() API), and thin wrappers/composition around the bought behavior.",
-    "buy": "Adopt Radix Primitives for the overlay behavior/a11y of Dropdown/popover, Modal (Dialog), and Toast \u2014 focus trap/return, keyboard nav, ARIA roles, edge-aware positioning, light-dismiss \u2014 restyled via semantic classes. (Alternatives if Radix is rejected: React Aria for deepest a11y, or Floating UI for a hand-rolled positioning substrate.)",
-    "recommendation": "Hybrid",
-    "reasoning": "Buy the behavior that is expensive and risky to get right (the overlay/focus/keyboard correctness the user flagged), build the parts that are cheap, project-specific, and dependency-free (Icon, styling, Toast queue). Pure build re-incurs the flagged bug class; pure buy would fight the token-styled, project-owned, no-inline-styles requirement. Hybrid satisfies both."
+    "build": "Hand-roll the shell: net-new components/organisms/ Shell + Sidebar/PaneSplit/Titlebar/Statusbar, net-new settingsStore.ts (mirrors toastStore), dividers as pointer-event components writing CSS vars. Consumes existing tokens.css contract.",
+    "buy": "Adopt react-resizable-panels (mainstream React choice, wrapped by shadcn/ui Resizable) or allotment (VS Code-derived, native px sizing) for the resize surfaces only; still build the titlebar/statusbar/store by hand.",
+    "recommendation": "Build",
+    "reasoning": "Build (hand-roll dividers). The constraint set explicitly prefers a zero-dep hand-roll when cheap, and the single-source-of-truth requirement (settings store owns width/ratio) actively penalizes the library path, which keeps its own layout state. The shell is a fixed 2-divider layout \u2014 bounded enough that hand-rolling the clamp + drag + ARIA is cheaper end-to-end than adopting, vetting, and sync-gluing a controlled-mode panel library. react-resizable-panels stays the documented fallback if the hand-rolled accessibility/edge-cases prove more expensive than the derisk spike predicts."
   },
   "derisk_plan": [
-    "Spike: render a Radix Dialog + DropdownMenu styled SOLELY via semantic classes bound to tokens.css CSS vars \u2014 confirm zero inline styles and a look matching the design reference",
-    "Stand up the renderer test stack (Vitest + @testing-library/react + user-event + jsdom/happy-dom) and write one keyboard/focus interaction test as a smoke proof; record the stack in docs/architecture.md per constitution 3.4",
-    "Verify Radix Toast covers stacking + hover/focus pause + rapid-fire queue; if not, scope the small project-owned zustand toast queue instead",
-    "Prototype nested-overlay behavior (modal opens a dropdown; toast over modal) to confirm Escape closes topmost-only and focus-trap/return compose correctly",
-    "Author the Icon contract: derive the typed name union from the ~40 SVG paths, define size/stroke props and the unknown-name fallback, confirm prefers-reduced-motion handling"
+    "Spike a hand-rolled divider (pointer events + rAF + CSS custom property) and measure drag smoothness vs a setState-per-move baseline before committing",
+    "Prototype the clamp/resize math against the window-resize edge case (sidebar 200-520px + pane ratio 0.15-0.85 re-clamp on shrink) to confirm no negative/overflow panes",
+    "Run an axe + keyboard/screen-reader pass on the divider (ARIA separator role, aria-valuenow, keyboard resize) to validate accessibility before the lib-vs-handroll decision is locked",
+    "Mount one real consumer (e.g. the existing Tabs molecule) into the tab slot to prove the slot API is genuinely content-decoupled",
+    "Confirm the accent reality with the user/spec: persist the value but mark data-accent visually inert until a later accent-palette task (or pull accent into scope explicitly)"
   ],
   "constitution_constraints": [
     {
-      "rule": "\u00a73.4 Testing Requirements",
-      "impact": "No test infrastructure exists; the rule mandates picking a renderer test stack (Vitest + Testing Library) before the first feature needing coverage and recording it in docs/architecture.md. This feature IS that first feature \u2014 its automated-interaction-test success criterion makes the test-stack setup a required, gating prerequisite, not optional."
-    },
-    {
       "rule": "\u00a73.1 Type Safety",
-      "impact": "Strict mode, no 'any'. The Icon 'name' prop must be a typed string-literal union over the ~40-icon set (not a bare string); all primitive props strictly typed; any external/parsed value typed as 'unknown' and narrowed. Enables a compile-time guard against unknown icon names."
+      "impact": "No 'any'; type IPC/external input as 'unknown' and narrow. The settingsStore state + slot props must be fully typed; any future disk-load values (deferred) are validated at the boundary."
     },
     {
-      "rule": "\u00a72.3 Module Organization & Imports",
-      "impact": "Primitives live under src/renderer/src and are imported via the @renderer alias, not deep relative paths; code stays in the renderer process dir with no cross-process import. Reinforces the presentation-only / renderer-only boundary (no IPC, no main/preload involvement)."
+      "rule": "\u00a73.3 Naming",
+      "impact": "zustand store is camelCase + Store suffix -> settingsStore.ts (matches recommended option); React components PascalCase (Shell, Sidebar, PaneSplit, Titlebar, Statusbar)."
     },
     {
-      "rule": "\u00a74 Always (project): shared renderer state in zustand + Never mutate outside store actions",
-      "impact": "The imperative Toast queue should be a zustand store (toastStore) with actions, not an ad-hoc context/global \u2014 the project already depends on zustand 5. Toast enqueue/dismiss/pause go through store actions."
+      "rule": "\u00a75 State Management",
+      "impact": "Shared renderer state lives in a zustand store; never mutate state outside store actions; prefer selectors over reading the whole store. Drag handlers commit width/ratio via store actions, not direct mutation."
     },
     {
-      "rule": "\u00a73.3 Naming Conventions",
-      "impact": "Component files PascalCase (Dropdown.tsx, Modal.tsx, Toast.tsx, Icon.tsx); hooks camelCase with use- prefix (useFocusTrap, useClickOutside); the toast store is toastStore."
+      "rule": "\u00a72 Process boundaries (electron-store in main)",
+      "impact": "Persistence (electron-store) is a MAIN-process responsibility \u2014 confirms the renderer settingsStore stays in-memory this task; disk persistence later goes through a typed IPC wrapper, not the renderer store directly."
+    },
+    {
+      "rule": "\u00a76 Reuse-before-build",
+      "impact": "Search for existing utilities before building generic ones \u2014 honored: reuses toastStore zustand pattern + the existing tokens.css [data-theme]/[data-mstyle] contract rather than re-defining either."
     }
   ],
-  "verdict": "Worth pursuing",
+  "verdict": "Promising with caveats",
   "recommendation": {
-    "action": "Proceed to /specify for the primitives layer, scoped to the Hybrid recommended option: Radix-backed overlays restyled via token CSS vars + a project-owned Icon and zustand Toast queue. Make the Vitest+Testing-Library test-stack setup the first task (constitution 3.4).",
-    "next": "Run /specify to author the feature spec with EARS acceptance criteria for each primitive's behavior + a11y."
+    "action": "Run /specify for the app-shell + layout feature, locking: net-new components/organisms/ Shell tree + net-new in-memory settingsStore (mirror toastStore), hand-rolled clamped dividers (Build), consuming the existing tokens.css contract. Resolve the accent-inert caveat in the spec (persist value, data-accent visually inert this task) and treat the divider build-vs-buy as decided (Build, lib fallback documented).",
+    "next": "Author the spec with the derisk spikes as early acceptance-criteria checks."
   },
-  "next_step_text": "/specify \"Reusable presentation-only renderer primitives \u2014 Dropdown/popover, Modal, Toast (Radix-backed, token-styled) + a project-owned SVG Icon \u2014 for app-internal use, verified by keyboard/focus interaction tests.\"\n\nDiscovery reference: discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md\nKey facts:\n- Functional scope: A reusable presentation-only primitives layer for the Electron+React renderer, delivering four user-facing components plus their shared overlay substrate. Components: (1) Dropdown/popover anchored to a trigger \u2014 keyboard navigation, focus return, click-outside + Escape dismiss, edge-aware positioning; (2) Modal dialog \u2014 focus trap, scrim/backdrop, Escape close, body scroll lock; (3) transient Toast \u2014 stacked, auto + manual dismiss, hover-pause; (4) inline SVG Icon driven by a project-owned ~40-icon set (1.5px stroke, 16x16 viewBox). First-class shared substrate (in lib/): a Portal, a focus-trap/focus-return hook, a click-outside hook, centralized Escape/keyboard handling, and an edge-aware positioning helper \u2014 reusable by future primitives. An explicit build-vs-buy evaluation (headless libs Radix/React Aria/Ark/Headless UI vs hand-rolled) governs the overlay substrate. Styling via semantic class names mapped to design/tokens.json; visual/behavior reference is the design export, never its markup.\n- Users: App-internal only. Direct consumers are mintEnvoy renderer feature components (and the developers wiring them) \u2014 these primitives are an internal building-block layer, not a published package. End-users of the desktop app interact with the rendered overlays (dropdown menus, modals, toasts) and icons. No external-consumer API-stability concern.\n- Success criteria: All four primitives (Dropdown/popover, Modal, Toast, Icon) render per the visual reference look and behave correctly: keyboard nav, focus trap + focus return, click-outside + Escape dismiss, edge-aware positioning, scrim, toast auto-dismiss \u2014 meeting WCAG keyboard/focus expectations. Gated by automated interaction tests (keyboard/focus/dismiss). A demo/gallery harness exercises every primitive in its states as the visual + manual-QA surface.\n- Recommended option: Radix primitives + token-styled wrappers\n- Open uncertainties: 1 (see discovery doc \u00a7Open uncertainties)",
+  "next_step_text": "/specify \"Single-window app shell + layout: titlebar, resizable sidebar (200-520px) + request/response split (0.15-0.85), statusbar, named mount slots, root theme/method-style data-attrs, in-memory zustand settingsStore.\"\n\nDiscovery reference: discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md\nKey facts:\n- Functional scope: App-shell + layout component tree: titlebar (logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill), resizable left sidebar (clamped 200-520px) with draggable divider, main area split into request/response panes by a draggable horizontal divider (ratio clamped 0.15-0.85), statusbar. Theme(light/dark)/accent/method-style applied as root data-attributes. Cmd-B toggles sidebar. Empty named mount slots for sidebar/tabs/panes/modals (slot CONTENTS out of scope). A new zustand settings store (mirroring toastStore.ts) holds sidebar width + pane ratio + theme + accent + method-style IN-MEMORY only; disk persistence (electron-store wiring) deferred to a later persistence-port task. Styled from design/tokens.json with semantic class names per design/reference.html (markup never copied).\n- Users: Co-primary consumers: (1) Human end users \u2014 developers/API testers operating the mintEnvoy desktop window; the shell is the top-level chrome they see every session (titlebar, sidebar, panes, statusbar). (2) Downstream feature tasks \u2014 code that mounts content into the shell's named slots (sidebar tree, tab bodies, request/response editors, modal bodies); for them the shell is an integration contract (a stable slot API), not just visuals.\n- Success criteria: (1) Visual fidelity: rendered shell matches design/reference.html layout and design/tokens.json colors/spacing under design-auditor review (look/behavior only, never markup). (2) Behavior: both dividers drag and clamp to range (200-520px, 0.15-0.85); Cmd-B toggles sidebar; view settings (theme/accent/method-style) + sidebar width + pane ratio survive within the session via the settings store \u2014 all covered by component tests. (3) Decoupled slots: sidebar/tabs/panes/modals mount slots accept arbitrary children and render them without the shell knowing their contents. (4) Gates green: typecheck + lint + build + existing test suite pass; zero reference-export cruft (no data-om-*, __OmT, inline styles, tweaks-panel) anywhere in the build.\n- Recommended option: Single settings store + CSS-var layout, hand-rolled dividers\n- Open uncertainties: 1 (see discovery doc \u00a7Open uncertainties)",
   "open_uncertainties": []
 }

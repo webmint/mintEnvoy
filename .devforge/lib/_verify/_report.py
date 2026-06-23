@@ -179,7 +179,8 @@ def render_report(
     if scope_checked:
         if scope_creep:
             out.append(
-                "**Scope creep**: {0} changed file(s) outside the planned scope: "
+                "**Scope creep** _(advisory — does not block the verdict)_: "
+                "{0} changed file(s) outside the planned scope: "
                 "{1}".format(len(scope_creep), ", ".join(scope_creep[:5]))
             )
             if len(scope_creep) > 5:
@@ -191,7 +192,8 @@ def render_report(
 
     if leftover_artifacts:
         out.append(
-            "**Leftover artifacts**: {0} flagged (debug prints / bare TODOs / "
+            "**Leftover artifacts** _(advisory — does not block the verdict)_: "
+            "{0} flagged (debug prints / bare TODOs / "
             "commented-out code)".format(len(leftover_artifacts))
         )
     else:
