@@ -1,0 +1,409 @@
+{
+  "schema_version": "1.1",
+  "handoff_kind": "discover",
+  "report_path": "discover/2026-06-22-reusable-horizontal-tab-strip-primitive-for-switching.md",
+  "discover_completed_at": "2026-06-22T21:59:54+00:00",
+  "intent": {
+    "feature_concept": "Reusable horizontal tab-strip primitive for switching panels within a pane \u2014 tabs array + active id, optional count/label badge per tab, optional right-aligned action cluster, emits change events",
+    "topic": "Reusable horizontal tab-strip primitive for switching panels within a pane \u2014 tabs array + active id, optional count/label badge per tab, optional right-aligned action cluster, emits change events",
+    "topic_slug": "reusable-horizontal-tab-strip-primitive-for-switching",
+    "scope_summary": "Reusable, controlled, HORIZONTAL-only tab-strip primitive (no vertical variant): renders a row of tab buttons (label + optional badge + active state) from a tabs array, marks the activeId, emits onChange(id) on click or keyboard select, supports an optional right-aligned actions slot, implements roving-tabindex keyboard nav (arrows/Home/End with wrap) + WAI-ARIA tablist/tab semantics, skips disabled tabs. Selection only \u2014 does not render or own the panels it switches.",
+    "verbatim_prompt": "A reusable horizontal tab-strip for switching panels within a pane: a row of tab buttons each with a label, an optional count/label badge, and an active state, plus an optional right-aligned action-button cluster. Driven by a tabs array and an active id; emits change events. Used by the request authoring pane (Params/Auth/Headers/Body/Tests/Code) and the response pane (Body/Headers/Cookies/Test Results). Tabs benefit from roving-tabindex keyboard navigation and ARIA tab semantics, so consider a headless tabs primitive (Radix Tabs, React Aria) versus a hand-rolled strip \u2014 it is light enough that hand-rolled is reasonable; let build-vs-buy decide. For visual and interaction consistency, follow the same approach the existing UI primitives in specs/001-ui-primitives used (the renderer already has Dropdown/Modal/Toast/Icon and, if a headless library was adopted there, reuse that same library's Tabs rather than introducing a second one). Selection only; the panels it switches are separate tasks. Visual reference: design/reference.html \u2014 look and behavior only, never reproduce its markup (data-om-* attributes, __OmT wrappers, inline styles, tweaks-panel must not enter the build). Style with semantic class names from role and design/tokens.json."
+  },
+  "spec_seeds": {
+    "spec_type_hint": "greenfield_feature",
+    "constraints": [
+      {
+        "kind": "nfr",
+        "content": "Controlled-only: caller owns active id and updates it via onChange; strip holds no internal active state (matches 001 Dropdown/Modal controlled pattern). Plus inherited project hard limits: strictly typed (no any); no inline styles; semantic class names mapped to design/tokens.json; prefers-reduced-motion gating; never reproduce design/reference.html markup (no data-om-*/__OmT/inline styles/tweaks-panel); renderer-only (no Node/Electron imports); WAI-ARIA tabs pattern with roving tabindex.",
+        "quantifier": "see discovery report constraints dimension",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "nfr",
+        "content": "Out of scope: OUT of scope: the panels/panel content it switches (separate tasks); overflow handling (scroll/truncate for too-many-tabs); vertical orientation; uncontrolled/self-managed state; selected-tab routing or persistence; reproducing design/reference.html markup; introducing a second tabs library if Radix Tabs fits; animated selected-tab indicator or sliding-underline transitions (static selected-tab styling only, still respecting prefers-reduced-motion if any transition exists).",
+        "quantifier": "non-goal boundary from scoping session",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.1 Type Safety (no any, strict)",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a72.3 / Never import Node or electron in renderer",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.4 Testing Requirements",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a76.3 Search Before Building",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Prefer @renderer alias",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "molecules primitives dir",
+        "files": [
+          "src/renderer/src/components/molecules"
+        ],
+        "impact": "home of Dropdown/Modal/Toast; new Tabs.tsx + Tabs.css land here following the same wrapper pattern",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "cx helper",
+        "files": [
+          "src/renderer/src/lib/cx.ts"
+        ],
+        "impact": "semantic-class composer Tabs reuses for BEM class assembly",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "Icon atom",
+        "files": [
+          "src/renderer/src/components/atoms/Icon.tsx"
+        ],
+        "impact": "reused if a per-tab leading icon is ever added; consistent with Dropdown item icons",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "PrimitivesDemo route",
+        "files": [
+          "src/renderer/src/components/PrimitivesDemo.tsx"
+        ],
+        "impact": "Tabs registered here for manual visual fidelity check vs design/reference.html",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "radix-ui dependency",
+        "files": [
+          "package.json"
+        ],
+        "impact": "radix-ui ^1.1.3 already declared; Tabs namespace available with no new dependency",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "internal:src/renderer/src/components/molecules/Dropdown.tsx",
+        "files": [
+          "src/renderer/src/components/molecules/Dropdown.tsx"
+        ],
+        "impact": "internal \u2014 canonical controlled-primitive-wrapping-Radix pattern to extend for Tabs (cx + Icon + BEM + import './X.css')",
+        "is_internal_extension_candidate": true
+      },
+      {
+        "area": "internal:src/renderer/src/components/molecules/Toast.tsx",
+        "files": [
+          "src/renderer/src/components/molecules/Toast.tsx"
+        ],
+        "impact": "internal \u2014 same controlled Radix-namespace wrapper pattern; Provider/Viewport split, store-driven",
+        "is_internal_extension_candidate": true
+      },
+      {
+        "area": "internal:src/renderer/src/components/molecules/Modal.tsx",
+        "files": [
+          "src/renderer/src/components/molecules/Modal.tsx"
+        ],
+        "impact": "internal \u2014 controlled Radix wrapper primitive; focus trap, prefers-reduced-motion gating precedent",
+        "is_internal_extension_candidate": true
+      },
+      {
+        "area": "internal:src/renderer/src/lib/cx.ts",
+        "files": [
+          "src/renderer/src/lib/cx.ts"
+        ],
+        "impact": "internal \u2014 shared semantic-class composer used by every primitive; Tabs reuses it",
+        "is_internal_extension_candidate": true
+      },
+      {
+        "area": "internal:src/renderer/src/components/PrimitivesDemo.tsx",
+        "files": [
+          "src/renderer/src/components/PrimitivesDemo.tsx"
+        ],
+        "impact": "internal \u2014 visual-verification route where each primitive is registered; success_criteria requires Tabs added here",
+        "is_internal_extension_candidate": true
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Spike: render Radix Tabs.Root+List+Trigger as a selection-only strip WITHOUT Tabs.Content; run axe/a11y to check for dangling aria-controls and decide share-one-Root vs hand-rolled tablist",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Contract test against both panes tab sets: click + arrows/Home/End wrap (List loop), disabled-skip, onChange(id) fires once, aria-selected/tablist roles correct, invalid/absent activeId renders no selection",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Register in PrimitivesDemo.tsx and visually compare to design/reference.html at request-pane (6 tabs) and response-pane (4 tabs) widths",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Radix Tabs couples Trigger->Content via aria-controls; a standalone selection-only strip risks dangling aria-controls unless panels join the same Tabs.Root or the tablist is hand-rolled",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      }
+    ],
+    "open_questions": [
+      {
+        "question": "user-supplied mechanism guess (confirm via Phase 2 fit-check): reuse whatever headless tabs library specs/001-ui-primitives adopted (Dropdown/Modal/Toast/Icon) rather than introducing a second; assumes 001 adopted a headless lib at all",
+        "blocking": true
+      }
+    ]
+  },
+  "plan_seeds": {
+    "design_options": [
+      {
+        "id": "A",
+        "name": "Array-driven controlled strip",
+        "shape": "Flat props: <Tabs tabs={[{id,label,badge?,disabled?}]} activeId onChange actions?/>. One component renders the whole strip from the array; caller owns activeId and handles onChange(id). Mirrors Dropdown's items-array API.",
+        "pros": [
+          "Matches the API the user described (tabs array + active id)",
+          "Smallest consumer surface; one line to mount",
+          "Direct precedent in Dropdown items-array API"
+        ],
+        "cons": [
+          "Less composable for one-off custom tab content",
+          "Badge limited to string|number unless widened"
+        ],
+        "complexity": "Low"
+      },
+      {
+        "id": "B",
+        "name": "Compound components",
+        "shape": "Children API: <Tabs.Root activeId onChange><Tabs.List><Tabs.Tab id badge/>...</Tabs.List><Tabs.Actions/></Tabs.Root>. Composition mirrors Radix and Dropdown's children API; each tab is JSX.",
+        "pros": [
+          "Maximum composition flexibility (custom tab nodes, arbitrary actions)",
+          "Closest 1:1 to Radix Tabs structure"
+        ],
+        "cons": [
+          "More verbose at every call site",
+          "More exported parts to document and test",
+          "Diverges from the simple array the user asked for"
+        ],
+        "complexity": "Med"
+      },
+      {
+        "id": "C",
+        "name": "Array + slot nodes",
+        "shape": "Array-driven like option A, but badge accepts a ReactNode and actions is a render slot; tabs={[{id,label,badge?:ReactNode,disabled?}]} actions={<.../>}. Hybrid of A's ergonomics and B's flexibility.",
+        "pros": [
+          "Keeps the simple array call site",
+          "Allows rich badges / custom action clusters without compound parts"
+        ],
+        "cons": [
+          "ReactNode badge complicates ARIA labelling and tests",
+          "Two ways to express simple cases invites inconsistency"
+        ],
+        "complexity": "Med"
+      }
+    ],
+    "build_vs_buy": {
+      "recommendation": "Hybrid",
+      "build_path": "Hand-roll the strip: role=tablist + role=tab buttons, manual roving tabindex (arrows/Home/End with wrap), aria-selected, disabled-skip, onChange(id). Full panel-decoupling (no aria-controls coupling), but reimplements well-trodden a11y and carries the larger test surface.",
+      "buy_path": "Wrap radix-ui's Tabs namespace (Tabs.Root + Tabs.List + Tabs.Trigger) behind the flat array API. Inherits controlled value/onValueChange, roving tabindex, List loop (keyboard wrap), Trigger disabled-skip, activationMode, and WAI-ARIA for free; no new dependency. Must manage Trigger->Content aria-controls for the selection-only strip.",
+      "reasoning": "Buy the accessibility engine (Radix Tabs, already a dependency), build the thin project veneer (the flat array wrapper + semantic classes) \u2014 exactly how Dropdown/Modal/Toast already treat Radix. This minimizes new a11y code and stays consistent with the codebase. The only design-time work is reconciling aria-controls with the panels-separate scope; pure hand-rolling is the fallback if that reconciliation proves awkward."
+    },
+    "cited_canonical_patterns": [
+      {
+        "reference": "Dropdown (Radix DropdownMenu wrapper)",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/components/molecules/Dropdown.tsx",
+        "relevance": "internal \u2014 canonical controlled-primitive-wrapping-Radix pattern to extend for Tabs (cx + Icon + BEM + import './X.css')",
+        "is_internal": true
+      },
+      {
+        "reference": "Toast (Radix Toast wrapper)",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/components/molecules/Toast.tsx",
+        "relevance": "internal \u2014 same controlled Radix-namespace wrapper pattern; Provider/Viewport split, store-driven",
+        "is_internal": true
+      },
+      {
+        "reference": "Modal (Radix Dialog wrapper)",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/components/molecules/Modal.tsx",
+        "relevance": "internal \u2014 controlled Radix wrapper primitive; focus trap, prefers-reduced-motion gating precedent",
+        "is_internal": true
+      },
+      {
+        "reference": "cx() class-name helper",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/lib/cx.ts",
+        "relevance": "internal \u2014 shared semantic-class composer used by every primitive; Tabs reuses it",
+        "is_internal": true
+      },
+      {
+        "reference": "PrimitivesDemo harness",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/components/PrimitivesDemo.tsx",
+        "relevance": "internal \u2014 visual-verification route where each primitive is registered; success_criteria requires Tabs added here",
+        "is_internal": true
+      },
+      {
+        "reference": "Radix Tabs (radix-ui Tabs namespace)",
+        "kind": "library",
+        "source": "https://www.radix-ui.com/primitives/docs/components/tabs",
+        "relevance": "Controlled value/onValueChange, roving tabindex, Tabs.List loop=keyboard wrap, Trigger disabled-skip, activationMode auto/manual, horizontal default, full WAI-ARIA \u2014 covers nearly all gap behavior; already a dep (no new install). Caveat: Trigger sets aria-controls expecting a Tabs.Content.",
+        "is_internal": false
+      },
+      {
+        "reference": "WAI-ARIA APG Tabs pattern",
+        "kind": "pattern",
+        "source": "https://www.w3.org/WAI/ARIA/apg/patterns/tabs/",
+        "relevance": "Authoritative spec for the hand-rolled path: role=tablist/tab, aria-selected, roving tabindex, arrow/Home/End, automatic-vs-manual activation guidance",
+        "is_internal": false
+      },
+      {
+        "reference": "React Aria useTabList",
+        "kind": "library",
+        "source": "https://react-spectrum.adobe.com/react-aria/Tabs.html",
+        "relevance": "Alternative headless tabs hook; would be a SECOND a11y lib alongside Radix \u2014 violates the 'no second library' guidance, recorded for completeness",
+        "is_internal": false
+      }
+    ],
+    "complexity": {
+      "changes": "Low",
+      "risk": "Low",
+      "verify_cost": "Med"
+    },
+    "recommended_option_id": "A",
+    "recommended_option_rationale": "It matches the API the user described (tabs array + active id + onChange) and extends the established controlled-primitive wrapper pattern at internal:src/renderer/src/components/molecules/Dropdown.tsx \u2014 those primitives implement the Radix-wrapper pattern but NOT tab-strip selection, which is the capability this option adds. Tradeoff accepted: badge stays string|number and one-off custom tab content is unsupported; if a richer badge is ever needed, widen to option C without breaking the array call site.",
+    "_effort_estimate": "Low",
+    "_overall_fit": "Good",
+    "_derisk_count": 3
+  },
+  "discovery_block": {
+    "overall_fit": "Good",
+    "effort_estimate": "Low",
+    "fit_rationale": "Strong fit. The controlled-primitive-wrapping-Radix pattern is established three times in src/renderer/src/components/molecules/ and radix-ui (which ships a Tabs namespace) is already a dependency, so the user's 'reuse it, no second lib' belief is confirmed and the build is small. The single real wrinkle is design-time, not effort: Radix Tabs couples Trigger->Content via aria-controls, which tensions the selection-only/panels-separate scope \u2014 resolved by either sharing one Tabs.Root with consumer panels or hand-rolling the tablist. Either path stays within the existing pattern and needs no new dependency.",
+    "fit_assessments": [
+      {
+        "touchpoint": "molecules primitives dir",
+        "user_expected": "new tab-strip lives beside Dropdown/Modal/Toast and follows the same wrapper pattern",
+        "reality": "confirmed \u2014 molecules/ holds the three controlled Radix-wrapper primitives; Tabs.tsx + Tabs.css drop in cleanly with cx()+Icon+import './Tabs.css'",
+        "effort": "Low",
+        "blockers": []
+      },
+      {
+        "touchpoint": "radix-ui dependency",
+        "user_expected": "reuse whatever headless lib 001 adopted; do not add a second one",
+        "reality": "confirmed \u2014 radix-ui ^1.1.3 is adopted and exposes a Tabs namespace; no new dependency needed. BUT Radix Tabs.Trigger emits aria-controls expecting a sibling Tabs.Content; selection-only (panels separate) means either consumers share one Tabs.Root with their panels, or the strip hand-rolls role=tablist to stay panel-decoupled",
+        "effort": "Medium",
+        "blockers": [
+          "Radix Tabs couples Trigger->Content via aria-controls; a standalone selection-only strip risks dangling aria-controls unless panels join the same Tabs.Root or the tablist is hand-rolled"
+        ]
+      },
+      {
+        "touchpoint": "PrimitivesDemo route",
+        "user_expected": "register Tabs in the demo for manual visual verification",
+        "reality": "confirmed \u2014 PrimitivesDemo.tsx already registers each primitive; success_criteria's manual visual check plugs in here",
+        "effort": "Low",
+        "blockers": []
+      },
+      {
+        "touchpoint": "cx helper",
+        "user_expected": "reuse cx() for semantic BEM classes",
+        "reality": "confirmed \u2014 cx() at src/renderer/src/lib/cx.ts is used by every primitive",
+        "effort": "Low",
+        "blockers": []
+      }
+    ],
+    "verdict": "Worth pursuing",
+    "override_recorded": false,
+    "memo_dimensions": {
+      "functional_scope": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Reusable, controlled, HORIZONTAL-only tab-strip primitive (no vertical variant): renders a row of tab buttons (label + optional badge + active state) from a tabs array, marks the activeId, emits onChange(id) on click or keyboard select, supports an optional right-aligned actions slot, implements roving-tabindex keyboard nav (arrows/Home/End with wrap) + WAI-ARIA tablist/tab semantics, skips disabled tabs. Selection only \u2014 does not render or own the panels it switches."
+      },
+      "users": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "General-purpose reusable primitive for renderer developers: first consumers are the request authoring pane (Params/Auth/Headers/Body/Tests/Code) and the response pane (Body/Headers/Cookies/Test Results), but designed without coupling to those two call sites so any future pane/panel switching can use it. End user is the app user clicking/keyboarding tabs. No external API consumers."
+      },
+      "inputs_outputs": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Inputs: tabs array of { id: string, label: string, badge?: string|number, disabled?: boolean }; activeId: string (controlled); optional actions slot (ReactNode, right-aligned cluster). Outputs: onChange(id: string) fired on click or keyboard select; disabled tabs are non-selectable and skipped by keyboard nav. No panel content crosses the boundary (panels are separate)."
+      },
+      "integration_points": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "New Tabs.tsx + Tabs.css in src/renderer/src/components/molecules/ (same home as Dropdown/Modal/Toast), using the cx() helper (src/renderer/src/lib/cx.ts) + Icon atom, registered in PrimitivesDemo.tsx for manual visual verification. Build mechanism (radix-ui Tabs namespace vs hand-rolled roving-tabindex) is LEFT OPEN for Phase 2/3 build-vs-buy on the evidence. radix-ui ^1.1.3 is already a dependency (adopted by 001), so the 'reuse it, no second lib' guess is materially supported \u2014 confirmed in Phase 2 fit-check."
+      },
+      "constraints": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Controlled-only: caller owns active id and updates it via onChange; strip holds no internal active state (matches 001 Dropdown/Modal controlled pattern). Plus inherited project hard limits: strictly typed (no any); no inline styles; semantic class names mapped to design/tokens.json; prefers-reduced-motion gating; never reproduce design/reference.html markup (no data-om-*/__OmT/inline styles/tweaks-panel); renderer-only (no Node/Electron imports); WAI-ARIA tabs pattern with roving tabindex."
+      },
+      "non_goals": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "OUT of scope: the panels/panel content it switches (separate tasks); overflow handling (scroll/truncate for too-many-tabs); vertical orientation; uncontrolled/self-managed state; selected-tab routing or persistence; reproducing design/reference.html markup; introducing a second tabs library if Radix Tabs fits; animated selected-tab indicator or sliding-underline transitions (static selected-tab styling only, still respecting prefers-reduced-motion if any transition exists)."
+      },
+      "success_criteria": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Behavior + keyboard nav + ARIA semantics gated by interaction tests (renders both panes' tab sets from a tabs array; click + arrows/Home/End switch active; WAI-ARIA tablist/tab/aria-selected correct; change event fires). Visual fidelity to design/reference.html verified manually via the PrimitivesDemo route."
+      },
+      "edge_cases": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Must handle: (a) invalid/absent active id \u2014 id not in tabs array, empty, or null \u2192 render with no tab selected (decision deferred to design); (b) empty tabs array \u2192 render empty strip, and single tab \u2192 still a valid tablist; (c) keyboard arrow nav wrap at first/last tab, and badge extremes (0, large counts, or a text label not a number). Overflow/too-many-tabs is OUT of scope (request pane = 6 tabs, response = 4; no scroll/truncate handling)."
+      }
+    },
+    "references": [
+      "Radix Tabs (radix-ui unified package, already a dep)",
+      "React Aria useTabList",
+      "design/reference.html (visual/behavior only)",
+      "specs/001-ui-primitives \u2014 Dropdown/Modal/Toast/Icon wrapper pattern"
+    ],
+    "gaps": [
+      {
+        "dimension": "integration_points",
+        "description": "user-supplied mechanism guess (confirm via Phase 2 fit-check): reuse whatever headless tabs library specs/001-ui-primitives adopted (Dropdown/Modal/Toast/Icon) rather than introducing a second; assumes 001 adopted a headless lib at all"
+      }
+    ]
+  },
+  "downstream_links": {
+    "spec_path": "specs/002-reusable-horizontal-tab-strip-primitive-for-switching/spec.md",
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}

@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/002-tabs-primitive/tasks",
+  "breakdown_completed_at": "2026-06-22T23:03:03Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/002-tabs-primitive/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/002-tabs-primitive/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/002-tabs-primitive/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "build-tabs-primitive-component",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "002",
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/molecules/Tabs.tsx",
+        "src/renderer/src/components/molecules/Tabs.css"
+      ],
+      "expects": [
+        "`cx` is exported from `src/renderer/src/lib/cx.ts` and importable via `@renderer/lib/cx`.",
+        "CSS custom properties exist in `src/renderer/styles/tokens.css` for the strip's colors/spacing.",
+        "`src/renderer/src/components/molecules/` exists with `Dropdown.tsx` present as the wrapper/JSDoc precedent."
+      ],
+      "produces": [
+        "`Tabs.tsx` exports `Tabs`, `TabDescriptor`, and `TabsProps`.",
+        "`Tabs.tsx` renders a `role=\"tablist\"` element containing `role=\"tab\"` buttons, with `aria-selected` tied to `activeId`.",
+        "`Tabs.tsx` imports `cx` from `@renderer/lib/cx` and `import './Tabs.css'`, and contains no `electron`/`node:` imports and no Radix import.",
+        "`Tabs.css` defines the `tabs__tab` (and `tabs__tab--active`) semantic class selectors bound to `tokens.css` custom properties, with no inline-style reliance."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-9",
+        "AC-10",
+        "AC-11",
+        "AC-12",
+        "AC-13",
+        "AC-14",
+        "AC-15"
+      ],
+      "doc_refs": [
+        "docs/architecture.md (Renderer UI Primitives Layer)"
+      ],
+      "review_checkpoint": true
+    },
+    {
+      "number": "002",
+      "title": "write-tabs-tests",
+      "agent": "qa-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx",
+        "src/renderer/src/components/molecules/__tests__/Tabs.test.tsx",
+        "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx"
+      ],
+      "expects": [
+        "`Tabs.tsx` exports `Tabs`, `TabDescriptor`, and `TabsProps` (so fixtures and tests can type props and build `tabs` arrays).",
+        "The Vitest + Playwright CT stacks are configured (vitest.config.ts, playwright.config.ts from feature 001)."
+      ],
+      "produces": [
+        "`Tabs.stories.tsx` exports the CT mount fixtures that `Tabs.ct.tsx` imports (component defined outside the test file, per the Dropdown.stories precedent).",
+        "`Tabs.test.tsx` contains Vitest assertions covering click\u2192onChange-once, arrow/Home/End wrap, disabled-skip + no-onChange-on-disabled, no-selection guard, tablist/tab roles + aria-selected, and the right-aligned `actions` slot.",
+        "`Tabs.ct.tsx` contains Playwright CT assertions for roving-tabindex single tab-stop + focus movement and asserts zero axe a11y violations."
+      ],
+      "ac_addressed": [
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-9",
+        "AC-10"
+      ],
+      "doc_refs": [
+        "docs/architecture.md (Testing \u2014 Renderer Test Stack)"
+      ],
+      "review_checkpoint": true
+    },
+    {
+      "number": "003",
+      "title": "register-tabs-in-primitivesdemo",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/PrimitivesDemo.tsx"
+      ],
+      "expects": [
+        "`Tabs.tsx` exports `Tabs` and `TabDescriptor`, importable via `@renderer/components/molecules/Tabs`.",
+        "`PrimitivesDemo.tsx` exists and follows the per-primitive `XSection()` registration pattern."
+      ],
+      "produces": [
+        "`PrimitivesDemo.tsx` imports `Tabs` from `@renderer/components/molecules/Tabs`.",
+        "`PrimitivesDemo.tsx` defines a `TabsSection` component and invokes it in the root render (mirroring `DropdownSection`), so `grep -q Tabs src/renderer/src/components/PrimitivesDemo.tsx` matches and the section is actually mounted."
+      ],
+      "ac_addressed": [
+        "AC-4"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    }
+  ],
+  "additions": [
+    "- `src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx` \u2014 NOT in the plan's File Impact, added during breakdown (Phase 2 architect validation). Every molecule's `.ct.tsx` imports its mount fixtures from a co-located `*.stories.tsx` (Playwright CT requires components defined outside the test file \u2014 see `Dropdown.stories.tsx`/`Dropdown.ct.tsx`). The CT test in task 002 is non-functional without it. Covered by task 002."
+  ],
+  "dependency_graph": "001 (build-tabs-primitive-component) \u2500\u2500\u2192 002 (write-tabs-tests)\n                                     \u2500\u2500\u2192 003 (register-tabs-in-primitivesdemo)"
+}

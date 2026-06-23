@@ -1,0 +1,366 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/002-tabs-primitive/spec.md",
+  "specify_completed_at": "2026-06-22T22:41:38Z",
+  "classification": {
+    "spec_number": "002",
+    "feature_name": "tabs-primitive",
+    "feature_slug": "tabs-primitive",
+    "spec_type": "greenfield_feature",
+    "spec_type_rationale": "Upstream is /discover (greenfield); Tabs is a brand-new primitive with no existing code, scaffolded into the established molecules wrapper pattern",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "A reusable, controlled, horizontal-only tab-strip primitive (Tabs) for the mintEnvoy renderer that switches between panels within a pane. It renders a row of tab buttons (label + optional badge + active state) from a flat tabs array, marks the caller-supplied activeId, and emits onChange(id) on click or keyboard selection \u2014 selection only; it never renders or owns the panels it switches. It wraps the already-adopted radix-ui Tabs namespace behind a flat tabs-array + activeId + onChange API, extending the established molecules wrapper pattern (Dropdown/Modal/Toast) with no new dependency and no second accessibility library.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide a Tabs primitive component module under the molecules component directory.",
+        "verification_command": "test -f src/renderer/src/components/molecules/Tabs.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The Tabs primitive shall ship a sibling token-bound stylesheet alongside the component.",
+        "verification_command": "test -f src/renderer/src/components/molecules/Tabs.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The build shall reuse the existing radix-ui dependency without introducing a second accessibility library.",
+        "verification_command": "grep -q '\"radix-ui\"' package.json",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The Tabs primitive shall be registered in the dev-only PrimitivesDemo route.",
+        "verification_command": "grep -q Tabs src/renderer/src/components/PrimitivesDemo.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user clicks an enabled tab, the Tabs primitive shall invoke onChange exactly once with that tab's id.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN a tab has focus and the user presses ArrowLeft, ArrowRight, Home, or End, the Tabs primitive shall move the active selection to the adjacent enabled tab with wrap-around at the ends, skip disabled tabs, and invoke onChange with the selected tab's id.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the activeId equals a tab's id, the Tabs primitive shall mark that tab with aria-selected and expose WAI-ARIA tablist and tab roles with roving tabindex on the tab row.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN an optional actions slot is supplied, the Tabs primitive shall render it right-aligned at the end of the tab strip.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF the user activates a disabled tab by click or keyboard, THEN the Tabs primitive shall leave the selection unchanged and shall not invoke onChange.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF the activeId does not match any enabled tab in the array, THEN the Tabs primitive shall render no active selection and select nothing automatically.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-11",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The exported Tabs component and its public tab-descriptor and props types shall carry documentation comments.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-12",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer source shall pass strict type-checking.",
+        "verification_command": "npm run typecheck:web",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-13",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The codebase shall pass ESLint without new errors.",
+        "verification_command": "npm run lint",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-14",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The Tabs primitive source shall contain no inline style attributes.",
+        "verification_command": "! grep -rEn 'style=[{][{]' src/renderer/src/components/molecules/Tabs.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-15",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The Tabs primitive source shall not import the electron or node modules directly.",
+        "verification_command": "! grep -rEn \"from '(electron|node:)\" src/renderer/src/components/molecules/Tabs.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "behavior_preservation": "Greenfield primitive \u2014 no existing Tabs behavior to preserve; the renderer has no prior tab-strip.",
+      "ci_pipeline": "No CI pipeline changes in scope; tests run via existing npm scripts, not a new pipeline stage.",
+      "hooks_gates": "No new git hooks or commit gates introduced by this feature."
+    },
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Controlled-only: the caller owns activeId and updates it via onChange; the strip holds no internal active state (matches the 001 Dropdown/Modal controlled pattern).",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Type Safety \u2014 strict on, no any; type external input as unknown and narrow with a guard. The Tabs/Tab descriptor, props, and onChange are fully typed and exported.",
+        "quantifier": null,
+        "constitution_ref": "3.1",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Process Boundaries \u2014 Tabs is renderer-only; never import Node or electron in renderer code.",
+        "quantifier": null,
+        "constitution_ref": "2.1",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Module Organization & Imports \u2014 resolve renderer modules through the @renderer alias, not deep relative paths.",
+        "quantifier": null,
+        "constitution_ref": "2.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Testing Requirements \u2014 gate behavior/keyboard/ARIA with Vitest + Testing Library interaction tests and Playwright CT, following the existing molecules __tests__ patterns.",
+        "quantifier": null,
+        "constitution_ref": "3.4",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Search Before Building \u2014 reuse radix-ui, cx(), the Icon atom, and the molecules wrapper pattern; introduce no second accessibility library.",
+        "quantifier": null,
+        "constitution_ref": "6.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Style exclusively via semantic class names bound to tokens.css; no inline styles; animations gated behind prefers-reduced-motion; never reproduce design/reference.html markup.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Implement the WAI-ARIA Tabs pattern \u2014 tablist/tab roles, aria-selected, roving tabindex, and Arrow/Home/End keyboard navigation.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Commits follow Conventional Commits; WIP commits squash into one clean feature commit at /finalize (constitution \u00a76.6).",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "molecules primitives dir",
+        "files": [
+          "src/renderer/src/components/molecules"
+        ],
+        "impact": "home of Dropdown/Modal/Toast; new Tabs.tsx + Tabs.css land here following the same wrapper pattern"
+      },
+      {
+        "area": "cx helper",
+        "files": [
+          "src/renderer/src/lib/cx.ts"
+        ],
+        "impact": "semantic-class composer Tabs reuses for BEM class assembly"
+      },
+      {
+        "area": "Icon atom",
+        "files": [
+          "src/renderer/src/components/atoms/Icon.tsx"
+        ],
+        "impact": "reused if a per-tab leading icon is ever added; consistent with Dropdown item icons"
+      },
+      {
+        "area": "PrimitivesDemo route",
+        "files": [
+          "src/renderer/src/components/PrimitivesDemo.tsx"
+        ],
+        "impact": "Tabs registered here for manual visual fidelity check vs design/reference.html"
+      },
+      {
+        "area": "radix-ui dependency",
+        "files": [
+          "package.json"
+        ],
+        "impact": "radix-ui ^1.1.3 already declared; Tabs namespace available with no new dependency"
+      },
+      {
+        "area": "Tabs interaction tests",
+        "files": [
+          "src/renderer/src/components/molecules/__tests__/Tabs.test.tsx",
+          "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx"
+        ],
+        "impact": "Create new \u2014 Vitest + Testing Library interaction tests and Playwright CT keyboard/focus tests for the Tabs primitive"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "The panels / panel content the strip switches \u2014 Tabs is selection-only and never renders or owns panels.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Wiring Tabs into the request authoring pane and response pane \u2014 those panes do not exist yet; Tabs ships decoupled with only PrimitivesDemo as its consumer.",
+        "finding_ref": ""
+      },
+      {
+        "content": "An uncontrolled / defaultActiveId self-managed state mode \u2014 Tabs is controlled-only (caller owns activeId).",
+        "finding_ref": ""
+      },
+      {
+        "content": "Manual keyboard activation mode \u2014 automatic activation only (arrow keys move selection immediately).",
+        "finding_ref": ""
+      },
+      {
+        "content": "Vertical tab orientation \u2014 horizontal-only primitive.",
+        "finding_ref": ""
+      },
+      {
+        "content": "ReactNode badges or a render-slot actions option (discovery option C) \u2014 badge stays string|number.",
+        "finding_ref": "F-2026-06-22-reusable-horizontal-tab-strip-primitive-for-switching-11"
+      },
+      {
+        "content": "Tab-row overflow handling (scroll / wrap / truncate for too-many-tabs) \u2014 deferred (see Open Questions).",
+        "finding_ref": ""
+      },
+      {
+        "content": "Selected-tab routing, URL sync, or persistence.",
+        "finding_ref": ""
+      },
+      {
+        "content": "An animated selected-tab indicator or sliding-underline transition \u2014 static selected styling only.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Reproducing design/reference.html markup or its generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks-panel).",
+        "finding_ref": ""
+      },
+      {
+        "content": "Repo-wide reformatting or unrelated housekeeping commits on this feature branch (pollutes the verify hygiene scope).",
+        "finding_ref": "F-memory-2"
+      }
+    ],
+    "open_questions": [
+      {
+        "question_id": "hq-1",
+        "content": "RESOLVED (Phase 3 codebase analysis): the headless library to reuse is radix-ui \u2014 feature 001-ui-primitives adopted radix-ui ^1.1.3, and its Tabs namespace is reused here with no second accessibility library.",
+        "category_no_dp_reason": ""
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Spike: render Radix Tabs.Root+List+Trigger as a selection-only strip WITHOUT Tabs.Content; run axe/a11y to check for dangling aria-controls and decide share-one-Root vs hand-rolled tablist",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Contract test against both panes tab sets: click + arrows/Home/End wrap (List loop), disabled-skip, onChange(id) fires once, aria-selected/tablist roles correct, invalid/absent activeId renders no selection",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Register in PrimitivesDemo.tsx and visually compare to design/reference.html at the request-pane (six-tab) and response-pane (four-tab) widths",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Radix Tabs couples Trigger->Content via aria-controls; a standalone selection-only strip risks dangling aria-controls unless panels join the same Tabs.Root or the tablist is hand-rolled",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      }
+    ]
+  },
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/discover/2026-06-22-reusable-horizontal-tab-strip-primitive-for-switching.handoff.json",
+    "upstream_handoff_kind": "discover",
+    "upstream_completed_at": "2026-06-22T21:59:54+00:00"
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}

@@ -62,6 +62,7 @@ describe('PrimitivesDemo — production-safety guard (DEV = false)', () => {
     expect(screen.queryByRole('heading', { name: /Dropdown/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /Modal/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /Toast/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Tabs/i })).not.toBeInTheDocument()
   })
 })
 
@@ -97,5 +98,20 @@ describe('PrimitivesDemo — DEV smoke render', () => {
   it('renders the Toast section heading', () => {
     renderDemo()
     expect(screen.getByRole('heading', { name: 'Toast', level: 2 })).toBeInTheDocument()
+  })
+
+  it('renders the Tabs section heading', () => {
+    renderDemo()
+    expect(screen.getByRole('heading', { name: 'Tabs', level: 2 })).toBeInTheDocument()
+  })
+
+  it('renders Tabs component instances through the gallery registration', () => {
+    renderDemo()
+    // Both REQUEST_TABS and RESPONSE_TABS instances must produce a tablist —
+    // this proves the <Tabs> component wired into TabsSection actually rendered,
+    // not just that the section heading mounted.
+    expect(screen.getAllByRole('tablist').length).toBeGreaterThanOrEqual(2)
+    // Spot-check a known tab label from REQUEST_TABS to confirm tab elements render.
+    expect(screen.getByRole('tab', { name: 'Params' })).toBeInTheDocument()
   })
 })
