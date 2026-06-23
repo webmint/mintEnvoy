@@ -13,7 +13,10 @@ Window signals (AND — all three must be true):
      task files have ``**Status**: Complete`` or ``**Status**: Skipped``
      (i.e. /implement has fully drained them — not a no-task edge case
      with an empty tasks/ directory, and not mid-/implement with tasks
-     still in progress).
+     still in progress).  README.md is deliberately excluded from the
+     scan: it is the /breakdown-generated task INDEX (a per-task status
+     TABLE, not a task file), and it never carries a ``**Status**:`` line.
+     Parity with _implement/_cmds_resolve.py which uses the same exclusion.
   2. specs/[feature]/summary.md does NOT exist yet (i.e. /summarize has
      NOT run — the feature is not sealed).
   3. The spec ``**Status**:`` is NOT ``Complete`` (i.e. /verify has not
@@ -161,10 +164,18 @@ def in_fix_window(feature_dir):
     if not os.path.isdir(tasks_dir):
         return {"in_window": False, "reason": "no_tasks_dir"}
 
+    # Collect task .md files, excluding:
+    #   - dotfiles (e.g. .gitkeep)
+    #   - README.md (case-insensitive) — the /breakdown-generated task INDEX
+    #     that holds a per-task status TABLE; it never carries a **Status**: line
+    #     and must not be treated as a task file.  Parity with
+    #     _implement/_cmds_resolve.py lines 147 and 179.
     task_files = [
         os.path.join(tasks_dir, f)
         for f in sorted(os.listdir(tasks_dir))
-        if f.endswith(".md") and not f.startswith(".")
+        if f.endswith(".md")
+        and not f.startswith(".")
+        and f.upper() != "README.MD"
     ]  # type: List[str]
 
     if not task_files:
