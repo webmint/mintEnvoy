@@ -1,0 +1,259 @@
+/*
+ * Tabs.css — Semantic styles for the Tabs molecule component.
+ *
+ * Styling uses design tokens (CSS custom properties) from tokens.css, which is
+ * imported globally in main.tsx and therefore resolves at runtime. Every var()
+ * call includes a defensive fallback literal so the rule remains legible when
+ * this sheet loads before tokens.css in an isolated test environment.
+ *
+ * Token names used: --bg, --bg-hover, --bg-active, --bg-sunken, --border,
+ * --border-strong, --text, --text-muted, --text-faint, --accent, --accent-soft,
+ * --radius-sm, --fs-base, --fs-sm.
+ *
+ * No inline styles are set here or in Tabs.tsx (AC-14).
+ *
+ * Motion: the active-tab underline transition is gated behind
+ * `@media (prefers-reduced-motion: reduce)` so users who prefer reduced motion
+ * get instant styling changes.
+ */
+
+/* ---------------------------------------------------------------------------
+ * Outer wrapper (.tabs)
+ * Flex row holding the tablist and the optional right-aligned actions slot.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Outer container.
+ * Lays out the tablist and the optional actions slot in a single row.
+ * AC-8: the actions slot is outside the tablist, rendered here at row-end.
+ */
+.tabs {
+  display: flex;
+  align-items: stretch;
+  /* Bottom border forms the baseline the selected tab's indicator sits on. */
+  border-bottom: 1px solid var(--border, #e8e6e3);
+  /* Clip the outer div so overflowing tabs do not bleed below the border. */
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tablist (.tabs__list)
+ * The element that carries role="tablist". Grows to fill available width.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * The tablist row.
+ * Horizontal flex of tab buttons. `flex: 1` so it fills the width and
+ * pushes the actions slot to the far right (AC-8).
+ */
+.tabs__list {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  gap: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tab button (.tabs__tab)
+ * Each button has role="tab".
+ * ------------------------------------------------------------------------- */
+
+/**
+ * A single tab button.
+ * Uses a bottom-border technique (box-shadow inset on the bottom edge) for the
+ * active indicator so it overlaps the wrapper's bottom border, creating a
+ * seamless underline that visually "lifts" the active tab out of the strip.
+ */
+.tabs__tab {
+  /* Reset button defaults */
+  appearance: none;
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0 0.75rem;
+  height: 32px;
+  flex-shrink: 0;
+
+  /* Typography */
+  font-size: var(--fs-base, 12.5px);
+  font-family: inherit;
+  line-height: 1;
+  color: var(--text-muted, #71717a);
+  white-space: nowrap;
+
+  /* Interaction */
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+
+  /* Active indicator: a bottom border drawn via box-shadow so it overlaps
+     the outer .tabs bottom border cleanly (no layout shift).
+     Initialized as transparent — will be set to --accent for the active tab. */
+  box-shadow: inset 0 -2px 0 transparent;
+
+  /* Smooth transition for hover bg and color; suppressed by prefers-reduced-motion below. */
+  transition:
+    background-color 80ms ease,
+    color 80ms ease,
+    box-shadow 80ms ease;
+}
+
+/* Hover: show subtle background tint and elevate text color (non-disabled only). */
+.tabs__tab:not(:disabled):not(.tabs__tab--disabled):hover {
+  background-color: var(--bg-hover, #f0efed);
+  color: var(--text, #18181b);
+}
+
+/* Pressed state */
+.tabs__tab:not(:disabled):not(.tabs__tab--disabled):active {
+  background-color: var(--bg-active, #e8e6e3);
+}
+
+/* Focus-visible ring — keyboard navigation signal (WAI-ARIA tablist pattern).
+   Rounded-sm to match the project's radius scale. */
+.tabs__tab:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm, 5px);
+}
+
+/* ---------------------------------------------------------------------------
+ * Active tab modifier (.tabs__tab--active)
+ * Carries aria-selected="true" in the DOM.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Selected/active tab treatment.
+ * Accent-colored bottom border via box-shadow (no layout shift) and darkened
+ * text color to distinguish the active tab from resting tabs (AC-7 visual).
+ * The accent-soft background gives a subtle tinted wash under the active tab.
+ */
+.tabs__tab--active,
+.tabs__tab[aria-selected='true'] {
+  color: var(--accent, #10b981);
+  /* Accent underline indicator — 2 px bottom inset shadow. */
+  box-shadow: inset 0 -2px 0 var(--accent, #10b981);
+  background-color: var(--accent-soft, color-mix(in oklab, #10b981 14%, transparent));
+}
+
+/* Hover over the active tab keeps the underline and just tints the background. */
+.tabs__tab--active:hover,
+.tabs__tab[aria-selected='true']:hover {
+  background-color: var(--bg-hover, #f0efed);
+}
+
+/* ---------------------------------------------------------------------------
+ * Disabled tab modifier (.tabs__tab--disabled)
+ * Carries aria-disabled="true" and the native disabled attribute.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Disabled tab — rendered but not interactive.
+ * Dimmed text and `cursor: not-allowed` signal non-interactivity (AC-9).
+ * `pointer-events: none` is intentionally omitted so the cursor still changes;
+ * the `disabled` attribute already prevents click events.
+ */
+.tabs__tab--disabled,
+.tabs__tab:disabled {
+  color: var(--text-faint, #a1a1aa);
+  cursor: not-allowed;
+  /* Suppress the hover background for disabled tabs. */
+  background-color: transparent;
+}
+
+.tabs__tab--disabled:hover,
+.tabs__tab:disabled:hover {
+  background-color: transparent;
+  color: var(--text-faint, #a1a1aa);
+}
+
+/* ---------------------------------------------------------------------------
+ * Tab label (.tabs__tab-label)
+ * Wraps the visible label text so it can be styled independently of the badge.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Label text span inside the tab button.
+ * Truncates with ellipsis if an individual tab is pathologically wide
+ * (overflow deferred per spec §6 OOS, but guarded here for robustness).
+ */
+.tabs__tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+ * Badge (.tabs__badge)
+ * Optional count/status indicator rendered next to the label.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Badge chip — count or status label next to the tab label.
+ * Uses a slightly muted accent-soft background to stay visually secondary to
+ * the label while remaining readable.
+ */
+.tabs__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm, 5px);
+  background-color: var(--bg-sunken, #f4f3f1);
+  color: var(--text-muted, #71717a);
+  font-size: var(--fs-sm, 10.5px);
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+
+/* When the tab is active, tint the badge to match the accent palette. */
+.tabs__tab--active .tabs__badge,
+.tabs__tab[aria-selected='true'] .tabs__badge {
+  background-color: var(--accent-soft, color-mix(in oklab, #10b981 14%, transparent));
+  color: var(--accent, #10b981);
+}
+
+/* Faded badge for disabled tabs. */
+.tabs__tab--disabled .tabs__badge,
+.tabs__tab:disabled .tabs__badge {
+  opacity: 0.5;
+}
+
+/* ---------------------------------------------------------------------------
+ * Actions slot (.tabs__actions)
+ * Right-aligned content outside the tablist element (AC-8).
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Right-aligned actions area.
+ * Sits outside `role="tablist"` so its contents are NOT part of the tabs
+ * ARIA widget — they are independent interactive controls (AC-8).
+ */
+.tabs__actions {
+  display: flex;
+  align-items: center;
+  padding: 0 0.25rem;
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Reduced-motion guard
+ * Suppresses all transitions when the user prefers reduced motion.
+ * Mirrors the pattern in Dropdown.css (AC-6 prefers-reduced-motion).
+ * ------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .tabs__tab {
+    transition: none;
+  }
+}

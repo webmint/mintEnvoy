@@ -27,7 +27,7 @@ The renderer process has a two-sublayer structure beneath feature components:
 | Sublayer | Contents | Path |
 | --- | --- | --- |
 | Presentation — atoms | Inline SVG `Icon` component + typed `IconName` string-literal union over the project-owned 40-icon set | `src/renderer/src/components/atoms/` |
-| Presentation — molecules | `Dropdown`, `Modal`, `Toast` — thin wrappers over Radix UI primitives, styled via semantic classes | `src/renderer/src/components/molecules/` |
+| Presentation — molecules | `Dropdown`, `Modal`, `Toast` — thin wrappers over Radix UI primitives, styled via semantic classes. `Tabs` — controlled selection-only tab-strip; hand-rolled WAI-ARIA engine (see Patterns § below for the departure rationale). | `src/renderer/src/components/molecules/` |
 | Support — lib/ (thin) | `toastStore` (zustand queue + imperative `toast()` API), `icons-glue` (Icon lookup/fallback), shared `cx()` className helper | `src/renderer/src/lib/` |
 
 **Dependency direction**: presentation imports from lib/; `lib/` must NOT import from `components/`. All intra-renderer imports use the `@renderer` alias — no deep relative paths across sublayer boundaries.
@@ -61,7 +61,7 @@ Renderer test stack: Vitest + @testing-library/react + user-event (jsdom) for in
 
 mintEnvoy is structured around Electron's three-process security model. The **main** process (Node.js) owns the application lifecycle and creates the single BrowserWindow with sandbox-friendly webPreferences and a preload script attached. The **preload** bridge runs with context isolation and is the only place permitted to expose privileged Electron APIs to the UI, doing so through contextBridge under a process.contextIsolated guard. The **renderer** is a React 19 single-page UI that must never import Node or Electron modules — it talks to the platform exclusively through the globals the preload bridge exposes on window.
 
-Within the renderer, the code is organized as a small design-system: an Icon atom, Dropdown/Modal/Toast molecules built on Radix primitives, and a shared lib layer (className merge, safe icon resolution, and a module-level zustand toast store). UI styling is driven by CSS custom-property design tokens rather than inline styles. A dev-only PrimitivesDemo gallery is dynamically imported behind import.meta.env.DEV so it is tree-shaken out of production builds.
+Within the renderer, the code is organized as a small design-system: an Icon atom, Dropdown/Modal/Toast/Tabs molecules (Dropdown/Modal/Toast wrap Radix; Tabs hand-rolls its WAI-ARIA engine), and a shared lib layer (className merge, safe icon resolution, and a module-level zustand toast store). UI styling is driven by CSS custom-property design tokens rather than inline styles. A dev-only PrimitivesDemo gallery is dynamically imported behind import.meta.env.DEV so it is tree-shaken out of production builds.
 
 The toolchain is electron-vite (three build targets: main, preload, renderer) for bundling and electron-builder for OS packaging, with Vitest + Playwright component tests covering the primitive library.
 
@@ -75,7 +75,7 @@ src/
     └── src/
         ├── components/
         │   ├── atoms/      # Icon
-        │   ├── molecules/  # Dropdown, Modal, Toast (Radix-based)
+        │   ├── molecules/  # Dropdown, Modal, Toast (Radix-based); Tabs (hand-rolled WAI-ARIA)
         │   └── PrimitivesDemo.tsx  # dev-only gallery
         ├── lib/    # cx, icons-glue, toastStore
         └── styles/ # tokens.css design tokens
@@ -113,6 +113,27 @@ export function resolveIcon(name: string): IconEntry {
   }
   return FALLBACK_ENTRY
 }
+```
+
+### Tabs — hand-rolled WAI-ARIA tablist (documented departure from the Radix-wrap rule)
+
+**Applies in**: `src/renderer/src/components/molecules/Tabs.tsx`
+
+The Tabs primitive does NOT wrap Radix Tabs, departing from the Dropdown/Modal/Toast "buy the a11y engine from Radix" convention. The reason: Radix `Tabs.Trigger` deterministically emits `aria-controls` pointing at a sibling `Tabs.Content`; with no Content mounted (the primitive is selection-only and never renders panels) that attribute dangles and fails WCAG/axe. Instead, Tabs hand-rolls the small WAI-ARIA APG Tabs pattern — `role="tablist"` containing `role="tab"` buttons with manual roving tabindex, Arrow/Home/End key handling with wrap-around, and disabled-tab skipping. The component veneer (flat descriptor-array API, `cx()` BEM classes, sibling CSS file, exported types) still mirrors the Dropdown/Modal/Toast shape; only the a11y engine diverges.
+
+**Rule of thumb for future molecules**: prefer wrapping Radix when the primitive mounts matching Content alongside its trigger/control; hand-roll only when the WAI-ARIA pattern is small and the primitive is explicitly panel-decoupled (selection-only, content rendered elsewhere).
+
+<!-- src/renderer/src/components/molecules/Tabs.tsx:1 -->
+```typescript
+/**
+ * Tabs — hand-rolled, controlled, horizontal-only, selection-only tab-strip.
+ * ...
+ * The a11y engine is intentionally hand-rolled (`role="tablist"` containing
+ * `role="tab"` buttons with manual roving tabindex) instead of wrapping Radix
+ * Tabs. Radix `Tabs.Trigger` deterministically emits `aria-controls` pointing at
+ * a sibling `Tabs.Content`; with no Content mounted (selection-only) that
+ * attribute dangles and fails AC-7.
+ */
 ```
 
 ## Conventions

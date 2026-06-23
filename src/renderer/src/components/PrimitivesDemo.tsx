@@ -31,6 +31,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Icon } from '@renderer/components/atoms/Icon'
 import { Dropdown, DropdownItem, DropdownSeparator } from '@renderer/components/molecules/Dropdown'
 import { Modal, ModalClose } from '@renderer/components/molecules/Modal'
+import { Tabs, TabDescriptor } from '@renderer/components/molecules/Tabs'
 import { toast } from '@renderer/lib/toastStore'
 
 // ---------------------------------------------------------------------------
@@ -514,6 +515,62 @@ function ToastSection(): React.JSX.Element {
 }
 
 // ---------------------------------------------------------------------------
+// Tabs section
+// ---------------------------------------------------------------------------
+
+/** Tab descriptors for the request-pane set (6 tabs). */
+const REQUEST_TABS: TabDescriptor[] = [
+  { id: 'params', label: 'Params' },
+  { id: 'auth', label: 'Auth' },
+  { id: 'headers', label: 'Headers' },
+  { id: 'body', label: 'Body' },
+  { id: 'tests', label: 'Tests' },
+  { id: 'code', label: 'Code' }
+]
+
+/** Tab descriptors for the response-pane set (4 tabs). */
+const RESPONSE_TABS: TabDescriptor[] = [
+  { id: 'resp-body', label: 'Body' },
+  { id: 'resp-headers', label: 'Headers' },
+  { id: 'resp-cookies', label: 'Cookies' },
+  { id: 'resp-test-results', label: 'Test Results' }
+]
+
+/** Renders the Tabs molecule in several states for visual QA. */
+function TabsSection(): React.JSX.Element {
+  const [requestActiveId, setRequestActiveId] = useState('params')
+  const [responseActiveId, setResponseActiveId] = useState('resp-body')
+
+  return (
+    <section className="demo-section">
+      <h2 className="demo-section__title">Tabs</h2>
+
+      {/* Request-pane tab set (6 tabs) */}
+      <div className="demo-row">
+        <h3 className="demo-row__label">Request pane (6 tabs)</h3>
+        <Tabs
+          aria-label="Request sections"
+          tabs={REQUEST_TABS}
+          activeId={requestActiveId}
+          onChange={setRequestActiveId}
+        />
+      </div>
+
+      {/* Response-pane tab set (4 tabs) */}
+      <div className="demo-row">
+        <h3 className="demo-row__label">Response pane (4 tabs)</h3>
+        <Tabs
+          aria-label="Response sections"
+          tabs={RESPONSE_TABS}
+          activeId={responseActiveId}
+          onChange={setResponseActiveId}
+        />
+      </div>
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Root export
 // ---------------------------------------------------------------------------
 
@@ -547,6 +604,7 @@ export function PrimitivesDemo(): React.JSX.Element | null {
       <DropdownSection />
       <ModalSection />
       <ToastSection />
+      <TabsSection />
     </main>
   )
 }
