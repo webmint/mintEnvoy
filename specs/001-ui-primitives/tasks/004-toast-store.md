@@ -54,6 +54,6 @@ Build the toast queue: a single module-level zustand store owning a stack of tra
 ## Completion Notes
 
 **Completed**: 2026-06-21T18:59:37Z
-**Files changed**: src/renderer/src/lib/toastStore.ts, src/renderer/src/lib/__tests__/toastStore.test.ts
+**Files changed**: src/renderer/src/lib/toastStore.ts, src/renderer/src/lib/**tests**/toastStore.test.ts
 **Contract**: Expects 1/1 | Produces 4/4
 **Notes**: Single module-level zustand toastStore + imperative toast() (+info/success/warning/error). enqueue/dismiss/pauseTimer/resumeTimer; auto-dismiss via setTimeout (handles in module Map, not state); pause preserves remaining. crypto.randomUUID ids. 55/55 tests incl multi-cycle pause/resume. Forward note: task 005 must render message as escaped JSX text.

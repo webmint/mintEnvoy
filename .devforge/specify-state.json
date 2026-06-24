@@ -1,15 +1,15 @@
 {
   "topic": null,
   "topic_slug": null,
-  "date": "2026-06-21",
-  "spec_number": "001",
-  "feature_name": "ui-primitives",
-  "feature_slug": "ui-primitives",
+  "date": "2026-06-23",
+  "spec_number": "003",
+  "feature_name": "app-shell-layout",
+  "feature_slug": "app-shell-layout",
   "spec_type": "greenfield_feature",
-  "spec_type_rationale": "Upstream /discover; no related UI-primitive code exists yet (renderer is electron-vite boilerplate) \u2014 scaffolds a fresh primitives layer",
+  "spec_type_rationale": "Upstream /discover; shell is net-new components/organisms/ tree + net-new settingsStore, no existing shell to modify",
   "spec_type_seeded_by_upstream": true,
   "status": "Draft",
-  "current_branch": "spec/001-ui-primitives",
+  "current_branch": "spec/003-app-shell-layout",
   "default_branch": "main",
   "branch_decision": "keep",
   "branch_created": false,
@@ -17,42 +17,52 @@
     {
       "path": "constitution.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-21T13:55:44Z"
-    },
-    {
-      "path": "CLAUDE.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-21T13:55:44Z"
-    },
-    {
-      "path": "docs/architecture.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-21T13:55:44Z"
-    },
-    {
-      "path": "docs/overview.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-21T13:55:44Z"
-    },
-    {
-      "path": "docs/structure.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-21T13:55:45Z"
-    },
-    {
-      "path": "docs/glossary.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-21T13:55:45Z"
-    },
-    {
-      "path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_origin": "discover",
-      "read_timestamp": "2026-06-21T13:55:46Z"
+      "read_timestamp": "2026-06-23T13:10:28Z"
     },
     {
       "path": ".claude/memory/MEMORY.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-21T13:55:46Z"
+      "read_timestamp": "2026-06-23T13:10:28Z"
+    },
+    {
+      "path": "CLAUDE.md",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-23T13:10:28Z"
+    },
+    {
+      "path": "docs/architecture.md",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-23T13:10:28Z"
+    },
+    {
+      "path": "docs/glossary.md",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-23T13:10:28Z"
+    },
+    {
+      "path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
+      "source_origin": "discover",
+      "read_timestamp": "2026-06-23T13:10:28Z"
+    },
+    {
+      "path": "specs/001-ui-primitives/spec.md",
+      "source_origin": "prior_spec",
+      "read_timestamp": "2026-06-23T13:10:28Z"
+    },
+    {
+      "path": "specs/002-tabs-primitive/spec.md",
+      "source_origin": "prior_spec",
+      "read_timestamp": "2026-06-23T13:10:29Z"
+    },
+    {
+      "path": "src/renderer/styles/tokens.css",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-23T13:10:29Z"
+    },
+    {
+      "path": "src/renderer/src/lib/toastStore.ts",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-23T13:10:29Z"
     }
   ],
   "phase1_finalized": true,
@@ -60,177 +70,309 @@
     {
       "finding_id": "F-constitution-1",
       "source_path": "constitution.md",
-      "source_section": "\u00a73.4 Testing",
-      "content": "No test infrastructure exists; must pick a renderer test stack (Vitest + Testing Library) before the first feature needing coverage and record it in docs/architecture.md \u2014 this feature is that first feature.",
+      "source_section": "\u00a72.1/\u00a74 State",
+      "content": "Shared renderer state lives in a zustand store; never mutate state outside store actions; prefer selectors \u2014 settingsStore drag handlers commit via actions.",
       "landed_in": "Constraint",
-      "landed_ref": "Constraint-3"
+      "landed_ref": "Constraint-6"
     },
     {
       "finding_id": "F-constitution-2",
       "source_path": "constitution.md",
       "source_section": "\u00a73.1 Type Safety",
-      "content": "Strict mode, no 'any'; type external input as 'unknown' and narrow. Icon name must be a typed string-literal union, not a bare string.",
+      "content": "strict TS on, no 'any'; type external input as 'unknown' and narrow with a guard \u2014 settingsStore state + slot props fully typed.",
       "landed_in": "Constraint",
       "landed_ref": "Constraint-1"
     },
     {
       "finding_id": "F-constitution-3",
       "source_path": "constitution.md",
-      "source_section": "\u00a72.3 Module Organization",
-      "content": "Renderer modules resolve via the @renderer alias; keep code in its process dir (src/renderer), no cross-process imports. Never import Node/electron in renderer.",
+      "source_section": "\u00a73.3 Naming",
+      "content": "zustand store camelCase + Store suffix \u2192 settingsStore.ts; React components PascalCase \u2192 Shell/Sidebar/PaneSplit/Titlebar/Statusbar.",
       "landed_in": "Constraint",
       "landed_ref": "Constraint-2"
     },
     {
       "finding_id": "F-constitution-4",
       "source_path": "constitution.md",
-      "source_section": "\u00a74 Patterns",
-      "content": "Shared renderer state lives in a zustand store; never mutate zustand state outside its store actions. The Toast queue must be a zustand store.",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-6"
+      "source_section": "\u00a73.5 Styling/Docs",
+      "content": "Style via semantic class names bound to tokens.css custom properties, no inline styles; exported functions/types carry doc comments.",
+      "landed_in": "AC",
+      "landed_ref": "AC-11"
     },
     {
       "finding_id": "F-constitution-5",
       "source_path": "constitution.md",
-      "source_section": "\u00a73.3 Naming + \u00a73.6 Complexity",
-      "content": "Components PascalCase, hooks use-prefixed camelCase, stores Store-suffixed; functions one responsibility, extract past ~40 lines; SOLID/DRY/KISS.",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-4"
-    },
-    {
-      "finding_id": "F-constitution-6",
-      "source_path": "constitution.md",
-      "source_section": "\u00a73.2 Error Handling",
-      "content": "Never swallow errors; handle both success and error paths of every fallible operation.",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-5"
+      "source_section": "\u00a72.1 Boundaries",
+      "content": "Renderer is sandboxed React UI with no Node/electron imports; persistence (electron-store) is a MAIN-process responsibility \u2014 renderer settingsStore stays in-memory this task.",
+      "landed_in": "AC",
+      "landed_ref": "AC-15"
     },
     {
       "finding_id": "F-claude-1",
       "source_path": "CLAUDE.md",
-      "source_section": "Architecture",
-      "content": "Three-process model; primitives belong to the renderer (React 19) process only \u2014 presentation-only, no main/preload/IPC involvement.",
+      "source_section": "Structure",
+      "content": "Renderer UI lives at src/renderer/src; imports resolve via the @renderer alias, not deep relative paths.",
       "landed_in": "Constraint",
-      "landed_ref": "Constraint-7"
+      "landed_ref": "Constraint-3"
     },
     {
       "finding_id": "F-claude-2",
       "source_path": "CLAUDE.md",
-      "source_section": "Project Structure",
-      "content": "Renderer UI lives under src/renderer/src/components/; design tokens + mockups under design/.",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-7"
+      "source_section": "Commands",
+      "content": "Gates: npm run typecheck (node+web), npm run lint, npm run build (electron-vite), test suite \u2014 must stay green.",
+      "landed_in": "AC",
+      "landed_ref": "AC-13"
     },
     {
       "finding_id": "F-claude-3",
       "source_path": "CLAUDE.md",
-      "source_section": "Dev Commands",
-      "content": "typecheck = typecheck:node + typecheck:web; build = typecheck && electron-vite build; lint = eslint --cache; no test command exists yet (must be added).",
+      "source_section": "Architecture",
+      "content": "UI state held in zustand; shell is top-level renderer chrome; App.tsx is the renderer mount root.",
       "landed_in": "AC",
-      "landed_ref": "AC-20"
+      "landed_ref": "AC-8"
     },
     {
-      "finding_id": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-1",
-      "source_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_section": "Recommended option / Build-vs-Buy",
-      "content": "Recommended: Radix primitives + token-styled wrappers (Hybrid) \u2014 buy overlay behavior/a11y via Radix (Dialog/DropdownMenu/Popover/Toast), build Icon + styling + Toast queue project-owned.",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-9"
-    },
-    {
-      "finding_id": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-2",
-      "source_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_section": "Functional scope",
-      "content": "Four user-facing primitives: Dropdown/popover (anchored, keyboard nav, focus return, click-outside+Escape dismiss, edge-aware positioning), Modal (focus trap, scrim, Escape close, body scroll lock), transient Toast (stacked, auto+manual dismiss, hover-pause), inline SVG Icon.",
+      "finding_id": "F-architecture-1",
+      "source_path": "docs/architecture.md",
+      "source_section": "Layer",
+      "content": "Renderer has atoms + molecules + thin lib/ tiers; no organisms tier yet \u2014 the Shell tree introduces a net-new components/organisms/ tier.",
       "landed_in": "AC",
-      "landed_ref": "AC-21"
+      "landed_ref": "AC-2"
     },
     {
-      "finding_id": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-3",
-      "source_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_section": "Functional scope / substrate",
-      "content": "Shared substrate in src/renderer/src/lib/ \u2014 kept THIN given Radix: only what Radix does not provide (Icon helpers, the Toast store, minimal glue), not duplicated focus-trap/positioning.",
+      "finding_id": "F-architecture-2",
+      "source_path": "docs/architecture.md",
+      "source_section": "Store pattern",
+      "content": "toastStore is a single module-level zustand store mutated only via actions; settingsStore mirrors it (create() + selector hooks + reset for tests).",
       "landed_in": "Constraint",
-      "landed_ref": "Constraint-10"
+      "landed_ref": "Constraint-7"
     },
     {
-      "finding_id": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-4",
-      "source_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_section": "Integration Surface / styling",
-      "content": "Design tokens already compiled to CSS custom properties at src/renderer/styles/tokens.css; style via semantic class names bound to those CSS vars, never inline styles. design/reference.html is look/behavior reference only \u2014 never reproduce its markup/cruft.",
+      "finding_id": "F-architecture-3",
+      "source_path": "docs/architecture.md",
+      "source_section": "Styling",
+      "content": "Semantic class names bound to tokens.css; per-component sibling .css file; no inline styles; animations gated behind prefers-reduced-motion.",
+      "landed_in": "AC",
+      "landed_ref": "AC-14"
+    },
+    {
+      "finding_id": "F-architecture-4",
+      "source_path": "docs/architecture.md",
+      "source_section": "Testing",
+      "content": "Renderer test stack: Vitest + @testing-library/react + user-event (jsdom) for interaction; Playwright CT for real-browser focus/keyboard; tests under __tests__/.",
       "landed_in": "Constraint",
       "landed_ref": "Constraint-8"
     },
     {
-      "finding_id": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-5",
-      "source_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_section": "Fit Assessment / Test tooling",
-      "content": "No test runner or component-testing library installed; gating first task adds Vitest + @testing-library/react + user-event (jsdom) PLUS Playwright component tests.",
+      "finding_id": "F-architecture-5",
+      "source_path": "docs/architecture.md",
+      "source_section": "App root",
+      "content": "App.tsx mounts ToastProvider+ToastViewport once and dev-gates PrimitivesDemo behind import.meta.env.DEV \u2014 the Shell organism mounts at this root.",
       "landed_in": "AC",
-      "landed_ref": "AC-20"
+      "landed_ref": "AC-8"
     },
     {
-      "finding_id": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-6",
-      "source_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_section": "Icon contract",
-      "content": "Icon driven by project-owned ~40-icon set (1.5px stroke, 16x16 viewBox); props name (typed union), size, className; unknown-name safe fallback; animations respect prefers-reduced-motion.",
-      "landed_in": "AC",
-      "landed_ref": "AC-23"
+      "finding_id": "F-glossary-1",
+      "source_path": "docs/glossary.md",
+      "source_section": "App",
+      "content": "App.tsx is the renderer's root component where the Shell mounts; single ToastProvider+ToastViewport lives here.",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-6"
     },
     {
-      "finding_id": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-7",
-      "source_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_section": "Inputs/Outputs API",
-      "content": "Toast fired via imperative API (toast(message,opts)) backed by a zustand toastStore owning the queue; Dropdown + Modal are controlled (open + onOpenChange props), caller owns state.",
+      "finding_id": "F-glossary-2",
+      "source_path": "docs/glossary.md",
+      "source_section": "Renderer",
+      "content": "Renderer carries no Node/Electron imports \u2014 confirms shell + settingsStore are renderer-only/in-memory.",
       "landed_in": "AC",
-      "landed_ref": "AC-22"
+      "landed_ref": "AC-15"
     },
     {
-      "finding_id": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-8",
-      "source_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_section": "Edge cases",
-      "content": "Edge-aware flip/shift within viewport; nested overlays compose (Escape closes topmost only, focus-trap/return nest); toast stacking + rapid-fire queue + hover/focus pause; trigger unmount while open; unknown icon fallback; prefers-reduced-motion.",
-      "landed_in": "AC",
-      "landed_ref": "AC-5"
+      "finding_id": "F-glossary-3",
+      "source_path": "docs/glossary.md",
+      "source_section": "tokens",
+      "content": "Design tokens are CSS custom properties in tokens.css; classNames composed with cx() \u2014 layout uses CSS vars + cx() BEM classes.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-9"
     },
     {
-      "finding_id": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-9",
-      "source_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_section": "Success criteria",
-      "content": "Done = all four primitives render per the visual reference and behave correctly, meeting WCAG keyboard/focus expectations, gated by automated interaction tests + Playwright CT, with a dev-only in-app demo route exercising every primitive in its states.",
+      "finding_id": "F-2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client-1",
+      "source_path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
+      "source_section": "Recommended option A",
+      "content": "settingsStore is the SSOT { theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed } + actions; Shell writes sidebarWidth/paneRatio to CSS custom properties on its root and sets data-theme/data-accent/data-mstyle on <html> via effect.",
+      "landed_in": "AC",
+      "landed_ref": "AC-6"
+    },
+    {
+      "finding_id": "F-2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client-2",
+      "source_path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
+      "source_section": "tokens contract",
+      "content": "tokens.css ALREADY implements the [data-theme='dark'] override block and the [data-mstyle] method-style variants on <html>; shell EXTENDS by setting attributes. Attribute is data-mstyle, NOT data-method-style.",
       "landed_in": "Constraint",
       "landed_ref": "Constraint-11"
     },
     {
-      "finding_id": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-10",
-      "source_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_section": "Scope / users",
-      "content": "App-internal only (renderer feature components consume it), presentation-only \u2014 no network/request-response/persistence; no published-package API-stability concern.",
+      "finding_id": "F-2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client-3",
+      "source_path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
+      "source_section": "accent inert",
+      "content": "NO [data-accent] CSS block exists \u2014 accent is a single --accent var; data-accent is visually inert this task. Persist accent in the store but it drives no CSS; defining accent palettes is out of scope.",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-4"
+    },
+    {
+      "finding_id": "F-2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client-4",
+      "source_path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
+      "source_section": "store reality",
+      "content": "No settings store exists today (only toastStore); settingsStore is net-new mirroring toastStore, in-memory only. Disk persistence (electron-store/IPC) does not exist and is deferred to a later persistence-port task.",
+      "landed_in": "AC",
+      "landed_ref": "AC-10"
+    },
+    {
+      "finding_id": "F-2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client-5",
+      "source_path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
+      "source_section": "Build dividers",
+      "content": "Hand-roll dividers: pointer-event components, rAF-batched CSS-var write during drag, commit px/ratio to store on release; clamp sidebar 200-520px and pane ratio 0.15-0.85 in JS; ARIA separator role + aria-valuenow + keyboard resize + drag-release-outside-window by hand. Library path rejected (owns layout state, violates SSOT); react-resizable-panels documented fallback.",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-1"
+    },
+    {
+      "finding_id": "F-2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client-6",
+      "source_path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
+      "source_section": "Slots",
+      "content": "Named mount slots sidebar/tabs/panes/modals accept arbitrary children and render them without the shell knowing their contents (CONTENTS out of scope); named React children/context (option A), not a slot-registry reducer.",
+      "landed_in": "AC",
+      "landed_ref": "AC-16"
+    },
+    {
+      "finding_id": "F-2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client-7",
+      "source_path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
+      "source_section": "Chrome",
+      "content": "Titlebar carries logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill; statusbar at bottom; Cmd-B toggles sidebar. App.tsx currently renders PrimitivesDemo \u2014 swap to the Shell organism.",
+      "landed_in": "AC",
+      "landed_ref": "AC-7"
+    },
+    {
+      "finding_id": "F-2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client-8",
+      "source_path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
+      "source_section": "Success criteria",
+      "content": "Success: visual fidelity vs design/reference.html + design/tokens.json under design-auditor (look/behavior only, never markup); both dividers drag+clamp, Cmd-B toggles, view settings + width + ratio survive within session (component-tested); decoupled slots; gates green + zero reference-export cruft (no data-om-*, __OmT, inline styles, tweaks-panel).",
+      "landed_in": "AC",
+      "landed_ref": "AC-2"
+    },
+    {
+      "finding_id": "F-2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client-9",
+      "source_path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
+      "source_section": "Derisk",
+      "content": "Derisk: spike divider drag smoothness (rAF vs setState-per-move); prove clamp math on window-resize re-clamp (no negative/overflow panes); axe + keyboard/SR a11y pass on separators; mount the existing Tabs molecule into the tab slot to prove content-decoupling.",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-3"
+    },
+    {
+      "finding_id": "F-2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client-10",
+      "source_path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
+      "source_section": "Open uncertainty",
+      "content": "[NEEDS CLARIFICATION integration_points]: the user belief of persisting via an EXISTING settings store is wrong \u2014 the store is net-new + in-memory; disk persistence deferred. The single open uncertainty.",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-2"
+    },
+    {
+      "finding_id": "F-spec-1",
+      "source_path": "specs/001-ui-primitives/spec.md",
+      "source_section": "Layer",
+      "content": "001 established renderer atoms/molecules/lib tiers + cx() + tokens.css token-bound styling \u2014 shell adds an organisms tier and reuses cx()/tokens.css.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-4"
+    },
+    {
+      "finding_id": "F-spec-2",
+      "source_path": "specs/001-ui-primitives/spec.md",
+      "source_section": "Test stack",
+      "content": "001 installed the renderer test stack (Vitest + Testing Library + Playwright CT) recorded in docs/architecture.md \u2014 shell tests reuse it, no new test infra.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-8"
+    },
+    {
+      "finding_id": "F-spec-3",
+      "source_path": "specs/001-ui-primitives/spec.md",
+      "source_section": "Cruft exclusion",
+      "content": "001 precedent: never reproduce design/reference.html markup or generated cruft (data-om-*, __OmT, inline styles, tweaks-panel) \u2014 same hygiene exclusion applies to the shell.",
+      "landed_in": "AC",
+      "landed_ref": "AC-3"
+    },
+    {
+      "finding_id": "F-spec-4",
+      "source_path": "specs/002-tabs-primitive/spec.md",
+      "source_section": "Tabs consumer",
+      "content": "The existing Tabs molecule (controlled, selection-only) is the concrete real consumer to mount into the shell's tab slot to prove content-decoupling.",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-5"
+    },
+    {
+      "finding_id": "F-spec-5",
+      "source_path": "specs/002-tabs-primitive/spec.md",
+      "source_section": "Controlled pattern",
+      "content": "002 controlled-only precedent (caller owns state) \u2014 for the shell the settingsStore is the external state owner; slots stay mount-only.",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-5"
+    },
+    {
+      "finding_id": "F-spec-6",
+      "source_path": "specs/002-tabs-primitive/spec.md",
+      "source_section": "Panes deferred",
+      "content": "002 noted request/response panes do not exist yet; the shell creates those pane mount slots (empty) \u2014 pane CONTENTS remain out of scope.",
       "landed_in": "OOS",
       "landed_ref": "OOS-1"
     },
     {
-      "finding_id": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-11",
-      "source_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_section": "Open uncertainties",
-      "content": "One open uncertainty: keep Icon project-owned vs pulling an icon dependency \u2014 discovery resolved it as sound (icon set already exists).",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-12"
-    },
-    {
-      "finding_id": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-12",
-      "source_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
-      "source_section": "Library framing",
-      "content": "Spec stays behavior-only (WHAT + a11y); Radix recorded as a recommended technical constraint, final library pick deferred to /plan.",
+      "finding_id": "F-tokens-1",
+      "source_path": "src/renderer/styles/tokens.css",
+      "source_section": "data attrs",
+      "content": "tokens.css has a [data-theme='dark'] override block and [data-mstyle] method-style variant blocks scoped to .method, all on <html>; no [data-accent] selector exists.",
       "landed_in": "Constraint",
       "landed_ref": "Constraint-9"
+    },
+    {
+      "finding_id": "F-tokens-2",
+      "source_path": "src/renderer/styles/tokens.css",
+      "source_section": "accent var",
+      "content": "--accent:#10b981 plus --accent-soft/--accent-hover derived via color-mix; single accent var, not attribute-switched \u2014 store persists accent but no palette swap this task.",
+      "landed_in": "AC",
+      "landed_ref": "AC-10"
+    },
+    {
+      "finding_id": "F-tokens-3",
+      "source_path": "src/renderer/styles/tokens.css",
+      "source_section": "CSS vars",
+      "content": "Tokens are CSS custom properties on :root \u2014 the Shell drives sidebarWidth/paneRatio through CSS vars on its own root during drag without per-move React re-render.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-9"
+    },
+    {
+      "finding_id": "F-toaststore-1",
+      "source_path": "src/renderer/src/lib/toastStore.ts",
+      "source_section": "shape",
+      "content": "toastStore uses zustand create(), exports a single module-level instance, typed state + actions, no node/electron imports \u2014 settingsStore mirrors this shape.",
+      "landed_in": "AC",
+      "landed_ref": "AC-1"
+    },
+    {
+      "finding_id": "F-toaststore-2",
+      "source_path": "src/renderer/src/lib/toastStore.ts",
+      "source_section": "usage",
+      "content": "toastStore exposes reactive selector usage \u2014 settingsStore exposes selector hooks for theme/accent/mstyle/sidebarWidth/paneRatio/sidebarCollapsed; mutate via actions only.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-7"
+    },
+    {
+      "finding_id": "F-toaststore-3",
+      "source_path": "src/renderer/src/lib/toastStore.ts",
+      "source_section": "reset",
+      "content": "toastStore pattern includes a reset for tests \u2014 settingsStore provides the same so component tests start from known defaults.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-7"
     }
   ],
   "source_no_items_relevant": {
-    "docs/architecture.md": true,
-    "docs/overview.md": true,
-    "docs/structure.md": true,
-    "docs/glossary.md": true,
     ".claude/memory/MEMORY.md": true
   },
   "findings_finalized": true,
@@ -238,40 +380,24 @@
     {
       "dp_id": "DP-scope_boundaries-1",
       "category": "scope_boundaries",
-      "description": "Scope of the shared lib/ substrate given Radix adoption",
-      "valid_implementations": [
-        "thin-lib-reuse-radix",
-        "full-substrate-handrolled",
-        "full-substrate-library-agnostic"
-      ],
+      "description": "Accent: persist value but visually inert (no [data-accent] CSS) vs author accent palettes now",
+      "valid_implementations": ["persist-inert (defer palettes)", "define accent palettes now"],
       "status": "answered",
-      "user_answer": "Thin lib/, reuse Radix: rely on Radix for focus-trap/positioning/dismiss/ARIA; lib/ holds only Icon helpers, the Toast store, and minimal glue (DRY, search-before-building \u00a76.3).",
+      "user_answer": "persist-inert: settingsStore holds accent + shell sets data-accent on <html>, but accent is visually inert this task (no [data-accent] CSS); accent palette CSS deferred to a later task.",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
     },
     {
-      "dp_id": "DP-data_flow_state-1",
-      "category": "data_flow_state",
-      "description": "Where Toast queue state lives",
+      "dp_id": "DP-scope_boundaries-2",
+      "category": "scope_boundaries",
+      "description": "Resizable dividers: hand-roll pointer-event components vs adopt a panel library",
       "valid_implementations": [
-        "zustand-toaststore-over-radix",
-        "radix-toast-provider-only",
-        "handrolled-queue"
+        "hand-roll zero-dep (SSOT)",
+        "adopt react-resizable-panels/allotment"
       ],
       "status": "answered",
-      "user_answer": "zustand toastStore owns the queue + imperative toast(msg,opts) API; Radix Toast primitives render each item for a11y/animation.",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
-    },
-    {
-      "dp_id": "DP-tooling_configuration-1",
-      "category": "tooling_configuration",
-      "description": "Library commitment in the spec: behavior-only with Radix as constraint vs lock Radix in ACs",
-      "valid_implementations": ["behavior-only-radix-as-constraint", "lock-radix-in-acs"],
-      "status": "answered",
-      "user_answer": "Behavior-only ACs (WHAT + a11y); Radix recorded as a recommended technical constraint, final library pick deferred to /plan.",
+      "user_answer": "hand-roll: zero-dep pointer-event dividers, rAF + CSS var during drag, clamp in JS, hand-written ARIA separator + keyboard resize; settingsStore is the single source of truth for width/ratio. react-resizable-panels documented as fallback.",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
@@ -279,36 +405,10 @@
     {
       "dp_id": "DP-ui_ux_details-1",
       "category": "ui_ux_details",
-      "description": "Form of the demo/gallery harness",
-      "valid_implementations": ["in-app-dev-route", "storybook", "standalone-demo-page"],
+      "description": "Cmd-B / sidebar-toggle semantics: collapse to hidden preserving width vs shrink to min",
+      "valid_implementations": ["collapse-to-hidden, restore last width", "shrink to 200px min"],
       "status": "answered",
-      "user_answer": "Dev-only in-app route rendering every primitive in its states; doubles as manual-QA surface; no new heavy dependency.",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
-    },
-    {
-      "dp_id": "DP-tooling_configuration-2",
-      "category": "tooling_configuration",
-      "description": "Test stack DOM env + scope",
-      "valid_implementations": [
-        "vitest-rtl-jsdom",
-        "vitest-rtl-happydom",
-        "vitest-rtl-plus-playwright"
-      ],
-      "status": "answered",
-      "user_answer": "Vitest + @testing-library/react + user-event (jsdom), PLUS Playwright component tests for real-browser focus/keyboard fidelity.",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
-    },
-    {
-      "dp_id": "DP-edge_cases-1",
-      "category": "edge_cases",
-      "description": "Nested-overlay composition in v1 vs deferred",
-      "valid_implementations": ["nested-in-v1", "nested-deferred"],
-      "status": "answered",
-      "user_answer": "Nested-overlay composition is in v1 scope: modal-opens-dropdown and toast-over-modal compose, Escape closes topmost only, focus-trap/return nest, z-order sane.",
+      "user_answer": "collapse-to-hidden: Cmd-B toggles a sidebarCollapsed boolean that hides the sidebar entirely; last sidebarWidth is preserved and restored on reopen.",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
@@ -316,10 +416,41 @@
     {
       "dp_id": "DP-existing_behavior-1",
       "category": "existing_behavior",
-      "description": "no relevant decision point for existing_behavior",
-      "valid_implementations": [],
-      "status": "no_DP_in_category",
-      "user_answer": "",
+      "description": "App.tsx dev-only PrimitivesDemo: replace with Shell vs keep reachable",
+      "valid_implementations": [
+        "replace mount; keep PrimitivesDemo dev-gated but unmounted",
+        "mount PrimitivesDemo in a shell slot in DEV"
+      ],
+      "status": "answered",
+      "user_answer": "replace, keep gated: the Shell organism becomes the App.tsx mount; PrimitivesDemo stays dev-gated (import.meta.env.DEV) but is no longer mounted at the root.",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-data_flow_state-1",
+      "category": "data_flow_state",
+      "description": "settingsStore initial default values source",
+      "valid_implementations": [
+        "hardcode from tokens.css :root + reference.html",
+        "read from a defaults module"
+      ],
+      "status": "answered",
+      "user_answer": "hardcode defaults aligned to tokens.css :root (light theme, mint accent, default method-style) and reference.html proportions; exact default values finalized in /plan.",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-edge_cases-1",
+      "category": "edge_cases",
+      "description": "Window shrinks below clamp minimums: how layout re-clamps",
+      "valid_implementations": [
+        "re-clamp width/ratio on resize to stay valid",
+        "freeze / allow overflow"
+      ],
+      "status": "answered",
+      "user_answer": "re-clamp to stay valid: on window resize the shell re-clamps sidebarWidth to 200-520px and paneRatio to 0.15-0.85 so no pane goes negative or overflows; covered by a behavior test.",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
@@ -328,6 +459,17 @@
       "dp_id": "DP-breaking_changes-1",
       "category": "breaking_changes",
       "description": "no relevant decision point for breaking_changes",
+      "valid_implementations": [],
+      "status": "no_DP_in_category",
+      "user_answer": "",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-tooling_configuration-1",
+      "category": "tooling_configuration",
+      "description": "no relevant decision point for tooling_configuration",
       "valid_implementations": [],
       "status": "no_DP_in_category",
       "user_answer": "",
@@ -343,73 +485,78 @@
       "spec_type": "greenfield_feature",
       "read_path": "",
       "slot_pattern": "constitution.md#scaffolding-guide",
-      "n_a_reason": "constitution.md has no \u00a77 scaffolding guide (ends at \u00a76 Workflow Rules); renderer placement derived from \u00a72.3 Module Organization + CLAUDE.md project structure + discover integration surface"
+      "n_a_reason": "constitution.md (Existing-Codebase mode) has \u00a71-6 only \u2014 no Section 7 scaffolding guide; renderer scaffolding pattern is defined by the established atoms/molecules/lib tiers in docs/architecture.md + specs 001/002."
     },
     {
       "spec_type": "greenfield_feature",
-      "read_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
+      "read_path": "",
       "slot_pattern": "__framework_docs__",
-      "n_a_reason": ""
+      "n_a_reason": "No novel external framework pattern to research \u2014 shell reuses internally-vetted patterns (zustand store mirroring toastStore, React tree, tokens.css contract); divider library options were vetted + rejected in the discover doc."
     },
     {
       "spec_type": "greenfield_feature",
       "read_path": "",
       "slot_pattern": ".claude/memory/MEMORY.md",
-      "n_a_reason": "no .claude/memory/MEMORY.md exists yet (first feature); no prior-feature lessons recorded"
+      "n_a_reason": "File does not exist in this repo; no prior-feature lessons file present."
     },
     {
       "spec_type": "greenfield_feature",
-      "read_path": "discover/2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover.md",
+      "read_path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
       "slot_pattern": "discover/*.md",
       "n_a_reason": ""
     }
   ],
   "discretionary_reads": [],
   "phase3_finalized": true,
-  "overview": "A reusable, presentation-only UI primitives layer for the mintEnvoy renderer: a Dropdown/popover, a Modal dialog, a transient Toast, and an inline SVG Icon, plus the thin shared overlay substrate they need. The overlay behavior and accessibility (focus trap/return, keyboard navigation, dismiss, ARIA, edge-aware positioning) are sourced from a headless primitive library (Radix recommended, final pick deferred to /plan); the Icon, the styling, and the Toast queue are project-owned. Every primitive is styled exclusively via semantic class names bound to the existing design-token CSS custom properties, and is consumed only by other renderer feature components \u2014 no network, no persistence.",
-  "current_state": "Greenfield for UI primitives. The renderer is electron-vite boilerplate: src/renderer/src/App.tsx, src/renderer/src/main.tsx, and a single src/renderer/src/components/Versions.tsx. No Dropdown/Modal/Toast/Icon, no overlay hooks, and no src/renderer/src/lib/ exist (confirmed via the codebase-memory graph). Design tokens are already compiled to CSS custom properties at src/renderer/styles/tokens.css, and the @renderer alias (electron.vite.config.ts) resolves to src/renderer/src. No test framework is installed (package.json declares no runner or testing library), and constitution \u00a73.4 requires picking a renderer test stack before the first feature needing coverage. The visual/behavior reference is the Claude Design export under design/ (look only \u2014 never its generated markup/cruft).",
-  "desired_behavior": "Deliver four primitives under the renderer's atomic-design layout \u2014 Icon in src/renderer/src/components/atoms/, and Dropdown/popover, Modal, Toast in src/renderer/src/components/molecules/ \u2014 with a THIN shared substrate in src/renderer/src/lib/ holding only what the headless library does not provide (Icon helpers, the Toast store, minimal glue). Dropdown/popover anchors to a trigger with keyboard navigation, focus return to the trigger on close, click-outside and Escape dismiss, and edge-aware flip/shift positioning. Modal traps focus, renders a scrim, closes on Escape, and locks body scroll. Toast is fired through an imperative toast(message, opts) API backed by a zustand toastStore that owns a stack of transient notifications with auto-dismiss, manual dismiss, and hover/focus pause. Icon renders an inline 16x16, 1.5px-stroke SVG selected by a typed name from the project-owned 40-icon set, with a safe fallback for an unknown name. Nested overlays compose: Escape closes only the topmost, focus traps and focus-return nest, z-order stays sane. All animations respect prefers-reduced-motion. Dropdown and Modal are controlled via open + onOpenChange props. A dev-only in-app route renders every primitive in its states as the visual + manual-QA surface. Behavior is gated by automated interaction tests (Vitest + Testing Library) plus Playwright component tests for focus/keyboard fidelity.",
+  "overview": "A single-window app shell and layout for the mintEnvoy renderer: a titlebar (logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill), a resizable left sidebar (width clamped 200-520px), a main area split into request and response panes by a draggable horizontal divider (ratio clamped 0.15-0.85), and a statusbar. The shell sets theme, accent, and method-style as data-attributes on the document root and exposes empty named mount slots (sidebar, tabs, panes, modals) whose CONTENTS are out of scope. A net-new in-memory zustand settingsStore (mirroring the existing toastStore) is the single source of truth for sidebar width, pane ratio, theme, accent, and method-style; dividers are hand-rolled and clamped, and styling consumes the existing tokens.css contract with semantic class names (the design/reference.html markup is never copied).",
+  "current_state": "Existing codebase, greenfield for the shell. The renderer root src/renderer/src/App.tsx:10 currently mounts the dev-only PrimitivesDemo gallery (lazy, gated behind import.meta.env.DEV). Feature 001-ui-primitives established the renderer tiers components/atoms + components/molecules + a thin lib/ (cx(), icons-glue, toastStore), and 002-tabs-primitive added the controlled selection-only Tabs molecule; there is NO components/organisms/ tier, no Shell, and no settings store \u2014 the only zustand store is src/renderer/src/lib/toastStore.ts. The design-token contract at src/renderer/styles/tokens.css already implements the [data-theme='dark'] override block and the [data-mstyle] method-style variant blocks on <html>, but has NO [data-accent] selector \u2014 accent is a single --accent custom property (with --accent-soft/--accent-hover derived via color-mix). Persistence is a main-process responsibility (electron-store appears only in config/docs, not in src); the renderer holds no settings store today. The renderer test stack (docs/architecture.md) is Vitest + @testing-library/react + user-event (jsdom) for interaction plus Playwright CT (@playwright/experimental-ct-react) for real-browser focus/keyboard, with tests co-located under __tests__/. The visual/behavior reference is design/reference.html with colors/spacing from design/tokens.json (look/behavior only \u2014 never its generated markup).",
+  "desired_behavior": "A new Shell organism under src/renderer/src/components/organisms/ becomes the App.tsx mount, replacing the PrimitivesDemo root (PrimitivesDemo stays in the repo dev-gated but unmounted). The Shell renders a titlebar (logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill), a resizable left sidebar, a request/response split, and a statusbar. A net-new src/renderer/src/lib/settingsStore.ts zustand store (mirroring toastStore: create(), single module-level instance, typed state + actions, reset for tests, no Node/electron imports) holds { theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed } IN-MEMORY only and is the single source of truth. The Shell sets data-theme, data-accent, and data-mstyle on the document root (<html>) via an effect from the store, and writes sidebarWidth and paneRatio to CSS custom properties on its own root. A draggable vertical divider resizes the sidebar, clamped to 200-520px; a draggable horizontal divider resizes the request/response split, clamped to a ratio of 0.15-0.85. Dividers are hand-rolled pointer-event components (rAF-batched CSS-var write during drag, store committed on release) exposing the WAI-ARIA separator role with aria-valuenow and keyboard resize, and they handle pointer-release outside the window. Cmd-B toggles a sidebarCollapsed boolean that hides the sidebar entirely while preserving the last sidebarWidth for restore on reopen. When the OS window shrinks below the clamped minimums, the layout re-clamps sidebarWidth (200-520px) and paneRatio (0.15-0.85) so no pane goes negative or overflows. The four named mount slots (sidebar, tabs, panes, modals) accept arbitrary children and render them without the Shell knowing their contents. accent is persisted in the store and set as data-accent, but is visually inert this task (no [data-accent] CSS). Styling uses semantic class names bound to tokens.css with sibling .css files and no inline styles, animations respect prefers-reduced-motion, and behavior (divider drag+clamp, Cmd-B toggle, in-session survival of view settings) is covered by component tests; visual fidelity to design/reference.html is reviewed by design-auditor (never reproducing its markup or cruft).",
   "affected_areas": [
     {
-      "area": "Icon atom",
+      "area": "Shell organism tree",
       "files": [
-        "src/renderer/src/components/atoms/Icon.tsx",
-        "src/renderer/src/components/atoms/icons.ts"
+        "src/renderer/src/components/organisms/Shell.tsx",
+        "src/renderer/src/components/organisms/Titlebar.tsx",
+        "src/renderer/src/components/organisms/Sidebar.tsx",
+        "src/renderer/src/components/organisms/PaneSplit.tsx",
+        "src/renderer/src/components/organisms/Statusbar.tsx",
+        "src/renderer/src/components/organisms/Divider.tsx"
       ],
-      "impact": "Create new \u2014 inline SVG Icon component + project-owned typed icon-path set (40 icons, 1.5px stroke, 16x16)"
+      "impact": "Create new \u2014 net-new components/organisms/ tier holding the shell layout tree (titlebar, resizable sidebar, request/response split, statusbar) + hand-rolled clamped Divider; named mount slots for sidebar/tabs/panes/modals"
     },
     {
-      "area": "Overlay molecules",
+      "area": "settingsStore (in-memory view state)",
+      "files": ["src/renderer/src/lib/settingsStore.ts"],
+      "impact": "Create new \u2014 zustand store mirroring toastStore; single source of truth for { theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed } + actions; in-memory only (disk persistence deferred)"
+    },
+    {
+      "area": "App.tsx mount root",
+      "files": ["src/renderer/src/App.tsx"],
+      "impact": "Modify \u2014 swap the dev-only PrimitivesDemo root for the Shell organism; PrimitivesDemo stays dev-gated (import.meta.env.DEV) but unmounted"
+    },
+    {
+      "area": "Shell stylesheets",
       "files": [
-        "src/renderer/src/components/molecules/Dropdown.tsx",
-        "src/renderer/src/components/molecules/Modal.tsx",
-        "src/renderer/src/components/molecules/Toast.tsx"
+        "src/renderer/src/components/organisms/Shell.css",
+        "src/renderer/src/components/organisms/Titlebar.css",
+        "src/renderer/src/components/organisms/Sidebar.css",
+        "src/renderer/src/components/organisms/PaneSplit.css",
+        "src/renderer/src/components/organisms/Statusbar.css"
       ],
-      "impact": "Create new \u2014 Dropdown/popover, Modal, Toast components wrapping headless behavior, styled via semantic classes"
+      "impact": "Create new \u2014 sibling per-component stylesheets using semantic class names bound to tokens.css custom properties; no inline styles; sidebarWidth/paneRatio driven via CSS vars"
     },
     {
-      "area": "Shared overlay substrate (lib)",
-      "files": ["src/renderer/src/lib/toastStore.ts", "src/renderer/src/lib/icons-glue.ts"],
-      "impact": "Create new \u2014 THIN lib: zustand toastStore + imperative toast() API + minimal glue; relies on the headless lib for focus-trap/positioning"
+      "area": "tokens.css theme/method-style contract",
+      "files": ["src/renderer/styles/tokens.css"],
+      "impact": "Reuse (read-only) \u2014 shell sets data-theme + data-mstyle on <html> which tokens.css already implements; data-accent is set but visually inert (no [data-accent] block); no edits this task"
     },
     {
-      "area": "Token-bound stylesheets",
+      "area": "Shell component tests",
       "files": [
-        "src/renderer/styles/tokens.css",
-        "src/renderer/src/components/atoms/",
-        "src/renderer/src/components/molecules/"
+        "src/renderer/src/components/organisms/__tests__/Shell.test.tsx",
+        "src/renderer/src/components/organisms/__tests__/Shell.ct.tsx"
       ],
-      "impact": "Create new per-component stylesheets using semantic class names bound to existing tokens.css CSS custom properties; no inline styles"
-    },
-    {
-      "area": "Test tooling + config",
-      "files": ["package.json", "vitest.config.ts", "playwright.config.ts"],
-      "impact": "Create new \u2014 add Vitest + @testing-library/react + user-event (jsdom) and Playwright component tests; record stack in docs/architecture.md"
-    },
-    {
-      "area": "Demo / QA route",
-      "files": ["src/renderer/src/components/PrimitivesDemo.tsx"],
-      "impact": "Create new \u2014 dev-only in-app route rendering every primitive in its states"
+      "impact": "Create new \u2014 Vitest + Testing Library interaction tests and Playwright CT for divider drag/clamp, Cmd-B toggle, in-session setting survival, slot rendering, divider a11y"
     }
   ],
   "acceptance_criteria": [
@@ -417,26 +564,26 @@
       "ac_id": "AC-1",
       "subsection": "tooling_artifact_presence",
       "ears_variant": "ubiquitous",
-      "statement": "The project shall own an inline SVG icon-set module under the atoms directory.",
-      "verification_command": "test -f src/renderer/src/components/atoms/icons.ts",
+      "statement": "The renderer shall provide a settingsStore module under the lib directory.",
+      "verification_command": "test -f src/renderer/src/lib/settingsStore.ts",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-2",
-      "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN an open dropdown has focus and the user presses the Arrow, Home, or End keys, the dropdown shall move focus between its menu items.",
-      "verification_command": "",
+      "subsection": "tooling_artifact_presence",
+      "ears_variant": "ubiquitous",
+      "statement": "The renderer shall provide a Shell organism component module under the organisms directory.",
+      "verification_command": "test -f src/renderer/src/components/organisms/Shell.tsx",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-3",
-      "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN a dropdown or modal closes, the component shall return focus to the trigger element that opened it.",
-      "verification_command": "",
+      "subsection": "tooling_artifact_presence",
+      "ears_variant": "ubiquitous",
+      "statement": "The renderer source shall contain no reference-export cruft markers.",
+      "verification_command": "! grep -rEn 'data-om-|__OmT|tweaks-panel' src/renderer/src",
       "test_anchor": "",
       "n_a_reason": ""
     },
@@ -444,7 +591,7 @@
       "ac_id": "AC-4",
       "subsection": "behavior_change",
       "ears_variant": "event_driven",
-      "statement": "WHEN the user clicks outside an open dropdown or presses the Escape key, the dropdown shall dismiss.",
+      "statement": "WHEN the user drags the sidebar divider, the Shell shall resize the sidebar and clamp its width to 200-520px.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -452,8 +599,8 @@
     {
       "ac_id": "AC-5",
       "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE an open dropdown would overflow the viewport, the dropdown shall flip or shift its position to remain fully visible.",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the user presses Cmd-B, the Shell shall toggle the sidebar collapsed state, hiding or showing the sidebar while preserving the last sidebar width for restore on reopen.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -462,7 +609,7 @@
       "ac_id": "AC-6",
       "subsection": "behavior_change",
       "ears_variant": "state_driven",
-      "statement": "WHILE a modal is open, the modal shall confine keyboard focus within its content, render a scrim, and lock body scroll.",
+      "statement": "WHILE a view setting is held in the settingsStore, the Shell shall reflect data-theme, data-accent, and data-mstyle on the document root and the sidebar width and pane ratio as CSS custom properties for the duration of the session.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -471,7 +618,7 @@
       "ac_id": "AC-7",
       "subsection": "behavior_change",
       "ears_variant": "event_driven",
-      "statement": "WHEN the user presses the Escape key in an open modal, the modal shall close and return focus to its trigger.",
+      "statement": "WHEN a named mount slot is given children, the Shell shall render those children without depending on their contents.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -480,7 +627,7 @@
       "ac_id": "AC-8",
       "subsection": "behavior_change",
       "ears_variant": "event_driven",
-      "statement": "WHEN a toast auto-dismiss duration elapses, the toast shall be removed from the stack.",
+      "statement": "WHEN App.tsx renders, the Shell shall be the mounted renderer root in place of the PrimitivesDemo gallery.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -489,7 +636,7 @@
       "ac_id": "AC-9",
       "subsection": "behavior_change",
       "ears_variant": "state_driven",
-      "statement": "WHILE a toast is hovered or focused, the toast shall pause its auto-dismiss timer.",
+      "statement": "WHILE a divider has keyboard focus, the Shell shall expose the WAI-ARIA separator role with aria-valuenow and support keyboard resize.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -498,58 +645,22 @@
       "ac_id": "AC-10",
       "subsection": "behavior_change",
       "ears_variant": "event_driven",
-      "statement": "WHEN the user dismisses one stacked toast, the toast layer shall remove only that toast and leave the others.",
+      "statement": "WHEN the accent value changes, the Shell shall set data-accent on the document root, producing no visual change this task.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-11",
-      "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN a controlled Dropdown or Modal open prop changes, the component shall reflect the open state and invoke onOpenChange on user-driven changes.",
+      "subsection": "documentation",
+      "ears_variant": "ubiquitous",
+      "statement": "The exported Shell components, the settingsStore state and actions, and the slot prop types shall carry documentation comments.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-12",
-      "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the Escape key is pressed while nested overlays are open, the system shall close only the topmost overlay.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-13",
-      "subsection": "behavior_change",
-      "ears_variant": "unwanted",
-      "statement": "IF the Icon name is not present in the icon set, THEN the Icon component shall render a safe fallback instead of throwing.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-14",
-      "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE the prefers-reduced-motion setting is active, the primitives shall suppress their open and close animations.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-15",
-      "subsection": "documentation",
-      "ears_variant": "ubiquitous",
-      "statement": "The exported primitive components and their public prop types shall carry documentation comments.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-16",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
       "statement": "The renderer source shall pass strict type-checking.",
@@ -558,7 +669,7 @@
       "n_a_reason": ""
     },
     {
-      "ac_id": "AC-17",
+      "ac_id": "AC-13",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
       "statement": "The codebase shall pass ESLint without new errors.",
@@ -567,211 +678,198 @@
       "n_a_reason": ""
     },
     {
-      "ac_id": "AC-18",
+      "ac_id": "AC-14",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
-      "statement": "The primitive component sources shall contain no inline style attributes.",
-      "verification_command": "! grep -rEn 'style=[{][{]' src/renderer/src/components/atoms src/renderer/src/components/molecules",
+      "statement": "The Shell component sources shall contain no inline style attributes.",
+      "verification_command": "! grep -rEn 'style=[{][{]' src/renderer/src/components/organisms",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
-      "ac_id": "AC-19",
+      "ac_id": "AC-15",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
-      "statement": "The renderer primitive code shall not import the electron or node modules directly.",
-      "verification_command": "! grep -rEn \"from '(electron|node:)\" src/renderer/src/components src/renderer/src/lib",
+      "statement": "The Shell and settingsStore sources shall not import the electron or node modules directly.",
+      "verification_command": "! grep -rEn \"from '(electron|node:)\" src/renderer/src/components/organisms src/renderer/src/lib/settingsStore.ts",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
-      "ac_id": "AC-20",
-      "subsection": "tooling_artifact_presence",
-      "ears_variant": "ubiquitous",
-      "statement": "The build shall include a configured Vitest test runner with Testing Library plus Playwright component tests.",
-      "verification_command": "grep -q vitest package.json",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-21",
-      "subsection": "tooling_artifact_presence",
-      "ears_variant": "ubiquitous",
-      "statement": "The renderer shall provide the primitives under the atoms and molecules component directories.",
-      "verification_command": "test -d src/renderer/src/components/atoms && test -d src/renderer/src/components/molecules",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-22",
+      "ac_id": "AC-16",
       "subsection": "behavior_change",
       "ears_variant": "event_driven",
-      "statement": "WHEN the imperative toast API is invoked, the toastStore shall enqueue a transient notification in the toast stack.",
+      "statement": "WHEN the user drags the request and response divider, the Shell shall resize the split and keep the pane ratio within its clamped range.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
-      "ac_id": "AC-23",
+      "ac_id": "AC-17",
       "subsection": "behavior_change",
-      "ears_variant": "ubiquitous",
-      "statement": "The Icon component shall render a known icon name as an inline SVG using the 16x16 viewBox and stroke width defined by the icon set.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-24",
-      "subsection": "documentation",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the renderer test stack is added, the system shall record the chosen test stack in the architecture docs.",
+      "ears_variant": "unwanted",
+      "statement": "IF the window shrinks below the clamped minimums, THEN the Shell shall re-clamp the sidebar width and the pane ratio to their valid ranges so that no pane is negative or overflows.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     }
   ],
   "ac_subsection_na": {
-    "behavior_preservation": "Greenfield feature \u2014 no existing behavior to preserve; renderer has no prior primitives.",
-    "ci_pipeline": "No CI pipeline changes in scope; tests run via npm scripts, not a new pipeline stage.",
+    "behavior_preservation": "Greenfield shell \u2014 no prior shell/layout behavior to preserve; the App.tsx root swap is a behavior change covered in 5.3, and PrimitivesDemo is dev-only.",
+    "ci_pipeline": "No CI pipeline changes in scope; gates run via existing npm scripts, not a new pipeline stage.",
     "hooks_gates": "No new git hooks or commit gates introduced by this feature."
   },
   "out_of_scope": [
     {
-      "content": "Any network / request-response or persistence logic \u2014 the primitives are presentation-only.",
-      "finding_ref": "F-2026-06-21-reusable-headless-ui-primitives-layer-dropdown-popover-10"
+      "content": "Slot CONTENTS \u2014 the sidebar tree, tab bodies, request/response editors, and modal bodies that mount into the named slots \u2014 are separate downstream tasks; the shell ships empty slots only.",
+      "finding_ref": "F-spec-6"
     },
     {
-      "content": "UI elements beyond the four named primitives (buttons, inputs, tabs, tables, etc.).",
+      "content": "On-disk / electron-store persistence of view settings \u2014 the settingsStore is in-memory only this task; disk persistence is deferred to a later persistence-port task (wired through a typed main-process IPC, not the renderer store).",
       "finding_ref": ""
     },
     {
-      "content": "A theming engine, runtime theme switcher, or authoring/editing of design token files \u2014 primitives only consume existing tokens.",
+      "content": "Defining accent palette CSS ([data-accent] selector blocks) \u2014 accent is persisted and set as data-accent but is visually inert this task; authoring accent palettes is a later task.",
       "finding_ref": ""
     },
     {
-      "content": "Reproducing the design/reference.html markup or its generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks-panel).",
+      "content": "Command-palette overlay + search behavior \u2014 the titlebar exposes only a trigger button/slot; the palette itself is out of scope.",
       "finding_ref": ""
     },
     {
-      "content": "Published-package API-stability guarantees \u2014 the layer is app-internal only.",
+      "content": "Environment selector, workspace pill, and account pill behavior \u2014 dropdown data, environment switching, and auth \u2014 are out of scope; these are static presentational slots this task.",
+      "finding_ref": ""
+    },
+    {
+      "content": "Multi-window support \u2014 the shell is a single-window layout.",
+      "finding_ref": ""
+    },
+    {
+      "content": "Keyboard shortcuts other than Cmd-B \u2014 any other shortcut belongs to its own feature.",
+      "finding_ref": ""
+    },
+    {
+      "content": "Reproducing design/reference.html markup or its generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks-panel) \u2014 reference is for look/behavior only.",
+      "finding_ref": ""
+    },
+    {
+      "content": "Authoring or editing design-token files \u2014 the shell consumes src/renderer/styles/tokens.css and design/tokens.json as-is; no token edits.",
       "finding_ref": ""
     }
   ],
   "constraints": [
     {
       "kind": "constitution_anchor",
-      "content": "strict is on; do not weaken it per-file. No 'any' \u2014 type external input as 'unknown' and narrow with a guard. The Icon name must be a typed string-literal union.",
+      "content": "strict is on; do not weaken it per-file. No 'any'. Type external/IPC input as 'unknown' and narrow with a type guard \u2014 the settingsStore state, actions, and slot props are fully typed.",
       "constitution_ref": "3.1"
     },
     {
       "kind": "constitution_anchor",
-      "content": "Renderer modules resolve through the @renderer alias; import via the alias, not deep relative paths. Keep code in its process dir \u2014 no cross-process imports.",
-      "constitution_ref": "2.3"
-    },
-    {
-      "kind": "constitution_anchor",
-      "content": "Pick a renderer test stack (Vitest + Testing Library) before the first feature that needs coverage; record it in docs/architecture.md.",
-      "constitution_ref": "3.4"
-    },
-    {
-      "kind": "constitution_anchor",
-      "content": "Components PascalCase; hooks camelCase use-prefixed; zustand stores Store-suffixed.",
+      "content": "zustand store camelCase + Store suffix (settingsStore); React components PascalCase (Shell, Titlebar, Sidebar, PaneSplit, Statusbar, Divider).",
       "constitution_ref": "3.3"
     },
     {
       "kind": "constitution_anchor",
-      "content": "Never swallow errors \u2014 no empty catch; handle both success and error paths of every fallible operation.",
-      "constitution_ref": "3.2"
+      "content": "Renderer modules resolve through the @renderer alias; import via the alias, not deep relative paths; keep code in its process dir.",
+      "constitution_ref": "2.3"
+    },
+    {
+      "kind": "constitution_anchor",
+      "content": "Before writing anything generic/reusable, search for an existing utility \u2014 reuse the toastStore zustand pattern, cx(), the Icon atom, and the existing tokens.css contract rather than re-defining them.",
+      "constitution_ref": "6.3"
+    },
+    {
+      "kind": "constitution_anchor",
+      "content": "Renderer is sandboxed React UI; never import Node or electron directly in renderer code; the settingsStore stays renderer-side and in-memory.",
+      "constitution_ref": "2.1"
     },
     {
       "kind": "follow",
-      "content": "Shared renderer state (the Toast queue) lives in a zustand toastStore; never mutate store state outside its actions (constitution \u00a74 Always-Do)."
+      "content": "The settingsStore is the single source of truth for sidebar width and pane ratio; drag handlers commit values via store actions, never by mutating state directly (constitution \u00a75 State Management / \u00a74 Always-Do)."
     },
     {
       "kind": "follow",
-      "content": "Primitives are renderer-only and presentation-only \u2014 no main/preload/IPC involvement; never import node or electron in renderer code (constitution \u00a74). Primitives live under src/renderer/src/components and the styling consumes tokens under design/."
+      "content": "Mirror the existing toastStore zustand shape: create(), a single module-level store instance, selector hooks for each field, and a reset for tests so component tests start from known defaults."
     },
     {
       "kind": "follow",
-      "content": "Style exclusively via semantic class names bound to the existing tokens.css CSS custom properties; no inline styles. design/reference.html is a look/behavior reference only \u2014 never reproduce its markup."
+      "content": "Reuse the existing renderer test stack (Vitest + @testing-library/react + user-event jsdom for interaction; Playwright CT for real-browser focus/keyboard) under __tests__/; introduce no new test infrastructure."
     },
     {
       "kind": "follow",
-      "content": "Radix is the recommended headless library for the overlay behavior; this spec stays behavior-only and the final library pick is deferred to /plan."
+      "content": "Style via semantic class names bound to tokens.css custom properties with sibling .css files; drive sidebarWidth/paneRatio through CSS custom properties; no inline styles; animations gated behind prefers-reduced-motion."
     },
     {
       "kind": "follow",
-      "content": "Keep the lib/ substrate thin: do not hand-roll focus-trap or positioning that the headless library already provides (constitution \u00a76.3 search-before-building)."
-    },
-    {
-      "kind": "follow",
-      "content": "Meet WCAG 2.1 AA keyboard and focus expectations for every primitive (focus trap/return, Escape, ARIA roles)."
+      "content": "Implement the WAI-ARIA window-splitter pattern on each divider \u2014 role=separator with aria-valuenow/min/max, keyboard resize, and pointer-release-outside-window handling."
     },
     {
       "kind": "not_break",
-      "content": "The Icon stays project-owned \u2014 no icon-library dependency is introduced (the SVG path set already exists)."
+      "content": "Keep contextIsolation intact and the renderer sandboxed \u2014 the settingsStore is in-memory only; later disk persistence goes through a typed main-process IPC wrapper, not the renderer store."
+    },
+    {
+      "kind": "nfr",
+      "content": "Divider drag must stay smooth \u2014 no setState-per-pointermove re-render storms; resize is rAF-batched and CSS-var-driven within the frame budget, with the store committed only on pointer release.",
+      "quantifier": "16 ms"
+    },
+    {
+      "kind": "follow",
+      "content": "Clamp the sidebar width to 200-520px and the request/response pane ratio to 0.15-0.85 in JS, enforced both during drag and on window resize so no pane goes negative or overflows."
     }
   ],
   "open_questions": [
     {
       "question_id": "Q-1",
-      "content": "Final headless-library selection (Radix vs Base UI vs React Aria) is deferred to /plan; discovery recommends Radix.",
+      "content": "Integration point RESOLVED (Phase 2 fit-check): the user's belief of persisting view settings 'via the existing settings store' is incorrect \u2014 no settings store exists; settingsStore is created net-new and in-memory this task, and disk persistence (electron-store/IPC) is deferred to a later persistence-port task.",
       "category_no_dp_reason": ""
     },
     {
       "question_id": "Q-2",
-      "content": "Confirm Icon stays project-owned vs pulling an icon dependency \u2014 discovery resolved this as sound since the ~40 SVG paths already exist.",
+      "content": "Divider build-vs-buy is decided as hand-roll (zero-dep, keeps settingsStore as the single source of truth); react-resizable-panels is the documented fallback if the hand-rolled ARIA/keyboard/edge-case work proves more expensive than the derisk spike predicts \u2014 final confirmation at /plan.",
       "category_no_dp_reason": ""
     }
   ],
   "risks": [
     {
-      "risk": "Radix Toast may not natively cover stacking + hover/focus pause + rapid-fire queue.",
+      "risk": "Hand-rolled divider accessibility (role=separator, aria-valuenow, keyboard resize, pointer-release-outside-window) is more code to get right than a library would give for free.",
       "likelihood": "Med",
       "impact": "Med",
-      "mitigation": "Derisk spike; if it falls short, the zustand toastStore owns the queue and Radix Toast renders individual items."
+      "mitigation": "Derisk spike on the divider before locking the approach; axe + keyboard/SR pass; react-resizable-panels documented as the fallback."
     },
     {
-      "risk": "No test framework exists, so the Vitest + Playwright setup is a gating prerequisite that could slip and block all interaction-test ACs.",
-      "likelihood": "High",
-      "impact": "Med",
-      "mitigation": "Make the test-stack setup the first task; record the stack in docs/architecture.md per constitution \u00a73.4."
-    },
-    {
-      "risk": "Nested-overlay composition (Escape topmost-only, nested focus-trap/return) is the most failure-prone behavior.",
+      "risk": "Window-resize re-clamp math could yield negative or overflowing panes if the sidebar(200-520px) + pane-ratio(0.15-0.85) bounds are mis-handled on shrink.",
       "likelihood": "Med",
       "impact": "Med",
-      "mitigation": "Prototype nested behavior early; cover with dedicated interaction + Playwright tests."
+      "mitigation": "Prototype the clamp/resize math against the window-shrink edge case; cover with a behavior test."
     },
     {
-      "risk": "Styling Radix component state (open/closed, side) via semantic classes may fight the token-driven stylesheet approach.",
+      "risk": "Drag without rAF/CSS-var batching causes per-pointermove re-render storms and janky resize.",
       "likelihood": "Med",
       "impact": "Low",
-      "mitigation": "Spike a Radix Dialog + DropdownMenu styled solely via token CSS vars before broad rollout."
+      "mitigation": "rAF-batched CSS-var write during drag; commit to the store only on pointer release; measure vs a setState-per-move baseline."
     },
     {
-      "risk": "jsdom may not faithfully reproduce focus/keyboard behavior, hiding real a11y defects.",
+      "risk": "data-accent is set but visually inert (no [data-accent] CSS), which can look wired-but-broken to a reviewer.",
+      "likelihood": "Low",
+      "impact": "Low",
+      "mitigation": "Document the inert behavior in the spec/AC; accent palette CSS is an explicit later task."
+    },
+    {
+      "risk": "The named slot API could leak shell knowledge of slot contents, defeating the decoupling goal.",
       "likelihood": "Low",
       "impact": "Med",
-      "mitigation": "Run Playwright component tests in a real browser for focus/keyboard fidelity."
-    }
-  ],
-  "approval_summary": "I've created the specification at `specs/001-ui-primitives/spec.md`. Key points:\n- **What changes**: A reusable, presentation-only UI primitives layer for the mintEnvoy renderer: a Dropdown/popover, a Modal dialog, a transient Toast, and an inline SVG Icon, plus the thin shared overlay substrate they need. The overlay behavior and acces...\n- **Files affected**: 14 files across 6 areas\n- **Acceptance criteria**: 24 testable criteria across 4 AC categories\n- **Out of scope**: Any network / request-response or persistence logic \u2014 the primitives are present; UI elements beyond the four named primitives (buttons, inputs, tabs, tables, etc; A theming engine, runtime theme switcher, or authoring/editing of design token f; \u2026\n\nPlease review and either approve or request changes. Once approved, run `/plan` to create the technical implementation plan.",
-  "plan_handoff_block": "## Manual next step \u2014 run /plan\n\nA structured handoff (specs/001-ui-primitives/handoff.json) is written for /plan. /plan auto-discovers it on its first run and reads the upstream plan-seeds \u2014 but you still launch /plan manually (there is no auto-dispatch from /specify). Restart Claude Code (exit and relaunch the CLI/app so the newly installed command is picked up), then run the command below in this repo. The spec path is explicit so /plan does not need most-recent-spec discovery:\n\n~~~\n/plan specs/001-ui-primitives/spec.md\n~~~\n\nMinimum handoff data:\n- Spec status: Draft\n- Spec type: greenfield_feature\n- AC count: 24 across 4 subsections (5.1: 3, 5.2: 0, 5.3: 15, 5.4: 0, 5.5: 0, 5.6: 2, 5.7: 4)\n- Decision-point coverage: 6 answered, 0 default-applied, 0 deferred-OOS, 0 deferred-open-question\n- Affected areas: 6 across src\n- Out-of-scope items: 5\n- Open questions: 2\n- Constraints: 12\n- Risks: 5\n- Phase 1.5 finding coverage: 100% (all findings landed)\n\nReference: specs/001-ui-primitives/spec.md",
-  "open_question_resolutions": [
-    {
-      "question_id": "Q-1",
-      "resolution_text": "Plan selects Radix UI (unified radix-ui package) as the headless library; alternatives rejected per research.md.",
-      "resolution_phase": "plan",
-      "resolution_timestamp": "2026-06-21T14:08:45Z"
+      "mitigation": "Mount the existing Tabs molecule into the tab slot as a content-decoupling proof; slots accept arbitrary children only."
     },
     {
-      "question_id": "Q-2",
-      "resolution_text": "Icon stays project-owned (typed name union over existing SVG paths); no icon-library dependency.",
-      "resolution_phase": "plan",
-      "resolution_timestamp": "2026-06-21T14:08:45Z"
+      "risk": "jsdom may not faithfully reproduce pointer-drag and focus fidelity for the dividers, hiding real interaction defects.",
+      "likelihood": "Low",
+      "impact": "Med",
+      "mitigation": "Run Playwright CT in a real browser for divider drag, keyboard resize, and focus behavior."
     }
   ],
+  "approval_summary": "I've created the specification at `specs/003-app-shell-layout/spec.md`. Key points:\n- **What changes**: A single-window app shell and layout for the mintEnvoy renderer: a titlebar (logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill), a resizable left sidebar (width clamped 200-520px), a main a...\n- **Files affected**: 16 files across 6 areas\n- **Acceptance criteria**: 17 testable criteria across 4 AC categories\n- **Out of scope**: Slot CONTENTS \u2014 the sidebar tree, tab bodies, request/response editors, and moda; On-disk / electron-store persistence of view settings \u2014 the settingsStore is in-; Defining accent palette CSS ([data-accent] selector blocks) \u2014 accent is persiste; \u2026\n\nPlease review and either approve or request changes. Once approved, run `/plan` to create the technical implementation plan.",
+  "plan_handoff_block": "## Manual next step \u2014 run /plan\n\nA structured handoff (specs/003-app-shell-layout/handoff.json) is written for /plan. /plan auto-discovers it on its first run and reads the upstream plan-seeds \u2014 but you still launch /plan manually (there is no auto-dispatch from /specify). Restart Claude Code (exit and relaunch the CLI/app so the newly installed command is picked up), then run the command below in this repo. The spec path is explicit so /plan does not need most-recent-spec discovery:\n\n~~~\n/plan specs/003-app-shell-layout/spec.md\n~~~\n\nMinimum handoff data:\n- Spec status: Draft\n- Spec type: greenfield_feature\n- AC count: 17 across 4 subsections (5.1: 3, 5.2: 0, 5.3: 9, 5.4: 0, 5.5: 0, 5.6: 1, 5.7: 4)\n- Decision-point coverage: 6 answered, 0 default-applied, 0 deferred-OOS, 0 deferred-open-question\n- Affected areas: 6 across src\n- Out-of-scope items: 9\n- Open questions: 2\n- Constraints: 13\n- Risks: 6\n- Phase 1.5 finding coverage: 100% (all findings landed)\n\nReference: specs/003-app-shell-layout/spec.md",
+  "open_question_resolutions": [],
   "conflicts": [],
   "source": {
     "handoff_path": null,

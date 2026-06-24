@@ -232,37 +232,27 @@
     "affected_areas": [
       {
         "area": "molecules primitives dir",
-        "files": [
-          "src/renderer/src/components/molecules"
-        ],
+        "files": ["src/renderer/src/components/molecules"],
         "impact": "home of Dropdown/Modal/Toast; new Tabs.tsx + Tabs.css land here following the same wrapper pattern"
       },
       {
         "area": "cx helper",
-        "files": [
-          "src/renderer/src/lib/cx.ts"
-        ],
+        "files": ["src/renderer/src/lib/cx.ts"],
         "impact": "semantic-class composer Tabs reuses for BEM class assembly"
       },
       {
         "area": "Icon atom",
-        "files": [
-          "src/renderer/src/components/atoms/Icon.tsx"
-        ],
+        "files": ["src/renderer/src/components/atoms/Icon.tsx"],
         "impact": "reused if a per-tab leading icon is ever added; consistent with Dropdown item icons"
       },
       {
         "area": "PrimitivesDemo route",
-        "files": [
-          "src/renderer/src/components/PrimitivesDemo.tsx"
-        ],
+        "files": ["src/renderer/src/components/PrimitivesDemo.tsx"],
         "impact": "Tabs registered here for manual visual fidelity check vs design/reference.html"
       },
       {
         "area": "radix-ui dependency",
-        "files": [
-          "package.json"
-        ],
+        "files": ["package.json"],
         "impact": "radix-ui ^1.1.3 already declared; Tabs namespace available with no new dependency"
       },
       {

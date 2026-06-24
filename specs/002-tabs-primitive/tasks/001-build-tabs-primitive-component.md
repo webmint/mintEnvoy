@@ -11,9 +11,9 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/molecules/Tabs.tsx | Create | The hand-rolled, controlled, selection-only Tabs primitive + exported types |
+| File                                           | Action | Description                                                                        |
+| ---------------------------------------------- | ------ | ---------------------------------------------------------------------------------- |
+| src/renderer/src/components/molecules/Tabs.tsx | Create | The hand-rolled, controlled, selection-only Tabs primitive + exported types        |
 | src/renderer/src/components/molecules/Tabs.css | Create | Sibling token-bound BEM stylesheet; no inline styles; prefers-reduced-motion guard |
 
 ## Description
@@ -41,11 +41,13 @@ Build the `Tabs` primitive: a controlled, horizontal-only, selection-only tab-st
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `cx` is exported from `src/renderer/src/lib/cx.ts` and importable via `@renderer/lib/cx`.
 - CSS custom properties exist in `src/renderer/styles/tokens.css` for the strip's colors/spacing.
 - `src/renderer/src/components/molecules/` exists with `Dropdown.tsx` present as the wrapper/JSDoc precedent.
 
 ### Produces (checked after execution)
+
 - `Tabs.tsx` exports `Tabs`, `TabDescriptor`, and `TabsProps`.
 - `Tabs.tsx` renders a `role="tablist"` element containing `role="tab"` buttons, with `aria-selected` tied to `activeId`.
 - `Tabs.tsx` imports `cx` from `@renderer/lib/cx` and `import './Tabs.css'`, and contains no `electron`/`node:` imports and no Radix import.

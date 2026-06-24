@@ -55,6 +55,6 @@ Build the Dropdown/popover molecule wrapping Radix `DropdownMenu` (and/or `Popov
 ## Completion Notes
 
 **Completed**: 2026-06-22T01:04:44Z
-**Files changed**: src/renderer/src/components/molecules/Dropdown.tsx, src/renderer/src/components/molecules/Dropdown.css, src/renderer/src/components/molecules/__tests__/Dropdown.test.tsx, src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx, src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx
+**Files changed**: src/renderer/src/components/molecules/Dropdown.tsx, src/renderer/src/components/molecules/Dropdown.css, src/renderer/src/components/molecules/**tests**/Dropdown.test.tsx, src/renderer/src/components/molecules/**tests**/Dropdown.ct.tsx, src/renderer/src/components/molecules/**tests**/Dropdown.stories.tsx
 **Contract**: Expects 1/1 | Produces 4/4
 **Notes**: Dropdown over Radix DropdownMenu; edge-aware; keyboard nav+activation; dismiss+focus-return; escaped labels. 19 vitest + 26 CT.

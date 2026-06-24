@@ -56,6 +56,6 @@ Build the Toast molecule: subscribe to `toastStore` and render each queued item 
 ## Completion Notes
 
 **Completed**: 2026-06-21T19:27:23Z
-**Files changed**: src/renderer/src/components/molecules/Toast.tsx, src/renderer/src/components/molecules/Toast.css, src/renderer/src/components/molecules/__tests__/Toast.test.tsx, src/renderer/src/components/molecules/__tests__/Toast.ct.tsx, src/renderer/src/components/molecules/__tests__/Toast.stories.tsx
+**Files changed**: src/renderer/src/components/molecules/Toast.tsx, src/renderer/src/components/molecules/Toast.css, src/renderer/src/components/molecules/**tests**/Toast.test.tsx, src/renderer/src/components/molecules/**tests**/Toast.ct.tsx, src/renderer/src/components/molecules/**tests**/Toast.stories.tsx
 **Contract**: Expects 2/2 | Produces 4/4
 **Notes**: ToastProvider+ToastViewport over Radix Toast (duration=Infinity, store owns timing). message escaped JSX text (CWE-79 closed). hover/focus->pause, close->dismiss, variant->token colors. 72/72 vitest + 6/6 Playwright CT (AC-14 reduced-motion).
