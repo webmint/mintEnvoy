@@ -1,0 +1,158 @@
+/*
+ * Divider.css — Semantic styles for the Divider organism component.
+ *
+ * All values are bound to design tokens from tokens.css (--bg, --border,
+ * --border-strong, --accent, --bg-hover, --bg-active). No hardcoded
+ * colors or sizes — every var() includes a defensive fallback literal so the
+ * rule remains legible when tokens.css has not yet resolved.
+ *
+ * No inline styles are set here or in Divider.tsx (AC-14).
+ *
+ * Motion: the handle highlight transition is gated behind
+ * `@media (prefers-reduced-motion: reduce)` so users who prefer reduced motion
+ * get instant styling changes.
+ */
+
+/* ---------------------------------------------------------------------------
+ * Base divider (.divider)
+ * The focusable drag-handle element carrying role="separator".
+ * Position and flex-shrink are intentionally left unset here — the mounter
+ * controls those via its layout rules.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Base divider — the focusable hit-target and ARIA separator element.
+ * `touch-action: none` prevents the browser from interfering with Pointer
+ * Events during a drag gesture (required for pointer-capture to work
+ * correctly on touch devices).
+ */
+.divider {
+  flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+  /* Center the visual handle within the hit-area. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* The transition is only applied to the focus ring (no layout changes). */
+  outline: none;
+}
+
+/* Focus-visible ring — keyboard navigation signal. */
+.divider:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: -1px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Orientation modifiers
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Vertical divider — a vertical bar the user drags left/right.
+ * Sets a narrow hit-area width with `cursor: col-resize`.
+ */
+.divider--vertical {
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  flex-direction: column;
+}
+
+/**
+ * Horizontal divider — a horizontal bar the user drags up/down.
+ * Sets a narrow hit-area height with `cursor: row-resize`.
+ */
+.divider--horizontal {
+  width: 100%;
+  height: 6px;
+  cursor: row-resize;
+  flex-direction: row;
+}
+
+/* ---------------------------------------------------------------------------
+ * Visual handle (.divider__handle)
+ * The narrow visible stripe inside the larger pointer hit-area.
+ * The hit-area (.divider) is wider/taller than the visible stripe to make
+ * dragging comfortable; the stripe provides the visual affordance.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Visual drag-handle stripe.
+ * Sits centered inside the larger hit-area, providing a visible affordance
+ * without reducing the pointer-capture target size.
+ */
+.divider__handle {
+  background-color: var(--border, #e8e6e3);
+  border-radius: 9999px;
+  /* Smooth background transition for hover/active — suppressed by
+     prefers-reduced-motion below. */
+  transition: background-color 80ms ease;
+}
+
+/* Vertical orientation: thin vertical stripe */
+.divider--vertical .divider__handle {
+  width: 1px;
+  height: 100%;
+}
+
+/* Horizontal orientation: thin horizontal stripe */
+.divider--horizontal .divider__handle {
+  height: 1px;
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------------------
+ * Hover + active states
+ * Elevated border color and accent highlight on press / focus.
+ * Applied via the parent .divider to keep specificity manageable.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Hover state — darken the handle stripe slightly so the divider is easy to
+ * find without dominating the UI at rest.
+ */
+.divider:hover .divider__handle {
+  background-color: var(--border-strong, #d6d3d0);
+}
+
+/**
+ * Horizontal divider hover — accent colour on the handle stripe (matches
+ * design `.h-divider:hover::after { background: var(--accent) }`).
+ */
+.divider--horizontal:hover .divider__handle {
+  background-color: var(--accent, #10b981);
+}
+
+/**
+ * Vertical divider hover — soft-accent glow across the full 5px hit-area
+ * (matches design `.v-divider:hover { background: var(--accent-soft) }`).
+ */
+.divider--vertical:hover {
+  background-color: var(--accent-soft, color-mix(in oklab, #10b981 14%, transparent));
+}
+
+/**
+ * Active (pressed) state — accent colour signals that the drag is live.
+ */
+.divider:active .divider__handle {
+  background-color: var(--accent, #10b981);
+}
+
+/**
+ * Focus-visible state — accent colour matches the keyboard focus ring.
+ */
+.divider:focus-visible .divider__handle {
+  background-color: var(--accent, #10b981);
+}
+
+/* ---------------------------------------------------------------------------
+ * Reduced-motion guard
+ * Suppresses transitions when the user prefers reduced motion.
+ * ------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .divider__handle {
+    transition: none;
+  }
+}

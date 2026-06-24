@@ -1,0 +1,262 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/003-app-shell-layout/tasks",
+  "breakdown_completed_at": "2026-06-23T16:31:48Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/003-app-shell-layout/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/003-app-shell-layout/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/003-app-shell-layout/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "create-settings-store",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": ["002", "003", "004", "005", "007", "008"],
+      "touched_files": ["src/renderer/src/lib/settingsStore.ts"],
+      "expects": [
+        "`zustand` is a project dependency (used by `src/renderer/src/lib/toastStore.ts`).",
+        "`src/renderer/src/lib/toastStore.ts` exists as the zustand-shape reference (`create()`, single module-level instance)."
+      ],
+      "produces": [
+        "`settingsStore` is exported from `src/renderer/src/lib/settingsStore.ts` via `create()`.",
+        "`SettingsState` interface is exported with fields `theme`, `accent`, `mstyle`, `sidebarWidth`, `paneRatio`, `sidebarCollapsed`.",
+        "Actions `setSidebarWidth`, `setPaneRatio`, `toggleSidebar`, `reset`, `setTheme`, `setAccent`, `setMstyle` are exported on the store.",
+        "`SIDEBAR_MIN`, `SIDEBAR_MAX`, `PANE_MIN`, `PANE_MAX`, `clampSidebarWidth`, `clampPaneRatio` are exported.",
+        "The module contains no `from 'electron'` or `from 'node:'` import."
+      ],
+      "ac_addressed": ["AC-1", "AC-6", "AC-10", "AC-11", "AC-15"],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "002",
+      "title": "create-divider",
+      "agent": "frontend-engineer",
+      "depends_on": ["001"],
+      "blocks": ["003", "004"],
+      "touched_files": [
+        "src/renderer/src/components/organisms/Divider.tsx",
+        "src/renderer/src/components/organisms/Divider.css"
+      ],
+      "expects": [
+        "`SIDEBAR_MIN`/`SIDEBAR_MAX`/`PANE_MIN`/`PANE_MAX` and `clampSidebarWidth`/`clampPaneRatio` are exported from `settingsStore.ts` (task 001).",
+        "`cx()` is available at `src/renderer/src/lib/cx.ts`."
+      ],
+      "produces": [
+        "`Divider` is exported from `src/renderer/src/components/organisms/Divider.tsx`.",
+        "The rendered element carries `role=\"separator\"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, and `tabindex={0}`.",
+        "The component clamps to `[min, max]` internally before calling `onCommit` (pointer + keyboard paths).",
+        "Drag writes a CSS custom property via `requestAnimationFrame`; no `useState` is set on `pointermove`.",
+        "`Divider.css` uses semantic class names bound to tokens.css; no inline `style={{` attributes."
+      ],
+      "ac_addressed": ["AC-4", "AC-9", "AC-16"],
+      "doc_refs": ["docs/renderer/architecture.md"],
+      "review_checkpoint": false
+    },
+    {
+      "number": "003",
+      "title": "create-sidebar",
+      "agent": "frontend-engineer",
+      "depends_on": ["001", "002"],
+      "blocks": ["007"],
+      "touched_files": [
+        "src/renderer/src/components/organisms/Sidebar.tsx",
+        "src/renderer/src/components/organisms/Sidebar.css"
+      ],
+      "expects": [
+        "`settingsStore` exposes `sidebarWidth`, `sidebarCollapsed`, `setSidebarWidth` (task 001).",
+        "`Divider` is exported and clamps internally before `onCommit` (task 002)."
+      ],
+      "produces": [
+        "`Sidebar` is exported from `src/renderer/src/components/organisms/Sidebar.tsx`.",
+        "`Sidebar` renders its `children` into the sidebar mount slot without inspecting their contents.",
+        "`Sidebar` mounts the vertical `Divider` wired to `setSidebarWidth` only while not collapsed; both unmount when `sidebarCollapsed` is true.",
+        "`Sidebar.css` consumes `var(--sidebar-width)`; no inline `style={{` attributes."
+      ],
+      "ac_addressed": ["AC-4", "AC-5"],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "004",
+      "title": "create-panesplit",
+      "agent": "frontend-engineer",
+      "depends_on": ["001", "002"],
+      "blocks": ["007"],
+      "touched_files": [
+        "src/renderer/src/components/organisms/PaneSplit.tsx",
+        "src/renderer/src/components/organisms/PaneSplit.css"
+      ],
+      "expects": [
+        "`settingsStore` exposes `paneRatio`, `setPaneRatio`, `PANE_MIN`, `PANE_MAX` (task 001).",
+        "`Divider` is exported and clamps internally before `onCommit` (task 002)."
+      ],
+      "produces": [
+        "`PaneSplit` is exported from `src/renderer/src/components/organisms/PaneSplit.tsx`.",
+        "`PaneSplit` renders its `request` and `response` slots without inspecting their contents.",
+        "`PaneSplit` mounts the horizontal `Divider` wired to `setPaneRatio`.",
+        "`PaneSplit.css` consumes `var(--pane-ratio)`; no inline `style={{` attributes."
+      ],
+      "ac_addressed": ["AC-16"],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "005",
+      "title": "create-titlebar",
+      "agent": "frontend-engineer",
+      "depends_on": ["001"],
+      "blocks": ["007"],
+      "touched_files": [
+        "src/renderer/src/components/organisms/Titlebar.tsx",
+        "src/renderer/src/components/organisms/Titlebar.css"
+      ],
+      "expects": ["`settingsStore` exposes `toggleSidebar` (task 001)."],
+      "produces": [
+        "`Titlebar` is exported from `src/renderer/src/components/organisms/Titlebar.tsx`.",
+        "`Titlebar` accepts a `toggleRef: Ref<HTMLButtonElement>` prop that is attached to the sidebar-toggle `<button>` (the named focus-return mechanism for grill F3).",
+        "The sidebar-toggle button's `onClick` calls `toggleSidebar()`.",
+        "`Titlebar.css` uses semantic class names bound to tokens.css; no inline `style={{` attributes."
+      ],
+      "ac_addressed": ["AC-5"],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "006",
+      "title": "create-statusbar",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": ["007"],
+      "touched_files": [
+        "src/renderer/src/components/organisms/Statusbar.tsx",
+        "src/renderer/src/components/organisms/Statusbar.css"
+      ],
+      "expects": [
+        "`cx()` is available at `src/renderer/src/lib/cx.ts`.",
+        "The organisms directory exists (created by an earlier organisms task or this one)."
+      ],
+      "produces": [
+        "`Statusbar` is exported from `src/renderer/src/components/organisms/Statusbar.tsx`.",
+        "`Statusbar.css` uses semantic class names bound to tokens.css; no inline `style={{` attributes."
+      ],
+      "ac_addressed": ["AC-2"],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "007",
+      "title": "shell-composition-and-store-dom-effects",
+      "agent": "frontend-engineer",
+      "depends_on": ["003", "004", "005", "006"],
+      "blocks": ["008"],
+      "touched_files": [
+        "src/renderer/src/components/organisms/Shell.tsx",
+        "src/renderer/src/components/organisms/Shell.css"
+      ],
+      "expects": [
+        "`Sidebar` (003), `PaneSplit` (004), `Titlebar` accepting `toggleRef` (005), `Statusbar` (006) are exported.",
+        "`settingsStore` exposes `theme`, `accent`, `mstyle`, `sidebarWidth`, `paneRatio` (task 001)."
+      ],
+      "produces": [
+        "`Shell` is exported from `src/renderer/src/components/organisms/Shell.tsx`.",
+        "`Shell` accepts typed named slots `sidebar`, `tabs`, `panes`, `modals` and renders them without inspecting contents.",
+        "An effect writes `document.documentElement.dataset.theme`, `.accent`, and `.mstyle` from the store.",
+        "`Shell` sets `--sidebar-width` and `--pane-ratio` custom properties on its root from the store.",
+        "`Shell` creates a `toggleRef` and passes it to `<Titlebar toggleRef=...>`.",
+        "Shell source + `Shell.css` contain no inline `style={{` visual attributes and no `data-om-*`/`__OmT`/`tweaks-panel` cruft."
+      ],
+      "ac_addressed": ["AC-2", "AC-3", "AC-6", "AC-7", "AC-10", "AC-11", "AC-14", "AC-15"],
+      "doc_refs": ["docs/renderer/architecture.md"],
+      "review_checkpoint": true
+    },
+    {
+      "number": "008",
+      "title": "shell-behaviors-resize-cmdb-focus",
+      "agent": "frontend-engineer",
+      "depends_on": ["007"],
+      "blocks": ["009", "011"],
+      "touched_files": ["src/renderer/src/components/organisms/Shell.tsx"],
+      "expects": [
+        "`Shell` exists, exposes the typed slots + the store\u2192`<html>` effect, and holds a `toggleRef` passed to `<Titlebar>` (task 007).",
+        "`settingsStore` exposes `setSidebarWidth`, `setPaneRatio`, `toggleSidebar`, `clampSidebarWidth`, `clampPaneRatio` (task 001).",
+        "`Titlebar` attaches `toggleRef` to its sidebar-toggle `<button>` (task 005)."
+      ],
+      "produces": [
+        "`Shell` registers a `window` `resize` listener that re-clamps `sidebarWidth`/`paneRatio` via store actions (with effect cleanup).",
+        "`Shell` registers a `document`-level keydown handler that `preventDefault()`s and calls `toggleSidebar()` on Cmd/Ctrl-B (with effect cleanup).",
+        "`Shell` moves focus to `toggleRef.current` on the `sidebarCollapsed` false\u2192true transition."
+      ],
+      "ac_addressed": ["AC-5", "AC-17"],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "009",
+      "title": "wire-shell-into-app",
+      "agent": "frontend-engineer",
+      "depends_on": ["008"],
+      "blocks": ["011"],
+      "touched_files": ["src/renderer/src/App.tsx"],
+      "expects": [
+        "`Shell` is exported from `src/renderer/src/components/organisms/Shell.tsx` with its behaviors (tasks 007, 008).",
+        "`App.tsx` currently mounts `<ToastProvider>` + `<ToastViewport />` (existing code)."
+      ],
+      "produces": [
+        "`App.tsx` renders `<Shell />` as a child of `<ToastProvider>`.",
+        "`<ToastViewport />` remains mounted under `<ToastProvider>` (the substrate is preserved).",
+        "The `PrimitivesDemo` reference remains dev-gated behind `import.meta.env.DEV` and is not mounted at the root.",
+        "`App.tsx` imports `Shell` via the `@renderer` alias."
+      ],
+      "ac_addressed": ["AC-8"],
+      "doc_refs": ["docs/renderer/architecture.md"],
+      "review_checkpoint": true
+    },
+    {
+      "number": "010",
+      "title": "set-window-minwidth",
+      "agent": "backend-engineer",
+      "depends_on": [],
+      "blocks": [],
+      "touched_files": ["src/main/index.ts"],
+      "expects": [
+        "`src/main/index.ts` constructs a `BrowserWindow` with a `width` option and no `minWidth` today."
+      ],
+      "produces": ["The `BrowserWindow` options in `src/main/index.ts` include `minWidth: 720`."],
+      "ac_addressed": ["AC-17"],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "011",
+      "title": "shell-tests",
+      "agent": "qa-engineer",
+      "depends_on": ["008", "009"],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/organisms/__tests__/Shell.test.tsx",
+        "src/renderer/src/components/organisms/__tests__/Shell.ct.tsx"
+      ],
+      "expects": [
+        "`Shell` with behaviors is exported (tasks 007, 008); `App` mounts it inside `<ToastProvider>` (task 009).",
+        "`settingsStore` exposes `reset()` (task 001).",
+        "The Vitest + Playwright CT stack is configured (per docs/renderer/architecture.md); the existing `Tabs` molecule is importable."
+      ],
+      "produces": [
+        "`Shell.test.tsx` exists with passing Vitest+TL cases for divider clamp, Cmd-B, collapse+focus, in-session survival, slot rendering, window-resize re-clamp, and the toast regression.",
+        "`Shell.ct.tsx` exists with passing Playwright CT cases for divider drag/keyboard/ARIA and the Tabs-in-slot decoupling proof."
+      ],
+      "ac_addressed": ["AC-4", "AC-5", "AC-6", "AC-7", "AC-9", "AC-12", "AC-13", "AC-16", "AC-17"],
+      "doc_refs": ["docs/renderer/architecture.md"],
+      "review_checkpoint": true
+    }
+  ],
+  "additions": [
+    "- `src/main/index.ts` (BrowserWindow `minWidth`, task 010) \u2014 discovered during planning; NOT in spec \u00a74 Affected Areas. A main-process window-config change (main's responsibility per constitution \u00a72.1) required so the renderer's static 200-520px sidebar clamp + AC-17 no-overflow are jointly satisfiable at runtime. The feature is otherwise renderer-only."
+  ],
+  "dependency_graph": "001 (settings-store) \u2500\u2500\u2192 002 (divider) \u2500\u2500\u2192 003 (sidebar) \u2500\u2500\u2510\n                     \u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2192 004 (panesplit) \u2500\u2524\n                     \u2514\u2500\u2500\u2192 005 (titlebar) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n                          006 (statusbar) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n                                                           \u251c\u2500\u2500\u2192 007 (shell-composition) \u2500\u2500\u2192 008 (shell-behaviors) \u2500\u2500\u2192 009 (wire-shell-into-app) \u2500\u2500\u2192 011 (shell-tests)\n                                                                                                                  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2192 011\n010 (set-window-minwidth)   [independent \u2014 no deps]"
+}

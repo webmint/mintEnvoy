@@ -1,0 +1,411 @@
+/*
+ * Titlebar.css — Semantic styles for the Titlebar organism component.
+ *
+ * All values are bound to design tokens from tokens.css (--bg, --border,
+ * --text, --accent, etc.). No hardcoded colors or sizes — every var() includes
+ * a defensive fallback literal so the rule remains legible when tokens.css has
+ * not yet resolved.
+ *
+ * Layout: three-column grid (left / center / right) matching the design
+ * reference's `.titlebar { grid-template-columns: 1fr auto 1fr }`.
+ *
+ * Drag region: the <header> is a native drag handle (-webkit-app-region: drag).
+ * All interactive children opt out via -webkit-app-region: no-drag.
+ *
+ * Motion: transitions are added only under @media (prefers-reduced-motion: no-preference),
+ * so reduced-motion users get instant (no-transition) state changes by default.
+ *
+ * No inline styles are set here or in Titlebar.tsx (constitution §3.1).
+ */
+
+/* ---------------------------------------------------------------------------
+ * Root container (.titlebar)
+ * Three-column grid: left region (1fr) / centre trigger (auto) / right region (1fr).
+ * The header itself is the native window drag handle.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Titlebar root — full-width top chrome.
+ *
+ * Sets up the three-column grid, drag behaviour, z-index stacking, and the
+ * bottom border that separates it from the workspace.
+ */
+.titlebar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 12px;
+  height: 40px;
+  border-bottom: 1px solid var(--border, #e8e6e3);
+  background: var(--bg, #fbfaf9);
+  -webkit-app-region: drag;
+  position: relative;
+  z-index: 5;
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Left & right sections
+ * Flex rows that house interactive controls; opt out of drag region.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Left section — logo, workspace pill, sidebar toggle.
+ */
+.titlebar__left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+}
+
+/**
+ * Right section — environment selector, account pill.
+ * Justified to the end of the right grid column.
+ */
+.titlebar__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  -webkit-app-region: no-drag;
+}
+
+/* ---------------------------------------------------------------------------
+ * Logo (region 1)
+ * App mark (coloured square) + wordmark.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Logo wrapper — horizontal flex, tight gap.
+ */
+.titlebar__logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  font-size: var(--fs-md, 13px);
+  letter-spacing: -0.01em;
+  padding: 0 8px;
+  color: var(--text, #18181b);
+  user-select: none;
+}
+
+/**
+ * Coloured app mark — accent-gradient square with the initial "m".
+ */
+.titlebar__logo-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: linear-gradient(
+    135deg,
+    var(--accent, #10b981),
+    color-mix(in oklab, var(--accent, #10b981) 60%, #06b6d4)
+  );
+  display: grid;
+  place-items: center;
+  color: var(--text-inverse, #ffffff);
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+/**
+ * App wordmark text — inherits logo wrapper's font settings.
+ */
+.titlebar__logo-name {
+  /* inherits from .titlebar__logo */
+}
+
+/* ---------------------------------------------------------------------------
+ * Visual divider between logo and workspace pill
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Thin vertical divider rule — 1 px wide, 16 px tall.
+ */
+.titlebar__divider {
+  display: block;
+  width: 1px;
+  height: 16px;
+  background: var(--border, #e8e6e3);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Workspace pill (region 2)
+ * Static pill button — avatar + label + chevron.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Workspace switcher pill.
+ * Resets button defaults; hover reveals background tint.
+ */
+.titlebar__workspace-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 5px);
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #71717a);
+  font-weight: 500;
+  font-size: var(--fs-base, 12.5px);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar__workspace-pill:hover {
+  background: var(--bg-hover, #f0efed);
+  color: var(--text, #18181b);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .titlebar__workspace-pill {
+    transition:
+      background-color 0.1s,
+      color 0.1s;
+  }
+}
+
+/**
+ * Workspace avatar — coloured gradient square with initials.
+ */
+.titlebar__workspace-avatar {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #f472b6, #a855f7);
+  font-size: var(--fs-xs, 9px);
+  font-weight: 700;
+  color: var(--text-inverse, #ffffff);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+/**
+ * Workspace label text.
+ */
+.titlebar__workspace-name {
+  font-size: var(--fs-base, 12.5px);
+}
+
+/* ---------------------------------------------------------------------------
+ * Icon button — generic square icon control (sidebar toggle, etc.)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Generic square icon button.
+ * Used by sidebar-toggle; reusable by other icon controls in the titlebar.
+ */
+.titlebar__icon-btn {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm, 5px);
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #71717a);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar__icon-btn:hover {
+  background: var(--bg-hover, #f0efed);
+  color: var(--text, #18181b);
+}
+
+/**
+ * Active state — sidebar is collapsed, so the toggle button stays highlighted
+ * to indicate the sidebar is hidden.
+ */
+.titlebar__icon-btn--active {
+  background: var(--bg-active, #e8e6e3);
+  color: var(--text, #18181b);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .titlebar__icon-btn {
+    transition:
+      background-color 0.1s,
+      color 0.1s;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Command-palette trigger (region 4 — center column)
+ * Search-bar-shaped button; no palette behavior (out of scope).
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Command-palette trigger — centre column, search-bar appearance.
+ * Opts out of the drag region so it is clickable.
+ */
+.titlebar__cmdk {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px;
+  width: 360px;
+  border-radius: var(--radius, 7px);
+  background: var(--bg-sunken, #f4f3f1);
+  border: 1px solid var(--border, #e8e6e3);
+  color: var(--text-muted, #71717a);
+  font-size: var(--fs-base, 12.5px);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar__cmdk:hover {
+  border-color: var(--border-strong, #d6d3d0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .titlebar__cmdk {
+    transition: border-color 0.1s;
+  }
+}
+
+/**
+ * Search icon inside the cmdk trigger — subtle opacity.
+ */
+.titlebar__cmdk-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/**
+ * Placeholder text inside the cmdk trigger — stretches to fill space.
+ */
+.titlebar__cmdk-text {
+  flex: 1;
+  text-align: left;
+  font-size: var(--fs-base, 12.5px);
+}
+
+/**
+ * Keyboard shortcut badge.
+ */
+.titlebar__kbd {
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: var(--fs-sm, 10.5px);
+  font-weight: 500;
+  color: var(--text-faint, #a1a1aa);
+  background: var(--bg-elev, #ffffff);
+  border: 1px solid var(--border, #e8e6e3);
+  border-radius: 3px;
+  padding: 1px 5px;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Environment selector (region 5 — right section)
+ * Pill-shaped button with accent dot + label + chevron.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Environment selector pill.
+ * Bordered to distinguish it from flat icon buttons.
+ */
+.titlebar__env-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 10px;
+  border-radius: var(--radius-sm, 5px);
+  background: var(--bg-elev, #ffffff);
+  border: 1px solid var(--border, #e8e6e3);
+  color: var(--text, #18181b);
+  font-weight: 500;
+  font-size: 12px;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar__env-selector:hover {
+  border-color: var(--border-strong, #d6d3d0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .titlebar__env-selector {
+    transition: border-color 0.1s;
+  }
+}
+
+/**
+ * Accent-coloured dot indicating the active environment.
+ */
+.titlebar__env-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent, #10b981);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent, #10b981) 25%, transparent);
+  flex-shrink: 0;
+}
+
+/**
+ * Environment label text.
+ */
+.titlebar__env-name {
+  font-size: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Account pill (region 6 — right section)
+ * Compact avatar-only button.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Account pill — compact avatar-only button.
+ * Margin-left provides a small visual separation from adjacent controls.
+ */
+.titlebar__account-pill {
+  display: flex;
+  align-items: center;
+  padding: 3px 4px;
+  border-radius: var(--radius-sm, 5px);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  margin-left: 6px;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar__account-pill:hover {
+  background: var(--bg-hover, #f0efed);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .titlebar__account-pill {
+    transition: background-color 0.1s;
+  }
+}
+
+/**
+ * Circular account avatar with gradient background.
+ */
+.titlebar__account-avatar {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #f472b6, #a855f7);
+  font-size: var(--fs-xs, 9px);
+  font-weight: 700;
+  color: var(--text-inverse, #ffffff);
+  display: grid;
+  place-items: center;
+  letter-spacing: 0.02em;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}

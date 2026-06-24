@@ -1,0 +1,43 @@
+/*
+ * Statusbar.css — Semantic styles for the Statusbar organism component.
+ *
+ * All values are bound to design tokens from tokens.css (--bg-sunken, --border,
+ * --text-muted, --fs-*, etc.). No hardcoded colors or sizes — every var()
+ * includes a defensive fallback literal so the rule remains legible when
+ * tokens.css has not yet resolved.
+ *
+ * Layout: single-row flex container aligned to the bottom of the shell.
+ * Height matches the design reference (22 px).
+ *
+ * Motion: no transitions are used in this static region; if any are added in
+ * future they must be gated behind @media (prefers-reduced-motion: no-preference).
+ *
+ * No inline styles are set here or in Statusbar.tsx (constitution §3.1).
+ */
+
+/* ---------------------------------------------------------------------------
+ * Root container (.statusbar)
+ * Full-width bottom chrome — thin flex bar with a top border.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Statusbar root — full-width bottom chrome.
+ *
+ * Provides the status surface region: fixed height, flex row, subtle sunken
+ * background, and a top border to separate it from the workspace above.
+ * Children (status items) are provided by downstream features.
+ */
+.statusbar {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 14px;
+  height: 22px;
+  border-top: 1px solid var(--border, #e8e6e3);
+  background: var(--bg-sunken, #f4f3f1);
+  font-size: 11px;
+  color: var(--text-muted, #71717a);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
+}

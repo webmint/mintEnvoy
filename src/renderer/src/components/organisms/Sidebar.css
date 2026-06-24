@@ -1,0 +1,47 @@
+/*
+ * Sidebar.css — Semantic styles for the Sidebar organism component.
+ *
+ * All values are bound to design tokens from tokens.css (--bg-sunken, --border,
+ * --text). No hardcoded colors or sizes — every var() includes a defensive
+ * fallback literal so the rule remains legible when tokens.css has not yet
+ * resolved.
+ *
+ * Width is driven by the CSS custom property `--sidebar-width`, which is written
+ * to `document.documentElement` by the Shell (initial value) and by the Divider
+ * component during drag. The Divider writes the value as `${px}px` (e.g.
+ * "260px"), so `width: var(--sidebar-width)` resolves to a valid length.
+ *
+ * No inline styles are set here or in Sidebar.tsx (AC-14).
+ *
+ * Motion: transitions are gated behind `@media (prefers-reduced-motion: reduce)`
+ * so users who prefer reduced motion get instant layout changes.
+ */
+
+/* ---------------------------------------------------------------------------
+ * Base sidebar (.sidebar)
+ * The <aside> container whose width tracks --sidebar-width.
+ * The Shell/Divider own the layout context (flex row); Sidebar only sets
+ * its own width and overflow — never modifies parent/wrapper elements.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Left-sidebar region.
+ *
+ * - `width: var(--sidebar-width)` resolves from the CSS custom property set
+ *   on `document.documentElement` by the Shell and updated in real-time by
+ *   the Divider during drag.
+ * - `flex-shrink: 0` prevents a flex parent from shrinking the sidebar below
+ *   `--sidebar-width`.
+ * - `overflow: hidden` clips content when the user drags the Divider in
+ *   quickly — avoids horizontal overflow artifacts.
+ */
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-sunken, #f4f3f1);
+  border-right: 1px solid var(--border, #e8e6e3);
+  color: var(--text, #18181b);
+}

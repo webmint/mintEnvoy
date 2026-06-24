@@ -202,7 +202,7 @@ Tech Stack — the project's technologies (React, TypeScript, Vite, Vitest); the
 
 ## Test
 
-Test files: *.{test,spec}.{ts,tsx} (Vitest) and *.ct.{ts,tsx} (Playwright CT), co-located under src/renderer/src/**/__tests__/.
+Test files: _.{test,spec}.{ts,tsx} (Vitest) and _.ct.{ts,tsx} (Playwright CT), co-located under src/renderer/src/\*\*/**tests**/.
 
 - **Used in**: `architecture.md`, `overview.md`
 - **Related**: Vitest, Testing
