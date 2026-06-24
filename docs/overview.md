@@ -3,7 +3,6 @@ last_indexed: 2026-06-22
 source_stamp: 0b70347c45e28304
 ---
 
-
 # mintenvoy
 
 A desktop API client built with Electron, React, and TypeScript
@@ -38,12 +37,12 @@ mintEnvoy is a desktop API client built on Electron, React 19, and TypeScript. I
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | React |
-| Language | TypeScript |
-| Build Tool | Vite |
-| Testing | Vitest |
+| Layer      | Technology |
+| ---------- | ---------- |
+| Framework  | React      |
+| Language   | TypeScript |
+| Build Tool | Vite       |
+| Testing    | Vitest     |
 
 ## Project Structure
 
@@ -119,44 +118,44 @@ mintEnvoy/
 
 ## Entry Points
 
-| Entry Point | Path | Purpose |
-|---|---|---|
-| Main process | `src/main/index.ts` | Electron entry; creates BrowserWindow and drives app lifecycle |
-| Renderer app | `src/renderer/src/main.tsx` | React root; mounts App into index.html under StrictMode |
+| Entry Point  | Path                        | Purpose                                                        |
+| ------------ | --------------------------- | -------------------------------------------------------------- |
+| Main process | `src/main/index.ts`         | Electron entry; creates BrowserWindow and drives app lifecycle |
+| Renderer app | `src/renderer/src/main.tsx` | React root; mounts App into index.html under StrictMode        |
 
 ## Key Commands
 
-| Command | Description |
-|---|---|
-| `npm run format` | prettier --write . |
-| `npm run lint` | eslint --cache . |
+| Command                  | Description                                          |
+| ------------------------ | ---------------------------------------------------- |
+| `npm run format`         | prettier --write .                                   |
+| `npm run lint`           | eslint --cache .                                     |
 | `npm run typecheck:node` | tsc --noEmit -p tsconfig.node.json --composite false |
-| `npm run typecheck:web` | tsc --noEmit -p tsconfig.web.json --composite false |
-| `npm run typecheck` | npm run typecheck:node && npm run typecheck:web |
-| `npm run start` | electron-vite preview |
-| `npm run dev` | electron-vite dev |
-| `npm run build` | npm run typecheck && electron-vite build |
-| `npm run postinstall` | electron-builder install-app-deps |
-| `npm run build:unpack` | npm run build && electron-builder --dir |
-| `npm run build:win` | npm run build && electron-builder --win |
-| `npm run build:mac` | electron-vite build && electron-builder --mac |
-| `npm run build:linux` | electron-vite build && electron-builder --linux |
-| `npm run test` | vitest run |
-| `npm run test:ct` | playwright test -c playwright.config.ts |
+| `npm run typecheck:web`  | tsc --noEmit -p tsconfig.web.json --composite false  |
+| `npm run typecheck`      | npm run typecheck:node && npm run typecheck:web      |
+| `npm run start`          | electron-vite preview                                |
+| `npm run dev`            | electron-vite dev                                    |
+| `npm run build`          | npm run typecheck && electron-vite build             |
+| `npm run postinstall`    | electron-builder install-app-deps                    |
+| `npm run build:unpack`   | npm run build && electron-builder --dir              |
+| `npm run build:win`      | npm run build && electron-builder --win              |
+| `npm run build:mac`      | electron-vite build && electron-builder --mac        |
+| `npm run build:linux`    | electron-vite build && electron-builder --linux      |
+| `npm run test`           | vitest run                                           |
+| `npm run test:ct`        | playwright test -c playwright.config.ts              |
 
 ## Module Map
 
 ### Infrastructure Packages
 
-| Package | Purpose |
-|---|---|
-| `main` | Node.js main process — window creation, app lifecycle, IPC |
+| Package   | Purpose                                                      |
+| --------- | ------------------------------------------------------------ |
+| `main`    | Node.js main process — window creation, app lifecycle, IPC   |
 | `preload` | contextIsolation-safe bridge exposing electron + api globals |
 
 ### Core Package
 
-| Package | Purpose |
-|---|---|
+| Package    | Purpose                                                  |
+| ---------- | -------------------------------------------------------- |
 | `renderer` | React UI — primitive library, toast store, design tokens |
 
 ## Cross-Module Dependencies
@@ -175,11 +174,9 @@ mintenvoy
 ## Application Routes
 
 | Route | Component | Description |
-|---|---|---|
+| ----- | --------- | ----------- |
 
 ## Navigation Guards
-
-
 
 ## Test Files
 

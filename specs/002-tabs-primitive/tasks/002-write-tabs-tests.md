@@ -11,11 +11,11 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx | Create | CT mount fixtures (components defined outside the test file, per Playwright CT requirement) |
-| src/renderer/src/components/molecules/__tests__/Tabs.test.tsx | Create | Vitest + Testing Library interaction tests |
-| src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx | Create | Playwright CT real-browser focus/keyboard + axe tests |
+| File                                                             | Action | Description                                                                                 |
+| ---------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------- |
+| src/renderer/src/components/molecules/**tests**/Tabs.stories.tsx | Create | CT mount fixtures (components defined outside the test file, per Playwright CT requirement) |
+| src/renderer/src/components/molecules/**tests**/Tabs.test.tsx    | Create | Vitest + Testing Library interaction tests                                                  |
+| src/renderer/src/components/molecules/**tests**/Tabs.ct.tsx      | Create | Playwright CT real-browser focus/keyboard + axe tests                                       |
 
 ## Description
 
@@ -39,10 +39,12 @@ Cover the Tabs primitive's behavior, keyboard navigation, and WAI-ARIA semantics
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `Tabs.tsx` exports `Tabs`, `TabDescriptor`, and `TabsProps` (so fixtures and tests can type props and build `tabs` arrays).
 - The Vitest + Playwright CT stacks are configured (vitest.config.ts, playwright.config.ts from feature 001).
 
 ### Produces (checked after execution)
+
 - `Tabs.stories.tsx` exports the CT mount fixtures that `Tabs.ct.tsx` imports (component defined outside the test file, per the Dropdown.stories precedent).
 - `Tabs.test.tsx` contains Vitest assertions covering click→onChange-once, arrow/Home/End wrap, disabled-skip + no-onChange-on-disabled, no-selection guard, tablist/tab roles + aria-selected, and the right-aligned `actions` slot.
 - `Tabs.ct.tsx` contains Playwright CT assertions for roving-tabindex single tab-stop + focus movement and asserts zero axe a11y violations.
@@ -60,6 +62,6 @@ Cover the Tabs primitive's behavior, keyboard navigation, and WAI-ARIA semantics
 ## Completion Notes
 
 **Completed**: 2026-06-23T07:56:42Z
-**Files changed**: src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx, src/renderer/src/components/molecules/__tests__/Tabs.test.tsx, src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx
+**Files changed**: src/renderer/src/components/molecules/**tests**/Tabs.stories.tsx, src/renderer/src/components/molecules/**tests**/Tabs.test.tsx, src/renderer/src/components/molecules/**tests**/Tabs.ct.tsx
 **Contract**: Expects 2/2 | Produces 3/3
 **Notes**: 40 Vitest tests (AC-5..AC-10 + badges) + Playwright CT (roving tabindex, focus, AC-6/8/9/10, no dangling aria-controls) + 4 CT fixtures. Deviation: axe-core NOT used for AC-7 a11y assertion (not installed; no-new-dependency spec constraint) - structural DOM assertions substitute, matching every existing CT file; CT explicitly asserts no tab has aria-controls.

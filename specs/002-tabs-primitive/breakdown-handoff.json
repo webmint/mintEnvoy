@@ -15,10 +15,7 @@
       "title": "build-tabs-primitive-component",
       "agent": "frontend-engineer",
       "depends_on": [],
-      "blocks": [
-        "002",
-        "003"
-      ],
+      "blocks": ["002", "003"],
       "touched_files": [
         "src/renderer/src/components/molecules/Tabs.tsx",
         "src/renderer/src/components/molecules/Tabs.css"
@@ -50,18 +47,14 @@
         "AC-14",
         "AC-15"
       ],
-      "doc_refs": [
-        "docs/architecture.md (Renderer UI Primitives Layer)"
-      ],
+      "doc_refs": ["docs/architecture.md (Renderer UI Primitives Layer)"],
       "review_checkpoint": true
     },
     {
       "number": "002",
       "title": "write-tabs-tests",
       "agent": "qa-engineer",
-      "depends_on": [
-        "001"
-      ],
+      "depends_on": ["001"],
       "blocks": [],
       "touched_files": [
         "src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx",
@@ -77,30 +70,17 @@
         "`Tabs.test.tsx` contains Vitest assertions covering click\u2192onChange-once, arrow/Home/End wrap, disabled-skip + no-onChange-on-disabled, no-selection guard, tablist/tab roles + aria-selected, and the right-aligned `actions` slot.",
         "`Tabs.ct.tsx` contains Playwright CT assertions for roving-tabindex single tab-stop + focus movement and asserts zero axe a11y violations."
       ],
-      "ac_addressed": [
-        "AC-5",
-        "AC-6",
-        "AC-7",
-        "AC-8",
-        "AC-9",
-        "AC-10"
-      ],
-      "doc_refs": [
-        "docs/architecture.md (Testing \u2014 Renderer Test Stack)"
-      ],
+      "ac_addressed": ["AC-5", "AC-6", "AC-7", "AC-8", "AC-9", "AC-10"],
+      "doc_refs": ["docs/architecture.md (Testing \u2014 Renderer Test Stack)"],
       "review_checkpoint": true
     },
     {
       "number": "003",
       "title": "register-tabs-in-primitivesdemo",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "001"
-      ],
+      "depends_on": ["001"],
       "blocks": [],
-      "touched_files": [
-        "src/renderer/src/components/PrimitivesDemo.tsx"
-      ],
+      "touched_files": ["src/renderer/src/components/PrimitivesDemo.tsx"],
       "expects": [
         "`Tabs.tsx` exports `Tabs` and `TabDescriptor`, importable via `@renderer/components/molecules/Tabs`.",
         "`PrimitivesDemo.tsx` exists and follows the per-primitive `XSection()` registration pattern."
@@ -109,9 +89,7 @@
         "`PrimitivesDemo.tsx` imports `Tabs` from `@renderer/components/molecules/Tabs`.",
         "`PrimitivesDemo.tsx` defines a `TabsSection` component and invokes it in the root render (mirroring `DropdownSection`), so `grep -q Tabs src/renderer/src/components/PrimitivesDemo.tsx` matches and the section is actually mounted."
       ],
-      "ac_addressed": [
-        "AC-4"
-      ],
+      "ac_addressed": ["AC-4"],
       "doc_refs": [],
       "review_checkpoint": false
     }

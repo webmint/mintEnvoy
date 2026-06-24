@@ -1,0 +1,261 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/003-app-shell-layout/plan.md",
+  "plan_completed_at": "2026-06-23T16:04:50Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/003-app-shell-layout/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/003-app-shell-layout/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "Presentation \u2014 organisms (NET-NEW tier)",
+        "what": "First organism tier in the renderer: the shell layout tree (titlebar, resizable sidebar, request/response split, statusbar) + hand-rolled clamped Divider; exposes named mount slots; owns the store\u2192`<html>` data-attribute effect and the CSS-var write on its own root",
+        "files": "`src/renderer/src/components/organisms/Shell.tsx`, `Titlebar.tsx`, `Sidebar.tsx`, `PaneSplit.tsx`, `Statusbar.tsx`, `Divider.tsx`"
+      },
+      {
+        "layer": "Presentation \u2014 organisms styles",
+        "what": "Sibling per-component stylesheets; semantic class names bound to `tokens.css` custom properties; no inline styles; `prefers-reduced-motion` gating",
+        "files": "`src/renderer/src/components/organisms/Shell.css`, `Titlebar.css`, `Sidebar.css`, `PaneSplit.css`, `Statusbar.css`"
+      },
+      {
+        "layer": "Presentation \u2014 molecules (reuse, read-only)",
+        "what": "Existing `Tabs` molecule mounted into the tab slot as a content-decoupling proof; otherwise untouched",
+        "files": "`src/renderer/src/components/molecules/Tabs.tsx`"
+      },
+      {
+        "layer": "Support \u2014 lib/ (thin)",
+        "what": "Net-new `settingsStore` zustand store (single module-level instance, typed state+actions, a settingsStore-owned `reset()` action for tests \u2014 toastStore uses `clearAll()` + a local `resetStore()` helper, settingsStore provides `reset()` directly; no Node/electron imports) \u2014 SSOT for `{ theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed }`; reuses existing `cx()` for class composition",
+        "files": "`src/renderer/src/lib/settingsStore.ts` (new); `src/renderer/src/lib/cx.ts` (reuse)"
+      },
+      {
+        "layer": "App root (modify)",
+        "what": "Mount `<Shell>` as App.tsx's content while PRESERVING the existing `<ToastProvider>`/`<ToastViewport>` overlay substrate \u2014 Shell replaces only the dev-only PrimitivesDemo child, NOT the provider wrapper; `PrimitivesDemo` stays dev-gated (`import.meta.env.DEV`) but unmounted",
+        "files": "`src/renderer/src/App.tsx`"
+      },
+      {
+        "layer": "Main process (modify)",
+        "what": "Set BrowserWindow `minWidth` so the OS window cannot shrink below the static sidebar clamp floor (see Key Design Decisions: clamp strategy)",
+        "files": "`src/main/index.ts`"
+      },
+      {
+        "layer": "Design-token contract (reuse, read-only)",
+        "what": "`<html>` already implements `[data-theme]` + `[data-mstyle]`; `data-accent` is set but inert (no `[data-accent]` block); no edits this task",
+        "files": "`src/renderer/styles/tokens.css`"
+      },
+      {
+        "layer": "Tests (new)",
+        "what": "Vitest+TL interaction (divider clamp, Cmd-B, in-session survival, slot rendering) + Playwright CT (real-browser divider drag, keyboard resize, focus/ARIA)",
+        "files": "`src/renderer/src/components/organisms/__tests__/Shell.test.tsx`, `Shell.ct.tsx`"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "organisms tier placement",
+        "chosen_approach": "New `components/organisms/` sublayer below molecules; imports from molecules + lib; lib never imports back",
+        "why": "Extends the established atomic-design tiering (atoms\u2192molecules\u2192lib) consistently; first organism establishes the tier. Dependency direction preserved (presentation\u2192lib). In-scope: AC-2. Establishing a new convention, not a departure (no organisms tier existed).",
+        "alternatives_rejected": "Placing Shell flat in `components/` (breaks the atomic-design tiering 001 established); putting it in `lib/` (lib is leaf-level, must not import components)"
+      },
+      {
+        "decision": "settingsStore shape + SSOT",
+        "chosen_approach": "Mirror `toastStore`'s *shape* \u2014 `create()`, single module-level instance, typed `SettingsState` (fields + actions), per-field selector usage \u2014 plus a settingsStore-owned `reset()` action for tests; flat state `{ theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed }`; the ONLY source of truth for width/ratio; drag commits via actions, never direct mutation. NB: toastStore exposes `clearAll()`, NOT `reset()` \u2014 its tests wrap `getState().clearAll()` in a local `resetStore()` helper (src/renderer/src/lib/__tests__/toastStore.test.ts); settingsStore adds `reset()` as its OWN action rather than mirroring a symbol toastStore lacks",
+        "why": "Constitution \u00a75 (state mutated only via actions) + \u00a77 constraint (mirror toastStore's shape); reuses the proven pattern rather than reinventing (\u00a76.3). In-scope: AC-1, AC-6, \u00a77.",
+        "alternatives_rejected": "A React-context/useState shell (violates \"shared renderer state lives in zustand\"); a panel library owning layout state (already decided against in spec Q-2 \u2014 would split SSOT)"
+      },
+      {
+        "decision": "`data-theme`/`data-accent`/`data-mstyle` on `<html>`",
+        "chosen_approach": "A single `useEffect` in `Shell` subscribed to the three store fields writes `document.documentElement.dataset.{theme,accent,mstyle}`; effect is the only writer; cleanup not required (attributes are overwritten, not stacked)",
+        "why": "tokens.css keys off `<html>` attributes already; an effect is the idiomatic store\u2192DOM-side-effect bridge and keeps the store pure (no DOM in actions). In-scope: AC-6, AC-10.",
+        "alternatives_rejected": "Writing dataset inside store actions (puts DOM side-effects in zustand, untestable in jsdom-free unit); inline `style`/class theming (violates AC-14 + the token contract)"
+      },
+      {
+        "decision": "dividers drive sidebarWidth / paneRatio",
+        "chosen_approach": "During drag: `pointermove` \u2192 rAF-batched write of a CSS custom property (`--sidebar-width` / `--pane-ratio`) on the Shell root, NO `setState` per move; on `pointerup` (incl. release outside window via `pointercapture`/window listener): commit the final clamped value to the store via an action",
+        "why": "NFR \u226416ms (\u00a77) \u2014 avoids per-pointermove re-render storms; store stays SSOT but is written once per gesture. In-scope: AC-4, AC-16, \u00a77 NFR, \u00a79 risk-3.",
+        "alternatives_rejected": "setState-per-pointermove (re-render storm, fails the 16ms NFR); committing to store mid-drag (same storm via store subscribers)"
+      },
+      {
+        "decision": "clamp strategy + window-resize re-clamp",
+        "chosen_approach": "Pure clamp helpers (sidebar 200-520px, ratio 0.15-0.85) applied in JS at BOTH the drag-commit boundary AND on a `window` `resize` listener that re-derives and re-commits clamped values when the OS window shrinks. ADDITIONALLY set the Electron BrowserWindow `minWidth` (src/main/index.ts, \u2248720px = sidebar max 520 + a minimum pane area) so the window cannot shrink below the static sidebar floor \u2014 a constant 200px floor cannot otherwise guarantee no-overflow against an unbounded-shrink window (src/main/index.ts sets `width: 900` with NO `minWidth` today, so the window can be dragged narrower than 200px and a 200px floor then forces the sidebar wider than the whole window)",
+        "why": "\u00a77 constraint + AC-17 (no negative/overflowing pane on shrink); clamping in JS (not CSS `min()`) keeps the store value valid as SSOT, and the window `minWidth` bound makes the \u00a77 literal 200-520px clamp + AC-17 no-overflow jointly satisfiable. In-scope: AC-4, AC-16, AC-17.",
+        "alternatives_rejected": "CSS-only clamping (store would hold an out-of-range value, breaking SSOT); clamping only on drag (window-shrink edge unhandled \u2014 AC-17 fails); a static floor with NO window `minWidth` (overflows when the window is dragged narrower than 200px)"
+      },
+      {
+        "decision": "Cmd-B collapse-to-hidden preserving last width",
+        "chosen_approach": "`sidebarCollapsed: boolean` toggled by a Cmd-B key handler; while collapsed the sidebar AND its divider are UNMOUNTED (conditional render, not `width:0` / `display:none`) so the focusable `role=separator` divider leaves the a11y tree cleanly \u2014 Arrow-key resize cannot mutate `sidebarWidth` on a hidden sidebar, and there is no dangling-focus state on an invisible splitter. On collapse, focus returns to the sidebar-toggle control; on reopen the divider re-mounts at the preserved `sidebarWidth` (which is NOT zeroed)",
+        "why": "AC-5 (preserve last width for restore) + AC-9 (the divider a11y contract holds only while mounted). A boolean is the minimal state \u2014 no width-stashing field needed since `sidebarWidth` is left intact. Unmounting (vs `width:0`) resolves the collapse\u00d7divider interaction AC-5 and AC-9 each leave undefined individually. In-scope: AC-5, AC-9. States: `collapsed=false` (sidebar+divider mounted) / `true` (both unmounted, focus on toggle) both exercised by AC-5.",
+        "alternatives_rejected": "A separate `lastSidebarWidth` stash field (redundant \u2014 `sidebarWidth` already holds it); `width:0` collapse (leaves the divider focusable+keyboard-resizable on a 0-width hidden sidebar \u2014 Arrow keys mutate `sidebarWidth` while collapsed); `display:none` without refocus (focus lost mid-interaction with no defined target)"
+      },
+      {
+        "decision": "Divider WAI-ARIA window-splitter",
+        "chosen_approach": "`role=\"separator\"` + `aria-orientation` + `aria-valuenow`/`aria-valuemin`/`aria-valuemax` + `tabindex=0`; Arrow keys step the value (committing clamped to store), Home/End jump to bounds; hand-rolled (zero-dep)",
+        "why": "\u00a77 constraint + AC-9; consistent with the existing hand-rolled-WAI-ARIA precedent (Tabs molecule hand-rolls its APG pattern rather than buying it). Not a departure \u2014 it follows the documented \"hand-roll when the pattern is small and panel-decoupled\" rule of thumb. In-scope: AC-9, \u00a79 risk-1.",
+        "alternatives_rejected": "Buying react-resizable-panels for a11y (spec Q-2 decided against \u2014 splits SSOT); `role=\"slider\"` (separator is the correct splitter role per APG window-splitter)"
+      },
+      {
+        "decision": "named-slot API shape",
+        "chosen_approach": "Each of sidebar/tabs/panes/modals is a typed, optional `ReactNode` prop (or small named-children object) on `Shell`; Shell renders `{slot}` into its mount point and never inspects contents; slot prop types documented",
+        "why": "AC-7 (render children without depending on contents) + \u00a79 risk-5 (no shell knowledge of slot contents); `ReactNode` is the minimal decoupled contract. In-scope: AC-7, AC-11. States: optional/absent slot renders nothing, present slot renders children \u2014 both exercised by AC-7.",
+        "alternatives_rejected": "Render-prop/function-children slots (lets Shell pass data \u2192 leaks coupling); a slot registry/context indirection (over-engineered for static mount points)"
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "src/renderer/src/components/organisms/Shell.tsx",
+        "action": "Create",
+        "what_changes": "Root shell organism: titlebar + sidebar + pane-split + statusbar layout; named slots; store\u2192`<html>` data-attribute effect; window-resize re-clamp listener"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/Titlebar.tsx",
+        "action": "Create",
+        "what_changes": "Titlebar: logo, workspace pill, sidebar toggle, command-palette trigger (button/slot), environment selector, account pill (presentational)"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/Sidebar.tsx",
+        "action": "Create",
+        "what_changes": "Resizable left sidebar shell; consumes `--sidebar-width`; collapse honored via `sidebarCollapsed` (sidebar + its divider UNMOUNTED when collapsed; focus returns to the sidebar-toggle); sidebar mount slot"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/PaneSplit.tsx",
+        "action": "Create",
+        "what_changes": "Request/response split container; consumes `--pane-ratio`; pane mount slots"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/Statusbar.tsx",
+        "action": "Create",
+        "what_changes": "Bottom statusbar (presentational)"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/Divider.tsx",
+        "action": "Create",
+        "what_changes": "Hand-rolled pointer-event divider; rAF CSS-var write during drag; commit clamped value to store on release; `role=separator` + aria-valuenow + keyboard resize; unmounted while `sidebarCollapsed` (no hidden-splitter focus/resize state)"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/Shell.css",
+        "action": "Create",
+        "what_changes": "Shell grid/layout; semantic classes bound to tokens.css; `prefers-reduced-motion` gating"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/Titlebar.css",
+        "action": "Create",
+        "what_changes": "Titlebar styles (semantic classes, tokens.css vars)"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/Sidebar.css",
+        "action": "Create",
+        "what_changes": "Sidebar styles incl. collapsed state; `--sidebar-width` consumption"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/PaneSplit.css",
+        "action": "Create",
+        "what_changes": "Pane-split styles; `--pane-ratio` consumption"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/Statusbar.css",
+        "action": "Create",
+        "what_changes": "Statusbar styles"
+      },
+      {
+        "file": "src/renderer/src/lib/settingsStore.ts",
+        "action": "Create",
+        "what_changes": "zustand store mirroring toastStore's create()/single-instance/selector shape; typed `SettingsState` + actions + a settingsStore-owned `reset()` test action (toastStore exposes `clearAll()`, not `reset()`); SSOT for theme/accent/mstyle/sidebarWidth/paneRatio/sidebarCollapsed; concrete hardcoded defaults `{ theme: 'light', accent: 'mint', mstyle: 'soft', sidebarWidth: 260, paneRatio: 0.5, sidebarCollapsed: false }` (tokens.css `:root` is the attribute-less light/`soft` baseline \u2014 `mstyle: 'soft'` matches the tokens.css \"default should match soft\" note; `theme: 'light'` falls through to `:root`)"
+      },
+      {
+        "file": "src/renderer/src/App.tsx",
+        "action": "Modify",
+        "what_changes": "Mount `<Shell>` INSIDE the existing `<ToastProvider>`, keeping the mandatory `<ToastViewport />` (every `toast()` portals into it \u2014 do NOT delete the provider substrate); replace ONLY the dev-only PrimitivesDemo child with `<Shell>`; PrimitivesDemo stays dev-gated but unmounted"
+      },
+      {
+        "file": "src/main/index.ts",
+        "action": "Modify",
+        "what_changes": "Set BrowserWindow `minWidth` (\u2248720px = sidebar max 520 + a minimum pane area) so the window cannot shrink below the static sidebar clamp floor \u2014 makes AC-17 no-overflow satisfiable alongside the \u00a77 literal 200-520px clamp. (Addition discovered during planning \u2014 NOT in spec \u00a74 Affected Areas; a main-process window-config change, which is the main process's responsibility per constitution \u00a72.1; the feature is otherwise renderer-only.)"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/__tests__/Shell.test.tsx",
+        "action": "Create",
+        "what_changes": "Vitest+TL: divider clamp, Cmd-B collapse/restore (incl. divider unmounted + focus\u2192toggle while collapsed), in-session setting survival, slot rendering, window-resize re-clamp, and a regression test that a `toast()` still renders with `<Shell>` mounted (ToastProvider substrate preserved)"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/__tests__/Shell.ct.tsx",
+        "action": "Create",
+        "what_changes": "Playwright CT: real-browser divider drag, keyboard resize, focus/ARIA separator fidelity"
+      }
+    ],
+    "doc_impact": [
+      {
+        "doc_file": "docs/renderer/architecture.md",
+        "action": "Update",
+        "what_changes": "Record the net-new `organisms/` tier + dependency direction (organisms\u2192molecules/lib)"
+      },
+      {
+        "doc_file": "docs/architecture.md",
+        "action": "Update",
+        "what_changes": "Note the renderer gains an organisms tier + the `settingsStore` SSOT pattern (mirrors toastStore) and the store\u2192`<html>` data-attribute bridge"
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Dependency-direction: a new organism imports `lib` in the wrong direction, or `lib/settingsStore` imports a component",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Keep `settingsStore` leaf-level (imports only `zustand`); organisms import lib, never the reverse. NB: the current ESLint config (`@electron-toolkit/eslint-config-ts` + react/prettier) has NO import-boundary rule, so `npm run lint` does NOT catch this \u2014 the real guard is leaf-level discipline + code review + a CBM dependency query; optionally add an ESLint `no-restricted-imports` rule barring `components/**` from `lib/**` to mechanize it"
+      },
+      {
+        "risk": "Package-boundary: `settingsStore` or an organism reaches for a Node/electron import (e.g. for future persistence)",
+        "likelihood": "Low",
+        "impact": "High",
+        "mitigation": "AC-15 grep gate; persistence stays \u00a76-deferred behind a future main-process IPC port, not the renderer store"
+      },
+      {
+        "risk": "a11y: hand-rolled `role=\"separator\"` splitter mis-implements valuenow/keyboard, or jsdom hides real focus/drag defects",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Derisk spike on Divider before locking (per \u00a79); Playwright CT in a real browser for keyboard resize + focus; axe pass"
+      },
+      {
+        "risk": "perf: divider drag without rAF/CSS-var batching causes per-pointermove re-render storms (>16ms frames)",
+        "likelihood": "Med",
+        "impact": "Low",
+        "mitigation": "rAF-batched CSS-var write during drag; commit to store only on `pointerup`; measure vs a setState-per-move baseline"
+      },
+      {
+        "risk": "perf/correctness: window-resize re-clamp math yields negative/overflowing panes when sidebar(200-520) + ratio(0.15-0.85) bounds interact on shrink",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Set BrowserWindow `minWidth` (src/main/index.ts) so the window cannot shrink below the static sidebar floor (a constant 200px floor cannot otherwise guarantee no-overflow against an unbounded-shrink window); prototype clamp math against the window-shrink edge; cover with an AC-17 behavior test"
+      },
+      {
+        "risk": "Integration: replacing the App.tsx root could drop the `<ToastProvider>`/`<ToastViewport>` substrate, silently breaking every `toast()` (Radix provider has no throwing guard \u2014 failure is a silent no-op, not a compile error)",
+        "likelihood": "Low",
+        "impact": "High",
+        "mitigation": "Mount `<Shell>` INSIDE the existing ToastProvider; keep `<ToastViewport />`; add a regression test asserting a `toast()` still renders with the Shell mounted"
+      },
+      {
+        "risk": "accent persisted but visually inert (no `[data-accent]` CSS) reads as wired-but-broken to a reviewer",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "AC-10 asserts no visual change this task; document inert behavior; accent palette CSS is an explicit later task"
+      },
+      {
+        "risk": "named slot API leaks shell knowledge of slot contents, defeating decoupling",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Typed `ReactNode` slots only; mount the existing Tabs molecule into the tab slot as a content-decoupling proof (\u00a79 risk-5)"
+      }
+    ],
+    "specialist_consultation": [
+      {
+        "specialist": "architect",
+        "sub_question": "Layer map, key design decisions, dependency/boundary risks, constitution flags, minimal design, \u00a76-respect",
+        "input_summary": "New organisms tier; settingsStore mirrors toastStore as SSOT; store\u2192`<html>` data-attr effect; rAF+CSS-var drag committing to store on release; JS clamp + window-resize re-clamp; Cmd-B collapse boolean preserving width; hand-rolled WAI-ARIA splitter; typed ReactNode slots",
+        "verdict": "accepted",
+        "cites": "specs/003-app-shell-layout/spec.md; docs/architecture.md; constitution.md"
+      }
+    ],
+    "dependencies": [
+      "No external dependencies. `zustand` (settingsStore), `radix-ui` (existing molecules), Vitest + @testing-library/react + Playwright CT are all already in the project. No packages to install, no services to configure, no environment variables."
+    ]
+  }
+}

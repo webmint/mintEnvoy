@@ -6,12 +6,11 @@ package: .
 source_stamp: b44087ca58806208
 ---
 
-
 # renderer
 
 ## Purpose
 
-React 19 renderer process — the user-facing UI. Houses the reusable UI-primitive library (Icon atom; Dropdown, Modal, Toast, and Tabs molecules — Dropdown/Modal/Toast wrap Radix UI, Tabs hand-rolls its WAI-ARIA engine), a module-level zustand toast queue, className-merge and safe icon-resolution helpers, design tokens as CSS variables, and a dev-only primitives gallery gated on import.meta.env.DEV. main.tsx mounts App into index.html; the layer carries no Node/Electron imports per the renderer-isolation rule.
+React 19 renderer process — the user-facing UI. Houses the reusable UI-primitive library (Icon atom; Dropdown, Modal, Toast, and Tabs molecules — Dropdown/Modal/Toast wrap Radix UI, Tabs hand-rolls its WAI-ARIA engine), the single-window app shell (Shell, Titlebar, Sidebar, PaneSplit, Statusbar, and a hand-rolled WAI-ARIA Divider splitter, all in the organisms tier), two module-level zustand stores (toastStore for the toast queue; settingsStore as the SSOT for theme/accent/method-style/sidebarWidth/paneRatio/sidebarCollapsed), className-merge and safe icon-resolution helpers, design tokens as CSS variables, and a dev-only primitives gallery gated on import.meta.env.DEV. main.tsx mounts App into index.html; the layer carries no Node/Electron imports per the renderer-isolation rule.
 
 ## Structure
 
@@ -57,6 +56,19 @@ src/renderer/
 │   │   │   ├── Tabs.tsx  # Controlled tab-strip; hand-rolled WAI-ARIA tablist (no Radix)
 │   │   │   ├── Toast.css  # Toast queue styles per variant
 │   │   │   └── Toast.tsx  # Toast queue UI; ToastProvider + ToastViewport
+│   │   ├── organisms
+│   │   │   ├── Divider.css  # Divider handle styles; drag-cursor affordance
+│   │   │   ├── Divider.tsx  # Hand-rolled WAI-ARIA splitter; rAF-batched CSS-var drag; store-free
+│   │   │   ├── PaneSplit.css  # PaneSplit layout; flex driven by --pane-ratio CSS var
+│   │   │   ├── PaneSplit.tsx  # Request/response split workspace; mounts horizontal Divider
+│   │   │   ├── Shell.css  # Shell grid layout; CSS-var consumers --sidebar-width / --pane-ratio
+│   │   │   ├── Shell.tsx  # Root app shell; composes organisms; owns store→<html> effects
+│   │   │   ├── Sidebar.css  # Sidebar layout; width from --sidebar-width CSS var
+│   │   │   ├── Sidebar.tsx  # Collapsible sidebar; mounts vertical Divider; reads sidebarCollapsed
+│   │   │   ├── Statusbar.css  # Statusbar styles
+│   │   │   ├── Statusbar.tsx  # Bottom statusbar strip
+│   │   │   ├── Titlebar.css  # Titlebar styles; drag region for OS window move
+│   │   │   └── Titlebar.tsx  # Top titlebar; sidebar-toggle button (forwarded toggleRef)
 │   │   ├── PrimitivesDemo.css  # Styles for the dev-only primitives gallery
 │   │   └── PrimitivesDemo.tsx  # Dev-only visual QA gallery for all UI primitives
 │   ├── lib
@@ -65,8 +77,9 @@ src/renderer/
 │   │   │   └── toastStore.test.ts  # Vitest: toast store actions
 │   │   ├── cx.ts  # className merge util; drops falsy tokens
 │   │   ├── icons-glue.ts  # Safe icon-name resolver; never throws on unknown
+│   │   ├── settingsStore.ts  # Module-level zustand store: theme/accent/mstyle/sidebarWidth/paneRatio/sidebarCollapsed
 │   │   └── toastStore.ts  # Module-level zustand store for the toast queue
-│   ├── App.tsx  # Root component; wraps ToastProvider, dev-gated demo
+│   ├── App.tsx  # Root component; mounts Shell inside ToastProvider; dev-gated demo
 │   ├── env.d.ts  # Vite/renderer ambient type declarations
 │   └── main.tsx  # React entry; mounts App into #root under StrictMode
 ├── styles

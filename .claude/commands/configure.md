@@ -422,7 +422,7 @@ Exit-code interpretation:
 
 Echo template (plain prose; substitute `<...>` with values from `LINT_REPORT`):
 
-````
+```
 Excluding framework folders (.claude/, .devforge/, specs/, bugs/, research/, discover/, audits/) from your project's linters.
 
 Automatic — will add/create these (reply 'yes' to apply):
@@ -438,7 +438,7 @@ Manual — add these yourself:
   - <tool-4>: <instruction-4>
 
 Reply 'yes' to apply the automatic exclusions, or 'cancel' to skip.
-````
+```
 
 List each `auto` entry grouped by `tool` → `file`, showing each line from its `lines[]` (mark `would-create` and `preemptive` entries, e.g. append `(folder not present yet — pre-emptive)`). List each `manual` entry's `instruction` under the separate "Manual — add these yourself" section. Omit either section when it has no entries.
 

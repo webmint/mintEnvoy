@@ -1,0 +1,428 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/003-app-shell-layout/spec.md",
+  "specify_completed_at": "2026-06-23T13:34:36Z",
+  "classification": {
+    "spec_number": "003",
+    "feature_name": "app-shell-layout",
+    "feature_slug": "app-shell-layout",
+    "spec_type": "greenfield_feature",
+    "spec_type_rationale": "Upstream /discover; shell is net-new components/organisms/ tree + net-new settingsStore, no existing shell to modify",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "A single-window app shell and layout for the mintEnvoy renderer: a titlebar (logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill), a resizable left sidebar (width clamped 200-520px), a main area split into request and response panes by a draggable horizontal divider (ratio clamped 0.15-0.85), and a statusbar. The shell sets theme, accent, and method-style as data-attributes on the document root and exposes empty named mount slots (sidebar, tabs, panes, modals) whose CONTENTS are out of scope. A net-new in-memory zustand settingsStore (mirroring the existing toastStore) is the single source of truth for sidebar width, pane ratio, theme, accent, and method-style; dividers are hand-rolled and clamped, and styling consumes the existing tokens.css contract with semantic class names (the design/reference.html markup is never copied).",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide a settingsStore module under the lib directory.",
+        "verification_command": "test -f src/renderer/src/lib/settingsStore.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide a Shell organism component module under the organisms directory.",
+        "verification_command": "test -f src/renderer/src/components/organisms/Shell.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer source shall contain no reference-export cruft markers.",
+        "verification_command": "! grep -rEn 'data-om-|__OmT|tweaks-panel' src/renderer/src",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user drags the sidebar divider, the Shell shall resize the sidebar and clamp its width to 200-520px.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user presses Cmd-B, the Shell shall toggle the sidebar collapsed state, hiding or showing the sidebar while preserving the last sidebar width for restore on reopen.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a view setting is held in the settingsStore, the Shell shall reflect data-theme, data-accent, and data-mstyle on the document root and the sidebar width and pane ratio as CSS custom properties for the duration of the session.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN a named mount slot is given children, the Shell shall render those children without depending on their contents.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN App.tsx renders, the Shell shall be the mounted renderer root in place of the PrimitivesDemo gallery.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a divider has keyboard focus, the Shell shall expose the WAI-ARIA separator role with aria-valuenow and support keyboard resize.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the accent value changes, the Shell shall set data-accent on the document root, producing no visual change this task.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-11",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The exported Shell components, the settingsStore state and actions, and the slot prop types shall carry documentation comments.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-12",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer source shall pass strict type-checking.",
+        "verification_command": "npm run typecheck:web",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-13",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The codebase shall pass ESLint without new errors.",
+        "verification_command": "npm run lint",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-14",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The Shell component sources shall contain no inline style attributes.",
+        "verification_command": "! grep -rEn 'style=[{][{]' src/renderer/src/components/organisms",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-15",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The Shell and settingsStore sources shall not import the electron or node modules directly.",
+        "verification_command": "! grep -rEn \"from '(electron|node:)\" src/renderer/src/components/organisms src/renderer/src/lib/settingsStore.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-16",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user drags the request and response divider, the Shell shall resize the split and keep the pane ratio within its clamped range.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-17",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF the window shrinks below the clamped minimums, THEN the Shell shall re-clamp the sidebar width and the pane ratio to their valid ranges so that no pane is negative or overflows.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "behavior_preservation": "Greenfield shell \u2014 no prior shell/layout behavior to preserve; the App.tsx root swap is a behavior change covered in 5.3, and PrimitivesDemo is dev-only.",
+      "ci_pipeline": "No CI pipeline changes in scope; gates run via existing npm scripts, not a new pipeline stage.",
+      "hooks_gates": "No new git hooks or commit gates introduced by this feature."
+    },
+    "constraints": [
+      {
+        "kind": "constitution_anchor",
+        "content": "strict is on; do not weaken it per-file. No 'any'. Type external/IPC input as 'unknown' and narrow with a type guard \u2014 the settingsStore state, actions, and slot props are fully typed.",
+        "quantifier": null,
+        "constitution_ref": "3.1",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "zustand store camelCase + Store suffix (settingsStore); React components PascalCase (Shell, Titlebar, Sidebar, PaneSplit, Statusbar, Divider).",
+        "quantifier": null,
+        "constitution_ref": "3.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Renderer modules resolve through the @renderer alias; import via the alias, not deep relative paths; keep code in its process dir.",
+        "quantifier": null,
+        "constitution_ref": "2.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Before writing anything generic/reusable, search for an existing utility \u2014 reuse the toastStore zustand pattern, cx(), the Icon atom, and the existing tokens.css contract rather than re-defining them.",
+        "quantifier": null,
+        "constitution_ref": "6.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Renderer is sandboxed React UI; never import Node or electron directly in renderer code; the settingsStore stays renderer-side and in-memory.",
+        "quantifier": null,
+        "constitution_ref": "2.1",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "The settingsStore is the single source of truth for sidebar width and pane ratio; drag handlers commit values via store actions, never by mutating state directly (constitution \u00a75 State Management / \u00a74 Always-Do).",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Mirror the existing toastStore zustand shape: create(), a single module-level store instance, selector hooks for each field, and a reset for tests so component tests start from known defaults.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Reuse the existing renderer test stack (Vitest + @testing-library/react + user-event jsdom for interaction; Playwright CT for real-browser focus/keyboard) under __tests__/; introduce no new test infrastructure.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Style via semantic class names bound to tokens.css custom properties with sibling .css files; drive sidebarWidth/paneRatio through CSS custom properties; no inline styles; animations gated behind prefers-reduced-motion.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Implement the WAI-ARIA window-splitter pattern on each divider \u2014 role=separator with aria-valuenow/min/max, keyboard resize, and pointer-release-outside-window handling.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "Keep contextIsolation intact and the renderer sandboxed \u2014 the settingsStore is in-memory only; later disk persistence goes through a typed main-process IPC wrapper, not the renderer store.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "nfr",
+        "content": "Divider drag must stay smooth \u2014 no setState-per-pointermove re-render storms; resize is rAF-batched and CSS-var-driven within the frame budget, with the store committed only on pointer release.",
+        "quantifier": "16 ms",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Clamp the sidebar width to 200-520px and the request/response pane ratio to 0.15-0.85 in JS, enforced both during drag and on window resize so no pane goes negative or overflows.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "Shell organism tree",
+        "files": [
+          "src/renderer/src/components/organisms/Shell.tsx",
+          "src/renderer/src/components/organisms/Titlebar.tsx",
+          "src/renderer/src/components/organisms/Sidebar.tsx",
+          "src/renderer/src/components/organisms/PaneSplit.tsx",
+          "src/renderer/src/components/organisms/Statusbar.tsx",
+          "src/renderer/src/components/organisms/Divider.tsx"
+        ],
+        "impact": "Create new \u2014 net-new components/organisms/ tier holding the shell layout tree (titlebar, resizable sidebar, request/response split, statusbar) + hand-rolled clamped Divider; named mount slots for sidebar/tabs/panes/modals"
+      },
+      {
+        "area": "settingsStore (in-memory view state)",
+        "files": ["src/renderer/src/lib/settingsStore.ts"],
+        "impact": "Create new \u2014 zustand store mirroring toastStore; single source of truth for { theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed } + actions; in-memory only (disk persistence deferred)"
+      },
+      {
+        "area": "App.tsx mount root",
+        "files": ["src/renderer/src/App.tsx"],
+        "impact": "Modify \u2014 swap the dev-only PrimitivesDemo root for the Shell organism; PrimitivesDemo stays dev-gated (import.meta.env.DEV) but unmounted"
+      },
+      {
+        "area": "Shell stylesheets",
+        "files": [
+          "src/renderer/src/components/organisms/Shell.css",
+          "src/renderer/src/components/organisms/Titlebar.css",
+          "src/renderer/src/components/organisms/Sidebar.css",
+          "src/renderer/src/components/organisms/PaneSplit.css",
+          "src/renderer/src/components/organisms/Statusbar.css"
+        ],
+        "impact": "Create new \u2014 sibling per-component stylesheets using semantic class names bound to tokens.css custom properties; no inline styles; sidebarWidth/paneRatio driven via CSS vars"
+      },
+      {
+        "area": "tokens.css theme/method-style contract",
+        "files": ["src/renderer/styles/tokens.css"],
+        "impact": "Reuse (read-only) \u2014 shell sets data-theme + data-mstyle on <html> which tokens.css already implements; data-accent is set but visually inert (no [data-accent] block); no edits this task"
+      },
+      {
+        "area": "Shell component tests",
+        "files": [
+          "src/renderer/src/components/organisms/__tests__/Shell.test.tsx",
+          "src/renderer/src/components/organisms/__tests__/Shell.ct.tsx"
+        ],
+        "impact": "Create new \u2014 Vitest + Testing Library interaction tests and Playwright CT for divider drag/clamp, Cmd-B toggle, in-session setting survival, slot rendering, divider a11y"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Slot CONTENTS \u2014 the sidebar tree, tab bodies, request/response editors, and modal bodies that mount into the named slots \u2014 are separate downstream tasks; the shell ships empty slots only.",
+        "finding_ref": "F-spec-6"
+      },
+      {
+        "content": "On-disk / electron-store persistence of view settings \u2014 the settingsStore is in-memory only this task; disk persistence is deferred to a later persistence-port task (wired through a typed main-process IPC, not the renderer store).",
+        "finding_ref": ""
+      },
+      {
+        "content": "Defining accent palette CSS ([data-accent] selector blocks) \u2014 accent is persisted and set as data-accent but is visually inert this task; authoring accent palettes is a later task.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Command-palette overlay + search behavior \u2014 the titlebar exposes only a trigger button/slot; the palette itself is out of scope.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Environment selector, workspace pill, and account pill behavior \u2014 dropdown data, environment switching, and auth \u2014 are out of scope; these are static presentational slots this task.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Multi-window support \u2014 the shell is a single-window layout.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Keyboard shortcuts other than Cmd-B \u2014 any other shortcut belongs to its own feature.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Reproducing design/reference.html markup or its generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks-panel) \u2014 reference is for look/behavior only.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Authoring or editing design-token files \u2014 the shell consumes src/renderer/styles/tokens.css and design/tokens.json as-is; no token edits.",
+        "finding_ref": ""
+      }
+    ],
+    "open_questions": [
+      {
+        "question_id": "Q-1",
+        "content": "Integration point RESOLVED (Phase 2 fit-check): the user's belief of persisting view settings 'via the existing settings store' is incorrect \u2014 no settings store exists; settingsStore is created net-new and in-memory this task, and disk persistence (electron-store/IPC) is deferred to a later persistence-port task.",
+        "category_no_dp_reason": ""
+      },
+      {
+        "question_id": "Q-2",
+        "content": "Divider build-vs-buy is decided as hand-roll (zero-dep, keeps settingsStore as the single source of truth); react-resizable-panels is the documented fallback if the hand-rolled ARIA/keyboard/edge-case work proves more expensive than the derisk spike predicts \u2014 final confirmation at /plan.",
+        "category_no_dp_reason": ""
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Hand-rolled divider accessibility (role=separator, aria-valuenow, keyboard resize, pointer-release-outside-window) is more code to get right than a library would give for free.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Derisk spike on the divider before locking the approach; axe + keyboard/SR pass; react-resizable-panels documented as the fallback."
+      },
+      {
+        "risk": "Window-resize re-clamp math could yield negative or overflowing panes if the sidebar(200-520px) + pane-ratio(0.15-0.85) bounds are mis-handled on shrink.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Prototype the clamp/resize math against the window-shrink edge case; cover with a behavior test."
+      },
+      {
+        "risk": "Drag without rAF/CSS-var batching causes per-pointermove re-render storms and janky resize.",
+        "likelihood": "Med",
+        "impact": "Low",
+        "mitigation": "rAF-batched CSS-var write during drag; commit to the store only on pointer release; measure vs a setState-per-move baseline."
+      },
+      {
+        "risk": "data-accent is set but visually inert (no [data-accent] CSS), which can look wired-but-broken to a reviewer.",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Document the inert behavior in the spec/AC; accent palette CSS is an explicit later task."
+      },
+      {
+        "risk": "The named slot API could leak shell knowledge of slot contents, defeating the decoupling goal.",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Mount the existing Tabs molecule into the tab slot as a content-decoupling proof; slots accept arbitrary children only."
+      },
+      {
+        "risk": "jsdom may not faithfully reproduce pointer-drag and focus fidelity for the dividers, hiding real interaction defects.",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Run Playwright CT in a real browser for divider drag, keyboard resize, and focus behavior."
+      }
+    ]
+  },
+  "provenance": {
+    "upstream_handoff_path": null,
+    "upstream_handoff_kind": null,
+    "upstream_completed_at": null
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}

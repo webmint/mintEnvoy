@@ -1,0 +1,132 @@
+/*
+ * Shell.css — Semantic styles for the Shell organism component.
+ *
+ * All values are bound to design tokens from tokens.css (--bg, --border, etc.).
+ * No hardcoded colors or sizes — every var() includes a defensive fallback
+ * literal so the rule remains legible when tokens.css has not yet resolved.
+ *
+ * ## Grid layout
+ *
+ * `.shell` is a CSS grid with three rows:
+ *   - Row 1 (titlebar):  40px  — app chrome, drag region
+ *   - Row 2 (main):      1fr   — sidebar + workspace, fills remaining height
+ *   - Row 3 (statusbar): 22px  — status surface
+ *
+ * The row heights match the design reference (design/styles.css `.app`).
+ *
+ * ## Main row
+ *
+ * `.shell__main` is a flex row. The `<Sidebar>` element inside it is
+ * `flex-shrink: 0` and resolves its own width from `var(--sidebar-width)`
+ * (set by Shell's CSS-var effect and updated live by the Divider during drag).
+ * The workspace column (`shell__workspace`) grows to fill the remaining space
+ * via `flex: 1; min-width: 0`.
+ *
+ * ## Workspace column
+ *
+ * `.shell__workspace` is a flex column. The tabs strip (`shell__tabs`) renders
+ * above `<PaneSplit>` and takes its natural height. `<PaneSplit>` expands to
+ * fill the remaining workspace height via its own `flex: 1` rule in
+ * PaneSplit.css.
+ *
+ * ## Motion
+ *
+ * No layout transitions are defined at the Shell level — the layout reacts to
+ * CSS custom property changes at native frame rate during drag. Any future
+ * transitions (e.g. sidebar collapse) must be gated behind
+ * `@media (prefers-reduced-motion: no-preference)`.
+ *
+ * ## Constraints
+ *
+ * - No inline styles in Shell.tsx (constitution §3.1 / AC-14).
+ * - No hardcoded colors — all via var() with fallback literals.
+ * - No reference cruft (data-om-*, __OmT, tweaks-panel) (AC-3).
+ */
+
+/* ---------------------------------------------------------------------------
+ * Shell root (.shell)
+ * Full-viewport CSS grid — titlebar / [sidebar + main] / statusbar.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Shell root container.
+ *
+ * - `display: grid` with explicit row sizes matching the design reference:
+ *   40 px titlebar, flexible main area, 22 px statusbar.
+ * - `height: 100vh` fills the viewport; `overflow: hidden` prevents OS
+ *   scrollbars from appearing when child content briefly overflows during
+ *   a drag gesture.
+ */
+.shell {
+  display: grid;
+  grid-template-rows: 40px 1fr 22px;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg, #fbfaf9);
+}
+
+/* ---------------------------------------------------------------------------
+ * Main row (.shell__main)
+ * Flex row that fills the middle grid track and hosts the sidebar + workspace.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Main content row.
+ *
+ * - `display: flex` places the Sidebar (width from `--sidebar-width`) and
+ *   the workspace column side by side.
+ * - `min-height: 0` allows the row to shrink below its natural height inside
+ *   the grid track — essential for correct overflow behaviour on short viewports.
+ * - `overflow: hidden` clips content that briefly overflows during Divider drag.
+ */
+.shell__main {
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--bg, #fbfaf9);
+}
+
+/* ---------------------------------------------------------------------------
+ * Workspace column (.shell__workspace)
+ * Flex column that fills the space to the right of the sidebar.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Workspace column.
+ *
+ * - `flex: 1; min-width: 0` allows the column to grow and fill all horizontal
+ *   space not occupied by the Sidebar and its Divider. `min-width: 0` prevents
+ *   the column from overflowing a flex row when its content is wide.
+ * - `display: flex; flex-direction: column` stacks the tabs strip above
+ *   `<PaneSplit>`.
+ * - `min-height: 0` prevents overflow when PaneSplit fills this column.
+ * - `overflow: hidden` clips content that briefly overflows during drag.
+ */
+.shell__workspace {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--bg, #fbfaf9);
+}
+
+/* ---------------------------------------------------------------------------
+ * Tabs strip (.shell__tabs)
+ * Optional tab-strip region rendered above PaneSplit when the tabs slot is
+ * populated. Takes its natural height; PaneSplit fills the remainder.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Tabs strip mount point.
+ *
+ * - `flex-shrink: 0` prevents the strip from being squished when PaneSplit
+ *   expands. The strip takes its natural height; PaneSplit fills the rest.
+ * - A bottom border separates the strip from the pane workspace below.
+ */
+.shell__tabs {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border, #e8e6e3);
+  background-color: var(--bg, #fbfaf9);
+}

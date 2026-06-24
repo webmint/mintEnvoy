@@ -62,37 +62,25 @@
   "conflicts": [
     {
       "type": "direct",
-      "dimensions": [
-        "non_goals",
-        "integration_points"
-      ],
+      "dimensions": ["non_goals", "integration_points"],
       "description": "'memory' appears in both non_goals and integration_points",
       "resolution": "not-a-contradiction: shared-vocabulary token-overlap false positive (non_goals consistently excludes what other dimensions include); no value discarded"
     },
     {
       "type": "direct",
-      "dimensions": [
-        "non_goals",
-        "functional_scope"
-      ],
+      "dimensions": ["non_goals", "functional_scope"],
       "description": "'account' appears in both non_goals and functional_scope",
       "resolution": "not-a-contradiction: shared-vocabulary token-overlap false positive (non_goals consistently excludes what other dimensions include); no value discarded"
     },
     {
       "type": "direct",
-      "dimensions": [
-        "non_goals",
-        "success_criteria"
-      ],
+      "dimensions": ["non_goals", "success_criteria"],
       "description": "'behavior' appears in both non_goals and success_criteria",
       "resolution": "not-a-contradiction: shared-vocabulary token-overlap false positive (non_goals consistently excludes what other dimensions include); no value discarded"
     },
     {
       "type": "direct",
-      "dimensions": [
-        "non_goals",
-        "edge_cases"
-      ],
+      "dimensions": ["non_goals", "edge_cases"],
       "description": "'memory' appears in both non_goals and edge_cases",
       "resolution": "not-a-contradiction: shared-vocabulary token-overlap false positive (non_goals consistently excludes what other dimensions include); no value discarded"
     }

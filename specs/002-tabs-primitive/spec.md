@@ -10,7 +10,7 @@ A reusable, controlled, horizontal-only tab-strip primitive (Tabs) for the mintE
 
 ## 2. Current State
 
-Greenfield for the Tabs primitive — no tab-strip exists in the renderer (codebase-memory search for 'Tabs' under src/renderer returns zero matches). Feature 001-ui-primitives established the layer Tabs extends: thin Radix wrappers live in src/renderer/src/components/molecules/ (Dropdown.tsx, Modal.tsx, Toast.tsx with co-located __tests__), the shared cx() className helper at src/renderer/src/lib/cx.ts:18, the Icon atom under src/renderer/src/components/atoms/, and the dev-only gallery src/renderer/src/components/PrimitivesDemo.tsx:32 (imports + registers each primitive). The canonical controlled items-array precedent is Dropdown: src/renderer/src/components/molecules/Dropdown.tsx:90 (DropdownItemDescriptor interface) and :204 (Dropdown function). radix-ui ^1.1.3 is already declared in package.json and exposes a Tabs namespace (Tabs.Root/List/Trigger) supplying controlled value/onValueChange, roving tabindex, List loop keyboard wrap, Trigger disabled-skip, activationMode, and full WAI-ARIA. Renderer test stack (per docs/architecture.md): Vitest + @testing-library/react + user-event (jsdom) for interaction tests, Playwright CT (@playwright/experimental-ct-react) for real-browser focus/keyboard; tests co-located under __tests__/ split .test.tsx / .ct.tsx. Styling is semantic class names bound to src/renderer/styles/tokens.css with a per-component sibling .css file — no inline styles. design/reference.html is the visual/behavior reference (look only).
+Greenfield for the Tabs primitive — no tab-strip exists in the renderer (codebase-memory search for 'Tabs' under src/renderer returns zero matches). Feature 001-ui-primitives established the layer Tabs extends: thin Radix wrappers live in src/renderer/src/components/molecules/ (Dropdown.tsx, Modal.tsx, Toast.tsx with co-located **tests**), the shared cx() className helper at src/renderer/src/lib/cx.ts:18, the Icon atom under src/renderer/src/components/atoms/, and the dev-only gallery src/renderer/src/components/PrimitivesDemo.tsx:32 (imports + registers each primitive). The canonical controlled items-array precedent is Dropdown: src/renderer/src/components/molecules/Dropdown.tsx:90 (DropdownItemDescriptor interface) and :204 (Dropdown function). radix-ui ^1.1.3 is already declared in package.json and exposes a Tabs namespace (Tabs.Root/List/Trigger) supplying controlled value/onValueChange, roving tabindex, List loop keyboard wrap, Trigger disabled-skip, activationMode, and full WAI-ARIA. Renderer test stack (per docs/architecture.md): Vitest + @testing-library/react + user-event (jsdom) for interaction tests, Playwright CT (@playwright/experimental-ct-react) for real-browser focus/keyboard; tests co-located under **tests**/ split .test.tsx / .ct.tsx. Styling is semantic class names bound to src/renderer/styles/tokens.css with a per-component sibling .css file — no inline styles. design/reference.html is the visual/behavior reference (look only).
 
 ## 3. Desired Behavior
 
@@ -18,14 +18,14 @@ Deliver a single Tabs primitive at src/renderer/src/components/molecules/Tabs.ts
 
 ## 4. Affected Areas
 
-| Area | Files | Impact |
-|------|-------|--------|
-| molecules primitives dir | src/renderer/src/components/molecules | home of Dropdown/Modal/Toast; new Tabs.tsx + Tabs.css land here following the same wrapper pattern |
-| cx helper | src/renderer/src/lib/cx.ts | semantic-class composer Tabs reuses for BEM class assembly |
-| Icon atom | src/renderer/src/components/atoms/Icon.tsx | reused if a per-tab leading icon is ever added; consistent with Dropdown item icons |
-| PrimitivesDemo route | src/renderer/src/components/PrimitivesDemo.tsx | Tabs registered here for manual visual fidelity check vs design/reference.html |
-| radix-ui dependency | package.json | radix-ui ^1.1.3 already declared; Tabs namespace available with no new dependency |
-| Tabs interaction tests | src/renderer/src/components/molecules/__tests__/Tabs.test.tsx, src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx | Create new — Vitest + Testing Library interaction tests and Playwright CT keyboard/focus tests for the Tabs primitive |
+| Area                     | Files                                                                                                                      | Impact                                                                                                                |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| molecules primitives dir | src/renderer/src/components/molecules                                                                                      | home of Dropdown/Modal/Toast; new Tabs.tsx + Tabs.css land here following the same wrapper pattern                    |
+| cx helper                | src/renderer/src/lib/cx.ts                                                                                                 | semantic-class composer Tabs reuses for BEM class assembly                                                            |
+| Icon atom                | src/renderer/src/components/atoms/Icon.tsx                                                                                 | reused if a per-tab leading icon is ever added; consistent with Dropdown item icons                                   |
+| PrimitivesDemo route     | src/renderer/src/components/PrimitivesDemo.tsx                                                                             | Tabs registered here for manual visual fidelity check vs design/reference.html                                        |
+| radix-ui dependency      | package.json                                                                                                               | radix-ui ^1.1.3 already declared; Tabs namespace available with no new dependency                                     |
+| Tabs interaction tests   | src/renderer/src/components/molecules/**tests**/Tabs.test.tsx, src/renderer/src/components/molecules/**tests**/Tabs.ct.tsx | Create new — Vitest + Testing Library interaction tests and Playwright CT keyboard/focus tests for the Tabs primitive |
 
 ## 5. Acceptance Criteria
 
@@ -74,7 +74,7 @@ N/A — No new git hooks or commit gates introduced by this feature.
 - [x] **AC-13**: The codebase shall pass ESLint without new errors.
   > Verification: npm run lint
 - [x] **AC-14**: The Tabs primitive source shall contain no inline style attributes.
-  > Verification: ! grep -rEn 'style=[{][{]' src/renderer/src/components/molecules/Tabs.tsx | grep -vqE ':[[:space:]]*(\*|//|/\*)'
+  > Verification: ! grep -rEn 'style=[{][{]' src/renderer/src/components/molecules/Tabs.tsx | grep -vqE ':[[:space:]]\*(\*|//|/\*)'
   > (the trailing filter drops JSDoc/comment lines that merely document the rule, so the check matches only real JSX inline-style attributes)
 - [x] **AC-15**: The Tabs primitive source shall not import the electron or node modules directly.
   > Verification: ! grep -rEn "from '(electron|node:)" src/renderer/src/components/molecules/Tabs.tsx
@@ -92,7 +92,7 @@ N/A — No new git hooks or commit gates introduced by this feature.
 - NOT included: Tab-row overflow handling (scroll / wrap / truncate for too-many-tabs) — deferred (see Open Questions).
 - NOT included: Selected-tab routing, URL sync, or persistence.
 - NOT included: An animated selected-tab indicator or sliding-underline transition — static selected styling only.
-- NOT included: Reproducing design/reference.html markup or its generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks-panel).
+- NOT included: Reproducing design/reference.html markup or its generated cruft (data-om-\*, \_\_OmT wrappers, inline styles, tweaks-panel).
 - NOT included: Repo-wide reformatting or unrelated housekeeping commits on this feature branch (pollutes the verify hygiene scope). — F-memory-2
 
 ## 7. Technical Constraints
@@ -104,7 +104,7 @@ N/A — No new git hooks or commit gates introduced by this feature.
 - Must follow constitution §3.1: Type Safety — strict on, no any; type external input as unknown and narrow with a guard. The Tabs/Tab descriptor, props, and onChange are fully typed and exported.
 - Must follow constitution §2.1: Process Boundaries — Tabs is renderer-only; never import Node or electron in renderer code.
 - Must follow constitution §2.3: Module Organization & Imports — resolve renderer modules through the @renderer alias, not deep relative paths.
-- Must follow constitution §3.4: Testing Requirements — gate behavior/keyboard/ARIA with Vitest + Testing Library interaction tests and Playwright CT, following the existing molecules __tests__ patterns.
+- Must follow constitution §3.4: Testing Requirements — gate behavior/keyboard/ARIA with Vitest + Testing Library interaction tests and Playwright CT, following the existing molecules **tests** patterns.
 - Must follow constitution §6.3: Search Before Building — reuse radix-ui, cx(), the Icon atom, and the molecules wrapper pattern; introduce no second accessibility library.
 
 ## 8. Open Questions
@@ -117,9 +117,9 @@ N/A — No new git hooks or commit gates introduced by this feature.
 
 ## 9. Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Spike: render Radix Tabs.Root+List+Trigger as a selection-only strip WITHOUT Tabs.Content; run axe/a11y to check for dangling aria-controls and decide share-one-Root vs hand-rolled tablist | Med | Med | address before implementation; see derisk plan |
-| Contract test against both panes tab sets: click + arrows/Home/End wrap (List loop), disabled-skip, onChange(id) fires once, aria-selected/tablist roles correct, invalid/absent activeId renders no selection | Med | Med | address before implementation; see derisk plan |
-| Register in PrimitivesDemo.tsx and visually compare to design/reference.html at the request-pane (six-tab) and response-pane (four-tab) widths | Med | Med | address before implementation; see derisk plan |
-| Radix Tabs couples Trigger->Content via aria-controls; a standalone selection-only strip risks dangling aria-controls unless panels join the same Tabs.Root or the tablist is hand-rolled | High | High | must resolve before implementation |
+| Risk                                                                                                                                                                                                           | Likelihood | Impact | Mitigation                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ | ---------------------------------------------- |
+| Spike: render Radix Tabs.Root+List+Trigger as a selection-only strip WITHOUT Tabs.Content; run axe/a11y to check for dangling aria-controls and decide share-one-Root vs hand-rolled tablist                   | Med        | Med    | address before implementation; see derisk plan |
+| Contract test against both panes tab sets: click + arrows/Home/End wrap (List loop), disabled-skip, onChange(id) fires once, aria-selected/tablist roles correct, invalid/absent activeId renders no selection | Med        | Med    | address before implementation; see derisk plan |
+| Register in PrimitivesDemo.tsx and visually compare to design/reference.html at the request-pane (six-tab) and response-pane (four-tab) widths                                                                 | Med        | Med    | address before implementation; see derisk plan |
+| Radix Tabs couples Trigger->Content via aria-controls; a standalone selection-only strip risks dangling aria-controls unless panels join the same Tabs.Root or the tablist is hand-rolled                      | High       | High   | must resolve before implementation             |

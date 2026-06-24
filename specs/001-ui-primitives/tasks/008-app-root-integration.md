@@ -50,6 +50,6 @@ Wire the overlay substrate into the renderer root: mount a single Radix `Toast.P
 ## Completion Notes
 
 **Completed**: 2026-06-22T07:33:40Z
-**Files changed**: src/renderer/src/App.tsx, src/renderer/src/__tests__/app-toast-mount.test.tsx, src/renderer/src/components/molecules/__tests__/nested-overlays.ct.tsx, src/renderer/src/components/molecules/__tests__/nested-overlays.stories.tsx
+**Files changed**: src/renderer/src/App.tsx, src/renderer/src/**tests**/app-toast-mount.test.tsx, src/renderer/src/components/molecules/**tests**/nested-overlays.ct.tsx, src/renderer/src/components/molecules/**tests**/nested-overlays.stories.tsx
 **Contract**: Expects 1/1 | Produces 3/3
 **Notes**: App.tsx mounts exactly one ToastProvider+ToastViewport (boilerplate preserved; single-viewport test). AC-12 nested overlays compose (Escape topmost-only, focus nest, toast above scrim) via Radix DismissableLayer + CSS z-order. 110 vitest + 30 CT + build.

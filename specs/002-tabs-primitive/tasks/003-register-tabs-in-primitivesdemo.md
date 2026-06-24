@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                                           | Action | Description                                                                     |
+| ---------------------------------------------- | ------ | ------------------------------------------------------------------------------- |
 | src/renderer/src/components/PrimitivesDemo.tsx | Modify | Add a TabsSection registering the Tabs primitive for manual visual verification |
 
 ## Description
@@ -29,10 +29,12 @@ Register the `Tabs` primitive in the dev-only PrimitivesDemo gallery so its visu
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `Tabs.tsx` exports `Tabs` and `TabDescriptor`, importable via `@renderer/components/molecules/Tabs`.
 - `PrimitivesDemo.tsx` exists and follows the per-primitive `XSection()` registration pattern.
 
 ### Produces (checked after execution)
+
 - `PrimitivesDemo.tsx` imports `Tabs` from `@renderer/components/molecules/Tabs`.
 - `PrimitivesDemo.tsx` defines a `TabsSection` component and invokes it in the root render (mirroring `DropdownSection`), so `grep -q Tabs src/renderer/src/components/PrimitivesDemo.tsx` matches and the section is actually mounted.
 
@@ -48,6 +50,6 @@ Register the `Tabs` primitive in the dev-only PrimitivesDemo gallery so its visu
 ## Completion Notes
 
 **Completed**: 2026-06-23T08:10:06Z
-**Files changed**: src/renderer/src/components/PrimitivesDemo.tsx, src/renderer/src/components/__tests__/PrimitivesDemo.test.tsx
+**Files changed**: src/renderer/src/components/PrimitivesDemo.tsx, src/renderer/src/components/**tests**/PrimitivesDemo.test.tsx
 **Contract**: Expects 2/2 | Produces 2/2
 **Notes**: Added TabsSection (6-tab request + 4-tab response sets, module-scope TabDescriptor[] consts, local useState/onChange) mirroring DropdownSection; mounted in root render (AC-4). Extended PrimitivesDemo.test.tsx smoke suite with Tabs heading assertions (DEV-present + production-absent) to guard the mount, mirroring the four existing primitives.

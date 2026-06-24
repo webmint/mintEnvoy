@@ -54,6 +54,6 @@ Build the Modal molecule wrapping Radix `Dialog`: focus trap while open, a scrim
 ## Completion Notes
 
 **Completed**: 2026-06-21T20:56:29Z
-**Files changed**: src/renderer/src/components/molecules/Modal.tsx, src/renderer/src/components/molecules/Modal.css, src/renderer/src/components/molecules/__tests__/Modal.test.tsx, src/renderer/src/components/molecules/__tests__/Modal.ct.tsx, src/renderer/src/components/molecules/__tests__/Modal.stories.tsx, src/renderer/src/main.tsx, src/renderer/styles/tokens.css
+**Files changed**: src/renderer/src/components/molecules/Modal.tsx, src/renderer/src/components/molecules/Modal.css, src/renderer/src/components/molecules/**tests**/Modal.test.tsx, src/renderer/src/components/molecules/**tests**/Modal.ct.tsx, src/renderer/src/components/molecules/**tests**/Modal.stories.tsx, src/renderer/src/main.tsx, src/renderer/styles/tokens.css
 **Contract**: Expects 1/1 | Produces 4/4
 **Notes**: Modal over Radix Dialog (controlled, focus-trap/scrim/scroll-lock/Escape/focus-return). title required (a11y). CROSS-CUTTING: tokens.css was never imported -> added to main.tsx so all token styling works; added --scrim token. 90 vitest + 12 CT (focus-trap cycle, scroll-lock release, click-outside, reduced-motion).

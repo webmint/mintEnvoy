@@ -92,7 +92,9 @@
   /* Prevent text selection while navigating */
   user-select: none;
   /* Smooth background transition for hover/highlight */
-  transition: background-color 80ms ease, color 80ms ease;
+  transition:
+    background-color 80ms ease,
+    color 80ms ease;
   /* Ensure full-width layout inside the content panel */
   box-sizing: border-box;
   text-align: left;

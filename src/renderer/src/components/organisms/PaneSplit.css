@@ -1,0 +1,108 @@
+/*
+ * PaneSplit.css — Semantic styles for the PaneSplit organism component.
+ *
+ * All values are bound to design tokens from tokens.css (--bg, --border,
+ * --border-faint). No hardcoded colors or sizes — every var() includes a
+ * defensive fallback literal so the rule remains legible when tokens.css has
+ * not yet resolved.
+ *
+ * Pane heights are driven by the CSS custom property `--pane-ratio`, which is
+ * a unitless fraction in [0.15, 0.85] set on `document.documentElement` by the
+ * Shell (initial value) and updated in real-time by the Divider component
+ * during drag.
+ *
+ * The request pane uses `flex: var(--pane-ratio)` and the response pane uses
+ * `flex: calc(1 - var(--pane-ratio))`. Both have the same `flex-shrink` and
+ * `flex-basis` defaults (0), so only `flex-grow` varies — this produces a clean
+ * proportional split without pixel arithmetic.
+ *
+ * No inline styles are set here or in PaneSplit.tsx (AC-14).
+ *
+ * Motion: no layout transitions are defined here — layout changes happen at
+ * native frame rate via CSS custom property writes during drag.
+ */
+
+/* ---------------------------------------------------------------------------
+ * Container (.pane-split)
+ * Flex column that fills its parent and distributes height between the two
+ * panes. The parent (workspace area) owns the layout context; PaneSplit only
+ * manages its own children — never modifies parent/wrapper elements.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * PaneSplit container.
+ *
+ * - `display: flex; flex-direction: column` stacks request → divider →
+ *   response vertically.
+ * - `min-height: 0` allows the container to shrink below its natural height in
+ *   a flex or grid parent (prevents overflow when the workspace is small).
+ * - `flex: 1` allows the container itself to grow and fill available space
+ *   within its parent workspace column.
+ */
+.pane-split {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background-color: var(--bg, #fbfaf9);
+}
+
+/* ---------------------------------------------------------------------------
+ * Shared pane base (.pane-split__pane)
+ * Both the request and response panes share this base rule.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Shared pane base.
+ *
+ * - `display: flex; flex-direction: column` allows pane children to fill the
+ *   available height via their own flex rules.
+ * - `min-height: 0` prevents the pane from overflowing its flex allocation
+ *   when its content is taller than the allotted fraction.
+ * - `overflow: hidden` clips content that exceeds the allocated height,
+ *   matching the Sidebar precedent.
+ * - `flex-shrink: 0` is NOT set here — panes must be allowed to shrink so the
+ *   Divider can redistribute height. Only `flex-grow` is varied per pane.
+ * - `flex-basis: 0` ensures the flex-grow factor is the sole sizing driver.
+ */
+.pane-split__pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  flex-basis: 0;
+  background-color: var(--bg, #fbfaf9);
+}
+
+/* ---------------------------------------------------------------------------
+ * Request pane (.pane-split__pane--request)
+ * Top pane — grows proportionally to var(--pane-ratio).
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Request (top) pane.
+ *
+ * `flex: var(--pane-ratio)` resolves the unitless fraction from
+ * `--pane-ratio` (e.g. `0.5`) as the `flex-grow` factor. Because
+ * `flex-basis: 0` is set on the shared base, only the grow factor matters.
+ *
+ * A bottom border visually separates the request pane from the Divider.
+ */
+.pane-split__pane--request {
+  flex: var(--pane-ratio);
+}
+
+/* ---------------------------------------------------------------------------
+ * Response pane (.pane-split__pane--response)
+ * Bottom pane — grows proportionally to (1 - var(--pane-ratio)).
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Response (bottom) pane.
+ *
+ * `flex: calc(1 - var(--pane-ratio))` is the complement of the request pane's
+ * flex-grow. Together, request + response always sum to 1 (full height).
+ */
+.pane-split__pane--response {
+  flex: calc(1 - var(--pane-ratio));
+}

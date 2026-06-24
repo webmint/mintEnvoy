@@ -49,6 +49,6 @@ Build the demo/QA surface: a dev-only in-app route that renders Icon, Dropdown, 
 ## Completion Notes
 
 **Completed**: 2026-06-22T14:02:17Z
-**Files changed**: src/renderer/src/components/PrimitivesDemo.tsx, src/renderer/src/components/PrimitivesDemo.css, src/renderer/src/components/__tests__/PrimitivesDemo.test.tsx, src/renderer/src/App.tsx
+**Files changed**: src/renderer/src/components/PrimitivesDemo.tsx, src/renderer/src/components/PrimitivesDemo.css, src/renderer/src/components/**tests**/PrimitivesDemo.test.tsx, src/renderer/src/App.tsx
 **Contract**: Expects 1/1 | Produces 2/2
 **Notes**: Dev-only PrimitivesDemo gallery (all 4 primitives in states). DEV-gated dynamic import -> JS+CSS absent from prod bundle. Scrollable via position:fixed scroll container (fixed user-reported no-scroll bug without touching global body rule). Production-safety guard tested. 118 tests + build.

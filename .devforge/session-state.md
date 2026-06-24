@@ -1,16 +1,14 @@
 # Session State — /implement
 
-**Feature**: 002-tabs-primitive
-**Progress**: 3/3 tasks complete
-**Updated**: 2026-06-23T08:10:34Z
+**Feature**: 003-app-shell-layout
+**Progress**: 11/11 tasks complete
+**Updated**: 2026-06-23T21:20:04Z
 
 ## Recent Task Modifications
 
-- [003] register-tabs-in-primitivesdemo (Complete)
-- [002] write-tabs-tests (Complete)
-- [001] build-tabs-primitive-component (Complete)
+- [010] set-window-minwidth (?)
+- [011] shell-tests (?)
 
 ## Recent Decisions
 
-- {'task': '003', 'decision': 'Extended PrimitivesDemo.test.tsx smoke suite to assert the Tabs section heading (DEV-present + production-absent), mirroring the four existing primitives, to guard AC-4 mount.'}
-- {'task': '002', 'decision': 'Kept structural DOM a11y assertions instead of axe-core (not installed; no-new-dependency constraint).'}
+- {'task': '011', 'decision': '241 vitest tests; CT harness pre-existing RollupError (Versions removed feat 001)'}

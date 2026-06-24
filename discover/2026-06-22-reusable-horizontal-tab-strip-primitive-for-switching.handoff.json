@@ -73,81 +73,61 @@
     "affected_areas": [
       {
         "area": "molecules primitives dir",
-        "files": [
-          "src/renderer/src/components/molecules"
-        ],
+        "files": ["src/renderer/src/components/molecules"],
         "impact": "home of Dropdown/Modal/Toast; new Tabs.tsx + Tabs.css land here following the same wrapper pattern",
         "is_internal_extension_candidate": false
       },
       {
         "area": "cx helper",
-        "files": [
-          "src/renderer/src/lib/cx.ts"
-        ],
+        "files": ["src/renderer/src/lib/cx.ts"],
         "impact": "semantic-class composer Tabs reuses for BEM class assembly",
         "is_internal_extension_candidate": false
       },
       {
         "area": "Icon atom",
-        "files": [
-          "src/renderer/src/components/atoms/Icon.tsx"
-        ],
+        "files": ["src/renderer/src/components/atoms/Icon.tsx"],
         "impact": "reused if a per-tab leading icon is ever added; consistent with Dropdown item icons",
         "is_internal_extension_candidate": false
       },
       {
         "area": "PrimitivesDemo route",
-        "files": [
-          "src/renderer/src/components/PrimitivesDemo.tsx"
-        ],
+        "files": ["src/renderer/src/components/PrimitivesDemo.tsx"],
         "impact": "Tabs registered here for manual visual fidelity check vs design/reference.html",
         "is_internal_extension_candidate": false
       },
       {
         "area": "radix-ui dependency",
-        "files": [
-          "package.json"
-        ],
+        "files": ["package.json"],
         "impact": "radix-ui ^1.1.3 already declared; Tabs namespace available with no new dependency",
         "is_internal_extension_candidate": false
       },
       {
         "area": "internal:src/renderer/src/components/molecules/Dropdown.tsx",
-        "files": [
-          "src/renderer/src/components/molecules/Dropdown.tsx"
-        ],
+        "files": ["src/renderer/src/components/molecules/Dropdown.tsx"],
         "impact": "internal \u2014 canonical controlled-primitive-wrapping-Radix pattern to extend for Tabs (cx + Icon + BEM + import './X.css')",
         "is_internal_extension_candidate": true
       },
       {
         "area": "internal:src/renderer/src/components/molecules/Toast.tsx",
-        "files": [
-          "src/renderer/src/components/molecules/Toast.tsx"
-        ],
+        "files": ["src/renderer/src/components/molecules/Toast.tsx"],
         "impact": "internal \u2014 same controlled Radix-namespace wrapper pattern; Provider/Viewport split, store-driven",
         "is_internal_extension_candidate": true
       },
       {
         "area": "internal:src/renderer/src/components/molecules/Modal.tsx",
-        "files": [
-          "src/renderer/src/components/molecules/Modal.tsx"
-        ],
+        "files": ["src/renderer/src/components/molecules/Modal.tsx"],
         "impact": "internal \u2014 controlled Radix wrapper primitive; focus trap, prefers-reduced-motion gating precedent",
         "is_internal_extension_candidate": true
       },
       {
         "area": "internal:src/renderer/src/lib/cx.ts",
-        "files": [
-          "src/renderer/src/lib/cx.ts"
-        ],
+        "files": ["src/renderer/src/lib/cx.ts"],
         "impact": "internal \u2014 shared semantic-class composer used by every primitive; Tabs reuses it",
         "is_internal_extension_candidate": true
       },
       {
         "area": "internal:src/renderer/src/components/PrimitivesDemo.tsx",
-        "files": [
-          "src/renderer/src/components/PrimitivesDemo.tsx"
-        ],
+        "files": ["src/renderer/src/components/PrimitivesDemo.tsx"],
         "impact": "internal \u2014 visual-verification route where each primitive is registered; success_criteria requires Tabs added here",
         "is_internal_extension_candidate": true
       }

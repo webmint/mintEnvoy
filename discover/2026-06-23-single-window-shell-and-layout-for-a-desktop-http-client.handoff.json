@@ -1,0 +1,374 @@
+{
+  "schema_version": "1.1",
+  "handoff_kind": "discover",
+  "report_path": "discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md",
+  "discover_completed_at": "2026-06-23T11:54:15+00:00",
+  "intent": {
+    "feature_concept": "Single-window shell and layout for a desktop HTTP client: titlebar (logo, workspace pill, sidebar toggle, command-palette search trigger, environment selector, account pill), left sidebar with draggable divider (width clamped 200-520px), main area split into request/response panes by draggable horizontal divider (ratio clamped 0.15-0.85), and statusbar. Theme (light/dark), accent, method-style toggles as data attributes on root; persistence of sidebar width/pane ratio/theme via settings store. Mounting points for sidebar, tabs, panes, modals (contents are separate tasks). Cmd-B toggles sidebar. Visual reference design/reference.html for look/behavior only; rebuild with semantic class names; colors/spacing from design/tokens.json.",
+    "topic": "Single-window shell and layout for a desktop HTTP client: titlebar (logo, workspace pill, sidebar toggle, command-palette search trigger, environment selector, account pill), left sidebar with draggable divider (width clamped 200-520px), main area split into request/response panes by draggable horizontal divider (ratio clamped 0.15-0.85), and statusbar. Theme (light/dark), accent, method-style toggles as data attributes on root; persistence of sidebar width/pane ratio/theme via settings store. Mounting points for sidebar, tabs, panes, modals (contents are separate tasks). Cmd-B toggles sidebar. Visual reference design/reference.html for look/behavior only; rebuild with semantic class names; colors/spacing from design/tokens.json.",
+    "topic_slug": "single-window-shell-and-layout-for-a-desktop-http-client",
+    "scope_summary": "App-shell + layout component tree: titlebar (logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill), resizable left sidebar (clamped 200-520px) with draggable divider, main area split into request/response panes by a draggable horizontal divider (ratio clamped 0.15-0.85), statusbar. Theme(light/dark)/accent/method-style applied as root data-attributes. Cmd-B toggles sidebar. Empty named mount slots for sidebar/tabs/panes/modals (slot CONTENTS out of scope). A new zustand settings store (mirroring toastStore.ts) holds sidebar width + pane ratio + theme + accent + method-style IN-MEMORY only; disk persistence (electron-store wiring) deferred to a later persistence-port task. Styled from design/tokens.json with semantic class names per design/reference.html (markup never copied).",
+    "verbatim_prompt": "The single-window shell and layout for a desktop HTTP client: a titlebar (logo, workspace pill, sidebar toggle, command-palette search trigger, environment selector, account pill), a left sidebar with a draggable divider (width clamped 200\u2013520px), a main area split into request and response panes by a draggable horizontal divider (ratio clamped 0.15\u20130.85), and a statusbar. Plus theme (light/dark), accent, and method-style toggles applied as data attributes on the root, and persistence of sidebar width / pane ratio / theme via the settings store. Provides mounting points for sidebar, tabs, panes, and modals; their contents are separate tasks. \u2318B toggles the sidebar. Visual reference: design/reference.html (a Claude Design export) \u2014 use it for look and behavior only, never reproduce its markup; it carries generated cruft (data-om-* attributes, __OmT wrappers, inline styles, a tweaks-panel) that must not enter the build. Rebuild with semantic class names from each component's role and its tag's function. Colors and spacing come from design/tokens.json, not inline styles."
+  },
+  "spec_seeds": {
+    "spec_type_hint": "greenfield_feature",
+    "constraints": [
+      {
+        "kind": "nfr",
+        "content": "Hard limits: sidebar width clamped 200-520px; pane ratio clamped 0.15-0.85; ALL color/spacing from design/tokens.json (no inline styles); semantic class names only (never copy reference.html markup, no data-om-*/__OmT/tweaks-panel cruft). Plus: (1) Drag perf must stay smooth \u2014 no setState-per-mousemove re-render storms; use rAF or CSS-var-driven resize. (2) Accessibility \u2014 dividers keyboard-operable with ARIA separator role + aria-valuenow, focus-visible on titlebar controls, honor prefers-reduced-motion. (3) No new UI dependency adopted unvetted \u2014 react-resizable-panels/allotment is a build-vs-buy decision, prefer zero-dep hand-roll if cheap. (4) Electron/CSP-safe \u2014 no remote resources, contextIsolation respected, renderer sandboxed, no inline-style injection.",
+        "quantifier": "see discovery report constraints dimension",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "nfr",
+        "content": "Out of scope: Out of scope: (1) Slot CONTENTS \u2014 sidebar tree, tab bodies, request/response editors, modal bodies (separate tasks). (2) Multi-window. (3) Keyboard shortcuts other than Cmd-B (each belongs to its feature). (4) On-storage/electron-store persistence \u2014 the settings store is in-memory only this task. (5) Collapsible-restore-width beyond simple re-show. (6) Command-palette overlay + search behavior \u2014 titlebar trigger is a button/slot only. (7) Environment selector / workspace pill / account pill behavior \u2014 static presentational slots; their dropdown data, switching, and auth are out of scope. (8) Defining the actual color palettes for each visual theme or method-style variant \u2014 the shell only sets the root data-attributes and persists the chosen preference, consuming the token file as-is.",
+        "quantifier": "non-goal boundary from scoping session",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.1 Type Safety",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.3 Naming",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a75 State Management",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a72 Process boundaries (electron-store in main)",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a76 Reuse-before-build",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "tokens.css theme/method-style contract",
+        "files": ["src/renderer/styles/tokens.css"],
+        "impact": "existing CSS contract for [data-theme] + [data-mstyle] on <html> \u2014 shell sets these attributes; candidate for reuse over fresh build. accent NOT attribute-switched here.",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "toastStore zustand pattern",
+        "files": ["src/renderer/src/lib/toastStore.ts"],
+        "impact": "existing zustand store shape \u2014 new settingsStore mirrors it; candidate for reuse over fresh build",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "App.tsx mount root",
+        "files": ["src/renderer/src/App.tsx"],
+        "impact": "current renderer mount (renders PrimitivesDemo) \u2014 shell organism mounts here, attribute-set on <html> root",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "internal:src/renderer/styles/tokens.css",
+        "files": ["src/renderer/styles/tokens.css"],
+        "impact": "internal \u2014 EXISTING implementation of theme + method-style application: :root light + [data-theme='dark'] overrides + 6 [data-mstyle] method variants. Header states data-theme + data-mstyle live on <html>. Shell EXTENDS by setting attributes; CSS already done. NOTE attr is data-mstyle not data-method-style; NO data-accent block exists.",
+        "is_internal_extension_candidate": true
+      },
+      {
+        "area": "internal:src/renderer/src/lib/toastStore.ts",
+        "files": ["src/renderer/src/lib/toastStore.ts"],
+        "impact": "internal \u2014 existing zustand store the new settingsStore mirrors (create() + selector hooks + reset for tests). No settings store exists yet; settingsStore is net-new but follows this shape.",
+        "is_internal_extension_candidate": true
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Spike a hand-rolled divider (pointer events + rAF + CSS custom property) and measure drag smoothness vs a setState-per-move baseline before committing",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Prototype the clamp/resize math against the window-resize edge case (sidebar 200-520px + pane ratio 0.15-0.85 re-clamp on shrink) to confirm no negative/overflow panes",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Run an axe + keyboard/screen-reader pass on the divider (ARIA separator role, aria-valuenow, keyboard resize) to validate accessibility before the lib-vs-handroll decision is locked",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Mount one real consumer (e.g. the existing Tabs molecule) into the tab slot to prove the slot API is genuinely content-decoupled",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Confirm the accent reality with the user/spec: persist the value but mark data-accent visually inert until a later accent-palette task (or pull accent into scope explicitly)",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "user belief of an existing settings store is incorrect \u2014 store must be created net-new",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      },
+      {
+        "risk": "disk persistence (electron-store/IPC) does not exist and is deferred",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      },
+      {
+        "risk": "accent data-attribute is visually inert \u2014 no [data-accent] CSS exists; persist the value but expect no visual change",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      },
+      {
+        "risk": "naming: use data-mstyle to match existing CSS, not data-method-style",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      }
+    ],
+    "open_questions": [
+      {
+        "question": "user-supplied placement guess (confirm via Phase 2 fit-check): persistence of sidebar width / pane ratio / theme via the existing settings store",
+        "blocking": true
+      }
+    ]
+  },
+  "plan_seeds": {
+    "design_options": [
+      {
+        "id": "A",
+        "name": "Single settings store + CSS-var layout, hand-rolled dividers",
+        "shape": "One zustand settingsStore is the single source of truth: { theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed } + actions. The Shell organism writes sidebarWidth/paneRatio to CSS custom properties on its own root and sets data-theme/data-accent/data-mstyle on <html> via effect. Dividers are hand-rolled pointer-event components that clamp px/ratio in JS and write to a CSS var during drag (rAF-batched, store committed on release). Slots are named React children/context mount points.",
+        "pros": [
+          "Settings store is the single source of truth \u2014 no lib-owned layout state to sync (satisfies the stated requirement)",
+          "Exact px (200-520) + ratio (0.15-0.85) clamp control; full ARIA-separator + keyboard control",
+          "Zero new dependency (constraint: prefer zero-dep hand-roll if cheap)",
+          "Mirrors existing toastStore + extends existing tokens.css contract directly"
+        ],
+        "cons": [
+          "Must hand-write ARIA separator + keyboard resize + drag-release-outside-window handling (the lib gives these free)",
+          "More component code to test than adopting a lib"
+        ],
+        "complexity": "Med"
+      },
+      {
+        "id": "B",
+        "name": "Library-backed panels + thin settings store",
+        "shape": "Adopt react-resizable-panels (or allotment) for the split/resize surfaces. settingsStore holds only { theme, accent, mstyle } plus the library's serialized layout string; the library owns sidebar/pane sizing internally and is driven controlled-mode from the store. Dividers/ARIA come from the library.",
+        "pros": [
+          "Accessible WAI-ARIA separators + keyboard + edge-case drag handling come built-in and battle-tested",
+          "Less custom layout/drag code to write and maintain"
+        ],
+        "cons": [
+          "Two layout-state owners (library internal + settings store) need sync glue \u2014 violates the single-source-of-truth requirement",
+          "react-resizable-panels % model is awkward for the px sidebar clamp (allotment fits px better but is heavier/opinionated)",
+          "New dependency must be vetted (constraint) and adds bundle weight to an Electron renderer"
+        ],
+        "complexity": "Med"
+      },
+      {
+        "id": "C",
+        "name": "Slot-registry layout reducer",
+        "shape": "A layout context exposes a register/unregister slot API (a registry of named mount points) backed by a reducer, instead of fixed named-children slots; settings still in the zustand store. Future panes/tabs/modals attach dynamically by id.",
+        "pros": [
+          "Most extensible slot API for future dynamic panes/tabs",
+          "Decouples shell from knowing its slot set at build time"
+        ],
+        "cons": [
+          "Over-engineered for the current fixed slot set (sidebar/tabs/panes/modals) \u2014 adds a registry abstraction with no current consumer needing it",
+          "More indirection to test; risks YAGNI against the minimal scope"
+        ],
+        "complexity": "High"
+      }
+    ],
+    "build_vs_buy": {
+      "recommendation": "Build",
+      "build_path": "Hand-roll the shell: net-new components/organisms/ Shell + Sidebar/PaneSplit/Titlebar/Statusbar, net-new settingsStore.ts (mirrors toastStore), dividers as pointer-event components writing CSS vars. Consumes existing tokens.css contract.",
+      "buy_path": "Adopt react-resizable-panels (mainstream React choice, wrapped by shadcn/ui Resizable) or allotment (VS Code-derived, native px sizing) for the resize surfaces only; still build the titlebar/statusbar/store by hand.",
+      "reasoning": "Build (hand-roll dividers). The constraint set explicitly prefers a zero-dep hand-roll when cheap, and the single-source-of-truth requirement (settings store owns width/ratio) actively penalizes the library path, which keeps its own layout state. The shell is a fixed 2-divider layout \u2014 bounded enough that hand-rolling the clamp + drag + ARIA is cheaper end-to-end than adopting, vetting, and sync-gluing a controlled-mode panel library. react-resizable-panels stays the documented fallback if the hand-rolled accessibility/edge-cases prove more expensive than the derisk spike predicts."
+    },
+    "cited_canonical_patterns": [
+      {
+        "reference": "tokens.css (theme + method-style CSS contract)",
+        "kind": "pattern",
+        "source": "internal:src/renderer/styles/tokens.css",
+        "relevance": "internal \u2014 EXISTING implementation of theme + method-style application: :root light + [data-theme='dark'] overrides + 6 [data-mstyle] method variants. Header states data-theme + data-mstyle live on <html>. Shell EXTENDS by setting attributes; CSS already done. NOTE attr is data-mstyle not data-method-style; NO data-accent block exists.",
+        "is_internal": true
+      },
+      {
+        "reference": "toastStore.ts (zustand store pattern)",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/lib/toastStore.ts",
+        "relevance": "internal \u2014 existing zustand store the new settingsStore mirrors (create() + selector hooks + reset for tests). No settings store exists yet; settingsStore is net-new but follows this shape.",
+        "is_internal": true
+      },
+      {
+        "reference": "react-resizable-panels (bvaughn)",
+        "kind": "library",
+        "source": "https://github.com/bvaughn/react-resizable-panels",
+        "relevance": "Most battle-tested React split lib (shadcn/ui Resizable wraps it). Flexbox PERCENTAGE model + accessible WAI-ARIA separator + onLayoutChanging/onLayoutChanged batching. Tension: % model awkward for the px sidebar clamp (200-520px), and the lib owns layout state internally \u2014 duplicates the requirement that the zustand settings store own width/ratio (controlled mode needs glue).",
+        "is_internal": false
+      },
+      {
+        "reference": "allotment (johnwalley)",
+        "kind": "library",
+        "source": "https://github.com/johnwalley/allotment",
+        "relevance": "VS Code-derived split-view; supports px min/max sizes natively (better for the 200-520px sidebar clamp than %), IDE snap UX. Heavier/opinionated; also owns layout state internally (same single-source-of-truth tension with settings store).",
+        "is_internal": false
+      },
+      {
+        "reference": "shadcn/ui Resizable",
+        "kind": "product",
+        "source": "https://ui.shadcn.com/docs/components/radix/resizable",
+        "relevance": "Reference for idiomatic API shape over react-resizable-panels; copy-paste component pattern, not a dep \u2014 confirms react-resizable-panels is the mainstream React choice.",
+        "is_internal": false
+      },
+      {
+        "reference": "Hand-rolled pointer-event divider (rAF + CSS var)",
+        "kind": "pattern",
+        "source": "see discovery report",
+        "relevance": "Zero-dep pattern: useRef + pointer events writing a CSS custom property (no setState-per-move), clamp px/ratio exactly in JS, ARIA separator role + aria-valuenow by hand. Cheap for a fixed 2-divider layout; keeps the zustand settings store the single source of truth (no lib-owned layout state).",
+        "is_internal": false
+      }
+    ],
+    "complexity": {
+      "changes": "Med",
+      "risk": "Low",
+      "verify_cost": "Med"
+    },
+    "recommended_option_id": "A",
+    "recommended_option_rationale": "Best fit to the stated constraints. The requirement that the settings store own sidebar width + pane ratio makes a library-owned layout state (react-resizable-panels / allotment) a net liability \u2014 both would need controlled-mode sync glue and duplicate the source of truth. This option EXTENDS existing internal:src/renderer/src/lib/toastStore.ts (the zustand pattern settingsStore mirrors) and EXTENDS the already-complete CSS contract in internal:src/renderer/styles/tokens.css (which the existing implementation covers for [data-theme] + [data-mstyle] but does NOT cover for accent \u2014 no [data-accent] block exists, so this option persists accent in the store while accepting it is visually inert until accent palettes are added in a later task). The hand-roll cost (ARIA separator, keyboard resize, drag-release-outside-window) is bounded for a fixed 2-divider layout and is the price of exact px/ratio clamp control + zero new dependency. Acknowledged tradeoff: more divider/a11y code to write and test than option B; mitigated by the derisk spike below, with react-resizable-panels documented as the fallback if the hand-rolled a11y proves costly.",
+    "_effort_estimate": "Medium",
+    "_overall_fit": "Good",
+    "_derisk_count": 3
+  },
+  "discovery_block": {
+    "overall_fit": "Good",
+    "effort_estimate": "Medium",
+    "fit_rationale": "Fit is Good: the shell drops cleanly into the existing renderer as a net-new components/organisms/ tier plus a net-new settingsStore.ts that mirrors the existing toastStore zustand pattern, and it consumes an ALREADY-COMPLETE CSS contract (tokens.css implements [data-theme] dark overrides + 6 [data-mstyle] method variants on <html>). No existing code is refactored \u2014 App.tsx swaps PrimitivesDemo for the Shell. Two belief-vs-reality corrections, both minor: (1) there is no existing settings store to persist 'via' \u2014 it is created net-new and in-memory this task (disk/electron-store deferred); (2) accent is not attribute-switched in tokens.css, so a data-accent attribute is visually inert today and defining accent palettes is out of scope \u2014 the store persists the choice but it drives no CSS this task. Effort is Medium: integration is Low, but the resizable dividers (px + ratio clamp, smooth drag without re-render storms, ARIA separators, drag-release-outside-window) plus the slot API are the real build cost, and the divider build-vs-buy (hand-roll vs react-resizable-panels vs allotment) is the one open design decision \u2014 complicated by both libs owning layout state internally, which conflicts with the requirement that the settings store be the single source of truth for width/ratio.",
+    "fit_assessments": [
+      {
+        "touchpoint": "toastStore zustand pattern",
+        "user_expected": "Persist sidebar width / pane ratio / theme via the EXISTING settings store",
+        "reality": "No settings store exists. CBM scan shows only toastStore.ts; electron-store appears solely in config/docs, not src. settingsStore is net-new, mirroring toastStore's zustand shape; persistence is in-memory this task.",
+        "effort": "Low",
+        "blockers": [
+          "user belief of an existing settings store is incorrect \u2014 store must be created net-new",
+          "disk persistence (electron-store/IPC) does not exist and is deferred"
+        ]
+      },
+      {
+        "touchpoint": "tokens.css theme/method-style contract",
+        "user_expected": "Set theme + accent + method-style as data attributes on root; all three drive visuals via tokens",
+        "reality": "tokens.css already implements [data-theme='dark'] overrides and 6 [data-mstyle] method variants on <html> \u2014 theme + method-style fully wired (attr is data-mstyle, NOT data-method-style). BUT accent is a single --accent var with NO [data-accent] switch block: setting data-accent has zero CSS effect today, and defining accent palettes is a non_goal. So accent persistence is store-only/inert this task.",
+        "effort": "Low",
+        "blockers": [
+          "accent data-attribute is visually inert \u2014 no [data-accent] CSS exists; persist the value but expect no visual change",
+          "naming: use data-mstyle to match existing CSS, not data-method-style"
+        ]
+      },
+      {
+        "touchpoint": "App.tsx mount root",
+        "user_expected": "Shell mounts as the top-level renderer chrome",
+        "reality": "App.tsx currently renders PrimitivesDemo. Swap to the Shell organism is a small, contained edit; attributes set on <html> via effect from settingsStore.",
+        "effort": "Low",
+        "blockers": []
+      }
+    ],
+    "verdict": "Promising with caveats",
+    "override_recorded": false,
+    "memo_dimensions": {
+      "functional_scope": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "App-shell + layout component tree: titlebar (logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill), resizable left sidebar (clamped 200-520px) with draggable divider, main area split into request/response panes by a draggable horizontal divider (ratio clamped 0.15-0.85), statusbar. Theme(light/dark)/accent/method-style applied as root data-attributes. Cmd-B toggles sidebar. Empty named mount slots for sidebar/tabs/panes/modals (slot CONTENTS out of scope). A new zustand settings store (mirroring toastStore.ts) holds sidebar width + pane ratio + theme + accent + method-style IN-MEMORY only; disk persistence (electron-store wiring) deferred to a later persistence-port task. Styled from design/tokens.json with semantic class names per design/reference.html (markup never copied)."
+      },
+      "users": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Co-primary consumers: (1) Human end users \u2014 developers/API testers operating the mintEnvoy desktop window; the shell is the top-level chrome they see every session (titlebar, sidebar, panes, statusbar). (2) Downstream feature tasks \u2014 code that mounts content into the shell's named slots (sidebar tree, tab bodies, request/response editors, modal bodies); for them the shell is an integration contract (a stable slot API), not just visuals."
+      },
+      "inputs_outputs": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "IN: design tokens from design/tokens.json (CSS custom properties), slot children (React nodes passed by parent/feature tasks), initial settings defaults (theme/accent/method-style + default sidebar width + default pane ratio). OUT: settings store state + setters exposed via the zustand hook (theme/accent/method-style, sidebar width, pane ratio), root data-attributes written to the DOM (data-theme/data-accent/data-method-style), Cmd-B toggle + drag-resize interaction events. NO network or disk I/O this task (persistence is in-memory; electron-store/IPC deferred)."
+      },
+      "integration_points": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Shell layout components under a new src/renderer/src/components/organisms/ tier (above existing atoms/molecules). Settings store as new src/renderer/src/lib/settingsStore.ts, mirroring src/renderer/src/lib/toastStore.ts zustand pattern. App.tsx (src/renderer/src/App.tsx) swaps current PrimitivesDemo mount for the new Shell organism. Tokens consumed from design/tokens.json. NOTE: user belief that persistence hooks an 'existing settings store' \u2014 Phase 2 fit-check must confirm; CBM scan shows NO settings store exists yet (only toastStore), so the store is net-new and persistence is in-memory this task."
+      },
+      "constraints": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Hard limits: sidebar width clamped 200-520px; pane ratio clamped 0.15-0.85; ALL color/spacing from design/tokens.json (no inline styles); semantic class names only (never copy reference.html markup, no data-om-*/__OmT/tweaks-panel cruft). Plus: (1) Drag perf must stay smooth \u2014 no setState-per-mousemove re-render storms; use rAF or CSS-var-driven resize. (2) Accessibility \u2014 dividers keyboard-operable with ARIA separator role + aria-valuenow, focus-visible on titlebar controls, honor prefers-reduced-motion. (3) No new UI dependency adopted unvetted \u2014 react-resizable-panels/allotment is a build-vs-buy decision, prefer zero-dep hand-roll if cheap. (4) Electron/CSP-safe \u2014 no remote resources, contextIsolation respected, renderer sandboxed, no inline-style injection."
+      },
+      "non_goals": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Out of scope: (1) Slot CONTENTS \u2014 sidebar tree, tab bodies, request/response editors, modal bodies (separate tasks). (2) Multi-window. (3) Keyboard shortcuts other than Cmd-B (each belongs to its feature). (4) On-storage/electron-store persistence \u2014 the settings store is in-memory only this task. (5) Collapsible-restore-width beyond simple re-show. (6) Command-palette overlay + search behavior \u2014 titlebar trigger is a button/slot only. (7) Environment selector / workspace pill / account pill behavior \u2014 static presentational slots; their dropdown data, switching, and auth are out of scope. (8) Defining the actual color palettes for each visual theme or method-style variant \u2014 the shell only sets the root data-attributes and persists the chosen preference, consuming the token file as-is."
+      },
+      "success_criteria": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "(1) Visual fidelity: rendered shell matches design/reference.html layout and design/tokens.json colors/spacing under design-auditor review (look/behavior only, never markup). (2) Behavior: both dividers drag and clamp to range (200-520px, 0.15-0.85); Cmd-B toggles sidebar; view settings (theme/accent/method-style) + sidebar width + pane ratio survive within the session via the settings store \u2014 all covered by component tests. (3) Decoupled slots: sidebar/tabs/panes/modals mount slots accept arbitrary children and render them without the shell knowing their contents. (4) Gates green: typecheck + lint + build + existing test suite pass; zero reference-export cruft (no data-om-*, __OmT, inline styles, tweaks-panel) anywhere in the build."
+      },
+      "edge_cases": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "(1) Window resize vs clamps: when the window shrinks below where clamped sidebar width + min pane sizes fit, width/ratio re-clamp gracefully \u2014 no negative or overflowing panes; pane divider stays within 0.15-0.85 after resize. (2) Sidebar collapsed: Cmd-B/toggle hides sidebar, its divider hides, main area reflows full-width; re-show restores prior width (in-memory this task). (3) Bad/empty persisted values: out-of-range or missing width/ratio (e.g. a future disk load) clamp or fall back to defaults rather than render a broken layout. (4) Drag release outside window: pointer leaving the window mid-drag or pointer-up off-target ends the drag cleanly \u2014 no stuck-dragging state, listeners removed."
+      }
+    },
+    "references": [
+      "Bruno (layout pattern)",
+      "VS Code (layout pattern)",
+      "react-resizable-panels (primary split/pane candidate)",
+      "allotment (pane alternative to compare)",
+      "in-repo src/renderer/src/lib/toastStore.ts (zustand pattern to mirror for settings store)"
+    ],
+    "gaps": [
+      {
+        "dimension": "integration_points",
+        "description": "user-supplied placement guess (confirm via Phase 2 fit-check): persistence of sidebar width / pane ratio / theme via the existing settings store"
+      }
+    ]
+  },
+  "downstream_links": {
+    "spec_path": "specs/003-single-window-shell-and-layout-for-a-desktop-http-client/spec.md",
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}

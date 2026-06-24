@@ -92,11 +92,13 @@ def cmd_render_config(args: argparse.Namespace) -> int:
 
 
 def cmd_substitute_templates(args: argparse.Namespace) -> int:
-    """Substitute {{KEY}} placeholders across CLAUDE.md + .claude/agents/*.md.
+    """Substitute {{KEY}} placeholders across CLAUDE.md, .claude/agents/*.md,
+    and (when present) docs/overview.md + docs/architecture.md.
 
     Reads project-config.json from <devforge_dir>; reads init.yaml for
     packages_detected; builds substitution map; walks template list;
-    substitutes per-file; writes atomically.
+    substitutes per-file; writes atomically.  docs/ files are processed
+    only when they exist on disk; their absence is not an error.
 
     Exit 0 = all templates substituted; no {{KEY}} markers remain.
     Exit 1 = project-config.json missing or malformed; init.yaml missing.
@@ -172,7 +174,13 @@ def cmd_substitute_templates(args: argparse.Namespace) -> int:
             "{0} — no agent templates to substitute\n".format(agents_dir)
         )
 
-    templates = [claude_md] + agent_templates
+    docs_templates = []  # type: List[Path]
+    for docs_name in ("overview.md", "architecture.md"):
+        docs_file = install_root / "docs" / docs_name
+        if docs_file.is_file():
+            docs_templates.append(docs_file)
+
+    templates = [claude_md] + agent_templates + docs_templates
 
     # --- Substitute per-file ---
     all_missing = {}  # type: Dict[str, List[str]]  # path → missing keys
