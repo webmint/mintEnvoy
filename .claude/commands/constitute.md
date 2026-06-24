@@ -150,7 +150,7 @@ Plain prose echo, NOT AskUserQuestion (multi-line content cannot fit AskUserQues
 
 ### Section 1 echo template (Project Identity)
 
-```
+````
 Here's what /constitute proposes for Section 1 — Project Identity:
 
 - name:   <project_identity.name>
@@ -159,13 +159,13 @@ Here's what /constitute proposes for Section 1 — Project Identity:
 - stack:  <project_identity.stack>
 
 Reply 'yes' to apply, 'cancel' to abort the run, or list overrides one per line as 'field: value' (e.g., 'domain: Industrial equipment quoting for dealers').
-```
+````
 
 ### Section 4 echo template (Patterns & Anti-Patterns — bucket-based, no sub-section numbers)
 
 Section 4 has no numbered sub-sections — its 6 buckets are addressed by `(--bucket × --scope)` not by `--number`. Use this echo template (NOT the Sections 2/3/5/6 template below):
 
-```
+````
 Here's what /constitute proposes for Section 4 — Patterns & Anti-Patterns:
 
 Always Do (Universal):
@@ -195,7 +195,7 @@ Reply 'yes' to apply this section, 'cancel' to abort the run, or list overrides 
   - 'drop bucket <bucket>:<scope>'                   — drop every rule in the named bucket
 
 Bucket values: always | never | prefer. Scope values: universal | project-specific.
-```
+````
 
 Each accepted line maps to one `add-pattern-rule` call (`--bucket <bucket> --scope <scope> --tag <tag> --text "<text>"`). `drop` / `replace` overrides operate against the Phase 2 composed values held in memory before any setter call — apply the merged final list once, not delta-style.
 
@@ -203,7 +203,7 @@ Each accepted line maps to one `add-pattern-rule` call (`--bucket <bucket> --sco
 
 Applies to Sections 2, 3, 5, 6 (each has numbered sub-sections like 2.1, 3.5, etc.). Section 4 uses its own template above. For each section, echo the proposed sub-sections, rules, tables, and code examples as a hierarchical list. Use the following template (substitute `<...>` with Phase 2 composed values):
 
-```
+````
 Here's what /constitute proposes for Section <N> — <Section Name>:
 
 ### <number> <title>  [<tag>]
@@ -226,7 +226,7 @@ Reply 'yes' to apply this section, 'cancel' to abort the run, or list overrides 
   - 'drop rule <number>:<index>'                    — remove rule at 1-based index from sub-section <number>
   - 'replace rule <number>:<index>: [<tag>] <text>' — replace rule at 1-based index
   - 'drop section <number>'                         — drop the entire sub-section
-```
+````
 
 For string-array fields whose values contain literal commas (e.g., TypeScript generic syntax `Either<DataError, T>`), supply the value as a JSON array — the helper's `_validate_string_array` accepts either form. Example: `add rule 3.2: [extracted] Errors propagate as ["Either<DataError, T>", "Result<Ok, Err>"]`.
 
@@ -234,18 +234,24 @@ For `add-table` calls with cell content containing internal commas (TS generics,
 
 ### Section 3.5 echo template (Forcing Functions — config block, not a constitution.md sub-section)
 
-Section 3.5 captures the consumer's `forcing_functions` config block in `.devforge/constitute.json`. It is emitted as a **separate echo block in its own turn** — only AFTER Section 3's reply is parsed and Section 3's `add-section` / `add-rule` / `add-table` / `add-code-example` setters apply. Stop discipline applies per Phase 3 (end the assistant turn after emitting; wait for the user reply). The three rules (`magic_enum_duplication`, `cross_layer_imports`, `any_with_generated_available`) are mechanical detectors backing universal §3.5 ("No magic values") and §3.6 ("Design Principles") of `src/constitution.md`; each rule is independently opt-in. This block targets the top-level `forcing_functions` key in `.devforge/constitute.json` and does NOT add a numbered sub-section to the rendered `constitution.md` — the config is read by `constitute_helper verify-magic-enum` / `verify-cross-layer-imports` / `verify-any-leak` (each rule's `enabled` flag gates whether its detector runs).
+Section 3.5 captures the consumer's `forcing_functions` config block in `.devforge/constitute.json`. It is emitted as a **separate echo block in its own turn** — only AFTER Section 3's reply is parsed and Section 3's `add-section` / `add-rule` / `add-table` / `add-code-example` setters apply. Stop discipline applies per Phase 3 (end the assistant turn after emitting; wait for the user reply). The rules (`magic_enum_duplication`, `cross_layer_imports`, `any_with_generated_available`, and — for UI projects with a design source — `design_token_provenance`) are mechanical detectors backing the Code Quality Standards material and the Design Fidelity principle of the constitution; each rule is independently opt-in. This block targets the top-level `forcing_functions` key in `.devforge/constitute.json` and does NOT add a numbered sub-section to the rendered `constitution.md` — the config is read by `constitute_helper verify-magic-enum` / `verify-cross-layer-imports` / `verify-any-leak` / `verify-design-tokens` (each rule's `enabled` flag gates whether its detector runs).
+
+`design_token_provenance` is offered ONLY when the project has a design source — when `design/styles.css` and/or `design/reference.html` exists at install root. When neither file exists (non-UI projects have no design source), omit the `design_token_provenance` block from the echo entirely and issue no `set-forcing-functions` call for it; the rule stays at its disabled default. The other three rules are always offered (their echo blocks are always emitted, with empty or auto-detected defaults). `design_token_provenance` is the only rule whose echo block AND setter call are suppressed entirely when no design source exists.
+
+Enabling `design_token_provenance` turns on a static provenance check — no hardcoded color / border / spacing literals, no `var(--x, <literal>)` fallbacks, undefined tokens fail loud, token-binding required on MATCH elements, and `:hover` + `:focus-visible` required on interactive elements — that runs at the `/implement` per-task gate and the opt-in pre-commit hook. It is the build-time half of the constitution's Design Fidelity principle.
 
 Pre-fill defaults before echo:
 
 - `generated_types_dirs` for `magic_enum_duplication` and `any_with_generated_available` — scan `INIT_JSON.packages_detected[]` for package roots that contain `.d.ts` or generated-types subdirectories; the populated default is the list of detected dirs (repo-relative). If detection yields zero candidates, default to `[]`.
 - `allowlist_paths` for `magic_enum_duplication` — default `[]`. The user supplies project-specific exemptions (fixtures, logs, scripts).
 - `layer_graph` and `layer_dirs` for `cross_layer_imports` — default `{}` (empty). Cross-layer enforcement has no safe default; the user supplies the explicit layer graph when enabling.
-- `enabled` for all three rules — default `false` on first-time runs.
+- `token_source_css` for `design_token_provenance` (offered only when a design source exists, per the offer rule above) — default `design/styles.css` (the project's token-definitions + spacing-scale source). The user confirms or overrides the path the same way the other rules confirm their inputs. No manifest field is captured — the detector globs the per-feature `specs/*/design-manifest.json` files (written by `/breakdown`) at run time; the manifest is per-feature, not a global config value.
+- `allowlist_paths` for `design_token_provenance` — default `[]`. The user supplies project-specific exemptions (legacy / third-party component files exempt from the provenance check).
+- `enabled` for all rules — default `false` on first-time runs.
 
 Echo template:
 
-```
+````
 Here's what /constitute proposes for Section 3.5 — Forcing Functions [config-block]:
 
 magic_enum_duplication:
@@ -262,6 +268,11 @@ any_with_generated_available:
 - enabled:              <true|false>
 - generated_types_dirs: <comma-separated dirs>
 
+design_token_provenance:                  # include this block ONLY when a design source exists
+- enabled:              <true|false>
+- token_source_css:     <path to CSS token source>
+- allowlist_paths:      <comma-separated globs>   # optional; omit line when empty
+
 Allowlist glob behavior: fnmatch does NOT expand '**' across directory separators. Pair every '**/<x>' glob with its top-level twin '<x>' or '<x>/**' to cover both nested and top-level matches.
 
 Reply 'yes' to apply, 'cancel' to abort the run, or list overrides one per line as '<rule>.<field>: <value>':
@@ -273,17 +284,20 @@ Reply 'yes' to apply, 'cancel' to abort the run, or list overrides one per line 
   - 'cross_layer_imports.layer_dirs: {"domain": "packages/*/domain/**", "infra": "packages/*/infra/**", "ui": "packages/*/ui/**"}'
   - 'any_with_generated_available.enabled: true'
   - 'any_with_generated_available.generated_types_dirs: packages/cse-types/src'
+  - 'design_token_provenance.enabled: true'           # only when offered
+  - 'design_token_provenance.token_source_css: design/styles.css'   # only when offered
+  - 'design_token_provenance.allowlist_paths: src/legacy/**.css, src/legacy'   # only when offered
 
-Field-shape contract: generated_types_dirs and allowlist_paths require comma-separated values; layer_graph and layer_dirs require JSON-object form. See the flag-omission rule paragraph immediately after this echo template for when each field is passed to the setter.
-```
+Field-shape contract: generated_types_dirs and allowlist_paths require comma-separated values (allowlist_paths takes comma-separated globs for both magic_enum_duplication and design_token_provenance); layer_graph and layer_dirs require JSON-object form; token_source_css is a single path string. See the flag-omission rule paragraph immediately after this echo template for when each field is passed to the setter.
+````
 
-Per the stop discipline above (Phase 3 § stop discipline mandatory paragraph), end the assistant turn after emitting this echo block and wait for the user's reply. Apply parsed values via `set-forcing-functions` (one call per rule — three calls total) per the setter mapping below. Flag-omission rule: `--enabled` is required on every call; each bracketed flag (`--generated-types-dirs`, `--allowlist-paths`, `--layer-graph-json`, `--layer-dirs-json`) is passed only when both (a) the rule resolves to `--enabled true` AND (b) the field has a non-empty value. When `enabled` resolves to `false` for a rule, **or** when an optional field has no non-empty value, omit that flag from the setter call. Reply equals `yes` applies the pre-filled defaults; reply equals `cancel` aborts cleanly leaving `.devforge/constitute.json` in its post-Section-3 state. The reply-parsing rules in "Parsing the user reply (per-section)" above apply uniformly (3-attempt retry cap; on the third invalid reply, proceed with proposed values and warn the user).
+Per the stop discipline above (Phase 3 § stop discipline mandatory paragraph), end the assistant turn after emitting this echo block and wait for the user's reply. Apply parsed values via `set-forcing-functions` (one call per rule — three calls when no design source exists, four when `design_token_provenance` was offered) per the setter mapping below. Flag-omission rule: `--enabled` is required on every call; each bracketed flag (`--generated-types-dirs`, `--allowlist-paths`, `--layer-graph-json`, `--layer-dirs-json`, `--token-source-css`) is passed only when both (a) the rule resolves to `--enabled true` AND (b) the field has a non-empty value. When `enabled` resolves to `false` for a rule, **or** when an optional field has no non-empty value, omit that flag from the setter call. (`set-forcing-functions` also accepts a `--manifest-path` flag, but it is deliberately NOT passed here — a global manifest path is never a config value; the `design_token_provenance` detector globs the per-feature `specs/*/design-manifest.json` files at run time. Do not add `--manifest-path` to any call.) Reply equals `yes` applies the pre-filled defaults; reply equals `cancel` aborts cleanly leaving `.devforge/constitute.json` in its post-Section-3 state. The reply-parsing rules in "Parsing the user reply (per-section)" above apply uniformly (3-attempt retry cap; on the third invalid reply, proceed with proposed values and warn the user).
 
 ### Section 7 echo template (greenfield only)
 
 If Phase 4 resolved `mode == "greenfield"`, after Section 6 confirms, echo Section 7:
 
-```
+````
 Here's what /constitute proposes for Section 7 — Scaffolding Guide [greenfield-only]:
 
 Starter directories:
@@ -300,7 +314,7 @@ Reply 'yes' to apply, 'cancel' to abort the run, or list overrides one per line:
   - 'add dir <name>'           — append a starter directory
   - 'drop dir <name>'          — remove a starter directory
   - 'replace files: <JSON>'    — replace the entire sample_files array (JSON of {path,language,content} records)
-```
+````
 
 ### Parsing the user reply (per-section)
 
@@ -310,10 +324,9 @@ Reply 'yes' to apply, 'cancel' to abort the run, or list overrides one per line:
 - Reply not parsable as any of the above → re-prompt: "I couldn't parse your reply. Reply 'yes' to confirm, 'cancel' to abort, or use the override syntax shown above." Allow up to 2 retries (3 total attempts). On the third invalid reply, fall back to applying the section's Phase 2 composed values as confirmed and warn: "Proceeding with proposed values for Section <N>; re-run `/constitute` to revise."
 
 After parsing each section's reply, apply the resulting setter calls IN ORDER per section type:
-
 - Section 1: one `set-project-identity` call.
 - Sections 2, 3, 5, 6: `add-section` first (creates the sub-section record), then `add-rule` / `add-table` / `add-code-example` referencing that section's `--number`.
-- Section 3.5 (Forcing Functions): three `set-forcing-functions` calls (one per rule). Runs after Section 3's setters apply, before the next section's echo. Does NOT issue `add-section` — `forcing_functions` is a top-level config block, not a numbered constitution.md sub-section.
+- Section 3.5 (Forcing Functions): one `set-forcing-functions` call per offered rule (three calls when no design source exists; four when `design_token_provenance` was offered). Runs after Section 3's setters apply, before the next section's echo. Does NOT issue `add-section` — `forcing_functions` is a top-level config block, not a numbered constitution.md sub-section.
 - Section 4: `add-pattern-rule` per accepted pattern (no `add-section` prerequisite — Section 4 has no numbered sub-sections).
 - Section 7: one `set-scaffolding-guide` call (greenfield only).
 
@@ -356,12 +369,12 @@ For every section in Sections 2, 3, 5, 6 (the rule-bearing sections with numbere
 
 Bucket-to-section mapping (locked by the helper's `_SECTION_BUCKET_TO_KEY`):
 
-| Section                            | --bucket value |
-| ---------------------------------- | -------------- |
-| Section 2 (Architecture Rules)     | `architecture` |
+| Section | --bucket value |
+|---------|----------------|
+| Section 2 (Architecture Rules) | `architecture` |
 | Section 3 (Code Quality Standards) | `code-quality` |
-| Section 5 (Domain Rules)           | `domain`       |
-| Section 6 (Workflow Rules)         | `workflow`     |
+| Section 5 (Domain Rules) | `domain` |
+| Section 6 (Workflow Rules) | `workflow` |
 
 Section 4 (Patterns & Anti-Patterns) uses `add-pattern-rule` instead — six bucket × scope combinations:
 
@@ -390,7 +403,7 @@ Section 7 (Scaffolding Guide; greenfield only) uses a single setter:
     --sample-files-json '[{"path": "package.json", "language": "json", "content": "..."}, ...]'
 ```
 
-Section 3.5 (Forcing Functions; config block) uses three `set-forcing-functions` calls — one per rule:
+Section 3.5 (Forcing Functions; config block) uses one `set-forcing-functions` call per offered rule (the first three always; the fourth only when a design source exists):
 
 ```bash
 .devforge/lib/constitute_helper set-forcing-functions \
@@ -409,10 +422,21 @@ Section 3.5 (Forcing Functions; config block) uses three `set-forcing-functions`
     --rule any_with_generated_available \
     --enabled <true|false> \
     [--generated-types-dirs "packages/cse-types/src"]
+
+# design_token_provenance: emit this call ONLY when a design source exists
+# (design/styles.css and/or design/reference.html at install root); omit it entirely otherwise.
+.devforge/lib/constitute_helper set-forcing-functions \
+    --rule design_token_provenance \
+    --enabled <true|false> \
+    [--token-source-css "design/styles.css"] \
+    [--allowlist-paths "src/legacy/**.css,src/legacy"]
 # --enabled is required on every call. See Section 3.5 echo template footer
 # for the flag-omission rule (when each bracketed flag is passed).
 # --generated-types-dirs and --allowlist-paths accept comma-separated values.
 # --layer-graph-json and --layer-dirs-json require JSON-object form.
+# --token-source-css is a single path string (default design/styles.css); no manifest
+# flag is passed — the design_token_provenance detector globs specs/*/design-manifest.json
+# (per-feature, written by /breakdown) at run time.
 # layer_dirs keys MUST match layer_graph keys; mismatched keys exit non-zero.
 ```
 
@@ -432,7 +456,6 @@ Default mapping (skip the prompt entirely when default is unambiguous, then appl
 - `INIT_JSON.project_state == "empty"` → default `greenfield`. Skip the prompt; apply `.devforge/lib/constitute_helper set-mode --value greenfield`.
 
 If `INIT_JSON.project_state` is missing or holds an unexpected value, ask via AskUserQuestion: "Is this an existing codebase (rules extracted from code) or a greenfield project (rules from interview answers)?"
-
 - `Existing codebase` (Recommended) — extract rules from architecture + glossary
 - `Greenfield` — interview-driven; emit Section 7 Scaffolding Guide
 
@@ -531,7 +554,7 @@ On exit 2, surface stderr verbatim, then ask the user via plain prose: "validate
 
 ### Phase 6.4 — Pre-commit hook opt-in (conditional)
 
-Skip this phase entirely when no `forcing_functions.<rule>` has `enabled: true` in `.devforge/constitute.json` — a pre-commit hook that has no enabled rules to run is a no-op install. Determine the enabled set by reading `.devforge/constitute.json` directly and inspecting each `forcing_functions.<rule>.enabled` value (the same three rules captured in Phase 3 § Section 3.5 echo template). If the `forcing_functions` key is absent from the JSON (older state file from a prior `/constitute` run), treat all three rules as `enabled: false` and skip this phase.
+Skip this phase entirely when no `forcing_functions.<rule>` has `enabled: true` in `.devforge/constitute.json` — a pre-commit hook that has no enabled rules to run is a no-op install. Determine the enabled set by reading `.devforge/constitute.json` directly and inspecting each `forcing_functions.<rule>.enabled` value (the rules captured in Phase 3 § Section 3.5 echo template — the always-offered three plus `design_token_provenance` when a design source existed). If the `forcing_functions` key is absent from the JSON (older state file from a prior `/constitute` run), treat every rule as `enabled: false` and skip this phase.
 
 When at least one rule has `enabled: true`, ask via AskUserQuestion:
 

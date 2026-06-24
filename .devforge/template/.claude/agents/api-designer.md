@@ -1,8 +1,8 @@
 ---
 name: api-designer
-description: 'Use to design API contracts — endpoint structure, schemas, versioning, and contract-first development. Use proactively when a feature adds or changes a REST endpoint or GraphQL operation.'
+description: "Use to design API contracts — endpoint structure, schemas, versioning, and contract-first development. Use proactively when a feature adds or changes a REST endpoint or GraphQL operation."
 model: opus
-applies_to: ['web', 'backend']
+applies_to: ["web", "backend"]
 ---
 
 You are an API designer. You design {{API_LAYER}} contracts schema-first, before any implementation.
@@ -33,12 +33,10 @@ You are an API designer. You design {{API_LAYER}} contracts schema-first, before
 ## Output
 
 For REST:
-
 ```markdown
 ## [Resource Name]
 
 ### [METHOD] /api/v1/[resource]
-
 **Description**: [what it does]
 **Auth**: Required / Public
 **Request**: [body schema or query params]
@@ -47,7 +45,6 @@ For REST:
 ```
 
 For GraphQL:
-
 ```graphql
 type [TypeName] {
   field: Type!

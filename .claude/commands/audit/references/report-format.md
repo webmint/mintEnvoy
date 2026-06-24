@@ -35,31 +35,26 @@ The `## Top 10 Priorities` and `## Findings by File` sections draw from CONFIRME
 **Framework / Language**: [from CLAUDE.md]
 
 ## Top 10 Priorities
-
 Force-ranked across all buckets. Fix these first.
-
 1. [severity] [file:line] — [one-line description] [confidence] [tags]
-   ...
+...
 
 ## Findings by File
 
 ### [relative/path/to/FileA.ext]
 
 #### Mislogic
-
 - [F-001] [Critical] :42 — [description]
   Evidence:
-```
-
-[verbatim quoted code/comment]
-
-```
-Why it's wrong: [the contradiction]
-Remediation: [specific fix]
-Confidence: Certain | Likely | Speculative
-Tags: [CROSS-AGENT] [RECURRING] [CONSTITUTION-VIOLATION] [CONTESTED] [MULTI-PASS:k]
+  ```
+  [verbatim quoted code/comment]
+  ```
+  Why it's wrong: [the contradiction]
+  Remediation: [specific fix]
+  Confidence: Certain | Likely | Speculative
+  Tags: [CROSS-AGENT] [RECURRING] [CONSTITUTION-VIOLATION] [CONTESTED] [MULTI-PASS:k]
 - [F-014] [High] :88 — [description]
-[same finding format]
+  [same finding format]
 
 #### System Design
 [same finding format — findings tagged Category: system_design]
@@ -109,22 +104,22 @@ Tags: [CROSS-AGENT] [RECURRING] [CONSTITUTION-VIOLATION] [CONTESTED] [MULTI-PASS
 - Agents skipped (not installed): [list]
 - Agents failed (ran but errored): [list with reasons]
 - **Findings discarded by validation**: N total
-- Failed file-exists check: N
-- Failed line-number sanity: N
-- Failed verbatim-quote check: N (likely hallucination)
-- Failed evidence-non-empty check: N
-- Failed pattern-field check: N
+  - Failed file-exists check: N
+  - Failed line-number sanity: N
+  - Failed verbatim-quote check: N (likely hallucination)
+  - Failed evidence-non-empty check: N
+  - Failed pattern-field check: N
 
 ## Dismissed / Worth a Glance
 (Findings the refutation stage knocked out of the headline — not deleted, because a dismissal is itself a judgment that can be wrong. Clearly separated from the headline above; the whole section is omitted when both lists are empty.)
 
 ### Dismissed
 - [Medium] [relative/path/to/File.ext]:NN — [description]
-Why dismissed: [the counter-quote / code path that makes the finding wrong, when one exists]
+  Why dismissed: [the counter-quote / code path that makes the finding wrong, when one exists]
 
 ### Uncertain (low-stakes)
 - [Info] [relative/path/to/File.ext]:NN — [description]
-Unresolved: [what the refuter could not decide from the code]
+  Unresolved: [what the refuter could not decide from the code]
 
 ## Methodology
 Findings are grounded — every finding carries a verbatim quote from the actual

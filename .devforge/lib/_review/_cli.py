@@ -326,9 +326,10 @@ def cmd_route_refutation(args: argparse.Namespace) -> int:
 
     Review's refuter roster is the default _REFUTER_PRIORITY (the same four
     priority refuters as /audit: code-reviewer, architect, qa-reviewer,
-    security-reviewer).  performance-analyst is a FINDER ONLY in /review's
-    five-finder setup and must never appear as a refuter — it is simply absent
-    from the default priority list so no priority= override is needed.
+    security-reviewer).  performance-analyst and design-auditor are FINDERS
+    ONLY in /review's setup and must never appear as refuters — both are
+    simply absent from the default priority list so no priority= override is
+    needed.
 
     Input: --findings <path>  (JSON array of ParsedFinding dicts)
            --finders <comma-list>  (present finder agent names from Phase 2)
@@ -1080,9 +1081,9 @@ def _register_subcommands(subparsers) -> None:
                     "Comma-separated list of present finder agent names from "
                     "Phase 2 (e.g. 'code-reviewer,architect,qa-reviewer,"
                     "security-reviewer,performance-analyst'). "
-                    "Only present finders are eligible. performance-analyst is "
-                    "a finder only — it is NOT in the refuter priority list and "
-                    "will never be assigned as a refuter."
+                    "Only present finders are eligible. performance-analyst and "
+                    "design-auditor are finders only — neither is in the refuter "
+                    "priority list and neither will ever be assigned as a refuter."
                 ),
             )
 

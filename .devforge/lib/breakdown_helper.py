@@ -46,6 +46,16 @@ Subcommands:
       The rendered block surfaces: Layer Map, File Impact, Key Design
       Decisions, Dependencies, Risks. Empty sub-sections render as _(none)_.
 
+  verify-agent-roster <tasks-dir> [--agents-dir <path>]
+      Verify that every task's resolved **Agent**: value exists in the
+      installed roster (*.md stems in --agents-dir, default .claude/agents).
+      Skips tasks with empty or placeholder agents (those are finalize-handoff's
+      concern). Fails closed when the roster directory is absent or empty.
+      Exit 0: all assigned agents are installed (or all agents are placeholders).
+              Prints "agent-roster: ok (N tasks, M agents installed)".
+      Exit 2: roster absent/empty, task files missing, or at least one offender.
+              Prints a "## Agent roster findings" block to stdout on offenders.
+
   verify-contract-chain <tasks-dir>
       Walk every *.md task file in <tasks-dir> (ignoring README.md). Parse
       each task's ### Expects and ### Produces bullet lists, skipping
@@ -65,7 +75,7 @@ Subcommands:
       covered (or when spec has zero ACs). Exit 2 with stderr when
       tasks-dir or spec unreadable/empty.
 
-  finalize-handoff <plan-path> [--completed-at ISO]
+  finalize-handoff <plan-path> [--completed-at ISO] [--agents-dir <path>]
       PRODUCER: parse tasks/*.md (+ tasks/README.md) into a schema-validated
       Breakdown record and write <plan-dir>/breakdown-handoff.json (sibling
       to plan.md). Fields parsed per task file: number, title, agent,
@@ -73,9 +83,14 @@ Subcommands:
       touched_files, expects, produces. README fields: dependency_graph,
       additions. Provenance: sibling plan-handoff.json (kind='plan') sets
       upstream fields; sibling spec.md sets spec_path.
+      After per-task parsing, validates all resolved agent names against the
+      installed roster in --agents-dir (default .claude/agents). Fails closed
+      when the roster is empty/absent; exits 2 naming offenders when any
+      assigned agent is not installed.
       Exit 0 + prints written path on success.
       Exit 2: plan.md/tasks missing or empty, placeholder **Agent**: detected
-              (names the offending file), or schema validation failure.
+              (names the offending file), roster absent or agent not installed,
+              or schema validation failure.
       Exit 1: I/O write failure.
       Idempotent: re-running overwrites the previous breakdown-handoff.json.
 
@@ -1389,6 +1404,143 @@ def cmd_verify_ac_coverage(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Phase 3.5 — agent-roster validation (shared function + verify-agent-roster).
+# ---------------------------------------------------------------------------
+
+
+def _validate_agent_roster(
+    tasks_dir: str,
+    agents_dir: str,
+) -> "Tuple[List[Tuple[str, str]], List[str], bool, int]":
+    """Validate every task's resolved **Agent**: value against the installed roster.
+
+    Parameters
+    ----------
+    tasks_dir:   path to the tasks/ directory (passed to _glob_task_files).
+    agents_dir:  path to the .claude/agents/ directory to glob for *.md stems.
+
+    Returns
+    -------
+    (offenders, installed_roster_sorted, roster_found, task_count)
+
+    offenders:
+        List of (task_filename, agent_value) for each task whose resolved
+        **Agent**: value is non-empty, NOT a placeholder, and NOT in the
+        installed roster.  Tasks with empty or placeholder agents are SKIPPED
+        — those are a separate error owned by finalize-handoff.
+
+    installed_roster_sorted:
+        Sorted list of stems of regular *.md FILES found in agents_dir
+        (directories named *.md/ are excluded via f.is_file()).
+        Empty list when roster_found is False.
+
+    roster_found:
+        False when agents_dir does not exist OR contains zero *.md files.
+        Caller should treat this as fail-closed (cannot validate → error out).
+
+    task_count:
+        Number of task files found in tasks_dir via _glob_task_files.
+        This is the single authoritative scan; callers must not re-glob.
+    """
+    agents_path = Path(agents_dir)
+    if agents_path.is_dir():
+        roster = sorted(
+            f.stem
+            for f in agents_path.iterdir()
+            if f.suffix == ".md" and f.is_file()
+        )
+    else:
+        roster = []
+
+    if not roster:
+        return [], [], False, 0
+
+    roster_set = set(roster)
+
+    task_files = _glob_task_files(tasks_dir)
+    task_count = len(task_files)
+    offenders: "List[Tuple[str, str]]" = []
+    for fpath in task_files:
+        content = _read_file(fpath)
+        if content is None:
+            continue
+        m = _AGENT_LINE_RE.search(content)
+        if not m:
+            continue
+        agent_val = m.group(1).strip()
+        # Skip empty or placeholder — those are finalize-handoff's concern.
+        if not agent_val or _AGENT_PLACEHOLDER_RE.match(agent_val):
+            continue
+        if agent_val not in roster_set:
+            offenders.append((Path(fpath).name, agent_val))
+
+    return offenders, roster, True, task_count
+
+
+def cmd_verify_agent_roster(args: argparse.Namespace) -> int:
+    """Verify every task's assigned agent exists in .claude/agents/*.md.
+
+    Usage: verify-agent-roster <tasks-dir> [--agents-dir <path>]
+
+    --agents-dir defaults to '.claude/agents' relative to cwd.
+
+    Exit codes:
+      0 — all assigned agents are installed (or tasks have no resolved agent).
+      2 — missing task files, empty/absent roster, or at least one offender.
+    """
+    tasks_dir = args.tasks_dir
+    agents_dir = args.agents_dir
+
+    # Single scan: _validate_agent_roster globs task files internally and
+    # returns the count as the 4th element.  Both the empty-tasks guard and
+    # the ok-line "N tasks" count are derived from this single call — no
+    # second _glob_task_files invocation in this function.
+    offenders, roster, roster_found, task_count = _validate_agent_roster(
+        tasks_dir, agents_dir
+    )
+
+    # roster_found is False when agents_dir is absent or has no *.md files.
+    # The short-circuit in _validate_agent_roster returns task_count=0 in
+    # this case regardless of the tasks dir, so we report the roster error
+    # (the more actionable of the two possible issues).
+    if not roster_found:
+        return _die(
+            "verify-agent-roster: no agent roster found at {0} "
+            "— cannot validate assignments (expected *.md agent files)".format(
+                agents_dir
+            )
+        )
+
+    # task_count comes from the single internal _glob_task_files scan.
+    if task_count == 0:
+        sys.stderr.write(
+            "breakdown_helper: no task files found in {0}\n".format(tasks_dir)
+        )
+        return 2
+
+    if not offenders:
+        sys.stdout.write(
+            "agent-roster: ok ({n} tasks, {m} agents installed)\n".format(
+                n=task_count, m=len(roster)
+            )
+        )
+        return 0
+
+    # One or more tasks assign an absent agent — report and exit 2.
+    sys.stdout.write("## Agent roster findings\n\n")
+    for task_filename, agent in offenders:
+        sys.stdout.write(
+            "- {fname}: assigned agent '{agent}' is not installed\n".format(
+                fname=task_filename, agent=agent
+            )
+        )
+    sys.stdout.write(
+        "\nAvailable agents: {agents}\n".format(agents=", ".join(roster))
+    )
+    return 2
+
+
+# ---------------------------------------------------------------------------
 # Phase 4 — task-file parsing helpers (for finalize-handoff).
 # ---------------------------------------------------------------------------
 
@@ -1795,6 +1947,37 @@ def cmd_finalize_handoff_breakdown(args: argparse.Namespace) -> int:
     # Sort tasks by number for deterministic ordering.
     task_rows.sort(key=lambda r: r.number)
 
+    # Agent-roster validation: all resolved agent names must be installed.
+    # This check runs after the per-task loop so placeholder/empty agents
+    # (caught above) are already handled.  _validate_agent_roster skips
+    # tasks with empty or placeholder agents — it only checks resolved names.
+    agents_dir_raw = getattr(args, "agents_dir", ".claude/agents")
+    # The 4th element (task_count) is intentionally ignored here: finalize-handoff
+    # already has its own authoritative task list in task_rows (which was parsed
+    # and validated per-file above).  The roster check is the only concern.
+    offenders, roster, roster_found, _task_count_ignored = _validate_agent_roster(
+        str(tasks_dir), agents_dir_raw
+    )
+    if not roster_found:
+        return _die(
+            "finalize-handoff: no agent roster found at {0} "
+            "— cannot validate assignments (expected *.md agent files)".format(
+                agents_dir_raw
+            )
+        )
+    if offenders:
+        sys.stdout.write("## Agent roster findings\n\n")
+        for task_filename, agent in offenders:
+            sys.stdout.write(
+                "- {fname}: assigned agent '{agent}' is not installed\n".format(
+                    fname=task_filename, agent=agent
+                )
+            )
+        sys.stdout.write(
+            "\nAvailable agents: {agents}\n".format(agents=", ".join(roster))
+        )
+        return 2
+
     # Parse README.md for dependency_graph and additions.
     readme_path = tasks_dir / "README.md"
     readme_content = _read_file(str(readme_path)) or ""
@@ -2081,6 +2264,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sp.set_defaults(func=cmd_render_consultation_block)
 
+    # verify-agent-roster
+    sp = sub.add_parser(
+        "verify-agent-roster",
+        help=(
+            "Verify every task's resolved **Agent**: value exists in the installed "
+            ".claude/agents/*.md roster.  Skips empty/placeholder agents (those are "
+            "finalize-handoff's concern).  Exit 0 when all installed; exit 2 when "
+            "any absent, roster missing, or no task files found."
+        ),
+    )
+    sp.add_argument("tasks_dir", help="Directory containing task *.md files.")
+    sp.add_argument(
+        "--agents-dir",
+        dest="agents_dir",
+        default=".claude/agents",
+        help="Path to the installed agent roster directory (default: .claude/agents).",
+    )
+    sp.set_defaults(func=cmd_verify_agent_roster)
+
     # verify-contract-chain
     sp = sub.add_parser(
         "verify-contract-chain",
@@ -2125,6 +2327,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional UTC ISO timestamp (e.g. 2026-01-01T12:00:00Z). "
              "Defaults to now. Useful for deterministic test output.",
+    )
+    sp.add_argument(
+        "--agents-dir",
+        dest="agents_dir",
+        default=".claude/agents",
+        help="Path to the installed agent roster directory (default: .claude/agents). "
+             "In wrapper mode, pass the install root's .claude/agents path.",
     )
     sp.set_defaults(func=cmd_finalize_handoff_breakdown)
 

@@ -1,7 +1,7 @@
 ---
 name: specify
 description: Author a 9-section feature spec under specs/NNN-name/spec.md with EARS-validated AC, coverage-rule enforcement, and a manual-next-step /plan block.
-argument-hint: '<feature description>'
+argument-hint: "<feature description>"
 disable-model-invocation: true
 ---
 
@@ -17,6 +17,8 @@ Usage: `/specify "<feature description>"` (e.g. `/specify "migrate the monorepo 
 - `specs/NNN-<feature-name>/spec.md` — rendered 9-section spec markdown. Helper's `render` writes to stdout; orchestrator saves the bytes verbatim under `<install_root>/specs/`.
 - New branch `spec/NNN-<short-desc>` when invoked from the repository's default branch — created in Phase 4 so the branch number matches the spec directory number.
 - `specs/NNN-<feature-name>/handoff.json` — specify→plan structured handoff, written by `finalize-handoff` on the approve branch of Phase 5 (sibling to `spec.md`). Carries `spec_seeds` (structured spec sections) + upstream research/discover provenance; spec status stays `Draft` (`/plan` owns the flip). `/plan` auto-discovers this sibling handoff on its first run and reads the upstream plan-seeds; the user still invokes `/plan` manually (no auto-dispatch from `/specify`).
+
+On approve, Step 5.4 `[WIP]`-commits the spec into the install repo via `.devforge/lib/artifact_helper commit-artifacts` (install-repo-only, fail-soft) so the work is git-safe the moment it is written; the commit folds into `/finalize`'s squash. `spec.md` is always committed on approve (it exists from Phase 4); `handoff.json` is committed additionally when `finalize-handoff` succeeds. `.devforge/specify-state.json` is NOT committed (it is `.devforge/`-scoped runtime state).
 
 The LLM does NOT edit `.devforge/specify-state.json` or the rendered `spec.md` via Write or Edit at any point. The helper's setters + `render` are the only writers; this preserves the helper-owns-shape invariant.
 
@@ -545,13 +547,13 @@ Each AC must be testable and unambiguous. **Cover each category that applies. Ma
 
 Every AC `statement` uses EARS notation (Easy Approach to Requirements Syntax, IEEE 29148-2018 / Kiro convention). Choose one of 5 variants; helper validates the statement matches the declared variant via regex. Malformed statements are rejected.
 
-| Variant        | Pattern                                             | Use when                     |
-| -------------- | --------------------------------------------------- | ---------------------------- |
-| `ubiquitous`   | `The <system> shall <response>.`                    | always-true requirement      |
-| `event_driven` | `WHEN <trigger>, the <system> shall <response>.`    | event response               |
-| `state_driven` | `WHILE <state>, the <system> shall <response>.`     | state-dependent behavior     |
-| `optional`     | `WHERE <feature>, the <system> shall <response>.`   | feature-flag / conditional   |
-| `unwanted`     | `IF <trigger>, THEN the <system> shall <response>.` | unwanted-behavior prevention |
+| Variant | Pattern | Use when |
+|---|---|---|
+| `ubiquitous` | `The <system> shall <response>.` | always-true requirement |
+| `event_driven` | `WHEN <trigger>, the <system> shall <response>.` | event response |
+| `state_driven` | `WHILE <state>, the <system> shall <response>.` | state-dependent behavior |
+| `optional` | `WHERE <feature>, the <system> shall <response>.` | feature-flag / conditional |
+| `unwanted` | `IF <trigger>, THEN the <system> shall <response>.` | unwanted-behavior prevention |
 
 **Subsection-EARS constraints.** §5.1 (`tooling_artifact_presence`) and §5.7 (`hygiene`) accept only the `ubiquitous` variant AND require a `--verification-command`. The other five subsections accept any of the five EARS variants; `--verification-command` is optional. The helper rejects an AC that violates these constraints.
 
@@ -802,9 +804,27 @@ This step runs ONLY on the `approve` branch of Step 5.3 — never on `request-ch
 .devforge/lib/specify_helper finalize-handoff
 ```
 
-Helper reads `.devforge/specify-state.json` (read-only, no mutation), builds the handoff from the rendered spec sections + any upstream research/discover provenance, validates, and atomic-writes `specs/<NNN>-<feature-name>/handoff.json` (sibling to the `spec.md` already written in Phase 4). The handoff carries spec status `Draft` — `finalize-handoff` does NOT flip status. On exit 0: surface the written `specs/<NNN>-<feature-name>/handoff.json` path to the user in your next user-facing message as a fenced code block, then proceed to the manual block below. On non-zero exit (render-completeness failure — missing spec_number/feature_slug, or empty/partial spec content): copy the helper's stderr VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase) and end the turn; the user must address the cited violation and re-invoke `/specify`.
+Helper reads `.devforge/specify-state.json` (read-only, no mutation), builds the handoff from the rendered spec sections + any upstream research/discover provenance, validates, and atomic-writes `specs/<NNN>-<feature-name>/handoff.json` (sibling to the `spec.md` already written in Phase 4). The handoff carries spec status `Draft` — `finalize-handoff` does NOT flip status. On exit 0: surface the written `specs/<NNN>-<feature-name>/handoff.json` path to the user in your next user-facing message as a fenced code block, then proceed to the WIP-commit block below. On non-zero exit (render-completeness failure — missing spec_number/feature_slug, or empty/partial spec content): `handoff.json` was NOT written, but `spec.md` exists from Phase 4 — so before ending the turn, git-safe the spec by running `commit-artifacts` with `spec.md` as the only path (`handoff.json` is absent → not included):
+
+```bash
+.devforge/lib/artifact_helper commit-artifacts \
+    --paths '["specs/<NNN>-<feature-name>/spec.md"]' \
+    --label "spec: <NNN>-<feature-name>"
+```
+
+Then copy the `finalize-handoff` stderr VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase) and end the turn; the user must address the cited violation and re-invoke `/specify`. The `commit-artifacts` call is itself FAIL-SOFT (see the WIP-commit block below for its exit semantics) — if it too fails, warn with its stderr alongside the `finalize-handoff` stderr and still end the turn.
 
 This handoff.json is auto-discovered by `/plan` on its first run; the manual next-step block below remains how the user LAUNCHES `/plan` (restart Claude Code + run the explicit command) — there is no auto-dispatch from `/specify`.
+
+**WIP-commit the spec artifacts.** With `spec.md` written in Phase 4 and `handoff.json` now written by `finalize-handoff`, `[WIP]`-commit both so the work is git-safe immediately:
+
+```bash
+.devforge/lib/artifact_helper commit-artifacts \
+    --paths '["specs/<NNN>-<feature-name>/spec.md", "specs/<NNN>-<feature-name>/handoff.json"]' \
+    --label "spec: <NNN>-<feature-name>"
+```
+
+The helper stages those two paths in the install repo and makes a `[WIP] spec: <NNN>-<feature-name>` commit; it is install-repo-only (never the source repo in wrapper mode). Do NOT include `.devforge/specify-state.json` — it is `.devforge/`-scoped runtime state, excluded by design. This call is UNCONDITIONAL — always run it; `spec.md` exists from Phase 4, and the helper benign-skips `handoff.json` if `finalize-handoff` did not write it (the `finalize-handoff` non-zero branch above already commits `spec.md` alone, so this block runs with both paths only on the success branch). It is FAIL-SOFT: a git staging or commit failure warns on stderr and exits 1 (non-fatal — the artifacts are already written, so warn the user with the helper's stderr and continue to the `render-plan-handoff` block below; do NOT abort the approve flow); "nothing to commit" (paths already staged or absent) exits 0 silently as a benign no-op.
 
 `/specify` does NOT mutate spec status — it stays `Draft` from Phase 4 render-time. The status flips to `Approved` only when (a) the user manually edits the `**Status**:` line in `specs/NNN-<feature-name>/spec.md`, OR (b) `/plan` flips it as part of its entry gate. Both paths are out-of-scope for `/specify`.
 

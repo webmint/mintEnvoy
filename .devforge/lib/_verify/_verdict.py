@@ -35,7 +35,7 @@ Public surface
             Each blocker dict: {type, detail}  where type is one of:
               "constitution_confirmed", "constitution_contested",
               "ac_failure", "mechanical_failed",
-              "critical_high_finding"
+              "critical_high_finding", "medium_finding"
 
 Verdict rule (deterministic — document every branch here)
 ----------------------------------------------------------
@@ -48,6 +48,12 @@ Step 1 — gather facts:
   - constitution_contested: any contested finding with tag [CONSTITUTION-VIOLATION]
     or category "constitution".
   - critical_high: any confirmed OR contested finding with severity Critical or High.
+  - medium_confirmed: any CONFIRMED (post-refutation, not contested) finding with
+    severity Medium that is NOT a constitution violation.
+    NOTE: deliberately confirmed-only — unlike critical_high_headline which includes
+    contested findings, medium_confirmed reads only the confirmed set (per D3: the
+    gate reads only post-refutation confirmed findings, never dismissed/uncertain/
+    contested).  A CONTESTED Medium does not gate the verdict.
   - mechanical_failed: mechanical_status not in {"pass", "", None}.
 
 Advisory (never blocks verdict):
@@ -78,6 +84,9 @@ Step 3 — verdict (priority order):
     - critical_high finding
     - constitution_contested (always Critical — D7 invariant: a contested
       constitution violation is at least NEEDS WORK, never APPROVED)
+    - medium_confirmed (any confirmed post-refutation Medium-severity
+      non-constitution finding — D3; threshold: any-confirmed-Medium → NEEDS WORK)
+      Medium NEVER escalates to REJECTED — it is only a NEEDS-WORK blocker.
   APPROVED   otherwise (no blockers)
 
   NOTE: hygiene_flags (scope_creep / leftover_artifacts) are ADVISORY and
@@ -119,6 +128,10 @@ _UNVERIFIABLE_STATUSES = frozenset(["UNVERIFIED", "MANUAL"])
 # Severity levels that constitute a "critical_high" blocker
 _CRITICAL_HIGH = frozenset(["Critical", "High"])
 
+# Severity level that constitutes a "medium_finding" NEEDS WORK blocker (D3).
+# Medium NEVER escalates to REJECTED — only NEEDS WORK.
+_MEDIUM = frozenset(["Medium"])
+
 # The tag that marks a finding as a constitution violation
 _CONSTITUTION_TAG = "[CONSTITUTION-VIOLATION]"
 
@@ -141,6 +154,19 @@ def _is_critical_high(finding):
     """Return True if the finding has Critical or High severity."""
     sev = finding.get("severity") or ""
     return sev in _CRITICAL_HIGH
+
+
+def _is_medium(finding):
+    # type: (dict) -> bool
+    """Return True if the finding has Medium severity.
+
+    Severity values are title-case per _shared/findings_schema.py SEVERITY_ENUM
+    ("Critical", "High", "Medium", "Info").  Lowercase or variant casing is
+    intentionally NOT in _MEDIUM and does not gate — invalid severities are
+    rejected upstream by _shared validation, not here.
+    """
+    sev = finding.get("severity") or ""
+    return sev in _MEDIUM
 
 
 # ---------------------------------------------------------------------------
@@ -207,6 +233,17 @@ def compute_verdict(
     critical_high_headline = [
         f for f in (confirmed_findings + contested_findings)
         if _is_critical_high(f) and not _is_constitution_violation(f)
+    ]
+
+    # Medium-severity confirmed findings (D3) — confirmed-only, never contested.
+    # Deliberate asymmetry vs critical_high_headline above: critical/high include
+    # contested findings (unresolved high-stakes issues surface as blockers);
+    # medium uses only post-refutation CONFIRMED findings so a merely contested
+    # Medium does not gate the verdict.  Constitution violations are excluded
+    # because they are already handled by the constitution_confirmed path.
+    medium_confirmed = [
+        f for f in confirmed_findings
+        if _is_medium(f) and not _is_constitution_violation(f)
     ]
 
     # Mechanical status
@@ -312,6 +349,28 @@ def compute_verdict(
             sev_summary += " (+ {0} more)".format(len(critical_high_headline) - 3)
         reasons.append(
             "Critical/High review findings: {0}.".format(sev_summary)
+        )
+
+    # Medium findings (confirmed, non-constitution) — NEEDS WORK, never REJECTED (D3).
+    # This is deliberately a NEEDS WORK blocker only: medium_confirmed is never
+    # added to the is_rejected conditions in Step 3.
+    if medium_confirmed:
+        blockers.append({
+            "type": "medium_finding",
+            "detail": "{0} confirmed Medium finding(s) from review report.".format(
+                len(medium_confirmed)
+            ),
+        })
+        med_summary = ", ".join(
+            "[Medium] {0}".format(
+                (f.get("pattern") or f.get("file") or "(unknown)")[:60],
+            )
+            for f in medium_confirmed[:3]
+        )
+        if len(medium_confirmed) > 3:
+            med_summary += " (+ {0} more)".format(len(medium_confirmed) - 3)
+        reasons.append(
+            "Medium review findings: {0}.".format(med_summary)
         )
 
     # Hygiene flags — ADVISORY only, never added to blockers

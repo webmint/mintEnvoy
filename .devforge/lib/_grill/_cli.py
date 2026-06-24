@@ -24,7 +24,7 @@ Phase 4 ships 4 verbs (refutation cross-examination, imported from _shared):
 
 Phase 5 ships 2 verbs (report rendering + seed production):
   render-report          — render + write specs/<feature>/grill.md (Phase 5)
-  write-seed             — build + write grill-seed.json backward handoff (Phase 5)
+  write-seed             — build + write grill-seed.json backward handoff (human-gate re-entry arm)
 
 Key difference from _review/_cli.py:
   route-refutation passes priority=["code-reviewer", "qa-reviewer",
@@ -833,7 +833,7 @@ def cmd_write_seed(args):
     """Build a ReEntrySeed and write it to <feature>/grill-seed.json.
 
     Input: --feature <dir>               (feature directory)
-           --target-stage <stage>        (spec|discovery|research)
+           --target-stage <stage>        (spec|discovery|research|plan)
            --prior-conclusion <str>      (what the upstream stage concluded)
            --invalidating-evidence <str> (the grounded finding that invalidates it)
            --must-satisfy <str>          (what the re-run must additionally satisfy)
@@ -992,7 +992,7 @@ _SUBCOMMAND_REGISTRY = [
     ),
     (
         "write-seed",
-        "Build + write grill-seed.json backward handoff for RE-ENTER-UPSTREAM (Phase 5).",
+        "Build + write grill-seed.json backward handoff for RE-ENTER-UPSTREAM or REVISE-PLAN (human-gate re-entry arm).",
         cmd_write_seed,
     ),
 ]
@@ -1446,7 +1446,7 @@ def _register_subcommands(subparsers):
                 dest="target_stage",
                 metavar="STAGE",
                 help=(
-                    "Upstream stage to re-enter: spec | discovery | research."
+                    "Re-entry target stage: spec | discovery | research | plan."
                 ),
             )
             sp.add_argument(

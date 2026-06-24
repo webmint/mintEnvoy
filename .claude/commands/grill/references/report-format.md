@@ -78,30 +78,25 @@ finding it DISMISSED; both are surfaced in the headline, never buried).
 [the orchestrator's CLASSIFY rationale — why this disposition]
 
 > [verdict-specific guidance — the helper renders one of:]
->
 > - PROCEED — the grill attack found no disqualifying plan-level defect; the plan is sound to execute (run `/breakdown`).
-> - REVISE-PLAN — the defects are real but correctable at the plan level; revise `plan.md`, then re-run (re-`/plan` / hand-patch, optionally re-`/grill`).
-> - RE-ENTER-UPSTREAM — the defect is rooted upstream; re-enter at the named stage (`/specify` for `spec`, `/discover` for `discovery`, `/research` for `research`) with the emitted `grill-seed.json` so the re-run is directed, not a repeat.
+> - REVISE-PLAN — the defects are real but correctable at the plan level; revise `plan.md`, then re-run (re-`/plan` / hand-patch, optionally re-`/grill`). If you choose `Revise plan` at the human gate, the orchestrator emits a `grill-seed.json` (`target_stage="plan"`) that `/plan` consumes on re-entry, so the re-`/plan` is directed, not a repeat.
+> - RE-ENTER-UPSTREAM — the defect is rooted upstream; re-enter at the named stage (`/specify` for `spec`, `/discover` for `discovery`, `/research` for `research`). If you choose `Re-enter upstream` at the human gate, the orchestrator emits a `grill-seed.json` for that stage so the re-run is directed, not a repeat.
 > - KILL — the defect is fundamental; the plan should be abandoned (re-`/plan` with a wholly different approach).
 
 ## Confirmed — Top Priorities
-
 Force-ranked across the confirmed findings. Fix these first.
-
 1. [severity] [file:line] — [one-line description] [confidence] [tags]
-   ...
+...
 
 ## Confirmed Findings
-
 (Grouped by file — each file with findings gets one `### <file path>` section,
 files ordered by path; within a file, findings grouped by `#### <category>` and
 sorted by severity Critical → Info. High-stakes `[CONTESTED]` findings appear here
 too, flagged.)
 
-### [plan.md OR relative/path/to/source.ext]
+### [plan.md  OR  relative/path/to/source.ext]
 
 #### Security
-
 - [F-001] [Critical] :42 — [description]
   Severity: Critical
   File: [plan.md or the anchor file named above]
@@ -110,17 +105,15 @@ too, flagged.)
   Confidence: Certain | Likely | Speculative
   Category: security
   Evidence:
-```
-
-[one verbatim snippet copied from the anchor file named in File: above]
-
-```
-Why it's wrong: [the design defect this instance triggers — name any partner
-artifact by path and line here, e.g. "duplicates the existing helper in
-src/util/foo.py:12"; the partner is referenced in prose, not quoted]
-Remediation: [specific design change]
+  ```
+  [one verbatim snippet copied from the anchor file named in File: above]
+  ```
+  Why it's wrong: [the design defect this instance triggers — name any partner
+  artifact by path and line here, e.g. "duplicates the existing helper in
+  src/util/foo.py:12"; the partner is referenced in prose, not quoted]
+  Remediation: [specific design change]
 - [F-007] [High] :88 — [description]
-[same finding format]
+  [same finding format]
 
 #### System Design
 [same finding format — Category: system_design]
@@ -169,18 +162,26 @@ findings (a `security` / `[CONSTITUTION-VIOLATION]` finding the refuter could no
 confirm) are surfaced in the headline, flagged `[CONTESTED]`, never buried.
 ```
 
-## The re-entry seed (RE-ENTER-UPSTREAM only)
+## The re-entry seed (RE-ENTER-UPSTREAM or REVISE-PLAN)
 
-When and only when the disposition is RE-ENTER-UPSTREAM, the orchestrator ALSO
-calls `grill_helper write-seed`, which writes `specs/[feature]/grill-seed.json` —
-the structured backward handoff the named upstream command (`/specify`,
-`/discover`, or `/research`) consumes on re-entry so the re-run is DIRECTED, not a
-repeat. The seed is NOT part of `grill.md`; it is a sibling JSON artifact. It
-carries `target_stage` (`spec` | `discovery` | `research`), `prior_conclusion`
-(what the upstream stage concluded that is now invalidated), `invalidating_evidence`
-(the grounded grill finding that invalidates it), `must_satisfy` (what the re-run
-must additionally satisfy), `cycle_count` (the bounded-compounding-loop counter),
-`carried_findings` (prior findings carried forward, monotonic), and `provenance`
-(a pointer to this `grill.md` / the plan). The schema is owned by
+The seed is written in PHASE 7's matching re-entry arm: when the PHASE-5
+disposition is RE-ENTER-UPSTREAM or REVISE-PLAN AND the user's PHASE-7 pick
+matches that recommendation, the orchestrator calls `grill_helper write-seed`,
+which writes `specs/[feature]/grill-seed.json` — the structured backward handoff
+the named re-entry command (`/specify`, `/discover`, or `/research` when the user
+picks `Re-enter upstream`; `/plan` when the user picks `Revise plan`) consumes on
+re-entry so the re-run is DIRECTED, not a repeat. A cross-pick (the user picks a
+different arm than the recommendation), or a PROCEED / KILL disposition, writes no
+seed. The seed is NOT part of
+`grill.md`; it is a sibling JSON artifact. It carries `target_stage` (`spec` |
+`discovery` | `research` (the nearest upstream stage, for RE-ENTER-UPSTREAM) |
+`plan` (for REVISE-PLAN)), `prior_conclusion` (for RE-ENTER-UPSTREAM, what the
+upstream stage concluded that is now invalidated; for REVISE-PLAN, the flawed plan
+decision the revision must replace), `invalidating_evidence` (the grounded grill
+finding that invalidates it), `must_satisfy` (for RE-ENTER-UPSTREAM, what the
+re-run must additionally satisfy; for REVISE-PLAN, the fix the revised plan must
+meet), `cycle_count` (the bounded-compounding-loop counter), `carried_findings`
+(prior findings carried forward, monotonic), and `provenance` (a pointer to this
+`grill.md` / the plan). The schema is owned by
 `src/devforge/lib/_grill/seed_schema.py` (`ReEntrySeed`); the helper validates and
 atomically writes it — do not hand-author the seed.

@@ -26,6 +26,7 @@ The things this command writes under the repo are:
 - `docs/` — surgical, feature-driven documentation updates authored by the `tech-writer` agent (PHASE 2), retargeted to the LIVE `docs/<package>/<concern>/index.md` Hazards, `docs/<package>/architecture.md`, and `docs/architecture.md` locations (the dropped Plan-F per-feature tier is never resurrected — see `.claude/commands/finalize/references/results-and-docs.md`). The agent may justifiably write nothing.
 - A single clean feature commit (PHASE 3) — the install/wrapper repo's `[WIP]`/`[checkpoint]` commits squashed into one `feat(<feature-name>): <title>` commit (with attribution per config). In wrapper mode the source repo is ALSO squashed into one `[TICKET-ID] - Description` commit with NO AI traces (D5).
 - An interim `[WIP]` docs commit (PHASE 2, only when tech-writer wrote docs) — folded into the squash, so it leaves no separate commit in the final history (D8).
+- An UNCONDITIONAL artifact safety-net `[WIP]` commit (PHASE 2, after the docs branches) — commits the feature's `specs/<feature>/` planning artifacts as a redundant catch behind the per-step artifact commits (install-repo-only, fail-soft); folded into the squash, so it leaves no separate commit in the final history (37-D4).
 
 `/finalize` is STATELESS: it writes no run-state file. The squash is a single idempotent operation — re-running it on an already-finalized feature no-ops ("Nothing to finalize").
 
@@ -78,8 +79,8 @@ If no `specs/NNN-*` directory exists, tell the user there is no feature to final
 
 Read `has_wip_commits` from the preflight stdout (the 0.2 JSON):
 
-- **No-op gate.** If `has_wip_commits` is `false`, there are no `[WIP]`/`[checkpoint]` commits to squash. Tell the user _Nothing to finalize — no `[WIP]`/`[checkpoint]` commits remain; the feature may have already been finalized._ and end the turn. This is the idempotent no-op (re-running `/finalize` on an already-finalized feature lands here), not an error.
-- **Missing-summary soft-warn.** Check whether `specs/[feature]/summary.md` exists. If it is absent, warn the user (do NOT stop): _No `summary.md` found — run `/summarize` first for the richest feature record. Proceeding without a summary._ Then continue — `/finalize` does not require `summary.md`; its presence only means the summary's `[WIP]` commit folds into the squash. Carry the present/absent state forward for the PHASE-4 results block (`Summary: included in squash | not found`).
+- **No-op gate.** If `has_wip_commits` is `false`, there are no `[WIP]`/`[checkpoint]` commits to squash. Tell the user *Nothing to finalize — no `[WIP]`/`[checkpoint]` commits remain; the feature may have already been finalized.* and end the turn. This is the idempotent no-op (re-running `/finalize` on an already-finalized feature lands here), not an error.
+- **Missing-summary soft-warn.** Check whether `specs/[feature]/summary.md` exists. If it is absent, warn the user (do NOT stop): *No `summary.md` found — run `/summarize` first for the richest feature record. Proceeding without a summary.* Then continue — `/finalize` does not require `summary.md`; its presence only means the summary's `[WIP]` commit folds into the squash. Carry the present/absent state forward for the PHASE-4 results block (`Summary: included in squash | not found`).
 
 ### 0.4 — Establish the scratch dir + persist the context
 
@@ -146,11 +147,25 @@ git add docs/ && git commit -m "[WIP] Feature docs: <NNN-slug>"
 Carry the written-docs targets forward for the PHASE-4 results block (`Docs: updated <targets>`).
 
 - **Justified skip.** If the agent reports no feature-level docs are needed (internal refactoring, no public-facing change), accept the justification and write nothing. Carry the skip reason forward (`Docs: skipped — <reason>`).
-- **Agent failure.** If the agent errors, times out, or hits a context limit, warn the user (_tech-writer failed: `<error>` — feature docs may be incomplete; proceeding with the squash, you may need to update docs manually after the PR_) and PROCEED to PHASE 3 — a docs failure does NOT block the squash. Carry the failure forward (`Docs: tech-writer failed — <error>`).
+- **Agent failure.** If the agent errors, times out, or hits a context limit, warn the user (*tech-writer failed: `<error>` — feature docs may be incomplete; proceeding with the squash, you may need to update docs manually after the PR*) and PROCEED to PHASE 3 — a docs failure does NOT block the squash. Carry the failure forward (`Docs: tech-writer failed — <error>`).
+
+### Artifact safety-net commit (UNCONDITIONAL, before the squash)
+
+After the three docs outcomes above and BEFORE PHASE 3, make an UNCONDITIONAL `[WIP]` commit of the feature's whole `specs/<feature>/` directory, so any planning artifact still untracked at finalize time is git-safe and folds into the PHASE-3 squash. Substitute the resolved `<feature>` dir from PHASE 0:
+
+```bash
+.devforge/lib/artifact_helper commit-artifacts --paths '["specs/<feature>/"]' --label "finalize: artifact safety-net"
+```
+
+`commit-artifacts` stages the whole `specs/<feature>/` directory (a directory path passed to `git add` unchanged — never `git add -A`) in the INSTALL repo only (the verb's own `resolve_workspace` guard handles the wrapper split — do NOT add a `git -C <source-root>` here) and makes a `[WIP] finalize: artifact safety-net` commit. The call runs UNCONDITIONALLY — every feature reaching `/finalize` has a `specs/<feature>/`, so there is no skip condition.
+
+This call is FAIL-SOFT: a git staging or commit failure warns on stderr and exits 1 (non-fatal — proceed to PHASE 3 regardless); if SOME paths staged and others failed, the verb warns for the failing paths, commits what staged, and exits 0 (a partial success, not a failure); 'nothing to commit' exits 0 silently as a benign no-op.
+
+**This safety-net is DELIBERATELY redundant with the per-step artifact commits** each pipeline command (`/research` … `/verify`) now makes — those commit each artifact when it is written; this catches any straggler a fail-soft per-step commit skipped (or an artifact written by a path the per-step map missed). It is a belt-and-suspenders catch, NOT an oversight. Because the per-step commits already tracked most artifacts, this call is usually a benign `nothing to commit` no-op — that is expected.
 
 ## PHASE 3 — Squash (confirmation-gated)
 
-Squash the feature's `[WIP]`/`[checkpoint]` commits (including the PHASE-2 docs commit) into one clean commit. **The squash MUTATES local git history (D4); it runs only after the user confirms the proposed commit message(s).** Read `wrapper_mode` and `source_root` from `$WORKDIR/preflight.json`.
+Squash the feature's `[WIP]`/`[checkpoint]` commits (including the PHASE-2 docs commit and the PHASE-2 artifact safety-net commit) into one clean commit. **The squash MUTATES local git history (D4); it runs only after the user confirms the proposed commit message(s).** Read `wrapper_mode` and `source_root` from `$WORKDIR/preflight.json`.
 
 ### 3.1 — Resolve the squash base
 
@@ -175,7 +190,7 @@ WORKDIR="${TMPDIR:-/tmp}/forge-finalize"
 .devforge/lib/finalize_helper check-pushed --repo-root . > "$WORKDIR/pushed.json"
 ```
 
-`check-pushed` reports whether the current branch's commits are already on `origin/<branch>`. Stdout JSON carries `is_pushed` (`true` when `origin/<branch>..HEAD` is empty — all HEAD commits are already pushed), `commit_count`, `branch`, and `no_upstream` (`true` when there is no remote / upstream — treated as safe-to-squash). If `is_pushed` is `true`, SKIP the squash and warn the user (do NOT rewrite shared history): _the feature's commits have already been pushed to `origin/<branch>` — squash skipped to avoid rewriting shared history; consider an interactive rebase before opening the PR._ Then skip to PHASE 4 and report the skip in the results block. (The `squash` verb ALSO enforces this guard in-helper — it refuses a pushed repo even if called — but checking here lets the orchestrator skip the confirmation prompt entirely on a pushed branch.)
+`check-pushed` reports whether the current branch's commits are already on `origin/<branch>`. Stdout JSON carries `is_pushed` (`true` when `origin/<branch>..HEAD` is empty — all HEAD commits are already pushed), `commit_count`, `branch`, and `no_upstream` (`true` when there is no remote / upstream — treated as safe-to-squash). If `is_pushed` is `true`, SKIP the squash and warn the user (do NOT rewrite shared history): *the feature's commits have already been pushed to `origin/<branch>` — squash skipped to avoid rewriting shared history; consider an interactive rebase before opening the PR.* Then skip to PHASE 4 and report the skip in the results block. (The `squash` verb ALSO enforces this guard in-helper — it refuses a pushed repo even if called — but checking here lets the orchestrator skip the confirmation prompt entirely on a pushed branch.)
 
 ### 3.3 — Compose the commit message(s) + get explicit confirmation
 
@@ -184,7 +199,7 @@ Compose the commit subject(s) the squash will use:
 - **Install/wrapper repo** — `feat(<feature-name>): <title>`, where `<feature-name>` is the feature slug (the `NNN-<slug>` directory's slug) and `<title>` is the feature's title, drawn from the spec's `## 1. Overview` section (the first 1-2 sentences, condensed to a commit-subject-length title). The `squash` verb APPENDS `COMMIT_ATTRIBUTION` per config — do NOT add attribution to the subject yourself. Before calling `squash --confirm` (3.4), assert the composed `<title>` (from the spec's `## 1. Overview`) is non-empty; if the Overview is blank, ask the user to supply a commit title before proceeding — an empty `--install-message` would produce a malformed `feat(scope):` commit (the helper does not validate non-emptiness).
 - **Source repo (wrapper mode only)** — `[TICKET-ID] - Description`, where `TICKET-ID` is the Jira-style token from the source branch name (the helper reuses `_extract_ticket_id`; the token matches `[A-Z]+-[0-9]+`) and `Description` lifts from the spec's `## 1. Overview` first 1-2 sentences. This commit carries NO attribution, NO conventional-commit prefix, and NO AI traces (D5) — the helper enforces this; the message is used AS-IS.
 
-Present the proposed message(s) to the user and ask for explicit confirmation before any history is rewritten — for example: _Proposed feature commit: `feat(001-auth): add email/password sign-in`_ (and, in wrapper mode, _Proposed source commit: `[AUTH-123] - Add email/password sign-in`_) _— confirm to squash, or edit the message(s)._ Wait for the user to confirm (or supply edited message(s)). Do NOT proceed to 3.4 without confirmation — the squash is destructive (D4 / OQ-1).
+Present the proposed message(s) to the user and ask for explicit confirmation before any history is rewritten — for example: *Proposed feature commit: `feat(001-auth): add email/password sign-in`* (and, in wrapper mode, *Proposed source commit: `[AUTH-123] - Add email/password sign-in`*) *— confirm to squash, or edit the message(s).* Wait for the user to confirm (or supply edited message(s)). Do NOT proceed to 3.4 without confirmation — the squash is destructive (D4 / OQ-1).
 
 ### 3.4 — Execute the squash
 
@@ -229,7 +244,7 @@ Feature is ready for PR.
 
 In wrapper mode, add a `**Source commit**:` line from the `source_repo` outcome (the `[TICKET-ID] - Description` commit, traceless per D5). When the squash was SKIPPED (already-pushed guard, 3.2) or no-op'd, report that in place of the **Commit** line — never claim a clean commit that did not happen.
 
-Then print a soft `/generate-docs` reminder for structural doc drift (OQ-3 — a soft pointer, NOT a gate): _Surgical docs are updated for this feature. If the feature added new packages, concerns, or domain terms, run `/generate-docs` to regenerate the structural docs this surgical pass does not cover._
+Then print a soft `/generate-docs` reminder for structural doc drift (OQ-3 — a soft pointer, NOT a gate): *Surgical docs are updated for this feature. If the feature added new packages, concerns, or domain terms, run `/generate-docs` to regenerate the structural docs this surgical pass does not cover.*
 
 `/finalize` is TERMINAL — there is NO next-pipeline-command pointer. The "ready for PR" line above IS the next step (create the PR).
 
@@ -243,7 +258,7 @@ rm -rf "$WORKDIR"
 ## Important rules
 
 1. **Finalize does not verify code** — it assumes `/verify` has already approved. The PHASE-0 spec-`Complete` gate enforces this (`/verify` flips the spec to Complete on an APPROVED verdict; `/finalize` STOPS with "run `/verify` first" otherwise).
-2. **Squash is the LAST operation** (D8) — the tech-writer docs are written and `[WIP]`-committed in PHASE 2, BEFORE the PHASE-3 squash, so they fold into the single clean commit.
+2. **Squash is the LAST operation** (D8) — the tech-writer docs are written and `[WIP]`-committed in PHASE 2, BEFORE the PHASE-3 squash, so they fold into the single clean commit. The PHASE-2 artifact safety-net `[WIP]` commit (the unconditional `specs/<feature>/` catch, 37-D4) is likewise made before the squash and folds in the same way.
 3. **The squash MUTATES — and is confirmation-gated** (D4 / OQ-1) — `/finalize` rewrites local git history. The destructive squash runs only after the user confirms the proposed commit message(s), and only via `squash --confirm`. Without `--confirm` the verb emits a dry-run preview and mutates nothing.
 4. **Never rewrite shared history** — when the feature's commits are already pushed (`check-pushed` `is_pushed` true), skip the squash and warn; the `squash` verb refuses a pushed repo in-helper as a second guard.
 5. **Idempotent no-op** — when no `[WIP]`/`[checkpoint]` commits remain (PHASE-0 `has_wip_commits` false), `/finalize` no-ops gracefully ("Nothing to finalize"); re-running on an already-finalized feature lands here.

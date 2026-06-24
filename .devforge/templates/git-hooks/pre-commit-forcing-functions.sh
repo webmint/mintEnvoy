@@ -43,6 +43,18 @@ fi
 # --- Run each enabled detector ---
 FAILED=0
 for VERB in $ENABLED_VERBS; do
+    # verify-design-tokens is a UI-feature check; only run it when at least
+    # one disposition manifest exists (specs/*/design-manifest.json).  Non-UI
+    # projects that have the rule enabled in constitute.json are skipped here
+    # so the hook remains silent on non-UI features (consistent with how the
+    # verify-magic-enum / verify-any-leak checks skip silently when their
+    # preconditions are absent — e.g. no generated_types_dirs present).
+    if [ "$VERB" = "verify-design-tokens" ]; then
+        MANIFEST_FOUND="$(find "$ROOT/specs" -maxdepth 2 -name "design-manifest.json" 2>/dev/null | head -1)"
+        if [ -z "$MANIFEST_FOUND" ]; then
+            continue
+        fi
+    fi
     if "$HELPER" "$VERB" --root "$ROOT" --config "$CONFIG"; then
         : # clean
     else
