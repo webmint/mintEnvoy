@@ -95,8 +95,10 @@ class TaskRow:
 
     number is a zero-padded string (e.g. "001"); padding is NOT validated here —
     the producer is responsible for zero-padding. Only non-empty is required.
-    agent is the assigned agent name; the roster is NOT validated here — only
-    non-empty is required.
+    agent is the assigned agent name; the roster is NOT validated at THIS schema
+    layer — only non-empty is required. Roster membership (the agent exists in the
+    project's .claude/agents/) is enforced by the helper layer: breakdown_helper
+    verify-agent-roster (the /breakdown Phase 3.5 gate) and finalize-handoff.
     review_checkpoint is a strict bool. int (including 1/0) is rejected.
     ac_addressed may be empty; the ≥1 AC rule is enforced by the helper layer.
     All list fields may be empty lists.

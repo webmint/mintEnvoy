@@ -15,8 +15,8 @@ below states which Category its findings map to. The available Category values
 are: mislogic | system_design | best_practice | duplication | security |
 blind_spot. Use only these.
 
-System design (Category: system_design)
 
+System design  (Category: system_design)
 - Layering / dependency-direction violation — a presentation/UI layer reaching
   directly into the data/persistence layer, or an inner layer importing an
   outer one (dependency inversion the wrong way). Quote the offending import or
@@ -32,8 +32,8 @@ System design (Category: system_design)
   a child and adds no behavior of its own (objective cases only: it must
   demonstrably forward and nothing else). Quote the forwarding.
 
-Language / framework best practices (Category: best_practice)
 
+Language / framework best practices  (Category: best_practice)
 - Type-safety suppression — a static safety mechanism silenced to bury a real
   defect instead of fixing it. The tell: the suppression makes a compiler or
   linter error disappear while the unsafe value still flows downstream. Quote
@@ -70,8 +70,8 @@ Language / framework best practices (Category: best_practice)
   the computation and the render path it sits in. (Runtime profiling is out of
   scope — this is the static idiom only.)
 
-Duplication & divergence (Category: duplication)
 
+Duplication & divergence  (Category: duplication)
 - Copy-pasted logic blocks — the same non-trivial logic appearing verbatim (or
   near-verbatim) in multiple places. Quote both occurrences.
 - DIVERGED variant copies — the worst case: the same logic copied into N files
@@ -83,9 +83,9 @@ Duplication & divergence (Category: duplication)
   repetitions. (Two occurrences alone are not yet a DRY finding unless they have
   already diverged.)
 
-Constitution-principle adherence (Category: matches the violated dimension;
-also add the [CONSTITUTION-VIOLATION] tag)
 
+Constitution-principle adherence  (Category: matches the violated dimension;
+also add the [CONSTITUTION-VIOLATION] tag)
 - Read the constitution rules provided in your brief (the orchestrator supplies
   constitution excerpts as brief context for this audit). For each named
   principle, hunt the code for a concrete violation of it and quote the code
@@ -99,6 +99,7 @@ also add the [CONSTITUTION-VIOLATION] tag)
   carry the [CONSTITUTION-VIOLATION] tag regardless of your confidence — never
   downgraded.
 
+
 Judgment rule (mandatory)
 A finding that is an OPINION or best-practice PREFERENCE rather than a
 demonstrable defect MUST be marked Confidence `Likely` or `Speculative` — never
@@ -109,8 +110,8 @@ has too many responsibilities" is a judgment call: mark it `Likely` or
 `Speculative`. The verbatim quote stops fabrication; the Confidence tier is what
 keeps subjective best-practice findings honest.
 
-For each finding from this checklist, state:
 
+For each finding from this checklist, state:
 - Pattern matched
 - Category (mislogic | system_design | best_practice | duplication | security |
   blind_spot — and add the [CONSTITUTION-VIOLATION] tag if a constitution

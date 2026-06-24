@@ -15,6 +15,9 @@ Usage: `/research "<topic>"` (e.g. `/research "items not sorted in admin product
 - `.devforge/research-state.json` — SymptomMemo (Phase 1 state). Owned + shaped by the helper; initialized at Phase 0.3 (`reset-memo`, `set-topic`), then mutated via Phase-1 setter subcommands.
 - `.devforge/research-report.json` — ResearchReport (Phase 2 + 3 state). Owned + shaped by the helper; mutated only via Phase-2/3 setter subcommands.
 - `<install_root>/research/YYYY-MM-DD-<topic-slug>.md` — rendered report. Helper's `render` writes to stdout; orchestrator saves it via the Phase 4 save prompt. Filename slug is auto-derived by the helper from the topic.
+- `<install_root>/research/YYYY-MM-DD-<topic-slug>/handoff.json` — the specify-bound handoff, written by Phase 4's `finalize-handoff` on save (nested alongside the flat `.md` file).
+
+On save, Phase 4 `[WIP]`-commits the rendered report + its `handoff.json` into the install repo via `.devforge/lib/artifact_helper commit-artifacts` (install-repo-only, fail-soft) so the work is git-safe the moment it is written; the commit folds into `/finalize`'s squash.
 
 ## Phase 0 — Pre-flight gate
 
@@ -140,14 +143,14 @@ Convert the vague topic into a structured symptom memo across 6 dimensions. The 
 
 ### Rubric dimensions
 
-| Dimension            | Captures                                                 | Bug-mode example                                     | Enhancement-mode example                                                 |
-| -------------------- | -------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------ |
-| `symptom`            | What's wrong (bug) or what needs to change (enhancement) | "Items not sorted in admin products view"            | "Export is slow on large datasets"                                       |
-| `affected_area`      | Which UI / module / feature surface                      | "Admin > Products > List page"                       | "ExportService background job"                                           |
-| `repro_or_current`   | Repro steps (bug) or current behavior (enhancement)      | "Open list with 50+ items, scroll"                   | "5 min runtime on 100K rows; synchronous"                                |
-| `desired`            | Expected behavior (bug) or target behavior (enhancement) | "Alphabetical by name, A→Z"                          | "Under 30s OR async with progress"                                       |
-| `scope`              | One place / feature-wide / cross-cutting                 | "one place"                                          | "feature-wide"                                                           |
-| `unchanged_behavior` | What must NOT regress                                    | "Filter + pagination on same page must keep working" | "Existing small-dataset exports must stay synchronous + complete in ≤2s" |
+| Dimension | Captures | Bug-mode example | Enhancement-mode example |
+|---|---|---|---|
+| `symptom` | What's wrong (bug) or what needs to change (enhancement) | "Items not sorted in admin products view" | "Export is slow on large datasets" |
+| `affected_area` | Which UI / module / feature surface | "Admin > Products > List page" | "ExportService background job" |
+| `repro_or_current` | Repro steps (bug) or current behavior (enhancement) | "Open list with 50+ items, scroll" | "5 min runtime on 100K rows; synchronous" |
+| `desired` | Expected behavior (bug) or target behavior (enhancement) | "Alphabetical by name, A→Z" | "Under 30s OR async with progress" |
+| `scope` | One place / feature-wide / cross-cutting | "one place" | "feature-wide" |
+| `unchanged_behavior` | What must NOT regress | "Filter + pagination on same page must keep working" | "Existing small-dataset exports must stay synchronous + complete in ≤2s" |
 
 Per-dimension state enum: `Clear` / `Partial` / `Missing` (default `Missing`). Turn cap: 2 follow-ups per dimension before the helper auto-marks `Partial`.
 
@@ -197,7 +200,7 @@ For each of the 6 dimensions, in highest-uncertainty-first order:
    **Recovery on rejection.** If the helper rejects the call (exit 2), copy stderr VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase). Then choose a recovery path based on which rejection fired:
    - Missing or empty `--evidence` → (a) ask the user one follow-up to supply the locality citation if their original answer didn't include a file path, OR (b) re-prompt with the original `AskUserQuestion` options and let them pick a broader framing.
    - `--evidence "(none)"` rejected → only path (b) applies: the user/LLM deliberately passed the sentinel, so re-prompting for a real `file:line` citation OR a broader framing is the only forward path; do not retry with `(none)`.
-     Do not retry the setter call without a citation — the gate will reject again.
+   Do not retry the setter call without a citation — the gate will reject again.
 
 3. **Run helper-side conflict check.**
 
@@ -256,7 +259,6 @@ If the user is clarifying all the way to `Clear`, finalize without the flag:
 ```
 
 Exit code:
-
 - `0` → memo accepted; advance to mode detection.
 - non-zero → blocked. Stderr enumerates the reason (unresolved direct conflict OR Partial/Missing without `--accept-gaps`). Copy stderr VERBATIM, end the turn, address the cited issue on the next user reply.
 
@@ -312,11 +314,11 @@ Confidence calibration: 0 hits at `search_graph` alone means "no NAMED implement
 
 ### Phase 2.3b — Framing challenge (MANDATORY)
 
-Phase 2.3 framing locks in. Without adversarial competition, Phase 2.4 / 2.4b / 2.4c inherit the chosen frame unchallenged — the LLM enumerates hypotheses _within_ the chosen frame, never _across_ competing frames. Phase 2.3b breaks the lock by forcing one alternative-framing commit BEFORE downstream searches run, so subsequent searches probe BOTH frames.
+Phase 2.3 framing locks in. Without adversarial competition, Phase 2.4 / 2.4b / 2.4c inherit the chosen frame unchallenged — the LLM enumerates hypotheses *within* the chosen frame, never *across* competing frames. Phase 2.3b breaks the lock by forcing one alternative-framing commit BEFORE downstream searches run, so subsequent searches probe BOTH frames.
 
 1. **State the PRIMARY framing** in one sentence based on Phase 2.3 evidence ("the bug is caused by X").
 
-2. **State the strongest ALTERNATIVE framing** — a different root-cause hypothesis at the FRAMING level, not at the hypothesis level. Framing-level competition is distinct from the ≥2 hypothesis enumeration the helper enforces in Phase 2.5 — that enumeration produces hypotheses _within_ one frame. Two examples to disambiguate:
+2. **State the strongest ALTERNATIVE framing** — a different root-cause hypothesis at the FRAMING level, not at the hypothesis level. Framing-level competition is distinct from the ≥2 hypothesis enumeration the helper enforces in Phase 2.5 — that enumeration produces hypotheses *within* one frame. Two examples to disambiguate:
 
    - Same frame, two hypotheses (NOT what Phase 2.3b wants): primary frame "comparator field-name typo" → H1 "primary-id vs alternate-id mismatch" / H2 "type coercion drops the match". Both H1 + H2 live inside the same comparator-typo frame.
    - Different framings (what Phase 2.3b wants): primary "id-field mismatch (presentation-layer fix)" vs runner-up "shallow walk + missing structural classifier (cross-layer fix)". Different root causes, different fix layers, different surfaces.
@@ -387,14 +389,12 @@ Both searches are MANDATORY — the runner-up frame's canonical pattern may dive
 Example (matching the Phase 2.4 example): if the primary frame is "sort comparator with no alphabetical tie-breaker", the primary solution-pattern literal is `localeCompare` (or `sortBy`, or whatever the project's canonical secondary-sort idiom is); if the runner-up frame is "fetch / watch race causes unstable input order", the runner-up solution-pattern literal is the project's canonical reactive-derivation idiom (e.g. `computed(` for Vue, `useMemo(` for React). Result rows from EITHER search = candidate canonical implementations elsewhere in the codebase. For each, judge whether it really solves the same problem class (look at the surrounding structure via `get_code_snippet`).
 
 Record every confirmed canonical implementation as its own `Finding` row with:
-
 - `--surface` = a label naming the helper / file role (e.g. "canonical sort helper", "existing localeCompare site")
 - `--file-line` = exact `file_path:line` from the `search_code` result row (per Phase 2.3 grounding rule)
 - `--relevance` = the literal phrase "canonical pattern — reusable" followed by a one-line note on what it does
 - `--framing` = `primary` when the row supports the primary framing's canonical pattern; `runner-up` when it supports the runner-up framing's canonical pattern (per Phase 2.3b's downstream-impact rule)
 
 These findings feed Phase 3:
-
 - The recommended approach MUST cite the canonical pattern by exact file:line if one was found, and MUST recommend reusing it over writing a new helper. Fresh helper extraction is only justified when Phase 2.4b recorded `file_line = "(none)"` (no canonical found); in that case the `--rationale` must say so explicitly.
 - When a canonical pattern was found, the Constitution Constraints section MUST include the "Search before building" rule with the canonical helper's file:line in the impact column. When no canonical was found, omit this entry — its absence is information.
 
@@ -508,7 +508,7 @@ search_code(pattern="@click=|onClick=|addEventListener|v-on:|onPress|onPanRespon
 
 Pick the function bound to the user-action event. Record its qualified name.
 
-**Heuristic-fragility fallback.** If no handler token is found via the `search_code` sweep (dynamic event binding with variable event type, composable-wrapped binding, framework-specific syntax not in the token list, programmatic dispatch), ask the user ONE direct prompt: _"I couldn't auto-detect the click/event handler that triggers the bug from the symptom file. Which function or method handles the user action that reproduces the bug? (give a function name or `file:line`)"_. Wait for the user answer, then proceed. Do NOT guess. Do NOT skip Phase 2.4d on heuristic miss — the user-fallback is the recovery path.
+**Heuristic-fragility fallback.** If no handler token is found via the `search_code` sweep (dynamic event binding with variable event type, composable-wrapped binding, framework-specific syntax not in the token list, programmatic dispatch), ask the user ONE direct prompt: *"I couldn't auto-detect the click/event handler that triggers the bug from the symptom file. Which function or method handles the user action that reproduces the bug? (give a function name or `file:line`)"*. Wait for the user answer, then proceed. Do NOT guess. Do NOT skip Phase 2.4d on heuristic miss — the user-fallback is the recovery path.
 
 **Step 2 — Identify the write-boundary call.** The function the handler eventually calls that PERSISTS the operation. Write-boundary token list (covers REST + Redux + repository + WebSocket + GraphQL + IndexedDB + SSE + message-bus + Apollo cache + state-management actions):
 
@@ -516,7 +516,7 @@ Pick the function bound to the user-action event. Record its qualified name.
 addLine|dispatch|commit|mutate|mutation|repo.save|*.put|*.post|*.create|*.update|*.emit|*.send|*.publish|cache.writeQuery|cache.writeFragment|store.put|tx.add|tx.put|.dispatchEvent|eventBus.emit|bus.publish
 ```
 
-Run `search_code` for those tokens in the symptom file. Pick the call whose receiver name matches one of the tokens AND whose argument list visibly carries the symptom value (the value cited in `memo.dimensions.symptom` or `memo.dimensions.desired`). Record its qualified name. If no token matches (project uses non-conventional write-boundary verbs not on the list — e.g., `tellSaga`, `enqueueWork`, `requestSync`), ask the user ONE direct prompt: _"I couldn't auto-detect the write-boundary call (the function that persists the operation) from the symptom file. Which function in the call chain actually persists the change? (give a function name or `file:line`)"_. Wait for the user answer, then proceed.
+Run `search_code` for those tokens in the symptom file. Pick the call whose receiver name matches one of the tokens AND whose argument list visibly carries the symptom value (the value cited in `memo.dimensions.symptom` or `memo.dimensions.desired`). Record its qualified name. If no token matches (project uses non-conventional write-boundary verbs not on the list — e.g., `tellSaga`, `enqueueWork`, `requestSync`), ask the user ONE direct prompt: *"I couldn't auto-detect the write-boundary call (the function that persists the operation) from the symptom file. Which function in the call chain actually persists the change? (give a function name or `file:line`)"*. Wait for the user answer, then proceed.
 
 **Step 3 — Trace handler → write-boundary.** Run:
 
@@ -526,7 +526,7 @@ trace_path(<handler_qn>, mode=calls, direction=outbound)
 
 Record the full path of intermediate function QNs (everything between the handler and the write-boundary call, exclusive on both ends). Use `mode=calls` always — CBM's `mode=data_flow` returns identical hop lists to `mode=calls` for first-party project code (pre-flight verified 2026-05-18) and provides no incremental signal.
 
-**Handler-not-a-graph-node fallback.** Vue / SFC template files emit only File and Module nodes in the CBM graph — the handler defined in `<script setup>` may not resolve as a Function node. If `trace_path` returns empty OR `search_graph(name_pattern="<handler_name>")` returns 0 results, ask the user ONE direct prompt: _"I couldn't trace from `<handler>` to a write-boundary call via the code graph (Vue/template files often aren't indexed at function granularity). What intermediate functions does the handler call before reaching the persistence call? (list function names or `file:line` references)"_. Wait for the user answer, then proceed with the user-supplied chain.
+**Handler-not-a-graph-node fallback.** Vue / SFC template files emit only File and Module nodes in the CBM graph — the handler defined in `<script setup>` may not resolve as a Function node. If `trace_path` returns empty OR `search_graph(name_pattern="<handler_name>")` returns 0 results, ask the user ONE direct prompt: *"I couldn't trace from `<handler>` to a write-boundary call via the code graph (Vue/template files often aren't indexed at function granularity). What intermediate functions does the handler call before reaching the persistence call? (list function names or `file:line` references)"*. Wait for the user answer, then proceed with the user-supplied chain.
 
 **Step 4 — Read each intermediate end-to-end + record findings.** For EACH intermediate function on the path (excluding the handler and the write-boundary themselves), apply two cumulative filters to decide whether to call `get_code_snippet`:
 
@@ -626,14 +626,14 @@ Phase 2.5 classifies value semantics + stability for symbols. It does NOT examin
 
 4. **Classify intent.** Pick ONE of the 6 enum values:
 
-   | Intent               | When it applies                                                                                                                                                                          |
-   | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-   | `placeholder`        | Literal was a TODO / FIXME / temporary value (commit msg or surrounding code says "default for now", "TBD", etc.).                                                                       |
-   | `migrated`           | Literal carried over from a legacy system (commit msg cites the migration; surrounding code references the legacy identifier).                                                           |
-   | `deliberate`         | Literal was a considered policy choice with rationale in the commit message (commit msg explains WHY this value).                                                                        |
-   | `forgotten`          | Literal added during a feature intro but never updated when a later policy was added (commit msg introduces the feature; a later commit adds the policy without revisiting the literal). |
-   | `inherited-refactor` | A later refactor preserved the literal verbatim while restructuring around it (commit msg describes structural change, not value change).                                                |
-   | `generated`          | Literal lives in a generated file (path matches `**/generated/**` or `**/node_modules/**`, OR file header has an `AUTO-GENERATED` marker).                                               |
+   | Intent | When it applies |
+   |---|---|
+   | `placeholder` | Literal was a TODO / FIXME / temporary value (commit msg or surrounding code says "default for now", "TBD", etc.). |
+   | `migrated` | Literal carried over from a legacy system (commit msg cites the migration; surrounding code references the legacy identifier). |
+   | `deliberate` | Literal was a considered policy choice with rationale in the commit message (commit msg explains WHY this value). |
+   | `forgotten` | Literal added during a feature intro but never updated when a later policy was added (commit msg introduces the feature; a later commit adds the policy without revisiting the literal). |
+   | `inherited-refactor` | A later refactor preserved the literal verbatim while restructuring around it (commit msg describes structural change, not value change). |
+   | `generated` | Literal lives in a generated file (path matches `**/generated/**` or `**/node_modules/**`, OR file header has an `AUTO-GENERATED` marker). |
 
 5. **Record the archaeology.** Call:
 
@@ -869,10 +869,10 @@ Phase 3 is orchestrator-direct compose (NO subagent dispatch). Read memo + repor
 
 6. **Verdict** (mode-aware enum — helper rejects values outside the mode's allowed set):
 
-   | Mode          | Allowed verdict values                                                                       |
-   | ------------- | -------------------------------------------------------------------------------------------- |
-   | `bug`         | `Root cause confirmed` / `Root cause hypothesis (needs repro)` / `Multiple plausible causes` |
-   | `enhancement` | `Feasible` / `Feasible with caveats` / `Not Recommended`                                     |
+   | Mode | Allowed verdict values |
+   |---|---|
+   | `bug` | `Root cause confirmed` / `Root cause hypothesis (needs repro)` / `Multiple plausible causes` |
+   | `enhancement` | `Feasible` / `Feasible with caveats` / `Not Recommended` |
 
    ```bash
    .devforge/lib/research_helper set-verdict --value "<verdict>"
@@ -950,6 +950,18 @@ After the rendered `.md` is written:
 
 5. If the helper exits non-zero, tell the user `"Research .md saved at <abs md path> but handoff.json failed: <stderr>. Re-run finalize-handoff manually after fixing the missing state."` and end the turn.
 6. If the helper exits 0, capture the stdout `wrote: <abs path>` for the closing message.
+
+### WIP-commit the artifacts (mandatory on save)
+
+After the rendered `.md` AND `handoff.json` are both written, `[WIP]`-commit them so the work is git-safe immediately. Compose `--paths` from the two paths you just wrote — the saved `.md` path (the same bytes-on-disk path from "On save", including any `-2`/`-3` suffix if the name collided) and the `handoff.json` path from the step above — and use the topic slug for the label:
+
+```bash
+.devforge/lib/artifact_helper commit-artifacts \
+    --paths '["research/<saved-md-filename>.md", "research/<date>-<topic-slug>/handoff.json"]' \
+    --label "research: <topic-slug>"
+```
+
+The helper stages those paths in the install repo and makes a `[WIP] research: <topic-slug>` commit; it is install-repo-only (never the source repo in wrapper mode). This call is UNCONDITIONAL — always run it once both files are written. It is FAIL-SOFT: a git staging or commit failure warns on stderr and exits 1 (non-fatal — the artifacts are already saved, so warn the user with the helper's stderr and continue to the closing message; do NOT abort the command or re-run the save); "nothing to commit" (paths already staged or absent) exits 0 silently as a benign no-op.
 
 ### On skip
 

@@ -13,8 +13,8 @@ duplication | security | blind_spot`. Use only these. A **constitution violation
 has no category of its own — tag it `blind_spot` and put a `[CONSTITUTION-VIOLATION]`
 marker in the `Pattern` line and `Why it's wrong` (matching `/audit` and `/review`).
 
-Architectural failure modes (Category: system_design)
 
+Architectural failure modes  (Category: system_design)
 - Layering / SOLID violations the plan introduces — a component the plan adds that
   takes on multiple responsibilities, a god-component the design grows, a
   dependency direction the architecture forbids that the plan's structure crosses.
@@ -27,9 +27,9 @@ Architectural failure modes (Category: system_design)
   the approach and argue, from it, that the approach is disproportionate to the
   spec's WHAT.
 
-Plan-vs-reality mismatches (Category: duplication for a reinvention; system_design
-or blind_spot for a wrong assumption — the HIGHEST-VALUE catch)
 
+Plan-vs-reality mismatches  (Category: duplication for a reinvention; system_design
+or blind_spot for a wrong assumption — the HIGHEST-VALUE catch)
 - Duplicate-by-new-file / reinvention — the plan declares it will CREATE a helper,
   type, validation, component, or utility that the codebase ALREADY has. This is
   the most expensive design error to miss because it is invisible in the plan's
@@ -45,17 +45,17 @@ or blind_spot for a wrong assumption — the HIGHEST-VALUE catch)
   `Why it's wrong:`. (Category: `system_design` for a structural mismatch,
   `blind_spot` for an unhandled real-code edge the plan assumed away.)
 
-Security attack surface (Category: security)
 
+Security attack surface  (Category: security)
 - Auth / session / token handling the design routes incorrectly; PII the plan
   exposes; access control the design omits; an unauthenticated path the plan opens
   to a protected resource; untrusted input the design routes into a dangerous sink
   without validation. Quote the plan / spec text that declares the offending data
   flow or boundary; name the protected resource or the trust boundary it crosses.
 
-Scalability / performance ceilings (Category: system_design for an
-architecture/data-flow cost; best_practice for an idiom smell)
 
+Scalability / performance ceilings  (Category: system_design for an
+architecture/data-flow cost; best_practice for an idiom smell)
 - An operation the design runs over a large collection; an N+1 the plan's data
   flow walks into; a missing pagination / caching the design needs at the volume
   the spec implies; a hot path the plan makes slow. Quote the plan's description of
@@ -64,17 +64,17 @@ architecture/data-flow cost; best_practice for an idiom smell)
   `system_design`; if it is a single local idiom that should be batched / memoized
   / derived → `best_practice`. State which and why.
 
-Ignored edge cases (Category: blind_spot, or mislogic for a control-flow
-contradiction)
 
+Ignored edge cases  (Category: blind_spot, or mislogic for a control-flow
+contradiction)
 - States, failure paths, and inputs the design does not handle — an error path the
   plan's happy-path flow omits, a state transition the design leaves undefined, an
   input shape the plan assumes away. Quote the plan section that defines the flow;
   name the unhandled state / input. Respect the spec's Out-of-Scope (§6): a
   deliberately-excluded case is NOT an ignored edge case.
 
-Stale external claims (Category: best_practice)
 
+Stale external claims  (Category: best_practice)
 - The plan names a deprecated / removed library API, a wrong version, or an
   anti-pattern dependency choice. This fires ONLY when the plan names an external
   dependency — VERIFY the claim against current docs (context7 primary;
@@ -85,14 +85,15 @@ Stale external claims (Category: best_practice)
   VERIFY the plan's claim; do NOT hunt alternatives — a "better option exists" hit
   is an upstream discovery signal, flagged, not adopted.
 
-Constitution violations (tag [CONSTITUTION-VIOLATION]; Category: blind_spot)
 
+Constitution violations  (tag [CONSTITUTION-VIOLATION]; Category: blind_spot)
 - A design decision that breaks a non-negotiable rule the project's
   `constitution.md` declares. Quote BOTH the plan/spec decision AND the
   constitution rule it breaks (the constitution is in your read-context). A
   constitution violation is ALWAYS Critical, never downgraded regardless of
   confidence; mark it `[CONSTITUTION-VIOLATION]` in the `Pattern` and `Why it's
-wrong`.
+  wrong`.
+
 
 Grounding rule (mandatory — same single-anchor discipline as /audit and /review)
 Every finding MUST include a verbatim Evidence quote copy-pasted from exactly ONE

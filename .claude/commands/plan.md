@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Translate an approved spec into a technical implementation plan with architecture decisions, layer map, file impact, and risk assessment.
-argument-hint: '[spec-file]'
+argument-hint: "[spec-file]"
 disable-model-invocation: true
 ---
 
@@ -17,6 +17,8 @@ Usage: `/plan [spec-file]` (e.g. `/plan specs/008-prevent-duplicate-config-optio
 - `specs/NNN-<feature>/research.md` — when 1+ signals detected per Phase 0 (conditional).
 - `specs/NNN-<feature>/data-model.md` — when the feature involves new or changed entities (conditional).
 - `specs/NNN-<feature>/contracts.md` — when the feature involves new or changed API contracts (conditional).
+
+On approve, Phase 4 `[WIP]`-commits `plan.md` + `plan-handoff.json` (plus whichever of `research.md` / `data-model.md` / `contracts.md` this run actually wrote) into the install repo via `.devforge/lib/artifact_helper commit-artifacts` (install-repo-only, fail-soft) so the work is git-safe the moment it is written; the commit folds into `/finalize`'s squash.
 
 ## Context in the Workflow
 
@@ -94,6 +96,22 @@ Stdout is one of four forms:
 - `drift <a>..<b> <file-1> <file-2> ...` — one or more spec-cited files changed since the spec was stamped. Tell the user the spec's cited files changed since it was stamped, listing the changed files from the `<file-...>` tokens. If the `drift` token carries no `<file-...>` tokens (only the two SHAs), do not claim specific files changed — tell the user the spec has drifted from its stamp but the cited-file list could not be computed (the spec file may have moved). Then ask via `AskUserQuestion` `"Spec-cited files changed since the spec was written — proceed with planning?"` — single-line text — with options `["proceed", "cancel"]`. On `cancel`, tell the user `"Re-check the spec against the changed files before re-running /plan."` and end the turn. On `proceed`, continue to Phase 0b with the resolved path.
 - `not-a-git-repo` (exit 2) — the drift check cannot run (no git repository / no HEAD / git binary missing). Tell the user `"Spec drift check unavailable (not a git repository); proceeding without it."` and proceed to Phase 0b with the resolved path. The drift check is advisory — a non-git target must NOT block planning.
 
+## PHASE 0a.7: Re-entry from /grill (conditional — skip if no seed)
+
+Before beginning the plan work, check for a `/grill` re-entry seed. Glob `specs/*/grill-seed.json`. If any matched file has a `target_stage` equal to `"plan"` (this command's stage), you are re-entering from a `/grill` REVISE-PLAN disposition: the design-time grill proved correctable defects in this feature's `plan.md`, and this re-run must address the confirmed findings rather than re-derive the flawed plan. Read the seed DIRECTLY: parse the matched file's flat JSON inline — do NOT call any grill helper or `plan_helper` verb to read it (the read stays helper-free so this block remains valid even if `/grill` is later removed). The seed carries these fields:
+
+- `feature` — the feature this directive applies to; state it up front (do NOT infer it from the file path).
+- `prior_conclusion` — the flawed plan decision `/grill` invalidated; do NOT repeat it in the revised plan.
+- `invalidating_evidence` — how `/grill` proved that plan decision wrong (grounded in `plan.md` / `spec.md` / code).
+- `must_satisfy` — what the revised plan must now satisfy; address it explicitly in the revised `plan.md`.
+- `carried_findings` — the remaining confirmed grill findings to address; stay monotonic (never re-introduce a defect a prior pass fixed).
+
+State up front in your first user-facing message that you are running in grill-revision mode for the named `feature`, and how this run addresses each `must_satisfy` item. The planning phases below run normally with this directive constraining what they produce — Phase 2 writes `plan.md` to the same path (overwriting the prior draft), so the result REPLACES rather than hand-patches the existing plan; the grill directive ensures the replacement addresses the confirmed findings rather than re-deriving the flawed decisions.
+
+This block only READS the seed's directive. It does NOT delete the seed or change its `cycle_count` (the seed's lifecycle is owned by the next `/grill` run — v1 simplification; do not add seed-deletion logic here).
+
+When no `specs/*/grill-seed.json` file matches `target_stage == "plan"`, this block is a no-op — proceed normally to Phase 0b with the resolved path (the normal case — `/grill` is opt-in, and no seed with `target_stage="plan"` is ever produced unless a `/grill` run reaches a REVISE-PLAN verdict).
+
 ## PHASE 0b: Status flip
 
 The act of running `/plan` constitutes approval of the spec for planning. Flip Draft → Approved structurally via the helper:
@@ -132,14 +150,14 @@ Exit 2 means the spec is malformed (neither Date nor Status frontmatter line). E
 
 Read the spec and check for these signals. **Only flag signals for things NOT already in the project's current stack.** If the spec references a library/technology that's already in the project's dependencies (check `CLAUDE.md`, `package.json`, `pubspec.yaml`, `requirements.txt`, etc.), that is NOT a signal — the team has already made that choice.
 
-| Signal                                                       | Example                                                 | NOT a signal when...                |
-| ------------------------------------------------------------ | ------------------------------------------------------- | ----------------------------------- |
-| External library/package **not in project dependencies**     | "use Stripe SDK" (and Stripe is not in package.json)    | Library is already installed        |
-| New integration with **unconfigured** third-party service    | "connect to payment gateway" (no payment config exists) | Service is already integrated       |
-| Architectural decision where multiple valid approaches exist | "real-time updates" (polling vs SSE vs WebSocket)       | Always a signal — requires decision |
-| Greenfield pattern not yet present in the codebase           | first use of caching, first background job              | Pattern already exists in codebase  |
-| Performance constraints that need benchmarking               | "handle 10k concurrent users", "< 200ms response"       | Always a signal — requires research |
-| Technology **not part of the project's current stack**       | new protocol or tool the codebase hasn't used           | Technology is already in the stack  |
+| Signal | Example | NOT a signal when... |
+|--------|---------|---------------------|
+| External library/package **not in project dependencies** | "use Stripe SDK" (and Stripe is not in package.json) | Library is already installed |
+| New integration with **unconfigured** third-party service | "connect to payment gateway" (no payment config exists) | Service is already integrated |
+| Architectural decision where multiple valid approaches exist | "real-time updates" (polling vs SSE vs WebSocket) | Always a signal — requires decision |
+| Greenfield pattern not yet present in the codebase | first use of caching, first background job | Pattern already exists in codebase |
+| Performance constraints that need benchmarking | "handle 10k concurrent users", "< 200ms response" | Always a signal — requires research |
+| Technology **not part of the project's current stack** | new protocol or tool the codebase hasn't used | Technology is already in the stack |
 
 **No signals found** → proceed to Phase 1 with codebase research only.
 
@@ -150,13 +168,11 @@ Read the spec and check for these signals. **Only flag signals for things NOT al
 For each signal, choose the appropriate research tool:
 
 **For specific libraries named in the spec** (binding):
-
 - **Required**: Use Context7 first (`resolve-library-id` → `query-docs`) to get current documentation. **Do not skip directly to WebSearch.**
 - **Fallback condition**: Only fall back to WebSearch if (a) Context7 returns no results for the library, OR (b) the Context7 tool is unavailable in this session. Document the fallback in research.md with the specific reason ("Context7 returned no docs for X" or "Context7 unavailable").
 - **Auditability**: The choice is logged in tool-call traces; reviewers can verify which path was taken.
 
 **For comparing alternatives or architectural decisions:**
-
 - Use WebSearch to find current best practices and proven approaches.
 - Compare at least 2-3 alternatives with pros/cons.
 - Check library options: maintenance status, bundle size, community adoption.
@@ -170,7 +186,6 @@ After raw findings for each alternative are gathered (pros/cons/maintenance/bund
 Skip ONLY when alternatives are mechanical (one library is project-default per `CLAUDE.md`, others are non-starters). The skip reason must be recorded as a one-line note in the plan.md "Specialist Consultation" section (see Phase 2 template) — that section is always present in plan.md and is the single source of truth for invocation/skip provenance, regardless of whether research.md was generated. Silent skips are a hard error.
 
 **For all signals:**
-
 - Look at real-world examples of similar implementations.
 - Verify external API contracts and limitations.
 
@@ -198,16 +213,14 @@ Save to `specs/[feature-name]/research.md`:
 **Signals detected**: [list which signals triggered deep research]
 
 ## Questions Investigated
-
 1. [Question] → [Finding + decision]
 2. [Question] → [Finding + decision]
 
 ## Alternatives Compared
 
 ### [Decision Area] (e.g., "Payment processor", "WebSocket library")
-
-| Option     | Pros   | Cons   | Verdict           |
-| ---------- | ------ | ------ | ----------------- |
+| Option | Pros | Cons | Verdict |
+|--------|------|------|---------|
 | [option A] | [pros] | [cons] | Chosen / Rejected |
 | [option B] | [pros] | [cons] | Chosen / Rejected |
 | [option C] | [pros] | [cons] | Chosen / Rejected |
@@ -215,7 +228,6 @@ Save to `specs/[feature-name]/research.md`:
 **Decision**: [chosen option] — [one-line rationale]
 
 ## References
-
 - [links to docs, examples, or source files consulted]
 ```
 
@@ -267,18 +279,15 @@ If the feature involves data entities, define them. Save to `specs/[feature-name
 ## Entities
 
 ### [EntityName]
-
-| Field | Type   | Required | Description       |
-| ----- | ------ | -------- | ----------------- |
-| id    | string | yes      | Unique identifier |
-| ...   | ...    | ...      | ...               |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string | yes | Unique identifier |
+| ... | ... | ... | ... |
 
 ### Relationships
-
 - [Entity A] → [Entity B]: [relationship type and description]
 
 ### Validation Rules
-
 - [Field]: [constraint]
 ```
 
@@ -292,7 +301,6 @@ If the feature involves API calls (REST, GraphQL, etc.), define contracts. Save 
 # API Contracts: [Feature Name]
 
 ## [Endpoint/Query/Mutation Name]
-
 - **Type**: [GET/POST/Query/Mutation]
 - **Input**: [type definition or reference to existing type]
 - **Output**: [type definition or reference to existing type]
@@ -355,13 +363,11 @@ Save to `specs/[feature-name]/plan.md`. The Layer Map below shows a Domain/Data/
 ## Specialist Consultation
 
 **Invocations**:
-
 - Phase 0 alternatives: [yes — see research.md §Alternatives Compared | no — N/A (no 2+ alternatives compared, OR alternatives were mechanical per CLAUDE.md project-defaults — one-line reason: ___)]
 - Phase 1.3 architecture decisions: yes (mandatory)
 - Specialists consulted (orchestrator-relayed on the architect's request, or directly): [see Specialist Consultation table]
 
 **Architect-authored sections** (transcribed verbatim from architect return):
-
 - Layer Map: [rows N-M]
 - Key Design Decisions: [rows N-M]
 - Risk Assessment seeds: [rows N-M]
@@ -382,7 +388,6 @@ Save to `specs/[feature-name]/plan.md`. The Layer Map below shows a Domain/Data/
 ## Constitution Compliance
 
 [Verify the planned approach doesn't violate any NON-NEGOTIABLE rules]
-
 - Rule X: [compliant / requires attention]
 - Rule Y: [compliant / requires attention]
 
@@ -392,48 +397,48 @@ Save to `specs/[feature-name]/plan.md`. The Layer Map below shows a Domain/Data/
 
 [Which architectural layers this feature touches and what happens in each]
 
-| Layer        | What                           | Files (existing or new) |
-| ------------ | ------------------------------ | ----------------------- |
-| Domain       | [types, interfaces, use cases] | [file paths]            |
-| Data         | [repositories, API calls]      | [file paths]            |
-| Presentation | [components, views, state]     | [file paths]            |
+| Layer | What | Files (existing or new) |
+|-------|------|------------------------|
+| Domain | [types, interfaces, use cases] | [file paths] |
+| Data | [repositories, API calls] | [file paths] |
+| Presentation | [components, views, state] | [file paths] |
 
 ### Key Design Decisions
 
-| Decision   | Chosen Approach | Why         | Alternatives Rejected |
-| ---------- | --------------- | ----------- | --------------------- |
-| [decision] | [approach]      | [rationale] | [alternatives]        |
+| Decision | Chosen Approach | Why | Alternatives Rejected |
+|----------|----------------|-----|----------------------|
+| [decision] | [approach] | [rationale] | [alternatives] |
 
 ### Established-Convention Departures
 
 [Include this subsection ONLY if ≥1 Key Design Decision is flagged "DEPARTURE" in its Why column (per architect Rule 3). Omit the entire subsection — heading and table — when there are no departures (e.g. greenfield or first-touch concerns).]
 
-| Departure            | Established Pattern Left                          | Why Necessary                                             |
-| -------------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| Departure | Established Pattern Left | Why Necessary |
+|-----------|--------------------------|---------------|
 | [new pattern chosen] | [what the codebase already does for this concern] | [why the established pattern genuinely doesn't work here] |
 
 ### File Impact
 
-| File   | Action        | What Changes        |
-| ------ | ------------- | ------------------- |
+| File | Action | What Changes |
+|------|--------|-------------|
 | [path] | Create/Modify | [brief description] |
 | [path] | Create/Modify | [brief description] |
 
 ### Documentation Impact
 
-| Doc File                          | Action        | What Changes                                    |
-| --------------------------------- | ------------- | ----------------------------------------------- |
-| docs/<package>/overview.md        | Update/Create | [what needs documenting at the package level]   |
-| docs/<package>/architecture.md    | Update        | [if package-level layer patterns change]        |
-| docs/<package>/<concern>/index.md | Update/Create | [if a concern's Purpose or Structure changes]   |
-| docs/architecture.md              | Update        | [if cross-package architecture patterns change] |
+| Doc File | Action | What Changes |
+|----------|--------|-------------|
+| docs/<package>/overview.md | Update/Create | [what needs documenting at the package level] |
+| docs/<package>/architecture.md | Update | [if package-level layer patterns change] |
+| docs/<package>/<concern>/index.md | Update/Create | [if a concern's Purpose or Structure changes] |
+| docs/architecture.md | Update | [if cross-package architecture patterns change] |
 
 [If no documentation impact: "No documentation changes expected — internal implementation only."]
 
 ## Risk Assessment
 
-| Risk   | Likelihood   | Impact       | Mitigation      |
-| ------ | ------------ | ------------ | --------------- |
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
 | [risk] | Low/Med/High | Low/Med/High | [how to handle] |
 
 ## Dependencies
@@ -516,6 +521,18 @@ The helper parses the rendered `plan.md` and atomic-writes `specs/NNN-<feature>/
 - Non-zero exit (Exit 2 → `plan.md` not found or rendered content failed schema validation; Exit 1 → I/O error writing `plan-handoff.json`, e.g. permissions or disk-full) → the helper could not write or validate the handoff. Copy the helper's stderr VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase). Do NOT abort — continue to the `render-breakdown-handoff` text block below. The structured handoff is best-effort; the manual text block is the guaranteed human bridge.
 
 The `plan-handoff.json` is the **producer side** of the plan→breakdown handoff, consumed by `breakdown_helper read-plan-handoff` in `/breakdown` Phase 0. There is no auto-dispatch and no auto-consume: the manual text block below remains how the user launches `/breakdown`.
+
+**WIP-commit the plan artifacts.** With `plan.md` written in Phase 2 and `plan-handoff.json` written above, `[WIP]`-commit the plan artifacts so the work is git-safe immediately. Compose `--paths` from `plan.md` + `plan-handoff.json` plus whichever optional supporting docs THIS run wrote — include `research.md` (if Phase 0 generated it), `data-model.md` (if Phase 1.1 drafted it), and `contracts.md` (if Phase 1.2 drafted it); omit the ones this run did not write. Use the feature directory name (`NNN-<feature>`) for the label.
+
+The block below shows the mandatory two-entry minimum — append `"specs/<NNN>-<feature>/research.md"`, `"specs/<NNN>-<feature>/data-model.md"`, and/or `"specs/<NNN>-<feature>/contracts.md"` to the `--paths` array for whichever of those THIS run wrote (omit the ones it did not). The array is composed at runtime, not copied verbatim.
+
+```bash
+.devforge/lib/artifact_helper commit-artifacts \
+    --paths '["specs/<NNN>-<feature>/plan.md", "specs/<NNN>-<feature>/plan-handoff.json"]' \
+    --label "plan: <NNN>-<feature>"
+```
+
+The helper stages those paths in the install repo and makes a `[WIP] plan: <NNN>-<feature>` commit; it is install-repo-only (never the source repo in wrapper mode). This call is UNCONDITIONAL — always run it, even if `finalize-handoff` above exited non-zero (`plan.md` still exists, and the helper benign-skips any `--paths` entry that was not written). It is FAIL-SOFT: a git staging or commit failure warns on stderr and exits 1 (non-fatal — the artifact is already written, so warn the user with the helper's stderr and continue to the `render-breakdown-handoff` block below; do NOT abort the approve flow); "nothing to commit" (paths already staged or absent) exits 0 silently as a benign no-op.
 
 Then emit the deterministic handoff block via the helper:
 

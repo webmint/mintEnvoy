@@ -13,10 +13,10 @@ Implements Phase 4 of /grill:
 
   build_seed(target_stage, feature, prior_conclusion, invalidating_evidence,
              must_satisfy, cycle_count, carried_findings, provenance) -> ReEntrySeed
-      Construct a ReEntrySeed for the RE-ENTER-UPSTREAM backward handoff.
+      Construct a ReEntrySeed for the RE-ENTER-UPSTREAM or REVISE-PLAN backward handoff.
       Lets ReEntrySeed.__post_init__ enforce all validation -- surfaces a
       clear ValueError on invalid input.  Caller is responsible for calling
-      this only when disposition == RE-ENTER-UPSTREAM.
+      this only when disposition is RE-ENTER-UPSTREAM or REVISE-PLAN.
 
   write_seed(feature_dir, seed) -> str
       Atomic write of ReEntrySeed as JSON to <feature_dir>/grill-seed.json.
@@ -38,7 +38,7 @@ Disposition section (grill-specific -- /review does NOT have this):
     PROCEED          -- attack found no disqualifying defect; plan is sound
     REVISE-PLAN      -- defects are real but fixable at plan level
     RE-ENTER-UPSTREAM -- defect is rooted upstream (spec/discovery/research);
-                         requires re_entry_target to be one of SEED_TARGET_STAGES
+                         requires re_entry_target to be one of _UPSTREAM_STAGES
     KILL             -- defect is fundamental; plan should be abandoned
 
   The disposition (verdict string + rationale, and for RE-ENTER-UPSTREAM the
@@ -77,6 +77,14 @@ from _grill.seed_schema import (  # noqa: E402
 # ---------------------------------------------------------------------------
 
 DISPOSITION_VERDICTS = ("PROCEED", "REVISE-PLAN", "RE-ENTER-UPSTREAM", "KILL")
+
+# Valid re_entry_target values for the RE-ENTER-UPSTREAM disposition in
+# render_report.  This is SEED_TARGET_STAGES minus "plan": "plan" is a valid
+# seed target_stage for a REVISE-PLAN seed (write-seed accepts all 4 stages),
+# but it is NOT a valid RE-ENTER-UPSTREAM re_entry_target because REVISE-PLAN
+# is a separate disposition with its own rendering branch.  The plan is not
+# upstream of itself; "plan" here would produce incoherent guidance text.
+_UPSTREAM_STAGES = ("spec", "discovery", "research")
 
 # Maps raw target_stage values (as stored in the seed) to the slash-command
 # name the user should re-enter at.  Used ONLY for guidance text rendering --
@@ -475,7 +483,11 @@ def render_report(
         Human-readable rationale for the disposition (non-empty).
     re_entry_target : str or None
         Required when disposition == "RE-ENTER-UPSTREAM".
-        Must be one of SEED_TARGET_STAGES: "spec", "discovery", "research".
+        Must be one of _UPSTREAM_STAGES: "spec", "discovery", "research".
+        "plan" is NOT valid here -- it is a valid seed target_stage (for
+        write-seed / build_seed) but RE-ENTER-UPSTREAM means the defect is
+        rooted in a stage upstream of the plan; REVISE-PLAN is the separate
+        disposition for plan-level changes (it takes no re_entry_target).
         Must be None (or omitted) for other verdicts.
     finders_skipped : list[str] or None
         Finder agent names that were not installed / skipped.
@@ -488,7 +500,7 @@ def render_report(
     ------
     ValueError  if disposition is not one of DISPOSITION_VERDICTS.
     ValueError  if disposition == "RE-ENTER-UPSTREAM" and re_entry_target is
-                not one of SEED_TARGET_STAGES.
+                not one of _UPSTREAM_STAGES ("spec", "discovery", "research").
     ValueError  if disposition != "RE-ENTER-UPSTREAM" and re_entry_target is
                 not None.
     """
@@ -501,11 +513,11 @@ def render_report(
         )
 
     if disposition == "RE-ENTER-UPSTREAM":
-        if re_entry_target not in SEED_TARGET_STAGES:
+        if re_entry_target not in _UPSTREAM_STAGES:
             raise ValueError(
                 "re_entry_target must be one of {0} when disposition is "
                 "RE-ENTER-UPSTREAM, got {1!r}".format(
-                    list(SEED_TARGET_STAGES), re_entry_target
+                    list(_UPSTREAM_STAGES), re_entry_target
                 )
             )
     else:
@@ -714,7 +726,7 @@ def build_seed(
     provenance,
 ):
     # type: (str, str, str, str, str, int, List[str], str) -> ReEntrySeed
-    """Construct a ReEntrySeed for the RE-ENTER-UPSTREAM backward handoff.
+    """Construct a ReEntrySeed for the RE-ENTER-UPSTREAM or REVISE-PLAN backward handoff.
 
     Delegates all validation to ReEntrySeed.__post_init__ -- surfaces a
     clear ValueError on invalid input.
@@ -722,7 +734,7 @@ def build_seed(
     Parameters
     ----------
     target_stage : str
-        One of SEED_TARGET_STAGES: "spec", "discovery", "research".
+        One of SEED_TARGET_STAGES: "spec", "discovery", "research", "plan".
     feature : str
         Feature slug / id (non-empty).
     prior_conclusion : str

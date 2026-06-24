@@ -2,12 +2,14 @@
 
 Provides the ``ReEntrySeed`` frozen dataclass, ``SEED_SOURCE``,
 ``SEED_TARGET_STAGES``, and ``SEED_SCHEMA_VERSION`` constants for the
-/grill → upstream (spec/discovery/research) backward handoff artefact.
+/grill → upstream (spec/discovery/research/plan) backward handoff artefact.
 
 What this is: when a grill attack proves a plan defect is rooted UPSTREAM
 (the design faithfully implements a flawed spec/discovery/research conclusion),
-/grill emits a ReEntrySeed; /research, /discover, or /specify consume it on
-re-entry so the re-run is DIRECTED -- it does not re-derive the same flaw.
+/grill emits a ReEntrySeed; /research, /discover, /specify, or /plan consume
+it on re-entry so the re-run is DIRECTED -- it does not re-derive the same
+flaw.  When ``target_stage="plan"`` the seed represents a same-stage revision
+request (the plan itself is the re-entry point, not a prior upstream stage).
 The seed also carries the bounded-compounding-loop state (cycle_count,
 carried_findings) so upstream commands can detect and cap re-entry loops.
 
@@ -47,7 +49,7 @@ SEED_SCHEMA_VERSION = "1"
 
 SEED_SOURCE = "grill"
 
-SEED_TARGET_STAGES = ("spec", "discovery", "research")
+SEED_TARGET_STAGES = ("spec", "discovery", "research", "plan")
 
 # ---------------------------------------------------------------------------
 # Validation helpers.
@@ -90,7 +92,7 @@ class ReEntrySeed:
       ("1"); any non-empty string is accepted at the schema level.
     source must equal SEED_SOURCE ("grill") -- any other value is rejected.
     target_stage must be one of SEED_TARGET_STAGES ("spec", "discovery",
-      "research") -- the nearest upstream stage to re-enter.
+      "research", "plan") -- the re-entry target stage.
     feature is the feature slug/id; non-empty.
     prior_conclusion is what the upstream stage concluded (now invalidated);
       non-empty.

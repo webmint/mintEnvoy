@@ -10,3 +10,30 @@ playwright-report/
 test-results/
 playwright/.cache/
 .devforge/**.lock
+.idea/
+.npm-cache/
+.claude/session-state.md
+.claude/wip.md
+.claude/scheduled_tasks.lock
+# Python bytecode — always regenerated from source, never tracked
+__pycache__/
+*.py[cod]
+# Local vault for in-flight redo work (not for commit)
+.vault/
+# generate_docs_helper artifacts that may stray into repo dir when
+# tests/dev runs invoke the helper without DEVFORGE_DIR set
+src/devforge/.generate-docs-state.json
+src/devforge/.generate-docs-state.json.lock
+src/devforge/.generate-docs-trace.log
+# init_helper / configure_helper state files — framework-generated user
+# state, NOT framework-shipped templates. install.sh copies the entire
+# src/devforge/ tree to the target's .devforge/, so any stray here gets
+# overwritten on the target's actual user state. KEEP THESE GITIGNORED.
+src/devforge/init.yaml
+src/devforge/configure.yaml
+src/devforge/configure.yaml.lock
+src/devforge/constitute.json
+src/devforge/constitute.json.lock
+src/devforge/.preflight-stamp
+src/devforge/cbm-usage.log
+node_modules/

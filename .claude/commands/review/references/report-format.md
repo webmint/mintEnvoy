@@ -69,14 +69,11 @@ surfaced in the headline, never buried).
 **Framework / Language**: [from CLAUDE.md]
 
 ## Confirmed — Top Priorities
-
 Force-ranked across the confirmed findings. Fix these first.
-
 1. [severity] [file:line] — [one-line description] [confidence] [tags]
-   ...
+...
 
 ## Confirmed Findings
-
 (Grouped by file — each file with findings gets one `### <file path>` section,
 files ordered by path; within a file, findings grouped by `#### <category>` and
 sorted by severity Critical → Info. High-stakes `[CONTESTED]` findings appear
@@ -85,7 +82,6 @@ here too, flagged.)
 ### [relative/path/to/FileA.ext]
 
 #### Security
-
 - [F-001] [Critical] :42 — [description]
   Severity: Critical
   File: [relative/path/to/FileA.ext]
@@ -94,18 +90,16 @@ here too, flagged.)
   Confidence: Certain | Likely | Speculative
   Category: security
   Evidence:
-```
-
-[one verbatim snippet copied from the anchor file named in File: above —
-the defect site of the interaction; a verbatim substring of that file]
-
-```
-Why it's wrong: [the cross-task interaction that makes it a defect — name the
-partner file by path and line here, e.g. "the auth boundary in src/auth.py:42
-is bypassed by this path"; the partner is referenced in prose, not quoted]
-Remediation: [specific fix]
+  ```
+  [one verbatim snippet copied from the anchor file named in File: above —
+  the defect site of the interaction; a verbatim substring of that file]
+  ```
+  Why it's wrong: [the cross-task interaction that makes it a defect — name the
+  partner file by path and line here, e.g. "the auth boundary in src/auth.py:42
+  is bypassed by this path"; the partner is referenced in prose, not quoted]
+  Remediation: [specific fix]
 - [F-007] [High] :88 — [description]
-[same finding format]
+  [same finding format]
 
 #### System Design
 [same finding format — findings tagged Category: system_design]
@@ -132,12 +126,12 @@ empty.)
 
 ### Dismissed
 - [Medium] [relative/path/to/File.ext]:NN — [description]
-Why dismissed: [the counter-quote / single-task scope that makes the finding
-not emergent at feature scope, when one exists]
+  Why dismissed: [the counter-quote / single-task scope that makes the finding
+  not emergent at feature scope, when one exists]
 
 ### Uncertain (low-stakes)
 - [Info] [relative/path/to/File.ext]:NN — [description]
-Unresolved: [what the refuter could not decide from the code]
+  Unresolved: [what the refuter could not decide from the code]
 
 ## Methodology
 Findings are grounded — every finding carries a verbatim quote from the actual

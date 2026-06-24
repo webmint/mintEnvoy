@@ -72,9 +72,9 @@ const args = (() => {
         'no-header': { type: 'boolean', default: false },
         'dry-run': { type: 'boolean', default: false },
         quiet: { type: 'boolean', short: 'q', default: false },
-        help: { type: 'boolean', short: 'h', default: false }
+        help: { type: 'boolean', short: 'h', default: false },
       },
-      allowPositionals: true
+      allowPositionals: true,
     })
   } catch (err) {
     console.error(`Argument error: ${err.message}`)
@@ -137,32 +137,27 @@ let parse, compileScript, compileTemplate
   // Strategy 3: walk DOWN for first node_modules/@vue/compiler-sfc/package.json hit.
   if (!sfc) {
     const SKIP_FOR_DEP_SEARCH = new Set([
-      'dist',
-      'build',
-      'coverage',
-      '.git',
-      '.cache',
-      '.nuxt',
-      '.output',
-      '.turbo'
+      'dist', 'build', 'coverage', '.git', '.cache',
+      '.nuxt', '.output', '.turbo',
     ])
     async function* findSfcAnchors(dir) {
       let entries
       try {
         entries = await readdir(dir, { withFileTypes: true })
-      } catch {
-        return
-      }
+      } catch { return }
       for (const e of entries) {
         if (!e.isDirectory()) continue
         const full = join(dir, e.name)
         if (e.name === 'node_modules') {
           // Check this node_modules for @vue/compiler-sfc directly.
           try {
-            const pkg = await readFile(join(full, '@vue', 'compiler-sfc', 'package.json'), 'utf8')
-            if (pkg) yield dirname(full) // parent of node_modules = anchor
+            const pkg = await readFile(
+              join(full, '@vue', 'compiler-sfc', 'package.json'),
+              'utf8',
+            )
+            if (pkg) yield dirname(full)  // parent of node_modules = anchor
           } catch {}
-          continue // never descend into node_modules
+          continue  // never descend into node_modules
         }
         if (SKIP_FOR_DEP_SEARCH.has(e.name)) continue
         yield* findSfcAnchors(full)
@@ -190,27 +185,15 @@ let parse, compileScript, compileTemplate
 // for the common case). Walking is recursive; entries matching these names
 // are not descended into.
 const SKIP_DIRS = new Set([
-  'node_modules',
-  'dist',
-  'build',
-  'coverage',
-  '.git',
-  '.cache',
-  '.nuxt',
-  '.output',
-  '.turbo'
+  'node_modules', 'dist', 'build', 'coverage', '.git',
+  '.cache', '.nuxt', '.output', '.turbo',
 ])
 
 const userExcludes = flatten(args.values.exclude)
 
 function flatten(arr) {
   if (!arr) return []
-  return arr.flatMap((s) =>
-    s
-      .split(',')
-      .map((x) => x.trim())
-      .filter(Boolean)
-  )
+  return arr.flatMap((s) => s.split(',').map((x) => x.trim()).filter(Boolean))
 }
 
 function pathExcluded(rel) {
@@ -284,7 +267,8 @@ async function processFile(absPath, rel) {
 
   const { descriptor, errors: parseErrors } = parse(source, { filename: absPath })
 
-  const isEmptySfc = !descriptor.script && !descriptor.scriptSetup && !descriptor.template
+  const isEmptySfc =
+    !descriptor.script && !descriptor.scriptSetup && !descriptor.template
   if (isEmptySfc) {
     return writeStub(absPath, rel, 'js', 'no <script> or <template> blocks')
   }
@@ -306,7 +290,7 @@ async function processFile(absPath, rel) {
         id,
         sourceMap: true,
         inlineTemplate: false,
-        babelParserPlugins: isTs ? ['typescript'] : []
+        babelParserPlugins: isTs ? ['typescript'] : [],
       })
     } catch (err) {
       throw new Error(`compileScript: ${err.message}`)
@@ -324,8 +308,8 @@ async function processFile(absPath, rel) {
         slotted: false,
         compilerOptions: {
           bindingMetadata: compiledScript?.bindings,
-          mode: 'module'
-        }
+          mode: 'module',
+        },
       })
       const tplErrors = (tpl.errors || []).map((e) => (typeof e === 'string' ? e : e.message))
       if (tplErrors.length) {
@@ -340,20 +324,13 @@ async function processFile(absPath, rel) {
 
   let rawTemplateComment = ''
   if (args.values['raw-template-comment'] && descriptor.template) {
-    const lines = descriptor.template.content
-      .split('\n')
-      .map((l) => `// ${l}`)
-      .join('\n')
+    const lines = descriptor.template.content.split('\n').map((l) => `// ${l}`).join('\n')
     rawTemplateComment = `\n// --- template (raw) ---\n${lines}\n`
   }
 
   const header = args.values['no-header']
     ? ''
-    : buildHeader(
-        rel,
-        hasScriptSetup ? '<script setup>' : hasScript ? '<script>' : '(no script)',
-        lang
-      )
+    : buildHeader(rel, hasScriptSetup ? '<script setup>' : hasScript ? '<script>' : '(no script)', lang)
 
   const scriptContent = compiledScript ? compiledScript.content : 'export default {}\n'
 
@@ -380,7 +357,7 @@ async function processFile(absPath, rel) {
     const adjusted = {
       ...compiledScript.map,
       sources: [sourceRel],
-      mappings: ';'.repeat(headerLineOffset) + compiledScript.map.mappings
+      mappings: ';'.repeat(headerLineOffset) + compiledScript.map.mappings,
     }
     mapWrite = JSON.stringify(adjusted) + '\n'
     sourceMappingComment = `\n//# sourceMappingURL=${basename(mapAbs)}\n`
@@ -416,7 +393,7 @@ async function writeStub(absPath, rel, lang, reason) {
         `// stub: ${reason}`,
         '// ============================================================',
         '',
-        ''
+        '',
       ].join('\n')
   const output = header + 'export default {}\n'
 
@@ -444,7 +421,7 @@ function buildHeader(rel, blockKind, lang) {
     '// edits will be overwritten on next run',
     '// ============================================================',
     '',
-    ''
+    '',
   ].join('\n')
 }
 

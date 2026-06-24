@@ -28,12 +28,11 @@ Plus the `mechanical-status` string carried from `verify-touched` (PHASE 4.1) an
 
 ## Acceptance Criteria
 
-| AC   | Status      | Evidence                                          |
-| ---- | ----------- | ------------------------------------------------- |
-| AC-1 | PASS        | [snapshot/response/file:line evidence]            |
-| AC-2 | FAIL        | [expected-vs-observed]                            |
+| AC | Status | Evidence |
+|---|---|---|
+| AC-1 | PASS | [snapshot/response/file:line evidence] |
+| AC-2 | FAIL | [expected-vs-observed] |
 | AC-3 | PASS (code) | [implementation in file:line satisfies criterion] |
-
 ...
 
 (When the spec defines no ACs, the table is replaced by "_No ACs defined in spec._")
@@ -60,14 +59,12 @@ Severity breakdown: N Critical, N High, N Medium, N Info
 (Grouped by severity — Critical → High → Medium → Info — drawn from the confirmed + contested findings of the review report. Each entry names the severity, the file:line, the pattern, and any tags such as [CONTESTED].)
 
 ### Critical
-
-- [Critical] src/auth.py:42 — [description] [CONTESTED]
-  ...
+- [Critical] src/auth.py:42 — [description]  [CONTESTED]
+...
 
 ### High
-
 - [High] src/orders.py:88 — [description]
-  ...
+...
 
 (When there are no confirmed or contested findings: "_No confirmed or contested findings in the review report._"; when review.md is missing: "_No review report — run /review to identify issues._")
 
@@ -76,10 +73,9 @@ Severity breakdown: N Critical, N High, N Medium, N Info
 **APPROVED** | **NEEDS WORK** | **REJECTED**
 
 **Reasons**:
-
 - [reason line 1 — e.g. "AC failure: 1 of 5 verifiable ACs did not pass."]
 - [reason line 2 — e.g. "Mechanical checks failed: verify-touched reported status='failed'."]
-  ...
+...
 
 (On a clean APPROVED with no reasons: "All acceptance criteria satisfied, no blocking issues found.")
 
@@ -91,7 +87,7 @@ Severity breakdown: N Critical, N High, N Medium, N Info
 The verdict is deterministic (`compute-verdict`), in priority order:
 
 - **REJECTED** — a confirmed `[CONSTITUTION-VIOLATION]` (D7), OR a spec-level AC failure pattern (mode != `off` AND ≥ 2 failing ACs AND ≥ 50% failure rate).
-- **NEEDS WORK** — any blocker present: a failing/partial AC (mode != `off`), a mechanical failure, a Critical/High review finding (confirmed or contested, **excluding** constitution-violation-tagged findings — those route to the constitution paths above/below, not this one), a contested `[CONSTITUTION-VIOLATION]` (D7 — always at least NEEDS WORK). Hygiene flags (`scope_creep` / `leftover_artifacts`) are **advisory only** — they appear in `reasons` but never in `blockers` and never cause NEEDS WORK on their own.
+- **NEEDS WORK** — any blocker present: a failing/partial AC (mode != `off`), a mechanical failure, a Critical/High review finding (confirmed or contested, **excluding** constitution-violation-tagged findings — those route to the constitution paths above/below, not this one), a contested `[CONSTITUTION-VIOLATION]` (D7 — always at least NEEDS WORK), OR a confirmed Medium review finding (non-constitution; contested Medium does NOT gate). Hygiene flags (`scope_creep` / `leftover_artifacts`) are **advisory only** — they appear in `reasons` but never in `blockers` and never cause NEEDS WORK on their own.
 - **APPROVED** — no blockers. Under `ac_verification_mode=off`, AC failures are advisory (they appear in `reasons` but do not block), and the verdict notes ACs were verified by code-reading only.
 
 Constitution violations ALWAYS block APPROVED — a confirmed one forces REJECTED, a contested one forces at least NEEDS WORK. This is the D7 invariant and is enforced structurally in `compute-verdict`; the report never relaxes it.

@@ -58,6 +58,7 @@ RULE_TO_VERB = {
     "magic_enum_duplication": "verify-magic-enum",
     "cross_layer_imports": "verify-cross-layer-imports",
     "any_with_generated_available": "verify-any-leak",
+    "design_token_provenance": "verify-design-tokens",
 }  # type: Dict[str, str]
 
 assert set(RULE_TO_VERB) == FORCING_FUNCTION_RULES, (
@@ -144,6 +145,11 @@ def _validate_rule_block(
             )
         # allowlist_paths is optional; no constraint
 
+    elif rule == "design_token_provenance":
+        # All fields are optional for this rule (token_source_css,
+        # manifest_path, allowlist_paths).  No required fields.
+        pass
+
     else:
         # Should not be reached if callers gate on KNOWN_RULES first, but
         # included for defence-in-depth.
@@ -202,6 +208,24 @@ def _build_any_leak_block(
     return block
 
 
+def _build_design_token_provenance_block(
+    enabled: bool,
+    allowlist_paths: Optional[List[str]],
+    token_source_css: Optional[str],
+    manifest_path: Optional[str],
+) -> Dict:
+    """Return a design_token_provenance config dict for the given inputs."""
+    block = {}  # type: Dict
+    block["enabled"] = enabled
+    if allowlist_paths is not None:
+        block["allowlist_paths"] = list(allowlist_paths)
+    if token_source_css is not None:
+        block["token_source_css"] = token_source_css
+    if manifest_path is not None:
+        block["manifest_path"] = manifest_path
+    return block
+
+
 def _build_rule_block(
     rule: str,
     enabled: bool,
@@ -209,6 +233,8 @@ def _build_rule_block(
     allowlist_paths: Optional[List[str]],
     layer_graph: Optional[Dict],
     layer_dirs: Optional[Dict],
+    token_source_css: Optional[str] = None,
+    manifest_path: Optional[str] = None,
 ) -> Dict:
     """Dispatch to the appropriate rule-block builder."""
     if rule == "magic_enum_duplication":
@@ -217,6 +243,10 @@ def _build_rule_block(
         return _build_cross_layer_block(enabled, layer_graph, layer_dirs, allowlist_paths)
     if rule == "any_with_generated_available":
         return _build_any_leak_block(enabled, generated_types_dirs, allowlist_paths)
+    if rule == "design_token_provenance":
+        return _build_design_token_provenance_block(
+            enabled, allowlist_paths, token_source_css, manifest_path
+        )
     raise ValueError("unknown rule: {rule!r}".format(rule=rule))
 
 
@@ -265,6 +295,8 @@ def set_forcing_function(
     allowlist_paths: Optional[List[str]] = None,
     layer_graph: Optional[Dict] = None,
     layer_dirs: Optional[Dict] = None,
+    token_source_css: Optional[str] = None,
+    manifest_path: Optional[str] = None,
 ) -> None:
     """Write or update ``forcing_functions.<rule>`` in ``config_path``.
 
@@ -296,6 +328,16 @@ def set_forcing_function(
         Dict mapping layer name → glob pattern for that layer's source dirs.
         Required when ``enabled=True`` for ``cross_layer_imports``.  Must
         have the same key set as ``layer_graph``.
+    token_source_css
+        Path (relative to consumer project root) to the CSS token source file
+        (e.g., ``design/styles.css``).  Optional for ``design_token_provenance``.
+        When supplied, Check 3 (undefined token) and the spacing sub-check of
+        Check 5 use the extracted token definitions and spacing scale.
+    manifest_path
+        Path (relative to consumer project root) to the disposition manifest
+        JSON produced by ``design_helper validate-manifest``.  Optional for
+        ``design_token_provenance``.  When supplied, Check 5 (MATCH token
+        binding) uses the MATCH element data-refs from the manifest.
 
     Raises
     ------
@@ -344,7 +386,9 @@ def set_forcing_function(
         existing_block = {}
 
     new_block = _build_rule_block(
-        rule, enabled, generated_types_dirs, allowlist_paths, layer_graph, layer_dirs
+        rule, enabled, generated_types_dirs, allowlist_paths, layer_graph, layer_dirs,
+        token_source_css=token_source_css,
+        manifest_path=manifest_path,
     )
 
     # Merge: existing keys preserved unless the caller supplied a new value.

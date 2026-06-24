@@ -119,6 +119,13 @@ def cmd_set_forcing_functions(args: argparse.Namespace) -> int:
             return 2
         layer_dirs = parsed
 
+    # Parse --token-source-css (plain string or absent; design_token_provenance only)
+    token_source_css = getattr(args, "token_source_css", None) or None
+
+    # Parse --manifest-path (plain string or absent; design_token_provenance only,
+    # back-compat: when absent the detector globs specs/*/design-manifest.json)
+    manifest_path = getattr(args, "manifest_path", None) or None
+
     config_path = _resolve_config_path(getattr(args, "config", None))
 
     try:
@@ -130,6 +137,8 @@ def cmd_set_forcing_functions(args: argparse.Namespace) -> int:
             allowlist_paths=allowlist_paths,
             layer_graph=layer_graph,
             layer_dirs=layer_dirs,
+            token_source_css=token_source_css,
+            manifest_path=manifest_path,
         )
     except (ValueError, json.JSONDecodeError) as exc:
         sys.stderr.write("set-forcing-functions: {err}\n".format(err=exc))

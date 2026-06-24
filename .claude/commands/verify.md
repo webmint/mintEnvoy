@@ -1,7 +1,7 @@
 ---
 name: verify
 description: Post-implementation acceptance-criteria verification + assembled mechanical checks for one feature. Runs after `/review` drains a feature's tasks and before `/summarize`/`/finalize`. Proves each AC item PASS/FAIL/PARTIAL (via the ac-verifier agent or code-reading, per `ac_verification_mode`), runs the assembled-feature type-check/lint/build/test together as a REPORT, folds in `/review`'s findings, renders the single APPROVED / NEEDS WORK / REJECTED verdict to `specs/[feature]/verification.md`, and on APPROVED flips the spec `**Status**:` to Complete + ticks the passed AC boxes.
-argument-hint: '[spec-file]'
+argument-hint: "[spec-file]"
 disable-model-invocation: true
 ---
 
@@ -24,8 +24,9 @@ The files this command writes under the repo are:
 - `specs/[feature]/verification.md` — the rendered verification report (AC table, code-quality block, folded review findings, issues, and the verdict). Produced by the helper's `render-report` verb in PHASE 5. Idempotent: re-running `/verify` on the same feature OVERWRITES `verification.md` (the helper does an atomic write).
 - `specs/[feature]/spec.md` — **mutated only on an APPROVED verdict** (PHASE 6): the spec `**Status**:` line flips to `Complete` and the passed AC checkboxes tick `- [ ]` → `- [x]`. This is the deliberate write-back that `/summarize` and `/finalize` gate on. On NEEDS WORK / REJECTED the spec is left unchanged.
 - `bugs/NNN-<slug>.md` — **written only on a NEEDS WORK verdict** (PHASE 9), one file per issue the user elects to file, in the `.devforge/storage-rules.md` bug format (`Source: verify`). Sequential `NNN` numbering scanned from the existing `bugs/` directory.
+- `specs/[feature]/verify-state.json` — per-feature run state (helper-owned, advanced via `check-status-and-flip --feature-dir <feature>`). Committed alongside `verification.md` in the end-of-run `[WIP]` commit (the `commit-artifacts` `--paths` lists both).
 
-Per-feature run state lives in `specs/[feature]/verify-state.json` (helper-owned, advanced via `check-status-and-flip --feature-dir <feature>`).
+At the end of the run, `/verify` WIP-commits its OWN report artifacts — `verification.md` and the per-feature `verify-state.json` — via `.devforge/lib/artifact_helper commit-artifacts`. It commits ONLY those two paths: the spec-status flip to `spec.md` (PHASE 6) and any `bugs/NNN-*.md` files (PHASE 9) are NOT part of this commit. The commit lands in the INSTALL repo only (never the wrapper-mode source/product repo) and is fail-soft (a git failure warns and `/verify` continues — the report is already written). The `[WIP]` commit folds into `/finalize`'s squash, so the final PR is unchanged.
 
 ### Intermediate scratch files (orchestrator-written, helper-consumed) — all under `$WORKDIR`
 
@@ -39,7 +40,7 @@ The helper cannot dispatch agents (a subprocess has no Task/MCP tools), so the o
 - `$WORKDIR/acs.json` — the `parse-acs` stdout (the structured AC list — `id`, `text`, `checked`, `subsection` per AC). Written in PHASE 3, passed to `merge-ac-results --acs`.
 - `$WORKDIR/ac-report.md` — the `ac-verifier` agent's `## AC Verification Report` (its `### Results` table). Written BY THE AGENT via Bash redirection in PHASE 3, consumed by `merge-ac-results --agent-report`.
 - `$WORKDIR/ac-results.json` — the `merge-ac-results` stdout (the AC list extended with `status` + `evidence` per AC). Written in PHASE 3, passed to `compute-verdict --ac-results`, `render-report --ac-results`, `render-inline-summary --ac-results`, and `flip-spec-status --ac-results`.
-- `$WORKDIR/hygiene.json` — the `check-hygiene` stdout (`scope_creep`, `leftover_artifacts`, `scope_creep_checked`, `files_checked`, `files_unreadable`). Written in PHASE 4, passed to `compute-verdict --hygiene` and `render-report --hygiene`.
+- `$WORKDIR/hygiene.json` — the `check-hygiene` stdout (`scope_creep`, `leftover_artifacts`, `scope_creep_checked`, `files_checked`, `files_unreadable`, `files_skipped`). Written in PHASE 4, passed to `compute-verdict --hygiene` and `render-report --hygiene`.
 - `$WORKDIR/verdict.json` — the `compute-verdict` stdout (`verdict`, `reasons`, `blockers`). Written in PHASE 5, passed to `render-report --verdict` and `render-inline-summary --verdict`.
 - `$WORKDIR/issues.json` — the bug-issue array the orchestrator composes from the verdict blockers + AC failures + folded findings on a NEEDS WORK verdict. **Orchestrator-written via the Write tool** (NOT a helper-verb stdout — no verb produces it), in PHASE 9, passed to `file-bugs --issues`. Skipped entirely on a `none` election (the `file-bugs` call is not made — see PHASE 9 for the shape).
 
@@ -149,7 +150,7 @@ WORKDIR="${TMPDIR:-/tmp}/forge-verify"
 
 `read-review-findings` accepts the feature directory (it appends `/review.md`) and parses `specs/[feature]/review.md` into a folded-findings dict: `missing`, `confirmed` (the confirmed-findings list), `contested` (the `[CONTESTED]`-tagged list), and `summary` (severity + partition counts). On a non-zero exit, copy the helper's stderr VERBATIM and end the turn.
 
-**Missing-review warning (proceed weakened).** If the stdout JSON has `"missing": true`, warn the user: _no review report was found — run `/review` first for a complete verdict; proceeding with AC + mechanical checks only._ Do NOT stop — `compute-verdict` handles a missing review report as a non-blocking note (the verdict is computed from AC + mechanical + hygiene, and the missing report is recorded in the verdict reasons). Keep `$WORKDIR/review.json` and pass it forward unchanged.
+**Missing-review warning (proceed weakened).** If the stdout JSON has `"missing": true`, warn the user: *no review report was found — run `/review` first for a complete verdict; proceeding with AC + mechanical checks only.* Do NOT stop — `compute-verdict` handles a missing review report as a non-blocking note (the verdict is computed from AC + mechanical + hygiene, and the missing report is recorded in the verdict reasons). Keep `$WORKDIR/review.json` and pass it forward unchanged.
 
 ## PHASE 3 — Acceptance-criteria verification
 
@@ -226,7 +227,7 @@ WORKDIR="${TMPDIR:-/tmp}/forge-verify"
 .devforge/lib/verify_helper check-hygiene --files "$WORKDIR/files.json" --scope-baseline <scope-baseline> --source-root <source-root> > "$WORKDIR/hygiene.json"
 ```
 
-`check-hygiene` reads the changed-files list (`--files`, a file PATH containing the JSON array written in PHASE 1) and flags two things across the assembled diff: scope-creep (changed files outside the planned scope) and leftover artifacts (debug prints, bare TODOs, commented-out code). For `--scope-baseline`, pass `<feature>/breakdown-handoff.json` when that file exists (its tasks' `touched_files` union is the planned scope); pass the literal string `none` when it is absent (the helper then skips the scope-creep check and reports only leftover artifacts). Pass the `source_root` from `$WORKDIR/preflight.json` to `--source-root` so the changed files are read from the right tree. Stdout JSON carries `scope_creep`, `leftover_artifacts`, `scope_creep_checked`, `files_checked`, and `files_unreadable`. On a non-zero exit (missing `--files`, or it is not a JSON list), copy the helper's stderr VERBATIM and end the turn.
+`check-hygiene` reads the changed-files list (`--files`, a file PATH containing the JSON array written in PHASE 1) and flags two things across the assembled diff: scope-creep (changed files outside the planned scope) and leftover artifacts (debug prints, bare TODOs, commented-out code). For `--scope-baseline`, pass `<feature>/breakdown-handoff.json` when that file exists (its tasks' `touched_files` union is the planned scope); pass the literal string `none` when it is absent (the helper then skips the scope-creep check and reports only leftover artifacts). Pass the `source_root` from `$WORKDIR/preflight.json` to `--source-root` so the changed files are read from the right tree. Stdout JSON carries `scope_creep`, `leftover_artifacts`, `scope_creep_checked`, `files_checked`, `files_unreadable`, and `files_skipped` (count of non-code prose/data files bypassed by the file-type gate). On a non-zero exit (missing `--files`, or it is not a JSON list), copy the helper's stderr VERBATIM and end the turn.
 
 ## PHASE 5 — Verdict + report + inline summary
 
@@ -307,7 +308,7 @@ On APPROVED or REJECTED, skip PHASE 9 and go straight to the cleanup block below
 .devforge/lib/verify_helper check-status-and-flip --feature-dir <feature> --to phase9
 ```
 
-**Only on a NEEDS WORK verdict.** Present the blocking issues to the user (the verdict `blockers` + the failing ACs + the folded Critical/High review findings — the same set surfaced in `verification.md`), then offer to file bugs: **all** (file one bug per issue), **select** (the user names which to file), or **none** (skip filing). When the user elects to file some or all, compose the issue array and write it to scratch, then call `file-bugs`:
+**Only on a NEEDS WORK verdict.** Present the blocking issues to the user (the verdict `blockers` — which covers AC failures, mechanical check failures, Critical/High/Medium review findings, and any constitution blocker — the same set surfaced in `verification.md`), then offer to file bugs: **all** (file one bug per issue), **select** (the user names which to file), or **none** (skip filing). When the user elects to file some or all, compose the issue array and write it to scratch, then call `file-bugs`:
 
 ```bash
 WORKDIR="${TMPDIR:-/tmp}/forge-verify"
@@ -326,7 +327,7 @@ Compose `$WORKDIR/issues.json` as a JSON array of issue dicts and write it with 
     "expected": "Total reflects the discount after the code is applied.",
     "actual": "Total is unchanged; the discount is parsed but never subtracted.",
     "files": [
-      { "path": "src/cart/total.ts", "detail": "applyDiscount() computes but discards the delta" }
+      {"path": "src/cart/total.ts", "detail": "applyDiscount() computes but discards the delta"}
     ],
     "evidence": "AC-3 FAIL: expected $90.00, observed $100.00 (see verification.md)",
     "ac_ref": "AC-3"
@@ -338,17 +339,25 @@ Write that array to `$WORKDIR/issues.json`, then make the `file-bugs` call above
 
 ## Cleanup
 
-Clean up the scratch directory in one step — nothing else needs the scratch after the report + summary + (optional) bug-filing:
+First mark the run complete so an interrupted re-run can distinguish a finished verification from a stopped one, recording the run's verdict into state via `--verdict`. Use `<verdict>` — the literal APPROVED / NEEDS WORK / REJECTED value the orchestrator read from `$WORKDIR/verdict.json` in PHASE 5.3 (the `verdict` field) and has held since; inline the verdict value you already hold — do NOT re-read the scratch file here:
+
+```bash
+.devforge/lib/verify_helper check-status-and-flip --feature-dir <feature> --to phase9 --status complete --verdict "<verdict>"
+```
+
+Then WIP-commit `/verify`'s own report artifacts so the work is git-safe at this step. Run this UNCONDITIONALLY for every verdict (`verification.md` was written in PHASE 5.2 regardless of verdict):
+
+```bash
+.devforge/lib/artifact_helper commit-artifacts --paths '["specs/<feature>/verification.md", "specs/<feature>/verify-state.json"]' --label 'verify: <NNN>-<slug>'
+```
+
+Substitute `<feature>` with the resolved feature dir and `<NNN>-<slug>` with the feature id. This commits ONLY `verification.md` + `verify-state.json` — NOT `spec.md` (the PHASE-6 spec-status flip is a separate write, not folded into this commit) and NOT any `bugs/NNN-*.md` file from PHASE 9. `commit-artifacts` stages ONLY the named paths and makes a `[WIP] verify: <NNN>-<slug>` commit in the INSTALL repo (never the wrapper-mode source/product repo). It is FAIL-SOFT: a git staging or commit failure warns on stderr and exits 1 (non-fatal — the report is already written, so note the warning and CONTINUE; do NOT end the turn); "nothing to commit" (paths already staged or absent) exits 0 silently as a benign no-op. The `[WIP]` commit folds into `/finalize`'s squash, leaving the final PR unchanged.
+
+Finally, clean up the scratch directory in one step — nothing else needs the scratch after the report + summary + (optional) bug-filing + the commit above (the commit reads only `specs/[feature]/` paths, never `$WORKDIR`):
 
 ```bash
 WORKDIR="${TMPDIR:-/tmp}/forge-verify"
 rm -rf "$WORKDIR"
-```
-
-Then mark the run complete so an interrupted re-run can distinguish a finished verification from a stopped one, recording the run's verdict into state via `--verdict`. Use `<verdict>` — the literal APPROVED / NEEDS WORK / REJECTED value the orchestrator read from `$WORKDIR/verdict.json` in PHASE 5.3 (the `verdict` field) and has held since; the cleanup `rm -rf "$WORKDIR"` above already deleted `$WORKDIR/verdict.json`, so inline the verdict value you already hold — do NOT re-read the scratch file here:
-
-```bash
-.devforge/lib/verify_helper check-status-and-flip --feature-dir <feature> --to phase9 --status complete --verdict "<verdict>"
 ```
 
 ## Important rules

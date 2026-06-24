@@ -17,6 +17,7 @@ from ._cmds_quality import cmd_validate, cmd_verify_universal_defaults
 from ._forcing_functions._magic_enum._cmd import cmd_verify_magic_enum
 from ._forcing_functions._cross_layer._cmd import cmd_verify_cross_layer_imports
 from ._forcing_functions._any_leak._cmd import cmd_verify_any_leak
+from ._forcing_functions._design_tokens._cmd import cmd_verify_design_tokens
 from ._forcing_functions._cmds_forcing_functions import (
     cmd_set_forcing_functions,
     cmd_list_forcing_functions,
@@ -352,6 +353,30 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sp.set_defaults(func=cmd_verify_any_leak)
 
+    sp = subparsers.add_parser(
+        "verify-design-tokens",
+        help=(
+            "Scan component style sources (CSS / styled-components / CSS-in-JS) "
+            "for design-token provenance violations: hardcoded color literals, "
+            "var() fallbacks, undefined tokens, missing :hover/:focus-visible, "
+            "and MATCH-element literal bindings. "
+            "Exit 0 = clean or disabled. Exit 2 = violations found."
+        ),
+    )
+    sp.add_argument(
+        "--root",
+        default=None,
+        help="Consumer project root (default: current working directory).",
+    )
+    sp.add_argument(
+        "--config",
+        default=None,
+        help=(
+            "Path to constitute.json (default: <root>/.devforge/constitute.json)."
+        ),
+    )
+    sp.set_defaults(func=cmd_verify_design_tokens)
+
     # -----------------------------------------------------------------------
     # Forcing-functions config setters.
     # -----------------------------------------------------------------------
@@ -370,8 +395,8 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         choices=sorted(_FF_RULES),
         help=(
-            "Rule to configure: magic_enum_duplication | cross_layer_imports | "
-            "any_with_generated_available."
+            "Rule to configure: any_with_generated_available | cross_layer_imports | "
+            "design_token_provenance | magic_enum_duplication."
         ),
     )
     sp.add_argument(
@@ -413,6 +438,26 @@ def build_parser() -> argparse.ArgumentParser:
             "JSON object: layer name → glob pattern for that layer's source dirs. "
             "Keys must match --layer-graph-json. "
             "Required when --enabled=true for cross_layer_imports."
+        ),
+    )
+    sp.add_argument(
+        "--token-source-css",
+        default=None,
+        dest="token_source_css",
+        help=(
+            "Path (relative to project root) to the CSS token source file "
+            "(e.g., design/styles.css). Optional for design_token_provenance. "
+            "Used by Check 3 (undefined token) and the spacing sub-check of Check 5."
+        ),
+    )
+    sp.add_argument(
+        "--manifest-path",
+        default=None,
+        dest="manifest_path",
+        help=(
+            "Path (relative to project root) to a single disposition manifest JSON "
+            "(design_token_provenance only). Optional: when absent the detector globs "
+            "specs/*/design-manifest.json at run time. Supplied for back-compat only."
         ),
     )
     sp.add_argument(

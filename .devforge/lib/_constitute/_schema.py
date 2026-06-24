@@ -46,6 +46,7 @@ FORCING_FUNCTION_RULES = frozenset({
     "magic_enum_duplication",
     "cross_layer_imports",
     "any_with_generated_available",
+    "design_token_provenance",
 })
 
 
@@ -122,8 +123,31 @@ def validate_forcing_functions(ff_block: object) -> list:
                     rule_cfg["allowlist_paths"], prefix + ".allowlist_paths"
                 ))
 
-        # Unknown rule names are tolerated (forward-compat; user may have a
-        # newer version of the config that added a rule not yet in this build).
+        elif rule_name == "design_token_provenance":
+            # token_source_css: optional str
+            tsc = rule_cfg.get("token_source_css")
+            if tsc is not None and not isinstance(tsc, str):
+                errors.append(
+                    "{prefix}.token_source_css: must be a string, "
+                    "got {t}".format(prefix=prefix, t=type(tsc).__name__)
+                )
+            # manifest_path: optional str (back-compat; absent = glob at run time)
+            mp = rule_cfg.get("manifest_path")
+            if mp is not None and not isinstance(mp, str):
+                errors.append(
+                    "{prefix}.manifest_path: must be a string, "
+                    "got {t}".format(prefix=prefix, t=type(mp).__name__)
+                )
+            # allowlist_paths: optional list[str]
+            if "allowlist_paths" in rule_cfg:
+                errors.extend(_validate_str_list(
+                    rule_cfg["allowlist_paths"], prefix + ".allowlist_paths"
+                ))
+
+        elif rule_name not in FORCING_FUNCTION_RULES:
+            # Unknown rule names are tolerated (forward-compat; user may have a
+            # newer version of the config that added a rule not yet in this build).
+            pass
 
     return errors
 
@@ -268,7 +292,7 @@ _PATTERN_SCOPE_TO_SUFFIX = {
 
 # Closed list of universal section numbers (§-prefixed, as used in return shapes).
 _UNIVERSAL_SECTIONS = (
-    "§3.5", "§3.6", "§3.7",
+    "§3.5", "§3.6", "§3.7", "§3.8",
     "§4.1", "§4.2", "§4.3",
     "§6.1", "§6.2", "§6.3", "§6.4",
 )
