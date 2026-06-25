@@ -1,0 +1,198 @@
+/*
+ * TabBar.css — Semantic styles for the TabBar organism component.
+ *
+ * All values are bound to design tokens from tokens.css (--bg, --border,
+ * --text, --text-muted, --accent, --accent-soft, --bg-hover, --bg-active,
+ * --bg-sunken, --border-strong, --radius-sm, --fs-base, --fs-sm).
+ * Every var() includes a defensive fallback literal so the rule remains
+ * legible when tokens.css has not yet resolved (same pattern as Shell.css,
+ * Tabs.css, and Titlebar.css).
+ *
+ * No inline styles are permitted in TabBar.tsx (AC-9, constitution §3.1).
+ *
+ * ## Layout
+ *
+ * `.tabbar` is the className passed to the Tabs molecule's outermost wrapper
+ * (`<div class="tabs tabbar">`). Rules here add organism-specific overrides on
+ * top of the Tabs molecule's baseline styles.
+ *
+ * The `.tabbar__new` (+) button lives in the `actions` slot which is rendered
+ * outside `role="tablist"` by the Tabs molecule (AC-8 / §AC-24).
+ *
+ * ## Label truncation
+ *
+ * `.tabs__tab-label` (a Tabs molecule class) is targeted from within `.tabbar`
+ * to apply a `max-width` cap, ensuring long request URLs are clipped with an
+ * ellipsis rather than expanding the tab indefinitely.
+ *
+ * ## Dirty marker
+ *
+ * TabBar passes the `'●'` character as the `badge` prop ONLY when
+ * `tab.dirty` is true; clean tabs have `badge` set to `undefined` so no
+ * badge node is rendered at all. Because the badge is exclusively a dirty
+ * signal in this organism, its appearance is styled here via
+ * `.tabbar .tabs__badge` — an accent-colored dot with no pill background,
+ * so it reads as an unsaved-changes indicator rather than a count badge.
+ *
+ * ## Motion
+ *
+ * Transitions on the (+) button are gated behind
+ * `@media (prefers-reduced-motion: reduce)` following the same pattern used in
+ * Tabs.css, Dropdown.css, and Titlebar.css.
+ *
+ * Token names referenced: --bg, --bg-hover, --bg-active, --bg-sunken,
+ * --border, --border-strong, --text, --text-muted, --text-faint, --accent,
+ * --accent-soft, --radius-sm, --fs-base, --fs-sm.
+ */
+
+/* ---------------------------------------------------------------------------
+ * TabBar wrapper (.tabbar)
+ *
+ * Applied as the `className` on the Tabs molecule, it composes with
+ * `.tabs` base rules (flex row, bottom border) from Tabs.css. These rules
+ * add organism-level overrides.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * TabBar strip wrapper.
+ *
+ * Inherits the `.tabs` flex-row layout and bottom border from Tabs.css.
+ * Background is set to the surface token so the strip sits on the correct
+ * layer above the workspace area defined by Shell.css `.shell__tabs`.
+ */
+.tabbar {
+  background-color: var(--bg, #fbfaf9);
+}
+
+/* ---------------------------------------------------------------------------
+ * Tab label truncation (.tabbar .tabs__tab-label)
+ *
+ * Scoped inside `.tabbar` so this override only applies to the organism's
+ * tabs — it does not affect other Tabs consumers (e.g. the request-pane
+ * section tabs).
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Constrain label width to prevent individual tabs from consuming excessive
+ * horizontal space when a URL is long. CSS ellipsis truncation takes effect
+ * when the label overflows the capped width.
+ *
+ * The `max-width` is sized generously (200 px) to accommodate typical
+ * request names and method+URL strings without premature clipping, while
+ * still capping truly long URLs.
+ */
+.tabbar .tabs__tab-label {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+ * Dirty-marker badge (.tabbar .tabs__badge)
+ *
+ * Scoped inside `.tabbar` so this override applies only to the organism's
+ * tabs — it does not affect other Tabs consumers. The badge here is always
+ * a dirty dot (TabBar never passes a badge for clean tabs), so it is styled
+ * as a compact accent-colored dot rather than a count pill:
+ *   - No pill background (background: none overrides the Tabs.css default).
+ *   - Accent text colour so the dot reads as a meaningful status signal.
+ *   - Tighter sizing: smaller min-width and no horizontal padding, keeping
+ *     the dot small and unobtrusive alongside the label.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Dirty-dot badge — accent-colored, no pill background.
+ *
+ * Replaces the default badge chip appearance (which suits count badges) with
+ * a minimal dot style matching the "unsaved changes" convention used across
+ * desktop API clients. `var(--accent, #10b981)` ties to the project accent
+ * token with a defensive fallback.
+ */
+.tabbar .tabs__badge {
+  background: none;
+  color: var(--accent, #10b981);
+  min-width: 0;
+  padding: 0;
+  font-size: var(--fs-base, 12.5px);
+  line-height: 1;
+}
+
+/* ---------------------------------------------------------------------------
+ * New-tab button (.tabbar__new)
+ *
+ * Rendered in the `actions` slot of the Tabs molecule — outside
+ * `role="tablist"` — so it is an independent interactive control, not part
+ * of the WAI-ARIA tab widget (AC-8 / AC-24).
+ * ------------------------------------------------------------------------- */
+
+/**
+ * (+) new-tab action button.
+ *
+ * Styled to integrate visually with the tab strip without being confused for
+ * a tab: square, muted at rest, accent on hover, with a subtle hover
+ * background matching the tab hover treatment.
+ */
+.tabbar__new {
+  /* Reset button defaults */
+  appearance: none;
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+
+  /* Layout — square, matches tab row height */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+
+  /* Typography */
+  font-size: var(--fs-base, 12.5px);
+  font-family: inherit;
+  line-height: 1;
+  color: var(--text-muted, #71717a);
+
+  /* Interaction */
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--radius-sm, 5px);
+
+  /* Smooth hover transition; suppressed by prefers-reduced-motion below. */
+  transition:
+    background-color 80ms ease,
+    color 80ms ease;
+}
+
+/* Hover: elevate text color and add a subtle tinted background. */
+.tabbar__new:hover {
+  background-color: var(--bg-hover, #f0efed);
+  color: var(--text, #18181b);
+}
+
+/* Pressed state */
+.tabbar__new:active {
+  background-color: var(--bg-active, #e8e6e3);
+}
+
+/* Focus-visible ring — keyboard navigation signal.
+   Matches the tab button's focus-visible pattern from Tabs.css. */
+.tabbar__new:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: -2px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Reduced-motion guard
+ *
+ * Suppresses all transitions on the (+) button when the user prefers reduced
+ * motion. Mirrors the pattern used in Tabs.css and Titlebar.css.
+ * ------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .tabbar__new {
+    transition: none;
+  }
+}

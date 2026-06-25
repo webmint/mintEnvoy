@@ -10,7 +10,7 @@ source_stamp: b44087ca58806208
 
 ## Purpose
 
-React 19 renderer process — the user-facing UI. Houses the reusable UI-primitive library (Icon atom; Dropdown, Modal, Toast, and Tabs molecules — Dropdown/Modal/Toast wrap Radix UI, Tabs hand-rolls its WAI-ARIA engine), the single-window app shell (Shell, Titlebar, Sidebar, PaneSplit, Statusbar, and a hand-rolled WAI-ARIA Divider splitter, all in the organisms tier), two module-level zustand stores (toastStore for the toast queue; settingsStore as the SSOT for theme/accent/method-style/sidebarWidth/paneRatio/sidebarCollapsed), className-merge and safe icon-resolution helpers, design tokens as CSS variables, and a dev-only primitives gallery gated on import.meta.env.DEV. main.tsx mounts App into index.html; the layer carries no Node/Electron imports per the renderer-isolation rule.
+React 19 renderer process — the user-facing UI. Houses the reusable UI-primitive library (Icon atom; Dropdown, Modal, Toast, and Tabs molecules — Dropdown/Modal/Toast wrap Radix UI, Tabs hand-rolls its WAI-ARIA engine and also supports an opt-in closable affordance), the single-window app shell (Shell, Titlebar, Sidebar, PaneSplit, Statusbar, and a hand-rolled WAI-ARIA Divider splitter, all in the organisms tier), the working-tabs strip organism (TabBar, composing Tabs and wired to tabsStore), three module-level zustand stores (toastStore for the toast queue; settingsStore as the SSOT for theme/accent/method-style/sidebarWidth/paneRatio/sidebarCollapsed; tabsStore as the working-tabs lifecycle state machine), the requestSpec domain model (RequestSpec, Row, Auth discriminated union, isBearerAuth type guard, makeBlankRequest factory), className-merge and safe icon-resolution helpers, design tokens as CSS variables, and a dev-only primitives gallery gated on import.meta.env.DEV. main.tsx mounts App into index.html; the layer carries no Node/Electron imports per the renderer-isolation rule.
 
 ## Structure
 
@@ -57,16 +57,20 @@ src/renderer/
 │   │   │   ├── Toast.css  # Toast queue styles per variant
 │   │   │   └── Toast.tsx  # Toast queue UI; ToastProvider + ToastViewport
 │   │   ├── organisms
+│   │   │   ├── __tests__
+│   │   │   │   └── TabBar.test.tsx  # Vitest: TabBar render/select/close + tabsStore integration
 │   │   │   ├── Divider.css  # Divider handle styles; drag-cursor affordance
 │   │   │   ├── Divider.tsx  # Hand-rolled WAI-ARIA splitter; rAF-batched CSS-var drag; store-free
 │   │   │   ├── PaneSplit.css  # PaneSplit layout; flex driven by --pane-ratio CSS var
 │   │   │   ├── PaneSplit.tsx  # Request/response split workspace; mounts horizontal Divider
 │   │   │   ├── Shell.css  # Shell grid layout; CSS-var consumers --sidebar-width / --pane-ratio
-│   │   │   ├── Shell.tsx  # Root app shell; composes organisms; owns store→<html> effects
+│   │   │   ├── Shell.tsx  # Root app shell; composes organisms; owns store→<html> effects; mounts TabBar
 │   │   │   ├── Sidebar.css  # Sidebar layout; width from --sidebar-width CSS var
 │   │   │   ├── Sidebar.tsx  # Collapsible sidebar; mounts vertical Divider; reads sidebarCollapsed
 │   │   │   ├── Statusbar.css  # Statusbar styles
 │   │   │   ├── Statusbar.tsx  # Bottom statusbar strip
+│   │   │   ├── TabBar.css  # TabBar strip styles
+│   │   │   ├── TabBar.tsx  # Working-tabs strip; composes closable Tabs; wired to tabsStore
 │   │   │   ├── Titlebar.css  # Titlebar styles; drag region for OS window move
 │   │   │   └── Titlebar.tsx  # Top titlebar; sidebar-toggle button (forwarded toggleRef)
 │   │   ├── PrimitivesDemo.css  # Styles for the dev-only primitives gallery
@@ -74,10 +78,13 @@ src/renderer/
 │   ├── lib
 │   │   ├── __tests__
 │   │   │   ├── icons-glue.test.ts  # Vitest: icon resolver fallback path
+│   │   │   ├── tabsStore.test.ts  # Vitest: tabsStore lifecycle actions + never-zero invariant
 │   │   │   └── toastStore.test.ts  # Vitest: toast store actions
 │   │   ├── cx.ts  # className merge util; drops falsy tokens
 │   │   ├── icons-glue.ts  # Safe icon-name resolver; never throws on unknown
+│   │   ├── requestSpec.ts  # RequestSpec domain model; Row/Auth types; isBearerAuth guard; makeBlankRequest factory
 │   │   ├── settingsStore.ts  # Module-level zustand store: theme/accent/mstyle/sidebarWidth/paneRatio/sidebarCollapsed
+│   │   ├── tabsStore.ts  # Module-level zustand store: working-tabs lifecycle state machine (never-zero invariant)
 │   │   └── toastStore.ts  # Module-level zustand store for the toast queue
 │   ├── App.tsx  # Root component; mounts Shell inside ToastProvider; dev-gated demo
 │   ├── env.d.ts  # Vite/renderer ambient type declarations

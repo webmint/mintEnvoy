@@ -1,14 +1,15 @@
 # Session State — /implement
 
-**Feature**: 003-app-shell-layout
-**Progress**: 11/11 tasks complete
-**Updated**: 2026-06-23T21:20:04Z
+**Feature**: 004-working-tabs-state-machine
+**Progress**: 10/10 tasks complete
+**Updated**: 2026-06-25T07:19:03Z
 
 ## Recent Task Modifications
 
-- [010] set-window-minwidth (?)
-- [011] shell-tests (?)
+- [008] TabBar tests (?)
+- [009] App wiring (?)
+- [010] PrimitivesDemo closable variant (?)
 
 ## Recent Decisions
 
-- {'task': '011', 'decision': '241 vitest tests; CT harness pre-existing RollupError (Versions removed feat 001)'}
+- {'task': '010', 'decision': 'closable demo row added; panel clean round 0; feature 004 all 10 tasks complete'}

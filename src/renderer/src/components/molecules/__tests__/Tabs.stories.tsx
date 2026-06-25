@@ -8,11 +8,26 @@
  * These are NOT Storybook stories — the file is named ".stories.tsx" only
  * because that naming convention is idiomatic for "component fixtures used in
  * browser-rendered tests". The file has no Storybook dependency.
+ *
+ * Fixtures exported here:
+ *   TabsFixture                    — standard 4-tab strip (AC-7/6/8/9/10)
+ *   TabsActionsFixture             — strip with actions slot (AC-8)
+ *   TabsNoMatchFixture             — no-match activeId (AC-10)
+ *   TabsAllDisabledFixture         — all-disabled (AC-10)
+ *   TabsClosableFixture            — signal-only closable (AC-22/23)
+ *   TabsClosableRemoveFixture      — closable + removal + focus restoration (AC-23)
+ *   TabsNonCloseReRenderFixture    — non-close re-render with focus inside list (AC-23 guard)
+ *   TabsClosableRemoveTwoPhase     — two-phase close: close non-active tab then close active (AC-23 guard)
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Tabs } from '@renderer/components/molecules/Tabs'
 import type { TabDescriptor } from '@renderer/components/molecules/Tabs'
+import { selectNeighborId } from '@renderer/lib/tabsStore'
+
+// Re-export TabDescriptor so fixtures below can use it without
+// introducing a separate import in Tabs.ct.tsx.
+export type { TabDescriptor }
 
 // ---------------------------------------------------------------------------
 // TabsFixture — a self-contained controlled tab strip for CT mounting
@@ -156,4 +171,297 @@ export function TabsAllDisabledFixture(): React.JSX.Element {
   ]
 
   return <Tabs aria-label="All-disabled tabs" tabs={tabs} activeId="a" onChange={() => {}} />
+}
+
+// ---------------------------------------------------------------------------
+// TabsClosableFixture — closable=true strip for AC-22/AC-23 CT tests
+// ---------------------------------------------------------------------------
+
+/** Props for the TabsClosableFixture component. */
+export interface TabsClosableFixtureProps {
+  /** The tab id that is active when the fixture first mounts. */
+  initialActiveId?: string
+}
+
+/**
+ * Fixture for closable=true tests (AC-22, AC-23, AC-12).
+ *
+ * Tab layout (index order):
+ *   0 — "params"   enabled   (initial active)
+ *   1 — "headers"  enabled
+ *   2 — "auth"     enabled
+ *
+ * The fixture records the last onClose id and the last onChange id via
+ * data-testid elements so CT tests can inspect them.
+ *
+ * data-testids:
+ *   ct-closable-last-change  — last id passed to onChange (empty on mount)
+ *   ct-closable-last-close   — last id passed to onClose (empty on mount)
+ */
+export function TabsClosableFixture({
+  initialActiveId = 'params'
+}: TabsClosableFixtureProps): React.JSX.Element {
+  const [activeId, setActiveId] = useState(initialActiveId)
+  const [lastChange, setLastChange] = useState('')
+  const [lastClose, setLastClose] = useState('')
+
+  const tabs: TabDescriptor[] = [
+    { id: 'params', label: 'Params' },
+    { id: 'headers', label: 'Headers' },
+    { id: 'auth', label: 'Auth' }
+  ]
+
+  function handleChange(id: string): void {
+    setActiveId(id)
+    setLastChange(id)
+  }
+
+  function handleClose(id: string): void {
+    setLastClose(id)
+    // Signal-only fixture: does not remove the tab from the list.
+    // Use TabsClosableRemoveFixture for removal/focus-restoration tests.
+  }
+
+  return (
+    <div>
+      <Tabs
+        aria-label="Closable sections"
+        tabs={tabs}
+        activeId={activeId}
+        onChange={handleChange}
+        closable
+        onClose={handleClose}
+      />
+      <div data-testid="ct-closable-last-change">{lastChange}</div>
+      <div data-testid="ct-closable-last-close">{lastClose}</div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TabsClosableRemoveFixture — removes a tab and updates activeId to simulate
+// the store's post-close state, exercising AC-23 focus restoration.
+// ---------------------------------------------------------------------------
+
+/**
+ * Fixture for focus restoration after a tab is closed (AC-23).
+ *
+ * Initial tab layout:
+ *   0 — "params"   enabled   (initial active)
+ *   1 — "headers"  enabled
+ *   2 — "auth"     enabled
+ *
+ * When onClose fires for the active tab ("params"), the fixture removes it
+ * from the list and sets activeId to "headers" — exactly what the store would
+ * do. The useLayoutEffect inside Tabs should then restore focus to the new
+ * active tab button.
+ *
+ * data-testids:
+ *   ct-remove-last-change   — last id passed to onChange
+ *   ct-remove-last-close    — last id passed to onClose
+ */
+export function TabsClosableRemoveFixture(): React.JSX.Element {
+  const INITIAL_TABS: TabDescriptor[] = [
+    { id: 'params', label: 'Params' },
+    { id: 'headers', label: 'Headers' },
+    { id: 'auth', label: 'Auth' }
+  ]
+
+  const [tabs, setTabs] = useState<TabDescriptor[]>(INITIAL_TABS)
+  const [activeId, setActiveId] = useState('params')
+  const [lastChange, setLastChange] = useState('')
+  const [lastClose, setLastClose] = useState('')
+
+  function handleChange(id: string): void {
+    setActiveId(id)
+    setLastChange(id)
+  }
+
+  function handleClose(id: string): void {
+    setLastClose(id)
+    // Simulate store: remove the closed tab and pick a neighbor as the new active
+    // using the canonical selectNeighborId helper from tabsStore.
+    setTabs((prev) => {
+      const idx = prev.findIndex((t) => t.id === id)
+      const next = prev.filter((t) => t.id !== id)
+      if (next.length > 0) {
+        setActiveId(selectNeighborId(prev, idx))
+      }
+      return next
+    })
+  }
+
+  return (
+    <div>
+      <Tabs
+        aria-label="Removable sections"
+        tabs={tabs}
+        activeId={activeId}
+        onChange={handleChange}
+        closable
+        onClose={handleClose}
+      />
+      <div data-testid="ct-remove-last-change">{lastChange}</div>
+      <div data-testid="ct-remove-last-close">{lastClose}</div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TabsNonCloseReRenderFixture — changed tabs[] but SAME activeId, for AC-23
+// non-close guard test (focus INSIDE the list must NOT steal focus).
+// ---------------------------------------------------------------------------
+
+/**
+ * Fixture for the AC-23 non-close re-render guard test.
+ *
+ * Renders a closable strip. Exposes `window.__tabsNonCloseAddTab` so the CT
+ * test can trigger a re-render WITHOUT clicking an external button (which would
+ * steal focus out of the tablist, clearing lastFocusWasInListRef and making the
+ * test exercise the wrong branch).
+ *
+ * The CT test sequence:
+ *   1. Tab into the strip → focus lands on Params (lastFocusWasInListRef = true).
+ *   2. Call page.evaluate(() => window.__tabsNonCloseAddTab?.()) to append Auth
+ *      without moving focus out of the strip.
+ *   3. useLayoutEffect fires: guard=true, activeEl=Params button,
+ *      document.activeElement === activeEl → returns early (no focus theft).
+ *   4. Assert Params tab is still focused.
+ *
+ * The key difference from TabsClosableRemoveFixture: the re-render is NOT a
+ * close (activeId is unchanged, only the tabs array grows).
+ *
+ * data-testids:
+ *   ct-nonclose-last-change   — last id passed to onChange
+ */
+export function TabsNonCloseReRenderFixture(): React.JSX.Element {
+  const BASE_TABS: TabDescriptor[] = [
+    { id: 'params', label: 'Params' },
+    { id: 'headers', label: 'Headers' }
+  ]
+
+  const [tabs, setTabs] = useState<TabDescriptor[]>(BASE_TABS)
+  const [activeId, setActiveId] = useState('params')
+  const [lastChange, setLastChange] = useState('')
+
+  function handleChange(id: string): void {
+    setActiveId(id)
+    setLastChange(id)
+  }
+
+  function addTab(): void {
+    // Appends a new tab; activeId stays 'params' — non-close re-render.
+    setTabs((prev) => [...prev, { id: 'auth', label: 'Auth' }])
+  }
+
+  // Expose the addTab function as a global so CT tests can trigger the
+  // re-render via page.evaluate without moving browser focus.
+  useEffect(() => {
+    ;(window as Window & { __tabsNonCloseAddTab?: () => void }).__tabsNonCloseAddTab = addTab
+    return () => {
+      delete (window as Window & { __tabsNonCloseAddTab?: () => void }).__tabsNonCloseAddTab
+    }
+  // addTab is stable (defined once per render cycle); deps intentionally empty.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div>
+      <Tabs
+        aria-label="Non-close re-render sections"
+        tabs={tabs}
+        activeId={activeId}
+        onChange={handleChange}
+        closable
+        onClose={() => {}}
+      />
+      <div data-testid="ct-nonclose-last-change">{lastChange}</div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TabsClosableRemoveTwoPhase — two-phase close test fixture (AC-23 guard).
+//
+// Phase 1: Focus tab Params. Click ✕ of Headers (a DIFFERENT tab).
+//           → Internal blur: Params-button → Headers-✕ → guard stays set.
+//           → Headers removed; fixture keeps Params as active (it picks the
+//             neighbor that results in Params remaining, i.e. Auth at idx 1
+//             becomes new active when headers at idx 1 closes... but we
+//             customize the logic so that closing a NON-ACTIVE tab keeps
+//             the current activeId unchanged if that tab still exists).
+// Phase 2: Press Delete on now-focused Params (focus was restored by
+//           useLayoutEffect after phase-1 re-render) → Params closes →
+//           focus must land on the neighbor.
+//
+// data-testids:
+//   ct-twophase-last-change  — last id passed to onChange
+//   ct-twophase-last-close   — last id passed to onClose
+// ---------------------------------------------------------------------------
+
+/**
+ * Fixture for the two-phase internal-transfer guard test.
+ *
+ * Initial tab layout:
+ *   0 — "params"   enabled   (initial active)
+ *   1 — "headers"  enabled
+ *   2 — "auth"     enabled
+ *
+ * handleClose logic:
+ *   - If the closed tab is NOT the active tab, remove it and keep the current
+ *     activeId (the active tab is still present).
+ *   - If the closed tab IS the active tab, remove it and pick the neighbor.
+ *
+ * This lets the test do: focus Params → close Headers (guard stays, Params
+ * still active, useLayoutEffect focuses Params) → press Delete on Params
+ * (closes Params) → focus lands on Auth (neighbor).
+ */
+export function TabsClosableRemoveTwoPhase(): React.JSX.Element {
+  const INITIAL_TABS: TabDescriptor[] = [
+    { id: 'params', label: 'Params' },
+    { id: 'headers', label: 'Headers' },
+    { id: 'auth', label: 'Auth' }
+  ]
+
+  const [tabs, setTabs] = useState<TabDescriptor[]>(INITIAL_TABS)
+  const [activeId, setActiveId] = useState('params')
+  const [lastChange, setLastChange] = useState('')
+  const [lastClose, setLastClose] = useState('')
+
+  function handleChange(id: string): void {
+    setActiveId(id)
+    setLastChange(id)
+  }
+
+  function handleClose(id: string): void {
+    setLastClose(id)
+    setTabs((prev) => {
+      const idx = prev.findIndex((t) => t.id === id)
+      const next = prev.filter((t) => t.id !== id)
+      if (id === activeId) {
+        // Active tab closed: pick neighbor.
+        const newActive = next[Math.min(idx, next.length - 1)]
+        if (newActive !== undefined) {
+          setActiveId(newActive.id)
+        }
+      }
+      // Non-active tab closed: keep current activeId (it still exists).
+      return next
+    })
+  }
+
+  return (
+    <div>
+      <Tabs
+        aria-label="Two-phase sections"
+        tabs={tabs}
+        activeId={activeId}
+        onChange={handleChange}
+        closable
+        onClose={handleClose}
+      />
+      <div data-testid="ct-twophase-last-change">{lastChange}</div>
+      <div data-testid="ct-twophase-last-close">{lastClose}</div>
+    </div>
+  )
 }

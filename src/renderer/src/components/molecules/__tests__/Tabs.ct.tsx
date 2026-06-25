@@ -40,7 +40,11 @@ import {
   TabsFixture,
   TabsActionsFixture,
   TabsNoMatchFixture,
-  TabsAllDisabledFixture
+  TabsAllDisabledFixture,
+  TabsClosableFixture,
+  TabsClosableRemoveFixture,
+  TabsNonCloseReRenderFixture,
+  TabsClosableRemoveTwoPhase
 } from './Tabs.stories'
 
 // ---------------------------------------------------------------------------
@@ -393,5 +397,271 @@ test.describe('Tabs — AC-10 no-selection guard', () => {
     })
     // No enabled tab exists → roving tabindex has no candidate → zero tab-stops
     expect(zeroStops).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-22 — Delete/Backspace closes the focused tab when closable=true
+// ---------------------------------------------------------------------------
+
+test.describe('Tabs — AC-22 Delete/Backspace close key', () => {
+  test('pressing Delete on a focused tab fires onClose with that tab\'s id', async ({
+    mount,
+    page
+  }) => {
+    await mount(<TabsClosableFixture initialActiveId="params" />)
+
+    // Tab into the strip — lands on the active tab (Params).
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('tab', { name: 'Params' })).toBeFocused()
+
+    // Press Delete — should fire onClose with "params".
+    await page.keyboard.press('Delete')
+
+    // The fixture records the last onClose id in ct-closable-last-close.
+    await expect(page.getByTestId('ct-closable-last-close')).toHaveText('params')
+    // onChange must NOT have fired (ct-closable-last-change stays empty).
+    await expect(page.getByTestId('ct-closable-last-change')).toHaveText('')
+  })
+
+  test('pressing Backspace on a focused tab fires onClose with that tab\'s id', async ({
+    mount,
+    page
+  }) => {
+    await mount(<TabsClosableFixture initialActiveId="headers" />)
+
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('tab', { name: 'Headers' })).toBeFocused()
+
+    await page.keyboard.press('Backspace')
+
+    await expect(page.getByTestId('ct-closable-last-close')).toHaveText('headers')
+    await expect(page.getByTestId('ct-closable-last-change')).toHaveText('')
+  })
+
+  test('Delete fires onClose but does NOT fire onChange', async ({ mount, page }) => {
+    // Focused tab is "auth" — pressing Delete should call onClose("auth") only.
+    await mount(<TabsClosableFixture initialActiveId="auth" />)
+
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('tab', { name: 'Auth' })).toBeFocused()
+
+    await page.keyboard.press('Delete')
+
+    await expect(page.getByTestId('ct-closable-last-close')).toHaveText('auth')
+    // ct-closable-last-change is still empty — onChange was never called.
+    await expect(page.getByTestId('ct-closable-last-change')).toHaveText('')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-23 — roving-focus restoration after a tab is removed
+// ---------------------------------------------------------------------------
+
+test.describe('Tabs — AC-23 roving-focus restoration after close re-render', () => {
+  test('after active tab is removed focus lands on the neighbor tab, not body', async ({
+    mount,
+    page
+  }) => {
+    // TabsClosableRemoveFixture: on onClose, the fixture removes the closed tab
+    // from the list and sets activeId to the neighbor — exactly what the store
+    // does. The useLayoutEffect inside Tabs must then restore focus to the new
+    // active tab button.
+    await mount(<TabsClosableRemoveFixture />)
+
+    // Tab into the strip — lands on "Params" (the initial active tab).
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('tab', { name: 'Params' })).toBeFocused()
+
+    // Press Delete — triggers onClose("params") → fixture removes "params"
+    // and sets activeId to "headers".
+    await page.keyboard.press('Delete')
+
+    // Focus must have moved to the new active tab ("headers"), not to <body>.
+    await expect(page.getByRole('tab', { name: 'Headers' })).toBeFocused()
+  })
+
+  test('after close re-render exactly one tabIndex=0 remains (no dangling tabindex)', async ({
+    mount,
+    page
+  }) => {
+    await mount(<TabsClosableRemoveFixture />)
+
+    // Focus the strip and close the active tab.
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('Delete')
+
+    // After the re-render: "params" is gone, "headers" is the new active tab.
+    // Exactly one tab button should have tabIndex=0.
+    const zeroStops = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('[role="tab"]')).filter(
+        (b) => (b as HTMLElement).tabIndex === 0
+      ).length
+    })
+    expect(zeroStops).toBe(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-23 — onBlur internal-transfer guard: ✕ click within the list does NOT
+// clear the keyboard-restore guard, so a subsequent Delete still restores focus.
+//
+// The guard (lastFocusWasInListRef) is a SINGLE boolean. It is set true on any
+// focus-capture event inside the tablist and cleared false only when focus
+// leaves the tablist entirely (relatedTarget not contained in the list).
+// An internal blur (e.g. tab-button → sibling ✕) leaves the guard true because
+// the ✕ is also inside the tablist element — the onBlur handler's
+// relatedTarget-contains check detects this and does NOT clear it.
+//
+// The tests below prove this in two ways:
+//   1. Single-phase: focus a tab, click its OWN ✕ (which both closes the tab
+//      and is an internal transfer) → useLayoutEffect fires → focus restored.
+//   2. Two-phase: focus a tab → click the ✕ of a DIFFERENT tab (internal
+//      transfer, guard stays, that tab closes, useLayoutEffect refocuses the
+//      original tab) → press Delete on the refocused tab → focus restored again.
+// ---------------------------------------------------------------------------
+
+test.describe('Tabs — AC-23 onBlur internal-transfer guard', () => {
+  test('clicking the ✕ button (internal blur) then pressing Delete still restores focus', async ({
+    mount,
+    page
+  }) => {
+    // This test verifies that the onBlur handler's relatedTarget-contains check
+    // correctly identifies an internal focus transfer (tab → ✕) and does NOT
+    // clear lastFocusWasInListRef. If the guard were cleared incorrectly, the
+    // subsequent Delete-close's useLayoutEffect would not fire and focus would
+    // fall to <body> instead of the neighbor tab.
+    await mount(<TabsClosableRemoveFixture />)
+
+    // 1. Tab into the strip — focus lands on "Params".
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('tab', { name: 'Params' })).toBeFocused()
+
+    // 2. Click the ✕ for "Params". The click moves focus from the role=tab button
+    //    to the sibling ✕ button (both inside the tablist) — this is an internal
+    //    blur transfer and must NOT clear the guard.
+    //    The ✕ click also fires onClose, which the fixture handles by removing
+    //    "params" and setting activeId to "headers".
+    const closeBtn = page.getByRole('button', { name: 'Close Params' })
+    await closeBtn.click()
+
+    // 3. After the close re-render the fixture removes "params" and updates
+    //    activeId to "headers". The useLayoutEffect must restore focus to
+    //    "headers" (guard was still set because the blur was internal).
+    await expect(page.getByRole('tab', { name: 'Headers' })).toBeFocused()
+  })
+
+  test('after ✕ click close and focus restoration, exactly one tabIndex=0 remains', async ({
+    mount,
+    page
+  }) => {
+    await mount(<TabsClosableRemoveFixture />)
+
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('tab', { name: 'Params' })).toBeFocused()
+
+    const closeBtn = page.getByRole('button', { name: 'Close Params' })
+    await closeBtn.click()
+
+    // After removal and focus restoration: exactly one tabIndex=0.
+    const zeroStops = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('[role="tab"]')).filter(
+        (b) => (b as HTMLElement).tabIndex === 0
+      ).length
+    })
+    expect(zeroStops).toBe(1)
+  })
+
+  test('two-phase: ✕ of DIFFERENT tab keeps guard set → second Delete also restores focus', async ({
+    mount,
+    page
+  }) => {
+    // Two-phase sequence proving the guard's single-boolean nature survives an
+    // internal blur from one tab to a DIFFERENT tab's ✕:
+    //   Phase 1 — focus Params tab button, then click ✕ of Headers (a different
+    //             tab). The blur from Params button → Headers ✕ is internal
+    //             (relatedTarget is inside the tablist). The guard must stay set.
+    //             Headers is removed; fixture keeps Params as activeId. The
+    //             useLayoutEffect refocuses Params (guard still true, Params not
+    //             already focused).
+    //   Phase 2 — press Delete on now-focused Params → closes Params → fixture
+    //             sets activeId to Auth (neighbor). useLayoutEffect must restore
+    //             focus to Auth (guard still true from phase-1 focus event).
+    await mount(<TabsClosableRemoveTwoPhase />)
+
+    // Phase 1: Tab into strip, focus Params.
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('tab', { name: 'Params' })).toBeFocused()
+
+    // Click ✕ of Headers — internal blur (Params tab → Headers ✕), guard stays.
+    // Headers is removed; Params remains active.
+    await page.getByRole('button', { name: 'Close Headers' }).click()
+
+    // useLayoutEffect fires: guard=true, activeEl=Params button, Params is not
+    // focused (focus was on Headers ✕ which is now gone) → Params gets focus.
+    await expect(page.getByRole('tab', { name: 'Params' })).toBeFocused()
+
+    // Phase 2: press Delete on focused Params → closes Params → Auth becomes active.
+    await page.keyboard.press('Delete')
+
+    // useLayoutEffect fires again: guard=true (never cleared between phases),
+    // activeEl=Auth button → focus lands on Auth.
+    await expect(page.getByRole('tab', { name: 'Auth' })).toBeFocused()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-23 (non-close guard) — re-render with CHANGED tabs[] but SAME activeId
+// while focus IS INSIDE the list must NOT steal focus from the focused button.
+//
+// This exercises the SECOND guard inside useLayoutEffect:
+//   if (document.activeElement === activeEl) return   ← this branch
+//
+// The focus-outside path (lastFocusWasInListRef = false) short-circuits at
+// the FIRST check and never reaches this branch. To exercise the second branch
+// we need focus to be inside the tablist (lastFocusWasInListRef = true) during
+// a non-close re-render where the same tab button is still focused.
+// ---------------------------------------------------------------------------
+
+test.describe('Tabs — AC-23 non-close re-render with focus inside the list', () => {
+  test('changing tabs[] but keeping the SAME activeId does NOT steal focus from the focused tab button', async ({
+    mount,
+    page
+  }) => {
+    // TabsNonCloseReRenderFixture: closable strip starting with [params, headers],
+    // activeId="params". The fixture exposes window.__tabsNonCloseAddTab() which
+    // appends Auth — same activeId, tabs[] changes — without stealing browser focus.
+    //
+    // This exercises the SECOND guard inside useLayoutEffect:
+    //   if (document.activeElement === activeEl) return   ← this branch
+    //
+    // Clicking an external button would steal focus out of the tablist and clear
+    // lastFocusWasInListRef, which would short-circuit at the FIRST check — the
+    // wrong branch. page.evaluate() triggers the React state update without any
+    // browser focus side-effect, keeping focus on the Params tab button throughout.
+    await mount(<TabsNonCloseReRenderFixture />)
+
+    // Step 1: Tab into the strip — focus lands on Params (the active tab).
+    // This fires the onFocus-capture handler inside Tabs, setting
+    // lastFocusWasInListRef.current = true.
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('tab', { name: 'Params' })).toBeFocused()
+
+    // Step 2: Trigger a non-close re-render via the window global — does NOT move
+    // browser focus. Appends Auth tab, keeps activeId="params".
+    // useLayoutEffect deps change (tabs[] is a new array reference), the effect runs:
+    //   - lastFocusWasInListRef.current === true  (passes first guard)
+    //   - activeEl = buttonRefs.get("params")     (the Params button)
+    //   - document.activeElement === activeEl      (Params is already focused)
+    //   → RETURNS EARLY: does NOT call activeEl.focus() — no focus theft.
+    await page.evaluate(() => {
+      ;(window as Window & { __tabsNonCloseAddTab?: () => void }).__tabsNonCloseAddTab?.()
+    })
+
+    // Step 3: Focus must REMAIN on the Params tab button — not stolen.
+    await expect(page.getByRole('tab', { name: 'Params' })).toBeFocused()
+
+    // Step 4: Sanity-check the new tab appeared (confirming the re-render happened).
+    await expect(page.getByRole('tab', { name: 'Auth' })).toBeVisible()
   })
 })

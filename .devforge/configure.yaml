@@ -1,6 +1,6 @@
 project_name: mintenvoy
-project_description: 'A desktop API client built with Electron, React, and TypeScript'
-project_type: 'desktop app'
+project_description: "A desktop API client built with Electron, React, and TypeScript"
+project_type: "desktop app"
 primary_language: TypeScript
 languages:
   - TypeScript
@@ -8,46 +8,46 @@ frameworks:
   - Electron
   - React
 architectures:
-  - 'Electron multi-process (main / preload / renderer)'
+  - "Electron multi-process (main / preload / renderer)"
 project_natures:
   - desktop
   - web
 error_handlings:
-  - 'thrown exceptions'
+  - "thrown exceptions"
 api_layers:
-  - 'Electron IPC'
+  - "Electron IPC"
 testings:
-  - 'N/A'
+  - "N/A"
 build_tools:
   - electron-vite
   - Vite
   - electron-builder
 build_commands:
-  - 'npm run typecheck && electron-vite build'
+  - "npm run typecheck && electron-vite build"
 type_check_commands:
-  - 'npm run typecheck:node && npm run typecheck:web'
+  - "npm run typecheck:node && npm run typecheck:web"
 lint_commands:
-  - 'eslint --cache .'
+  - "eslint --cache ."
 test_commands:
-  - 'N/A'
+  - "N/A"
 package_stacks:
   - path: .
     language: TypeScript
     framework: React
     build_tool: vite
-    build_command: 'npm run typecheck && electron-vite build'
-    type_check_command: 'npm run typecheck:node && npm run typecheck:web'
-    lint_command: 'eslint --cache .'
+    build_command: "npm run typecheck && electron-vite build"
+    type_check_command: "npm run typecheck:node && npm run typecheck:web"
+    lint_command: "eslint --cache ."
     test_command: null
 project_structure: "```text\nmintenvoy/\n├── src/\n│   ├── main/          # Electron main process (Node.js, app lifecycle)\n│   │   └── index.ts\n│   ├── preload/       # Preload bridge (contextIsolation-safe IPC)\n│   │   ├── index.ts\n│   │   └── index.d.ts\n│   └── renderer/      # React UI (renderer process)\n│       ├── index.html\n│       └── src/\n│           ├── App.tsx\n│           ├── main.tsx\n│           ├── components/\n│           └── assets/\n├── resources/         # App icons / static resources\n├── design/            # Design mockups + tokens\n└── electron.vite.config.ts\n```"
 dev_commands: "| Command | Description |\n|---------|-------------|\n| `npm run dev` | Start app in dev mode (electron-vite dev) |\n| `npm run build` | Type-check then build (electron-vite build) |\n| `npm run start` | Preview built app (electron-vite preview) |\n| `npm run lint` | Lint with ESLint (cached) |\n| `npm run format` | Format with Prettier |\n| `npm run typecheck` | Type-check node + web TS configs |\n| `npm run build:mac` | Build + package macOS |\n| `npm run build:win` | Build + package Windows |\n| `npm run build:linux` | Build + package Linux |"
 architecture_details: "mintEnvoy follows Electron's three-process model: a **main** process (Node.js — app lifecycle + native APIs), a **preload** bridge (contextIsolation-safe IPC surface between main and renderer), and a **renderer** process (React 19 UI). UI state is held in zustand; local persistence via electron-store; outbound HTTP via undici; auto-update via electron-updater. Bundled by electron-vite, packaged by electron-builder."
 workflow_enforcement: Strict
-ai_attribution: 'Yes'
+ai_attribution: "Yes"
 claude_tier_think: Opus
 claude_tier_do: Sonnet
 claude_tier_verify: Haiku
 ac_verification_mode: tests
 ac_runtime_url: null
 ac_runtime_api_base: null
-ac_runtime_cli_command: 'electron-vite dev'
+ac_runtime_cli_command: "electron-vite dev"

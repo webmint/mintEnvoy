@@ -38,6 +38,8 @@ The renderer process has a three-sublayer structure beneath feature components:
 
 **Shell app-state pattern**: a single module-level zustand `settingsStore` is the SSOT for all shell view state. `Shell.tsx` is the sole writer of `document.documentElement` data-attributes (`data-theme`, `data-accent`, `data-mstyle`) and CSS custom properties (`--sidebar-width`, `--pane-ratio`); the `Divider` also writes these same CSS vars during live drag at rAF cadence. No other component sets these attrs or vars directly.
 
+**Working-tabs state machine pattern**: a single module-level zustand `tabsStore` owns the open-request tab list (`tabs: Tab[]`, array order = visual order), the active tab pointer (`activeTabId`), and the full lifecycle — `openFromCollection` (id-then-url two-leg dedupe), `newBlank`, `close` (never-zero: spawns a replacement when the last tab closes; right-then-left neighbor selection when the active tab closes), `selectActive`, and `markClean(tabId)`. `TabBar` is the sole subscriber that wires store actions to the Tabs molecule. The never-zero invariant is a construction-time guarantee: the store initialises with one seeded blank tab and `close` always spawns a replacement before removing the last entry. `requestSpec.ts` is a pure data module in lib/ — exports types only (`RequestSpec`, `Row`, `Auth` discriminated union, `isBearerAuth` type guard) and `makeBlankRequest()` seed factory; it carries no actions and no store state (constitution §3.1 / §4).
+
 **Styling**: semantic class names bound to `tokens.css` CSS custom properties; no inline styles. Per-component CSS files live alongside the component under `atoms/`, `molecules/`, and `organisms/`.
 
 ## Data Flow
@@ -63,7 +65,7 @@ Renderer test stack: Vitest + @testing-library/react + user-event (jsdom) for in
 
 mintEnvoy is structured around Electron's three-process security model. The **main** process (Node.js) owns the application lifecycle and creates the single BrowserWindow with sandbox-friendly webPreferences and a preload script attached. The **preload** bridge runs with context isolation and is the only place permitted to expose privileged Electron APIs to the UI, doing so through contextBridge under a process.contextIsolated guard. The **renderer** is a React 19 single-page UI that must never import Node or Electron modules — it talks to the platform exclusively through the globals the preload bridge exposes on window.
 
-Within the renderer, the code is organized as a small design-system with three atomic-design tiers: an Icon atom; Dropdown/Modal/Toast/Tabs molecules (Dropdown/Modal/Toast wrap Radix; Tabs hand-rolls its WAI-ARIA engine); and organisms — Shell, Titlebar, Sidebar, PaneSplit, Statusbar, and a hand-rolled WAI-ARIA Divider splitter — that compose the single-window app shell. A shared lib layer provides className merge, safe icon resolution, and two module-level zustand stores (toastStore for the toast queue; settingsStore as the view-state SSOT). UI styling is driven by CSS custom-property design tokens rather than inline styles. A dev-only PrimitivesDemo gallery is dynamically imported behind import.meta.env.DEV so it is tree-shaken out of production builds.
+Within the renderer, the code is organized as a small design-system with three atomic-design tiers: an Icon atom; Dropdown/Modal/Toast/Tabs molecules (Dropdown/Modal/Toast wrap Radix; Tabs hand-rolls its WAI-ARIA engine and also supports an opt-in closable affordance — see Patterns §); and organisms — Shell, Titlebar, Sidebar, PaneSplit, Statusbar, a hand-rolled WAI-ARIA Divider splitter, and TabBar (the working-tabs strip) — that compose the single-window app shell. A shared lib layer provides className merge, safe icon resolution, three module-level zustand stores (toastStore for the toast queue; settingsStore as the view-state SSOT; tabsStore as the working-tabs lifecycle state machine), and the requestSpec domain model (RequestSpec types + makeBlankRequest factory). UI styling is driven by CSS custom-property design tokens rather than inline styles. A dev-only PrimitivesDemo gallery is dynamically imported behind import.meta.env.DEV so it is tree-shaken out of production builds.
 
 The toolchain is electron-vite (three build targets: main, preload, renderer) for bundling and electron-builder for OS packaging, with Vitest + Playwright component tests covering the primitive library.
 
@@ -77,10 +79,10 @@ src/
     └── src/
         ├── components/
         │   ├── atoms/      # Icon
-        │   ├── molecules/  # Dropdown, Modal, Toast (Radix-based); Tabs (hand-rolled WAI-ARIA)
-        │   ├── organisms/  # Shell, Titlebar, Sidebar, PaneSplit, Statusbar, Divider (app shell)
+        │   ├── molecules/  # Dropdown, Modal, Toast (Radix-based); Tabs (hand-rolled WAI-ARIA; opt-in closable)
+        │   ├── organisms/  # Shell, Titlebar, Sidebar, PaneSplit, Statusbar, Divider (app shell); TabBar (working-tabs strip)
         │   └── PrimitivesDemo.tsx  # dev-only gallery
-        ├── lib/    # cx, icons-glue, toastStore, settingsStore
+        ├── lib/    # cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec
         └── styles/ # tokens.css design tokens
 ```
 
@@ -169,6 +171,8 @@ Rule: any Divider whose `value` is not 1:1 with pointer pixels **must** supply `
 
 The Tabs primitive does NOT wrap Radix Tabs, departing from the Dropdown/Modal/Toast "buy the a11y engine from Radix" convention. The reason: Radix `Tabs.Trigger` deterministically emits `aria-controls` pointing at a sibling `Tabs.Content`; with no Content mounted (the primitive is selection-only and never renders panels) that attribute dangles and fails WCAG/axe. Instead, Tabs hand-rolls the small WAI-ARIA APG Tabs pattern — `role="tablist"` containing `role="tab"` buttons with manual roving tabindex, Arrow/Home/End key handling with wrap-around, and disabled-tab skipping. The component veneer (flat descriptor-array API, `cx()` BEM classes, sibling CSS file, exported types) still mirrors the Dropdown/Modal/Toast shape; only the a11y engine diverges.
 
+**Opt-in closable extension (feature 004)**: `closable` and `onClose` props are default-off — when absent the primitive is byte-identical to the selection-only contract and no close DOM node or extra keyboard handler is added. When `closable={true}`, a sibling `<button tabIndex={-1}>` renders next to each `role="tab"` button as a pointer-only close target (never a roving tab stop, never `role="tab"`). Delete/Backspace on the focused tab also fires `onClose`. `onClose` is signal-only — it emits the tab id and never mutates the tab list; the store (or parent) owns the lifecycle. The primitive's only post-close responsibility is roving-focus integrity on the next render.
+
 **Rule of thumb for future molecules**: prefer wrapping Radix when the primitive mounts matching Content alongside its trigger/control; hand-roll only when the WAI-ARIA pattern is small and the primitive is explicitly panel-decoupled (selection-only, content rendered elsewhere).
 
 <!-- src/renderer/src/components/molecules/Tabs.tsx:1 -->
@@ -216,9 +220,10 @@ The Tabs primitive does NOT wrap Radix Tabs, departing from the Dropdown/Modal/T
 
 **State Management**
 
-- Shared UI state held in module-level zustand stores (toastStore, settingsStore) exporting a single instance each
+- Shared UI state held in module-level zustand stores (toastStore, settingsStore, tabsStore) exporting a single instance each
 - State mutated only through store actions; an imperative toast() API wraps toastStore for fire-and-forget use
 - Shell view state (theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed) lives exclusively in settingsStore — Shell.tsx is the sole writer of the corresponding document.documentElement attrs/vars
+- Working-tabs lifecycle (open, dedupe, close, dirty) lives exclusively in tabsStore — TabBar.tsx is the sole subscriber that wires store actions to the Tabs molecule
 
 ## Layers
 
@@ -262,7 +267,7 @@ function App(): React.JSX.Element {
 - preload is the only bridge — it exposes APIs to the renderer via contextBridge and depends on neither renderer UI nor main internals
 - renderer depends only on browser/React APIs and preload-exposed window globals — never on Node, Electron, or main
 - renderer component tiers flow downward only: organisms → molecules → atoms; no sibling-tier or upward imports
-- renderer lib (cx, icons-glue, toastStore, settingsStore) is leaf-level: components depend on lib, lib depends on nothing renderer-external
+- renderer lib (cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec) is leaf-level: components depend on lib, lib depends on nothing renderer-external; requestSpec is imported by tabsStore but is still a pure data module (no component imports)
 
 ## Dependency Overview
 
@@ -270,10 +275,10 @@ function App(): React.JSX.Element {
 graph TD
   main[main process] -->|attaches preload| preload[preload bridge]
   preload -->|exposes window.electron / window.api| renderer[renderer UI]
-  renderer --> organisms[components/organisms: Shell / Titlebar / Sidebar / PaneSplit / Statusbar / Divider]
+  renderer --> organisms[components/organisms: Shell / Titlebar / Sidebar / PaneSplit / Statusbar / Divider / TabBar]
   organisms --> molecules[components/molecules: Dropdown / Modal / Toast / Tabs]
   molecules --> atoms[components/atoms: Icon]
-  atoms --> lib[lib: cx / icons-glue / toastStore / settingsStore]
+  atoms --> lib[lib: cx / icons-glue / toastStore / settingsStore / tabsStore / requestSpec]
   organisms --> lib
   molecules --> lib
   molecules --> radix[radix-ui]

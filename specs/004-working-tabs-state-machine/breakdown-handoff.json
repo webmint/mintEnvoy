@@ -1,0 +1,346 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/004-working-tabs-state-machine/tasks",
+  "breakdown_completed_at": "2026-06-24T21:52:47Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/004-working-tabs-state-machine/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/004-working-tabs-state-machine/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/004-working-tabs-state-machine/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "Create RequestSpec domain model",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "002",
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/src/lib/requestSpec.ts"
+      ],
+      "expects": [
+        "The renderer `lib/` leaf layer exists (`src/renderer/src/lib/` \u2014 siblings `settingsStore.ts`, `toastStore.ts`, `cx.ts`).",
+        "No `requestSpec` module exists yet (greenfield create)."
+      ],
+      "produces": [
+        "`src/renderer/src/lib/requestSpec.ts` exists and exports the literal identifiers `RequestSpec`, `Row`, `Auth`, `BearerAuth`, `isBearerAuth`, `makeBlankRequest`.",
+        "`makeBlankRequest` returns `auth` with the literal string `'{{apiKey}}'` and a single header whose `key` is `'Accept'` and `value` is `'application/json'`.",
+        "The `Auth` union declares exactly two members (`'none'`, `'bearer'`) \u2014 no third variant."
+      ],
+      "ac_addressed": [
+        "AC-2",
+        "AC-16",
+        "AC-28",
+        "AC-9",
+        "AC-10"
+      ],
+      "doc_refs": [
+        "specs/004-working-tabs-state-machine/data-model.md"
+      ],
+      "review_checkpoint": false
+    },
+    {
+      "number": "002",
+      "title": "Create tabsStore zustand slice",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [
+        "003",
+        "007"
+      ],
+      "touched_files": [
+        "src/renderer/src/lib/tabsStore.ts"
+      ],
+      "expects": [
+        "`requestSpec.ts` (task 001) exports `RequestSpec` and `makeBlankRequest`.",
+        "`zustand` is declared in `package.json` (existing dependency; `settingsStore.ts`/`toastStore.ts` use `create`)."
+      ],
+      "produces": [
+        "`src/renderer/src/lib/tabsStore.ts` exports `tabsStore`, `Tab`, `OpenFromCollectionInput`, `TabsState`.",
+        "`tabsStore` exposes the literal action names `openFromCollection`, `newBlank`, `close`, `selectActive`, `markClean`.",
+        "`tabsStore.getState().tabs.length >= 1` at construction (never-zero seeded init).",
+        "`Tab` carries `collectionRequestId` (matched by dedupe leg 1, distinct from `id`)."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-4",
+        "AC-13",
+        "AC-14",
+        "AC-15",
+        "AC-16",
+        "AC-17",
+        "AC-18",
+        "AC-19",
+        "AC-20",
+        "AC-21",
+        "AC-28",
+        "AC-9",
+        "AC-10"
+      ],
+      "doc_refs": [
+        "specs/004-working-tabs-state-machine/data-model.md"
+      ],
+      "review_checkpoint": false
+    },
+    {
+      "number": "003",
+      "title": "Write tabsStore unit suite + serialization contract",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "002"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/lib/__tests__/tabsStore.test.ts"
+      ],
+      "expects": [
+        "`tabsStore` (task 002) exports the store + `Tab`/`OpenFromCollectionInput`/`TabsState`, with all 5 actions.",
+        "`makeBlankRequest` (task 001) is importable for the seed + serialization assertions.",
+        "The renderer Vitest stack (vitest + @testing-library) is configured (feature 001)."
+      ],
+      "produces": [
+        "`src/renderer/src/lib/__tests__/tabsStore.test.ts` exists with `describe`/`it` blocks covering AC-13 through AC-21 and the JSON round-trip.",
+        "`npx vitest run src/renderer/src/lib/__tests__/tabsStore.test.ts` passes (AC-8)."
+      ],
+      "ac_addressed": [
+        "AC-8",
+        "AC-13",
+        "AC-14",
+        "AC-15",
+        "AC-16",
+        "AC-17",
+        "AC-18",
+        "AC-19",
+        "AC-20",
+        "AC-21"
+      ],
+      "doc_refs": [
+        "specs/004-working-tabs-state-machine/data-model.md"
+      ],
+      "review_checkpoint": false
+    },
+    {
+      "number": "004",
+      "title": "Extend Tabs primitive with opt-in closable/onClose",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "005",
+        "006",
+        "007",
+        "010"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/molecules/Tabs.tsx",
+        "src/renderer/src/components/molecules/Tabs.css"
+      ],
+      "expects": [
+        "The existing selection-only Tabs primitive (`TabsProps`, `TabDescriptor`, the hand-rolled roving-tabindex engine: `handleKeyDown`, `rovingTabStopIndex`, `buttonRefs`) is present in `Tabs.tsx` (feature 002)."
+      ],
+      "produces": [
+        "`TabsProps` declares optional `closable` and `onClose`.",
+        "With `closable` true, a sibling `<button>` with `tabIndex={-1}` (not `role=\"tab\"`, not in `buttonRefs`) renders per tab and `onClose` fires on its click and on Delete/Backspace on the focused tab (AC-22).",
+        "With `closable` falsy, no Delete/Backspace close behavior, no extra close DOM node, and no extra roving tab stop (AC-11); exactly one `tabIndex={0}` tab stop regardless of `closable` (AC-12).",
+        "A `useLayoutEffect` restores roving focus to a neighbor on close without leaving a dangling tabindex (AC-23)."
+      ],
+      "ac_addressed": [
+        "AC-11",
+        "AC-12",
+        "AC-22",
+        "AC-23",
+        "AC-28"
+      ],
+      "doc_refs": [
+        "docs/architecture.md"
+      ],
+      "review_checkpoint": true
+    },
+    {
+      "number": "005",
+      "title": "Extend Tabs tests for closable extension",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "004"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/molecules/__tests__/Tabs.test.tsx",
+        "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx"
+      ],
+      "expects": [
+        "The closable/onClose Tabs contract from task 004 is present (`TabsProps.closable`, `TabsProps.onClose`, sibling \u2715, Delete/Backspace path, `useLayoutEffect` focus restoration).",
+        "The existing `Tabs.test.tsx` and `Tabs.ct.tsx` 002 suites are present and passing."
+      ],
+      "produces": [
+        "`Tabs.test.tsx` contains a `closable=false` byte-identical regression and `closable=true` behavior cases.",
+        "`Tabs.ct.tsx` contains Delete/Backspace close, roving-focus-restoration, and structural-a11y cases.",
+        "The Tabs Vitest + CT suites pass."
+      ],
+      "ac_addressed": [
+        "AC-11",
+        "AC-12",
+        "AC-22",
+        "AC-23"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "006",
+      "title": "Record Tabs contract extension in feature-002 lineage",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "004"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "specs/002-tabs-primitive/spec.md"
+      ],
+      "expects": [
+        "The closable/onClose contract from task 004 is implemented (so the lineage note records a real, settled change).",
+        "`specs/002-tabs-primitive/spec.md` exists."
+      ],
+      "produces": [
+        "`specs/002-tabs-primitive/spec.md` contains a lineage note recording the feature-004 `closable`/`onClose` contract extension as a backward-compatible contract change (AC-29)."
+      ],
+      "ac_addressed": [
+        "AC-29"
+      ],
+      "doc_refs": [
+        "specs/002-tabs-primitive/spec.md"
+      ],
+      "review_checkpoint": false
+    },
+    {
+      "number": "007",
+      "title": "Create TabBar organism",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "002",
+        "004"
+      ],
+      "blocks": [
+        "008",
+        "009"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/TabBar.tsx",
+        "src/renderer/src/components/organisms/TabBar.css"
+      ],
+      "expects": [
+        "`tabsStore` (task 002) exposes the `tabs`/`activeTabId` state + `selectActive`/`close`/`newBlank` actions for per-field selector subscription. (`openFromCollection` is NOT consumed here.)",
+        "The closable/onClose Tabs contract (task 004) is present (`TabsProps.closable`, `TabsProps.onClose`).",
+        "The Tabs molecule's `badge` slot and `actions` slot exist (feature 002, unchanged contract)."
+      ],
+      "produces": [
+        "`src/renderer/src/components/organisms/TabBar.tsx` exports `TabBar` and `src/renderer/src/components/organisms/TabBar.css` exists with tokens-bound classes (AC-3).",
+        "TabBar composes `Tabs` with `closable`, routing activate\u2192`selectActive`, \u2715\u2192`close`, +\u2192`newBlank` (AC-24).",
+        "Label precedence name\u2192method+url\u2192`Untitled` rendered verbatim (AC-25); dirty marker via `badge` slot alongside the label (AC-26).",
+        "TabBar imports only the Tabs molecule + `lib` (downward), never a sibling organism (\u00a72.3, Risk 2)."
+      ],
+      "ac_addressed": [
+        "AC-3",
+        "AC-24",
+        "AC-25",
+        "AC-26",
+        "AC-9",
+        "AC-10"
+      ],
+      "doc_refs": [
+        "docs/architecture.md"
+      ],
+      "review_checkpoint": true
+    },
+    {
+      "number": "008",
+      "title": "Write TabBar tests",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "007"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/organisms/__tests__/TabBar.test.tsx"
+      ],
+      "expects": [
+        "`TabBar` (task 007) is exported and composes the closable Tabs primitive wired to `tabsStore`.",
+        "The renderer Vitest + Testing Library stack is configured (feature 001)."
+      ],
+      "produces": [
+        "`src/renderer/src/components/organisms/__tests__/TabBar.test.tsx` exists with cases covering gesture routing, label precedence, and the dirty marker.",
+        "The TabBar suite passes."
+      ],
+      "ac_addressed": [
+        "AC-24",
+        "AC-25",
+        "AC-26"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "009",
+      "title": "Wire TabBar into Shell tabs slot via App.tsx",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "007"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/App.tsx"
+      ],
+      "expects": [
+        "`TabBar` (task 007) is exported from `@renderer/components/organisms/TabBar`.",
+        "`Shell` exposes the optional `tabs?: ReactNode` slot (feature 003, `ShellProps`)."
+      ],
+      "produces": [
+        "`src/renderer/src/App.tsx` renders `<Shell tabs={<TabBar />} />` (TabBar mounted into the shell tabs slot \u2014 AC-27).",
+        "`Shell.tsx` is unchanged and does not import `TabBar`.",
+        "The assembled app builds cleanly (`npm run build`) \u2014 AC-7."
+      ],
+      "ac_addressed": [
+        "AC-27",
+        "AC-7",
+        "AC-5",
+        "AC-6"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "010",
+      "title": "Register closable Tabs variant in PrimitivesDemo",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "004"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/PrimitivesDemo.tsx"
+      ],
+      "expects": [
+        "The closable/onClose Tabs contract from task 004 is present (`TabsProps.closable`, `TabsProps.onClose`, sibling \u2715).",
+        "`PrimitivesDemo.tsx` exists with the existing `TabsSection` and the `import.meta.env.DEV` guard."
+      ],
+      "produces": [
+        "`PrimitivesDemo.tsx` renders a `closable`-enabled Tabs variant (with `onClose` + `+` control) in the dev-only gallery for manual fidelity QA (supports AC-22).",
+        "The existing demo rows remain; the addition stays behind the dev-only guard."
+      ],
+      "ac_addressed": [
+        "AC-22"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    }
+  ],
+  "additions": [
+    "- **AC-22 \"axe pass\" \u2192 structural DOM assertions.** The spec/plan prose mentions an \"axe pass\" for the `closable=true` a11y check, but axe-core is NOT a project dependency and the existing `Tabs.ct.tsx` (feature 002) establishes structural DOM assertions (role/tabIndex/aria-selected) as the project a11y-test pattern. Task 005 verifies AC-22/AC-12 via structural assertions; axe-core is intentionally NOT introduced (would violate \u00a76.3 \"no new dependency\"). No source file additions beyond the plan's File Impact table were discovered."
+  ],
+  "dependency_graph": "001 (RequestSpec model) \u2500\u2500\u2192 002 (tabsStore slice) \u2500\u2500\u2192 003 (tabsStore tests)\n                                                   \u2514\u2500\u2192 007 (TabBar organism) \u2500\u2500\u2192 008 (TabBar tests)\n                                                                              \u2514\u2500\u2192 009 (App wiring)\n004 (Tabs closable extension) \u2500\u2500\u2192 005 (Tabs closable tests)\n                              \u251c\u2500\u2192 006 (002 contract lineage)\n                              \u251c\u2500\u2192 007 (TabBar organism)\n                              \u2514\u2500\u2192 010 (PrimitivesDemo variant)"
+}

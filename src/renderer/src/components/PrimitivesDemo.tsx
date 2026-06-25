@@ -1,38 +1,32 @@
 /**
  * PrimitivesDemo — dev-only visual QA gallery for all UI primitives.
  *
- * Renders every primitive component (Icon, Dropdown, Modal, Toast) in all
- * documented states so developers can visually inspect and manually QA them
- * without running the full app.
+ * Renders every primitive component (Icon, Dropdown, Modal, Toast, Tabs) in
+ * all documented states so developers can visually inspect and manually QA
+ * them without running the full app.
  *
  * ## Dev-only guard
  *
- * **JS + CSS**: App.tsx loads this module via a dynamic `import()` that is
- * gated on `import.meta.env.DEV`. Vite replaces `DEV` with `false` at
- * production build time, making the `import()` expression statically
- * unreachable. Rollup therefore excludes BOTH this module AND its
- * `import './PrimitivesDemo.css'` side-effect from the production bundle —
- * neither the JS nor the CSS reaches the prod output.
- *
- * The component also guards itself with an early `if (!import.meta.env.DEV) return null`
+ * The component guards itself with an early `if (!import.meta.env.DEV) return null`
  * as belt-and-suspenders protection if the caller omits the gate.
  *
  * ## Mounting
  *
- * App.tsx mounts this component with React.lazy + Suspense inside a
- * `{PrimitivesDemo && ...}` guard (PrimitivesDemo is null in production).
- * ToastProvider wraps the app root so toasts work inside the demo.
+ * PrimitivesDemo is currently NOT mounted in App.tsx. It is registered and
+ * available for development use but is not wired into the composition root.
+ * A future feature (feature 005) will handle mounting.
  *
  * @module PrimitivesDemo
  */
 import './PrimitivesDemo.css'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Icon } from '@renderer/components/atoms/Icon'
 import { Dropdown, DropdownItem, DropdownSeparator } from '@renderer/components/molecules/Dropdown'
 import { Modal, ModalClose } from '@renderer/components/molecules/Modal'
 import { Tabs, TabDescriptor } from '@renderer/components/molecules/Tabs'
 import { toast } from '@renderer/lib/toastStore'
+import { selectNeighborId } from '@renderer/lib/tabsStore'
 
 // ---------------------------------------------------------------------------
 // Icon section
@@ -536,10 +530,58 @@ const RESPONSE_TABS: TabDescriptor[] = [
   { id: 'resp-test-results', label: 'Test Results' }
 ]
 
+/** Initial tab descriptors for the closable demo row. */
+const INITIAL_CLOSABLE_TABS: TabDescriptor[] = [
+  { id: 'cl-get', label: 'GET /users', badge: '●' },
+  { id: 'cl-post', label: 'POST /auth' },
+  { id: 'cl-put', label: 'PUT /profile' },
+  { id: 'cl-delete', label: 'DELETE /item' }
+]
+
+/** Counter used to generate unique ids when adding new demo tabs. */
+let closableDemoCounter = INITIAL_CLOSABLE_TABS.length + 1
+
 /** Renders the Tabs molecule in several states for visual QA. */
 function TabsSection(): React.JSX.Element {
   const [requestActiveId, setRequestActiveId] = useState('params')
   const [responseActiveId, setResponseActiveId] = useState('resp-body')
+
+  // Closable demo state: the caller owns both the tab list and the active id.
+  const [closableTabs, setClosableTabs] = useState<TabDescriptor[]>(INITIAL_CLOSABLE_TABS)
+  const [closableActiveId, setClosableActiveId] = useState('cl-get')
+
+  /** Remove the closed tab; if it was active, move focus to a neighbor. */
+  const handleClose = useCallback(
+    (id: string) => {
+      // Guard: never remove the last remaining tab.
+      setClosableTabs((prev) => {
+        if (prev.length <= 1) return prev
+        return prev.filter((t) => t.id !== id)
+      })
+      // If the closed tab was active, move focus to a neighbor.
+      // This setState call is intentionally OUTSIDE the updater above so that
+      // the updater stays pure (React may invoke pure updaters twice in StrictMode).
+      setClosableActiveId((currentActiveId) => {
+        if (currentActiveId !== id) return currentActiveId
+        // closableTabs here is the latest committed list (useCallback re-runs when it
+        // changes); selectNeighborId needs the pre-removal list + index.
+        const prev = closableTabs
+        if (prev.length <= 1) return currentActiveId
+        const idx = prev.findIndex((t) => t.id === id)
+        return selectNeighborId(prev, idx)
+      })
+    },
+    [closableTabs]
+  )
+
+  /** Append a new demo tab to the end of the list. */
+  function handleAddTab(): void {
+    const newId = `cl-new-${closableDemoCounter}`
+    closableDemoCounter += 1
+    const newTab: TabDescriptor = { id: newId, label: `New tab ${closableDemoCounter - 1}` }
+    setClosableTabs((prev) => [...prev, newTab])
+    setClosableActiveId(newId)
+  }
 
   return (
     <section className="demo-section">
@@ -564,6 +606,24 @@ function TabsSection(): React.JSX.Element {
           tabs={RESPONSE_TABS}
           activeId={responseActiveId}
           onChange={setResponseActiveId}
+        />
+      </div>
+
+      {/* Closable tabs demo (✕ button + dirty-dot badge + add action) */}
+      <div className="demo-row">
+        <h3 className="demo-row__label">Closable tabs (✕ + dirty marker)</h3>
+        <Tabs
+          aria-label="Closable request tabs demo"
+          tabs={closableTabs}
+          activeId={closableActiveId}
+          onChange={setClosableActiveId}
+          closable
+          onClose={handleClose}
+          actions={
+            <button className="demo-button" type="button" onClick={handleAddTab}>
+              +
+            </button>
+          }
         />
       </div>
     </section>

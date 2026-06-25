@@ -1,98 +1,72 @@
 {
-  "topic": "Single-window shell and layout for a desktop HTTP client: titlebar (logo, workspace pill, sidebar toggle, command-palette search trigger, environment selector, account pill), left sidebar with draggable divider (width clamped 200-520px), main area split into request/response panes by draggable horizontal divider (ratio clamped 0.15-0.85), and statusbar. Theme (light/dark), accent, method-style toggles as data attributes on root; persistence of sidebar width/pane ratio/theme via settings store. Mounting points for sidebar, tabs, panes, modals (contents are separate tasks). Cmd-B toggles sidebar. Visual reference design/reference.html for look/behavior only; rebuild with semantic class names; colors/spacing from design/tokens.json.",
-  "topic_slug": "single-window-shell-and-layout-for-a-desktop-http-client",
-  "date": "2026-06-23",
-  "verbatim_prompt": "The single-window shell and layout for a desktop HTTP client: a titlebar (logo, workspace pill, sidebar toggle, command-palette search trigger, environment selector, account pill), a left sidebar with a draggable divider (width clamped 200\u2013520px), a main area split into request and response panes by a draggable horizontal divider (ratio clamped 0.15\u20130.85), and a statusbar. Plus theme (light/dark), accent, and method-style toggles applied as data attributes on the root, and persistence of sidebar width / pane ratio / theme via the settings store. Provides mounting points for sidebar, tabs, panes, and modals; their contents are separate tasks. \u2318B toggles the sidebar. Visual reference: design/reference.html (a Claude Design export) \u2014 use it for look and behavior only, never reproduce its markup; it carries generated cruft (data-om-* attributes, __OmT wrappers, inline styles, a tweaks-panel) that must not enter the build. Rebuild with semantic class names from each component's role and its tag's function. Colors and spacing come from design/tokens.json, not inline styles.",
+  "topic": "Working-tabs state machine + request data model (RequestSpec) for an HTTP client, built as a zustand tabs slice with a TabBar strip UI",
+  "topic_slug": "working-tabs-state-machine-request-data-model-requestspec",
+  "date": "2026-06-24",
+  "verbatim_prompt": "The working-tabs state machine and request data model for an HTTP client. Each open tab holds a RequestSpec: { method, url, name, params[], headers[], body: {lang, type, text}, auth }, where each param/header row is { enabled, key, value, description }. auth is a discriminated union keyed on `type`; T4 defines ONLY the shape and the two variants it actually needs \u2014 { type: 'none' } and { type: 'bearer', token } \u2014 and leaves auth intentionally extensible: the full set of auth types and their per-type fields (basic user/pass, api-key with name+in, oauth2, etc.) is owned by the auth-panel task and is out of scope here. auth is the SINGLE source of truth for authorization \u2014 do NOT also seed an Authorization row into headers[]; turning auth into an actual wire header is the http-engine's job, not duplicated tab state. Tab lifecycle: open-from-collection (dedupe by id then url), new blank tab, close (never leave zero tabs \u2014 closing the last spawns a fresh Untitled GET), select-active. A dirty flag flips on any edit; T4 also exposes a markClean(tabId) action but does NOT own its triggers \u2014 a successful send (http-engine task) or save (persistence task) calls markClean, both out of scope here, so what T4 implements and tests is the flag plus the action, never a real send. New tabs seed auth = { type: 'bearer', token: '{{apiKey}}' } (the literal {{apiKey}} string is stored verbatim; variable interpolation is a separate task) and headers[] with a default Accept row. Implemented as a zustand tabs slice with a TabBar strip as UI; the request-editing panels are out of scope. Visual reference for the TabBar: design/reference.html (a Claude Design export) \u2014 use it for look and behavior only, never reproduce its markup; it carries generated cruft (data-om-* attributes, __OmT wrappers, inline styles, a tweaks-panel) that must not enter the build. Rebuild with semantic class names from role and tag function. Colors come from design/tokens.json.",
   "dimensions": {
     "functional_scope": {
-      "value": "App-shell + layout component tree: titlebar (logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill), resizable left sidebar (clamped 200-520px) with draggable divider, main area split into request/response panes by a draggable horizontal divider (ratio clamped 0.15-0.85), statusbar. Theme(light/dark)/accent/method-style applied as root data-attributes. Cmd-B toggles sidebar. Empty named mount slots for sidebar/tabs/panes/modals (slot CONTENTS out of scope). A new zustand settings store (mirroring toastStore.ts) holds sidebar width + pane ratio + theme + accent + method-style IN-MEMORY only; disk persistence (electron-store wiring) deferred to a later persistence-port task. Styled from design/tokens.json with semantic class names per design/reference.html (markup never copied).",
+      "value": "A zustand tabs slice owning the open-request tabs + the lifecycle state machine (open-from-collection with dedupe id-then-url, new-blank, close never-zero, select-active), a per-tab dirty flag + markClean(tabId) action, and new-tab seed defaults. The RequestSpec domain model: { method, url, name, params[], headers[], body:{lang,type,text}, auth } where each param/header row is { enabled, key, value, description } and auth is a discriminated union on type ({none}+{bearer,token} in scope). A TabBar strip UI composing the existing Tabs primitive (extended with close \u2715, '+' new-tab, dirty marker) and wiring it to the slice. Out of scope: request-editing panels, real send/save, variable interpolation, other auth types, auth\u2192wire-header derivation.",
       "state": "Clear",
       "turns": 0
     },
     "users": {
-      "value": "Co-primary consumers: (1) Human end users \u2014 developers/API testers operating the mintEnvoy desktop window; the shell is the top-level chrome they see every session (titlebar, sidebar, panes, statusbar). (2) Downstream feature tasks \u2014 code that mounts content into the shell's named slots (sidebar tree, tab bodies, request/response editors, modal bodies); for them the shell is an integration contract (a stable slot API), not just visuals.",
+      "value": "Two consumer classes. (1) End user: operates the TabBar \u2014 open/close/switch request tabs. (2) Sibling tasks consuming the zustand slice programmatically: collection-list opens tabs (open-from-collection), http-engine reads active RequestSpec + calls markClean on successful send, persistence calls markClean on save, request-editing panels bind to the active tab's RequestSpec. T4 owns only the slice + TabBar + the markClean action; the trigger sites live in those sibling tasks (out of scope).",
       "state": "Clear",
       "turns": 0
     },
     "inputs_outputs": {
-      "value": "IN: design tokens from design/tokens.json (CSS custom properties), slot children (React nodes passed by parent/feature tasks), initial settings defaults (theme/accent/method-style + default sidebar width + default pane ratio). OUT: settings store state + setters exposed via the zustand hook (theme/accent/method-style, sidebar width, pane ratio), root data-attributes written to the DOM (data-theme/data-accent/data-method-style), Cmd-B toggle + drag-resize interaction events. NO network or disk I/O this task (persistence is in-memory; electron-store/IPC deferred).",
+      "value": "IN: a RequestSpec payload (from the collection store) for open-from-collection; per-field edits from editing panels via an updateActive(patch) action. OUT (selectors): tabs[] (id + RequestSpec + dirty), activeTabId, the active RequestSpec. OUT (actions): openFromCollection, newTab, closeTab, selectTab, updateActive(patch), markClean(tabId). The slice/domain ALSO owns RequestSpec (de)serialization to/from the persistence JSON shape (RequestSpec is a framework-agnostic serializable domain entity) \u2014 but NOT the actual disk read/write nor the markClean trigger, both owned by the persistence task. In-memory at the slice level \u2014 no network, no disk I/O here.",
       "state": "Clear",
-      "turns": 0
+      "turns": 1
     },
     "integration_points": {
-      "value": "Shell layout components under a new src/renderer/src/components/organisms/ tier (above existing atoms/molecules). Settings store as new src/renderer/src/lib/settingsStore.ts, mirroring src/renderer/src/lib/toastStore.ts zustand pattern. App.tsx (src/renderer/src/App.tsx) swaps current PrimitivesDemo mount for the new Shell organism. Tokens consumed from design/tokens.json. NOTE: user belief that persistence hooks an 'existing settings store' \u2014 Phase 2 fit-check must confirm; CBM scan shows NO settings store exists yet (only toastStore), so the store is net-new and persistence is in-memory this task.",
+      "value": "tabsStore in src/renderer/src/lib/ (mirrors settingsStore.ts / toastStore.ts; module-level create<State>, Store suffix, renderer-only \u2014 lib/ must NOT import components/). RequestSpec is a framework-agnostic serializable domain entity in the domain layer (not the store). TabBar COMPOSES the existing components/molecules/Tabs.tsx primitive (002) \u2014 do NOT re-roll tab a11y/roving-tabindex \u2014 and wires it to the store, mounted into Shell.tsx's existing 'tabs' slot above PaneSplit. This EXTENDS the Tabs primitive contract (currently {id,label,badge?,disabled?}, selection-only) and that extension MUST be recorded explicitly in /specify, not assumed: (a) per-tab trailing close \u2715 as a SIBLING button, NOT nested in role=tab (nested interactives break roving tabindex); APG keyboard path = Delete on focused tab; (b) a '+' new-tab control placed AFTER the tablist, outside the roving set; (c) dirty indicator via the existing badge? slot or a parallel marker \u2014 decided in /specify. open-from-collection is a store action taking a RequestSpec payload; the collection store is out of scope and must NOT be imported.",
       "state": "Clear",
       "turns": 0
     },
     "constraints": {
-      "value": "Hard limits: sidebar width clamped 200-520px; pane ratio clamped 0.15-0.85; ALL color/spacing from design/tokens.json (no inline styles); semantic class names only (never copy reference.html markup, no data-om-*/__OmT/tweaks-panel cruft). Plus: (1) Drag perf must stay smooth \u2014 no setState-per-mousemove re-render storms; use rAF or CSS-var-driven resize. (2) Accessibility \u2014 dividers keyboard-operable with ARIA separator role + aria-valuenow, focus-visible on titlebar controls, honor prefers-reduced-motion. (3) No new UI dependency adopted unvetted \u2014 react-resizable-panels/allotment is a build-vs-buy decision, prefer zero-dep hand-roll if cheap. (4) Electron/CSP-safe \u2014 no remote resources, contextIsolation respected, renderer sandboxed, no inline-style injection.",
+      "value": "auth is the SINGLE source of truth for authorization \u2014 NEVER seed an Authorization row into headers[] (deriving the wire header is the http-engine's job). auth shape = discriminated union on `type`; T4 defines ONLY {type:'none'} and {type:'bearer',token}, intentionally extensible (other variants owned by auth-panel). New tabs seed auth={type:'bearer',token:'{{apiKey}}'} with literal {{apiKey}} stored verbatim (no interpolation) + a default Accept header row. Never zero tabs. Import/layer boundaries: lib/ slice is renderer-only (no node/electron imports), must NOT import components/, collection store must NOT be imported; RequestSpec stays framework-agnostic in the domain layer; constitution \u00a72.1/\u00a72.3/\u00a73.3/\u00a74 apply. TabBar uses semantic class names from role/tag function; NONE of design/reference.html's generated cruft (data-om-* attrs, __OmT wrappers, inline styles, tweaks-panel) enters the build; colors strictly from design/tokens.json.",
       "state": "Clear",
       "turns": 0
     },
     "non_goals": {
-      "value": "Out of scope: (1) Slot CONTENTS \u2014 sidebar tree, tab bodies, request/response editors, modal bodies (separate tasks). (2) Multi-window. (3) Keyboard shortcuts other than Cmd-B (each belongs to its feature). (4) On-storage/electron-store persistence \u2014 the settings store is in-memory only this task. (5) Collapsible-restore-width beyond simple re-show. (6) Command-palette overlay + search behavior \u2014 titlebar trigger is a button/slot only. (7) Environment selector / workspace pill / account pill behavior \u2014 static presentational slots; their dropdown data, switching, and auth are out of scope. (8) Defining the actual color palettes for each visual theme or method-style variant \u2014 the shell only sets the root data-attributes and persists the chosen preference, consuming the token file as-is.",
+      "value": "OUT of scope: request-editing panels (params/headers/body/auth editors); real send (http-engine task) and real save (persistence task), plus their markClean trigger sites \u2014 T4 ships only the markClean operation, never a real send; bearer-token variable interpolation (the seeded {{ }} literal is stored verbatim here); auth variants beyond {none}+{bearer} and their per-type fields (basic, api-key, oauth2 \u2014 owned by auth-panel task); deriving the Authorization wire header from auth (http-engine's job); the collection store itself (T4 consumes a RequestSpec payload, never imports it); reproducing design/reference.html markup or any of its generated cruft. NOTE: RequestSpec (de)serialization shape IS in scope per the I/O dimension \u2014 not deferred.",
       "state": "Clear",
       "turns": 0
     },
     "success_criteria": {
-      "value": "(1) Visual fidelity: rendered shell matches design/reference.html layout and design/tokens.json colors/spacing under design-auditor review (look/behavior only, never markup). (2) Behavior: both dividers drag and clamp to range (200-520px, 0.15-0.85); Cmd-B toggles sidebar; view settings (theme/accent/method-style) + sidebar width + pane ratio survive within the session via the settings store \u2014 all covered by component tests. (3) Decoupled slots: sidebar/tabs/panes/modals mount slots accept arbitrary children and render them without the shell knowing their contents. (4) Gates green: typecheck + lint + build + existing test suite pass; zero reference-export cruft (no data-om-*, __OmT, inline styles, tweaks-panel) anywhere in the build.",
+      "value": "Slice unit-tested: every lifecycle action (open-from-collection dedupe id-then-url, new-blank, close never-zero, select-active) + dirty flag + markClean(tabId) covered; invariants asserted (never-zero tabs, dedupe, seed defaults = auth bearer {{apiKey}} verbatim + default Accept header, auth NOT mirrored into headers[]). TabBar renders/selects/closes AND visually matches design/reference.html (look/spacing/states) against design/tokens.json. typecheck + lint + build clean.",
       "state": "Clear",
       "turns": 0
     },
     "edge_cases": {
-      "value": "(1) Window resize vs clamps: when the window shrinks below where clamped sidebar width + min pane sizes fit, width/ratio re-clamp gracefully \u2014 no negative or overflowing panes; pane divider stays within 0.15-0.85 after resize. (2) Sidebar collapsed: Cmd-B/toggle hides sidebar, its divider hides, main area reflows full-width; re-show restores prior width (in-memory this task). (3) Bad/empty persisted values: out-of-range or missing width/ratio (e.g. a future disk load) clamp or fall back to defaults rather than render a broken layout. (4) Drag release outside window: pointer leaving the window mid-drag or pointer-up off-target ends the drag cleanly \u2014 no stuck-dragging state, listeners removed.",
+      "value": "Lifecycle boundaries: close last/only tab \u2192 spawn fresh Untitled GET (never zero); close active tab \u2192 select a neighbor; open-from-collection dedupe matches by id first then url \u2192 focus existing instead of duplicating. Dirty/markClean races: markClean on non-existent/already-closed tabId = safe no-op; editing a clean tab flips dirty=true; markClean idempotent on unmodified tab; closing a dirty tab \u2192 warn/confirm vs silent-drop decided in /specify. Seed/identity integrity: every new tab gets a unique id; {{apiKey}} token + Accept header seeded verbatim (no interpolation); empty/blank-url tab valid; url dedupe normalization (trailing slash, case) defined in /specify. Selection integrity: activeTabId always points at an existing tab after any mutation; removing the active tab never leaves a dangling activeTabId.",
       "state": "Clear",
       "turns": 0
     }
   },
   "references": [
-    "Bruno (layout pattern)",
-    "VS Code (layout pattern)",
-    "react-resizable-panels (primary split/pane candidate)",
-    "allotment (pane alternative to compare)",
-    "in-repo src/renderer/src/lib/toastStore.ts (zustand pattern to mirror for settings store)"
+    "Postman/Insomnia/Bruno/Hoppscotch \u2014 request/tab model concepts (Bruno .bru schema MIT, readable; concepts only, not 1:1 copy)",
+    "Existing forge zustand stores \u2014 settingsStore.ts / toastStore.ts conventions",
+    "design/reference.html \u2014 TabBar look/behavior (Claude Design export)",
+    "RequestSpec as framework-agnostic serializable domain entity living in the domain layer"
   ],
   "gaps": [
     {
       "dimension": "integration_points",
-      "description": "user-supplied placement guess (confirm via Phase 2 fit-check): persistence of sidebar width / pane ratio / theme via the existing settings store"
+      "description": "user-supplied placement guess (confirm via Phase 2 fit-check): implement as a zustand tabs slice + TabBar strip UI, request-editing panels out of scope"
     }
   ],
   "override_recorded": false,
-  "conflicts": [
-    {
-      "type": "direct",
-      "dimensions": ["non_goals", "integration_points"],
-      "description": "'memory' appears in both non_goals and integration_points",
-      "resolution": "not-a-contradiction: shared-vocabulary token-overlap false positive (non_goals consistently excludes what other dimensions include); no value discarded"
-    },
-    {
-      "type": "direct",
-      "dimensions": ["non_goals", "functional_scope"],
-      "description": "'account' appears in both non_goals and functional_scope",
-      "resolution": "not-a-contradiction: shared-vocabulary token-overlap false positive (non_goals consistently excludes what other dimensions include); no value discarded"
-    },
-    {
-      "type": "direct",
-      "dimensions": ["non_goals", "success_criteria"],
-      "description": "'behavior' appears in both non_goals and success_criteria",
-      "resolution": "not-a-contradiction: shared-vocabulary token-overlap false positive (non_goals consistently excludes what other dimensions include); no value discarded"
-    },
-    {
-      "type": "direct",
-      "dimensions": ["non_goals", "edge_cases"],
-      "description": "'memory' appears in both non_goals and edge_cases",
-      "resolution": "not-a-contradiction: shared-vocabulary token-overlap false positive (non_goals consistently excludes what other dimensions include); no value discarded"
-    }
-  ],
+  "conflicts": [],
   "intake_classifications": [
     {
-      "statement": "Build the single-window app shell + layout: titlebar (logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill), left sidebar with draggable divider (200-520px), main area split into request/response panes by a draggable horizontal divider (ratio 0.15-0.85), statusbar; theme/accent/method-style as root data-attributes; persist sidebar width/pane ratio/theme; mounting points for sidebar/tabs/panes/modals; Cmd-B toggles sidebar; semantic class names from design/reference.html; colors/spacing from design/tokens.json",
+      "statement": "T4: a working-tabs state machine + RequestSpec request data model \u2014 each tab holds {method,url,name,params[],headers[],body,auth}; auth is a discriminated union with only {none} and {bearer,token} variants in scope; auth is the single source of truth (no Authorization row in headers[]); tab lifecycle = open-from-collection(dedupe by id then url) / new-blank / close(never zero \u2014 last close spawns Untitled GET) / select-active; dirty flag + markClean(tabId) action (triggers out of scope); new tabs seed auth=bearer{{apiKey}} verbatim + a default Accept header; TabBar UI rebuilt with semantic classes from design/reference.html (look/behavior only) + design/tokens.json colors",
       "kind": "requirement",
-      "minimal_fix": "One shell layout component tree (titlebar + resizable sidebar + split request/response panes + statusbar) with the two clamped drag dividers, root data-attributes for theme/accent/method-style, Cmd-B sidebar toggle, empty mount slots, persisting only sidebar width + pane ratio + theme; styled from tokens.json with semantic class names. Pane/sidebar/tab/modal CONTENTS excluded."
+      "minimal_fix": "Build ONLY the zustand tabs slice (state + lifecycle actions + dirty/markClean) and the TabBar strip. Define auth union shape with just {none}+{bearer}. Do NOT build: request-editing panels, real send/save, variable interpolation, other auth types, or wire-header derivation from auth."
     },
     {
-      "statement": "Persist sidebar width / pane ratio / theme via the existing settings store",
+      "statement": "Implement as a zustand tabs slice + TabBar strip (placement/mechanism guess)",
       "kind": "hypothesis",
       "minimal_fix": null
     }

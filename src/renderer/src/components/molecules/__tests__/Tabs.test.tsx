@@ -23,8 +23,17 @@
  *          tab — no tab has aria-selected="true"; first enabled tab still has
  *          tabIndex=0 (intentional WAI-ARIA fallback for keyboard reachability).
  * - badge: Badge rendered for string and number values; absent when undefined.
+ * - AC-11: closable=false (default) path is byte-identical to 002 contract —
+ *          no .tabs__tab-close DOM node, Delete/Backspace do NOT fire onClose,
+ *          roving tabindex unchanged (exactly one tabIndex=0 among role="tab").
+ * - AC-22: closable=true — ✕ sibling renders per tab with tabIndex=-1 and NOT
+ *          role="tab"; clicking it fires onClose once with the tab's id and does
+ *          NOT fire onChange; still exactly one tabIndex=0 among role="tab".
+ * - AC-23 (non-close guard): re-rendering with a changed tabs[] but the SAME
+ *          activeId while focus is outside the list does NOT steal focus.
  */
 
+import { useState } from 'react'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Tabs } from '@renderer/components/molecules/Tabs'
@@ -49,9 +58,12 @@ function renderTabs(
     activeId: string
     actions: React.ReactNode
     ariaLabel: string
+    closable: boolean
+    onClose: ReturnType<typeof vi.fn>
   }> = {}
-): { onChange: ReturnType<typeof vi.fn> } {
+): { onChange: ReturnType<typeof vi.fn>; onClose: ReturnType<typeof vi.fn> } {
   const onChange = vi.fn()
+  const onClose = overrides.onClose ?? vi.fn()
 
   render(
     <Tabs
@@ -60,10 +72,12 @@ function renderTabs(
       onChange={onChange}
       actions={overrides.actions}
       aria-label={overrides.ariaLabel ?? 'Test tabs'}
+      closable={overrides.closable}
+      onClose={onClose}
     />
   )
 
-  return { onChange }
+  return { onChange, onClose }
 }
 
 // ---------------------------------------------------------------------------
@@ -506,5 +520,261 @@ describe('badge rendering', () => {
     // The tab's text content equals just the label — no extra badge text appended
     const tab = screen.getByRole('tab', { name: 'Alpha' })
     expect(tab.textContent).toBe('Alpha')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-11 — closable=false (default) regression: byte-identical to 002 contract
+// ---------------------------------------------------------------------------
+
+describe('AC-11 — closable=false (default) regression', () => {
+  it('no .tabs__tab-close node renders when closable is omitted', () => {
+    // AC-11: The closable=false path must produce zero ✕ close buttons.
+    renderTabs()
+    // The class tabs__tab-close is only present when closable=true.
+    expect(document.querySelector('.tabs__tab-close')).toBeNull()
+  })
+
+  it('pressing Delete on a focused tab does NOT fire onClose when closable is omitted', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    renderTabs({ onClose })
+
+    const paramsTab = screen.getByRole('tab', { name: 'Params' })
+    paramsTab.focus()
+    await user.keyboard('{Delete}')
+
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('pressing Backspace on a focused tab does NOT fire onClose when closable is omitted', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    renderTabs({ onClose })
+
+    const paramsTab = screen.getByRole('tab', { name: 'Params' })
+    paramsTab.focus()
+    await user.keyboard('{Backspace}')
+
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('exactly one tab has tabIndex=0 — no extra roving stops vs selection-only path (AC-12)', () => {
+    // When closable is omitted the close buttons do not exist, so the only
+    // candidates for tabIndex=0 are the role="tab" buttons themselves.
+    // The count must remain exactly 1 (same guarantee as AC-7).
+    renderTabs()
+    const tabs = screen.getAllByRole('tab')
+    const tabStops = tabs.filter((t) => t.getAttribute('tabindex') === '0')
+    expect(tabStops).toHaveLength(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-22 / AC-12 — closable=true: close button structure and behavior
+// ---------------------------------------------------------------------------
+
+describe('AC-22 / AC-12 — closable=true behavior', () => {
+  it('a .tabs__tab-close sibling renders per tab when closable=true', () => {
+    // AC-22: exactly one ✕ node per tab should appear.
+    renderTabs({ closable: true })
+    const closeButtons = document.querySelectorAll('.tabs__tab-close')
+    // MIXED_TABS has 4 tabs — one ✕ per tab.
+    expect(closeButtons).toHaveLength(MIXED_TABS.length)
+
+    // Each ✕ and its sibling role=tab button must share the same parent
+    // (.tabs__tab-wrapper). This asserts the structural sibling relationship.
+    for (const closeBtn of Array.from(closeButtons)) {
+      const wrapper = (closeBtn as HTMLElement).closest('.tabs__tab-wrapper')
+      expect(wrapper).not.toBeNull()
+      // The wrapper must also contain a role="tab" sibling button.
+      const tabBtn = wrapper!.querySelector('[role="tab"]')
+      expect(tabBtn).not.toBeNull()
+    }
+  })
+
+  it('the close button has tabIndex=-1 (NOT a roving tab stop, AC-12)', () => {
+    renderTabs({ closable: true })
+    const closeButtons = document.querySelectorAll('.tabs__tab-close')
+    for (const btn of Array.from(closeButtons)) {
+      expect((btn as HTMLElement).tabIndex).toBe(-1)
+    }
+  })
+
+  it('the close button does NOT have role="tab" (AC-12)', () => {
+    renderTabs({ closable: true })
+    // role="tab" elements — should be only the actual tab buttons, not the ✕ nodes.
+    const roleTabs = screen.getAllByRole('tab')
+    // Every close button carries class tabs__tab-close and must not appear in the
+    // role="tab" list.
+    const closeButtons = document.querySelectorAll('.tabs__tab-close')
+    for (const closeBtn of Array.from(closeButtons)) {
+      expect(roleTabs).not.toContain(closeBtn)
+    }
+  })
+
+  it("clicking the ✕ fires onClose exactly once with that tab's id", async () => {
+    const user = userEvent.setup()
+    const { onClose } = renderTabs({ closable: true })
+
+    // Click the ✕ for "Headers" (aria-label="Close Headers").
+    const closeBtn = screen.getByRole('button', { name: 'Close Headers' })
+    await user.click(closeBtn)
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledWith('headers')
+  })
+
+  it('clicking the ✕ does NOT fire onChange (AC-22 — close is separate from select)', async () => {
+    const user = userEvent.setup()
+    const { onChange } = renderTabs({ closable: true })
+
+    const closeBtn = screen.getByRole('button', { name: 'Close Headers' })
+    await user.click(closeBtn)
+
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('exactly one tab has tabIndex=0 when closable=true (AC-12)', () => {
+    // The ✕ buttons are all tabIndex=-1; the role="tab" buttons still follow the
+    // roving tabindex pattern — exactly one must be the tab-stop.
+    renderTabs({ closable: true })
+    const tabs = screen.getAllByRole('tab')
+    const tabStops = tabs.filter((t) => t.getAttribute('tabindex') === '0')
+    expect(tabStops).toHaveLength(1)
+  })
+
+  it('the close button carries the correct aria-label (AC-22)', () => {
+    // Each ✕ should be labelled "Close <tab label>" for screen-reader users.
+    renderTabs({ closable: true })
+    // One ✕ per tab in MIXED_TABS — all tabs (incl. disabled Body) get a ✕ button.
+    expect(screen.getByRole('button', { name: 'Close Params' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Close Headers' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Close Body' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Close Auth' })).toBeInTheDocument()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-23 (positive path) — keyboard Delete/Backspace inside the tablist fires
+// onClose → caller removes the tab + changes activeId → useLayoutEffect moves
+// focus to the neighbor tab button.
+// ---------------------------------------------------------------------------
+
+describe('AC-23 — focus restoration after close: positive path', () => {
+  it('Delete on a focused tab: after caller removes tab + updates activeId, focus lands on the neighbor tab', async () => {
+    // Three tabs: alpha (active), beta, gamma.
+    // Focus alpha, press Delete → onClose('alpha') fires.
+    // Controlled wrapper removes alpha and promotes beta as the new activeId.
+    // The useLayoutEffect (deps [activeId, tabs]) must move DOM focus to beta's
+    // role="tab" button because lastFocusWasInListRef was set by the prior
+    // focus-capture event inside the tablist.
+    const INITIAL_TABS: TabDescriptor[] = [
+      { id: 'alpha', label: 'Alpha' },
+      { id: 'beta', label: 'Beta' },
+      { id: 'gamma', label: 'Gamma' }
+    ]
+
+    // Controlled wrapper that actually mutates tabs+activeId on onClose,
+    // so the re-render triggers useLayoutEffect with the new values.
+    function ControlledTabs(): React.JSX.Element {
+      const [tabs, setTabs] = useState<TabDescriptor[]>(INITIAL_TABS)
+      const [activeId, setActiveId] = useState('alpha')
+
+      function handleClose(closedId: string): void {
+        const idx = tabs.findIndex((t) => t.id === closedId)
+        const nextTabs = tabs.filter((t) => t.id !== closedId)
+        // Select right neighbor, falling back to left (mirrors tabsStore.close logic)
+        const neighborIdx = idx < nextTabs.length ? idx : idx - 1
+        setTabs(nextTabs)
+        setActiveId(nextTabs[neighborIdx].id)
+      }
+
+      return (
+        <Tabs
+          aria-label="Test tabs"
+          tabs={tabs}
+          activeId={activeId}
+          onChange={setActiveId}
+          closable
+          onClose={handleClose}
+        />
+      )
+    }
+
+    const user = userEvent.setup()
+    render(<ControlledTabs />)
+
+    // Focus alpha (the currently active tab) — this sets lastFocusWasInListRef=true
+    // via the onFocus capture handler wired only when closable=true.
+    const alphaTab = screen.getByRole('tab', { name: 'Alpha' })
+    alphaTab.focus()
+    expect(document.activeElement).toBe(alphaTab)
+
+    // Press Delete — fires onClose('alpha') → handleClose removes alpha,
+    // promotes beta as activeId → re-render → useLayoutEffect fires and
+    // moves DOM focus to the beta button.
+    await user.keyboard('{Delete}')
+
+    // Beta is now the active tab and must have received DOM focus.
+    const betaTab = screen.getByRole('tab', { name: 'Beta' })
+    expect(document.activeElement).toBe(betaTab)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-23 (non-close guard) — re-render with CHANGED tabs[] but SAME activeId
+// while focus is outside the list must NOT steal focus.
+// ---------------------------------------------------------------------------
+
+describe('AC-23 — non-close re-render does not steal focus', () => {
+  it('adding a tab while focus is outside the tablist does NOT move focus', () => {
+    // Render a closable strip (lastFocusWasInListRef wiring is only active when
+    // closable=true, and the guard must not fire for non-close re-renders).
+    // Focus is never placed inside the tablist — the guard should not fire.
+    const INITIAL_TABS: TabDescriptor[] = [
+      { id: 'params', label: 'Params' },
+      { id: 'headers', label: 'Headers' }
+    ]
+
+    const { rerender } = render(
+      <div>
+        <Tabs
+          aria-label="Test tabs"
+          tabs={INITIAL_TABS}
+          activeId="params"
+          onChange={vi.fn()}
+          closable
+          onClose={vi.fn()}
+        />
+        <button data-testid="outside-btn">Outside</button>
+      </div>
+    )
+
+    // Place focus on the button OUTSIDE the tablist.
+    const outsideBtn = screen.getByTestId('outside-btn')
+    outsideBtn.focus()
+    expect(document.activeElement).toBe(outsideBtn)
+
+    // Re-render with an extra tab added (same activeId="params", non-close change).
+    const EXTENDED_TABS: TabDescriptor[] = [...INITIAL_TABS, { id: 'auth', label: 'Auth' }]
+
+    rerender(
+      <div>
+        <Tabs
+          aria-label="Test tabs"
+          tabs={EXTENDED_TABS}
+          activeId="params"
+          onChange={vi.fn()}
+          closable
+          onClose={vi.fn()}
+        />
+        <button data-testid="outside-btn">Outside</button>
+      </div>
+    )
+
+    // Focus must remain on the outside button — the useLayoutEffect guard
+    // (lastFocusWasInListRef=false) prevents the component from stealing focus.
+    expect(document.activeElement).toBe(outsideBtn)
   })
 })
