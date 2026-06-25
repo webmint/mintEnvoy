@@ -123,3 +123,36 @@ N/A — No new git hooks or commit gates introduced by this feature.
 | Contract test against both panes tab sets: click + arrows/Home/End wrap (List loop), disabled-skip, onChange(id) fires once, aria-selected/tablist roles correct, invalid/absent activeId renders no selection | Med        | Med    | address before implementation; see derisk plan |
 | Register in PrimitivesDemo.tsx and visually compare to design/reference.html at the request-pane (six-tab) and response-pane (four-tab) widths                                                                 | Med        | Med    | address before implementation; see derisk plan |
 | Radix Tabs couples Trigger->Content via aria-controls; a standalone selection-only strip risks dangling aria-controls unless panels join the same Tabs.Root or the tablist is hand-rolled                      | High       | High   | must resolve before implementation             |
+
+## 10. Contract Lineage
+
+### Extension: feature 004-working-tabs-state-machine (2026-06-25)
+
+Feature `004-working-tabs-state-machine` extended this primitive with two opt-in, **default-off** props:
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `closable` | `boolean` | `false` | When `true`, renders a per-tab sibling `<button tabIndex={-1}>` ✕ close control alongside each tab trigger. |
+| `onClose` | `(id: string) => void` | `undefined` | Signal-only callback — emits the closed tab's `id`; mutates no list (the caller owns tab state). |
+
+**What the extension adds (closable=true path only):**
+
+- A per-tab sibling `<button tabIndex={-1}>` ✕ close control rendered next to each tab trigger; it receives pointer events independently of the tab trigger.
+- A Delete/Backspace keyboard shortcut on the focused tab that calls `onClose(id)`; the shortcut is active only when `closable` is `true`.
+- No extra roving tab stop — the close button uses `tabIndex={-1}` and is reached by pointer or via the keyboard shortcut, not by Tab or Arrow navigation, preserving the existing roving-tabindex model.
+
+**Backward-compatibility guarantee:**
+
+When `closable` is `false` (the default), the 002 selection-only path is byte-identical to the original implementation:
+
+- No extra DOM node is rendered.
+- No Delete/Backspace handler is attached.
+- No extra roving tab stop is introduced.
+
+This guarantee is proven by the AC-11/AC-12 regression tests in feature 004 (see `specs/004-working-tabs-state-machine/spec.md` AC-11 and AC-12), which assert that the original 002 interaction contract is unaffected when `closable` is omitted or set to `false`.
+
+**Sources:**
+
+- Close-control API: `specs/004-working-tabs-state-machine/spec.md` AC-22 (`closable` prop) and AC-23 (`onClose` signal contract).
+- Keyboard close path (Delete/Backspace): `specs/004-working-tabs-state-machine/spec.md` AC-22.
+- No-extra-tab-stop constraint and departure from Radix's built-in close handling: `specs/004-working-tabs-state-machine/plan.md` — "Established-Convention Departures" section.

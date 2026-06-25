@@ -12,9 +12,13 @@
  *
  * No inline styles are set here or in Tabs.tsx (AC-14).
  *
- * Motion: the active-tab underline transition is gated behind
- * `@media (prefers-reduced-motion: reduce)` so users who prefer reduced motion
- * get instant styling changes.
+ * Motion: the active-tab underline transition and the close-button opacity
+ * transition are gated behind `@media (prefers-reduced-motion: reduce)` so
+ * users who prefer reduced motion get instant styling changes.
+ *
+ * feature-004 additions: .tabs__tab-wrapper, .tabs__tab-close. These are
+ * additive — the closable=false path renders no .tabs__tab-wrapper or
+ * .tabs__tab-close nodes (AC-11).
  */
 
 /* ---------------------------------------------------------------------------
@@ -247,13 +251,118 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * Tab wrapper (.tabs__tab-wrapper)
+ * Presentational grouping element that wraps a role="tab" button together with
+ * its optional sibling ✕ close button (when closable=true — feature-004).
+ * Carries no ARIA role. Rendered only when the closable prop is true.
+ * AC-12: the wrapper does not introduce any extra roving tab stop.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Groups a single role="tab" button with its optional ✕ close button.
+ * Flex row so the ✕ sits flush to the right of the label row.
+ * When closable=false, this element is not rendered (AC-11 byte-identical path).
+ */
+.tabs__tab-wrapper {
+  display: inline-flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* When the tab inside the wrapper is active, the tab button's box-shadow handles the indicator — no extra decoration needed on the wrapper. */
+
+/* ---------------------------------------------------------------------------
+ * Close button (.tabs__tab-close)
+ * Sibling ✕ control rendered per tab when closable=true (feature-004).
+ *
+ * Key invariants (AC-12, Risk-1 guardrails):
+ *   - tabIndex={-1} in TSX — never a roving tab stop.
+ *   - Not role="tab" — outside the WAI-ARIA tablist widget.
+ *   - Not in buttonRefs — invisible to the roving-tabindex engine.
+ *
+ * Styled to be visually unobtrusive at rest and discoverable on hover.
+ * Opacity transition is gated behind prefers-reduced-motion below.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Per-tab ✕ close control.
+ * Sized to match the tab row height (32 px) so it stretches flush with the
+ * tab button. Uses token --text-faint for the resting icon color and elevates
+ * to --text-muted on hover to signal interactivity without competing with the
+ * active-tab accent.
+ */
+.tabs__tab-close {
+  /* Reset button defaults */
+  appearance: none;
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+
+  /* Layout — sit flush to the right of the label area, full tab row height */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 32px;
+  flex-shrink: 0;
+
+  /* Typography */
+  font-size: var(--fs-sm, 10.5px);
+  line-height: 1;
+  color: var(--text-faint, #a1a1aa);
+
+  /* Interaction */
+  cursor: pointer;
+  user-select: none;
+
+  /* Fade in on hover over the parent wrapper — unobtrusive at rest */
+  opacity: 0;
+  transition: opacity 80ms ease, color 80ms ease, background-color 80ms ease;
+}
+
+/* Show the ✕ when hovering anywhere on the tab wrapper (AC-22 discoverability). */
+.tabs__tab-wrapper:hover .tabs__tab-close,
+.tabs__tab-wrapper:focus-within .tabs__tab-close {
+  opacity: 1;
+}
+
+/* Hover on the ✕ itself: elevate color and add a subtle tinted background. */
+.tabs__tab-close:hover {
+  color: var(--text, #18181b);
+  background-color: var(--bg-active, #e8e6e3);
+  border-radius: var(--radius-sm, 5px);
+  opacity: 1;
+}
+
+/* Pressed state */
+.tabs__tab-close:active {
+  background-color: var(--bg-sunken, #f4f3f1);
+}
+
+/* Focus-visible ring for the ✕ button (keyboard-accessible via Tab into it,
+   though it is tabIndex={-1} — AT users can still reach it via virtual cursor). */
+.tabs__tab-close:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm, 5px);
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
  * Reduced-motion guard
  * Suppresses all transitions when the user prefers reduced motion.
  * Mirrors the pattern in Dropdown.css (AC-6 prefers-reduced-motion).
+ * Includes the close-button opacity/color transitions added in feature-004.
  * ------------------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
   .tabs__tab {
+    transition: none;
+  }
+
+  .tabs__tab-close {
     transition: none;
   }
 }

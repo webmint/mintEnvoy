@@ -1,0 +1,371 @@
+{
+  "schema_version": "1.1",
+  "handoff_kind": "discover",
+  "report_path": "discover/2026-06-24-working-tabs-state-machine-request-data-model-requestspec.md",
+  "discover_completed_at": "2026-06-24T16:36:03+00:00",
+  "intent": {
+    "feature_concept": "Working-tabs state machine + request data model (RequestSpec) for an HTTP client, built as a zustand tabs slice with a TabBar strip UI",
+    "topic": "Working-tabs state machine + request data model (RequestSpec) for an HTTP client, built as a zustand tabs slice with a TabBar strip UI",
+    "topic_slug": "working-tabs-state-machine-request-data-model-requestspec",
+    "scope_summary": "A zustand tabs slice owning the open-request tabs + the lifecycle state machine (open-from-collection with dedupe id-then-url, new-blank, close never-zero, select-active), a per-tab dirty flag + markClean(tabId) action, and new-tab seed defaults. The RequestSpec domain model: { method, url, name, params[], headers[], body:{lang,type,text}, auth } where each param/header row is { enabled, key, value, description } and auth is a discriminated union on type ({none}+{bearer,token} in scope). A TabBar strip UI composing the existing Tabs primitive (extended with close \u2715, '+' new-tab, dirty marker) and wiring it to the slice. Out of scope: request-editing panels, real send/save, variable interpolation, other auth types, auth\u2192wire-header derivation.",
+    "verbatim_prompt": "The working-tabs state machine and request data model for an HTTP client. Each open tab holds a RequestSpec: { method, url, name, params[], headers[], body: {lang, type, text}, auth }, where each param/header row is { enabled, key, value, description }. auth is a discriminated union keyed on `type`; T4 defines ONLY the shape and the two variants it actually needs \u2014 { type: 'none' } and { type: 'bearer', token } \u2014 and leaves auth intentionally extensible: the full set of auth types and their per-type fields (basic user/pass, api-key with name+in, oauth2, etc.) is owned by the auth-panel task and is out of scope here. auth is the SINGLE source of truth for authorization \u2014 do NOT also seed an Authorization row into headers[]; turning auth into an actual wire header is the http-engine's job, not duplicated tab state. Tab lifecycle: open-from-collection (dedupe by id then url), new blank tab, close (never leave zero tabs \u2014 closing the last spawns a fresh Untitled GET), select-active. A dirty flag flips on any edit; T4 also exposes a markClean(tabId) action but does NOT own its triggers \u2014 a successful send (http-engine task) or save (persistence task) calls markClean, both out of scope here, so what T4 implements and tests is the flag plus the action, never a real send. New tabs seed auth = { type: 'bearer', token: '{{apiKey}}' } (the literal {{apiKey}} string is stored verbatim; variable interpolation is a separate task) and headers[] with a default Accept row. Implemented as a zustand tabs slice with a TabBar strip as UI; the request-editing panels are out of scope. Visual reference for the TabBar: design/reference.html (a Claude Design export) \u2014 use it for look and behavior only, never reproduce its markup; it carries generated cruft (data-om-* attributes, __OmT wrappers, inline styles, a tweaks-panel) that must not enter the build. Rebuild with semantic class names from role and tag function. Colors come from design/tokens.json."
+  },
+  "spec_seeds": {
+    "spec_type_hint": "greenfield_feature",
+    "constraints": [
+      {
+        "kind": "nfr",
+        "content": "auth is the SINGLE source of truth for authorization \u2014 NEVER seed an Authorization row into headers[] (deriving the wire header is the http-engine's job). auth shape = discriminated union on `type`; T4 defines ONLY {type:'none'} and {type:'bearer',token}, intentionally extensible (other variants owned by auth-panel). New tabs seed auth={type:'bearer',token:'{{apiKey}}'} with literal {{apiKey}} stored verbatim (no interpolation) + a default Accept header row. Never zero tabs. Import/layer boundaries: lib/ slice is renderer-only (no node/electron imports), must NOT import components/, collection store must NOT be imported; RequestSpec stays framework-agnostic in the domain layer; constitution \u00a72.1/\u00a72.3/\u00a73.3/\u00a74 apply. TabBar uses semantic class names from role/tag function; NONE of design/reference.html's generated cruft (data-om-* attrs, __OmT wrappers, inline styles, tweaks-panel) enters the build; colors strictly from design/tokens.json.",
+        "quantifier": "see discovery report constraints dimension",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "nfr",
+        "content": "Out of scope: OUT of scope: request-editing panels (params/headers/body/auth editors); real send (http-engine task) and real save (persistence task), plus their markClean trigger sites \u2014 T4 ships only the markClean operation, never a real send; bearer-token variable interpolation (the seeded {{ }} literal is stored verbatim here); auth variants beyond {none}+{bearer} and their per-type fields (basic, api-key, oauth2 \u2014 owned by auth-panel task); deriving the Authorization wire header from auth (http-engine's job); the collection store itself (T4 consumes a RequestSpec payload, never imports it); reproducing design/reference.html markup or any of its generated cruft. NOTE: RequestSpec (de)serialization shape IS in scope per the I/O dimension \u2014 not deferred.",
+        "quantifier": "non-goal boundary from scoping session",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.3 Naming Conventions",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a72.1 / \u00a72.3 Process Boundaries & Imports",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.1 Type Safety",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.4 Testing Requirements",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a74 Patterns (Always Do, project-specific)",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "Tabs primitive (molecules/Tabs.tsx)",
+        "files": [
+          "src/renderer/src/components/molecules/Tabs.tsx"
+        ],
+        "impact": "existing capability \u2014 candidate for reuse over fresh build; TabBar composes it; its {id,label,badge?,disabled?} selection-only contract is EXTENDED (close \u2715 sibling button, '+' control, dirty marker) \u2014 record extension in /specify",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "zustand store convention (lib/)",
+        "files": [
+          "src/renderer/src/lib/settingsStore.ts"
+        ],
+        "impact": "existing capability \u2014 new tabsStore.ts mirrors this slice convention; reuse over inventing a new state pattern",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "Shell 'tabs' slot",
+        "files": [
+          "src/renderer/src/components/organisms/Shell.tsx"
+        ],
+        "impact": "existing capability \u2014 TabBar mounts into the existing 'tabs' slot above PaneSplit; no new layout plumbing",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "internal:src/renderer/src/components/molecules/Tabs.tsx",
+        "files": [
+          "src/renderer/src/components/molecules/Tabs.tsx"
+        ],
+        "impact": "internal \u2014 existing tab a11y/roving-tabindex + selection primitive (002); TabBar composes & extends it (close \u2715, '+', dirty), does NOT re-roll",
+        "is_internal_extension_candidate": true
+      },
+      {
+        "area": "internal:src/renderer/src/lib/settingsStore.ts",
+        "files": [
+          "src/renderer/src/lib/settingsStore.ts"
+        ],
+        "impact": "internal \u2014 module-level create<State>((set)=>...), Store suffix (\u00a73.3), renderer-only, selectors; tabsStore mirrors this exactly",
+        "is_internal_extension_candidate": true
+      },
+      {
+        "area": "internal:src/renderer/src/components/organisms/Shell.tsx",
+        "files": [
+          "src/renderer/src/components/organisms/Shell.tsx"
+        ],
+        "impact": "internal \u2014 existing mount point above PaneSplit where TabBar renders; no new layout plumbing needed",
+        "is_internal_extension_candidate": true
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Spike the Tabs-primitive close-\u2715 extension (close button as sibling to role=tab + APG Delete key) against the primitives existing roving-tabindex tests, confirming the contract extension is non-breaking BEFORE building the TabBar",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Pin the RequestSpec serialization JSON shape as a shared contract test with the out-of-scope persistence task before implementing, to avoid rework when persistence lands",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Establish the renderer test stack (Vitest + Testing Library per constitution \u00a73.4 \u2014 no test infra exists yet) as part of this feature, since the success bar requires slice unit tests",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Decide and fixture the url-dedupe normalization rule (trailing slash, case) and the dirty-tab-close behavior (warn/confirm vs silent-drop) during /specify",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "per-tab close button must not nest inside role=tab (would break roving tabindex)",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      },
+      {
+        "risk": "needs APG Delete-key handler on the focused tab",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      }
+    ],
+    "open_questions": [
+      {
+        "question": "user-supplied placement guess (confirm via Phase 2 fit-check): implement as a zustand tabs slice + TabBar strip UI, request-editing panels out of scope",
+        "blocking": true
+      }
+    ]
+  },
+  "plan_seeds": {
+    "design_options": [
+      {
+        "id": "A",
+        "name": "Flat tab array with embedded spec",
+        "shape": "state = { tabs: Tab[]; activeTabId: string } where Tab = { id; spec: RequestSpec; dirty }. Tab order IS the array order. Actions find-by-id over a small N; serialization = tabs.map(t => t.spec).",
+        "pros": [
+          "Simplest shape \u2014 mirrors settingsStore/toastStore minimalism (KISS)",
+          "Array order naturally encodes tab order; no separate order list to sync",
+          "Trivial (de)serialization to the persistence JSON shape",
+          "Close-neighbor selection is a simple index walk"
+        ],
+        "cons": [
+          "O(n) find-by-id on markClean/updateActive (irrelevant for small N tab counts)",
+          "Index/id bookkeeping needed for close\u2192select-neighbor"
+        ],
+        "complexity": "Low"
+      },
+      {
+        "id": "B",
+        "name": "Normalized id-keyed map plus order list",
+        "shape": "state = { tabsById: Record<string,Tab>; order: string[]; activeTabId }. Lookups and updates are by id; order[] holds tab sequence separately.",
+        "pros": [
+          "O(1) lookup/update by id for markClean, updateActive, dedupe-by-id",
+          "Cleaner immutable per-tab updates"
+        ],
+        "cons": [
+          "Two structures (order vs tabsById) must be kept in sync on every open/close",
+          "More boilerplate than the array for no real gain at small N",
+          "dedupe-by-url is still an O(n) scan"
+        ],
+        "complexity": "Med"
+      },
+      {
+        "id": "C",
+        "name": "Spec registry with tab refs (decoupled)",
+        "shape": "RequestSpecs live in their own registry map; tabs hold only spec-id refs, so one spec could back multiple tabs/views.",
+        "pros": [
+          "Decouples spec lifetime from tab lifetime",
+          "Enables future multi-view of a single spec"
+        ],
+        "cons": [
+          "Over-engineered for an in-memory single-window scope (YAGNI)",
+          "Extra indirection on every read/edit",
+          "No requirement in scope motivates the decoupling"
+        ],
+        "complexity": "High"
+      }
+    ],
+    "build_vs_buy": {
+      "recommendation": "Build",
+      "build_path": "Build the tabsStore slice + the RequestSpec domain model fresh, composing the existing internal Tabs primitive and the zustand dependency the project already ships. No new runtime dependency.",
+      "buy_path": "Adopt an external request-collection model/SDK (e.g. postman-collection, or Bruno's bru parser) to supply the RequestSpec shape and (de)serialization.",
+      "reasoning": "The buy path drags a heavyweight collection SDK in to model a handful of in-memory fields \u2014 a poor trade for an extensible discriminated-union we fully control, and it would couple the domain entity to a third-party schema. zustand is already a dependency and the Tabs primitive already exists, so the build path is mostly composition of internal assets; only the domain model + state machine are genuinely net-new. Bruno/OpenCollection inform the shape as a reference, not as a runtime dependency."
+    },
+    "cited_canonical_patterns": [
+      {
+        "reference": "Tabs primitive (TabDescriptor/TabsProps)",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/components/molecules/Tabs.tsx",
+        "relevance": "internal \u2014 existing tab a11y/roving-tabindex + selection primitive (002); TabBar composes & extends it (close \u2715, '+', dirty), does NOT re-roll",
+        "is_internal": true
+      },
+      {
+        "reference": "zustand store convention (settingsStore/toastStore)",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/lib/settingsStore.ts",
+        "relevance": "internal \u2014 module-level create<State>((set)=>...), Store suffix (\u00a73.3), renderer-only, selectors; tabsStore mirrors this exactly",
+        "is_internal": true
+      },
+      {
+        "reference": "Shell organism 'tabs' slot",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/components/organisms/Shell.tsx",
+        "relevance": "internal \u2014 existing mount point above PaneSplit where TabBar renders; no new layout plumbing needed",
+        "is_internal": true
+      },
+      {
+        "reference": "Bruno .bru / OpenCollection request schema",
+        "kind": "product",
+        "source": "https://docs.usebruno.com/bru-lang/tag-reference",
+        "relevance": "GAP: RequestSpec shape \u2014 validates {method,url,headers,params(typed array),body{type,data},auth{type,...}}; auth types none/inherit/basic/bearer/apikey/digest/oauth2/awsv4/ntlm confirm the extensible discriminated-union with none+bearer as the minimal seed",
+        "is_internal": false
+      },
+      {
+        "reference": "Zustand slices pattern (official)",
+        "kind": "pattern",
+        "source": "https://zustand.docs.pmnd.rs/learn/guides/slices-pattern",
+        "relevance": "GAP: tab state machine \u2014 canonical single-slice shape (tabs[] + activeTab + actions); matches the project's existing module-level store convention",
+        "is_internal": false
+      },
+      {
+        "reference": "Redux\u2192Zustand multi-tab editor case study",
+        "kind": "pattern",
+        "source": "https://engineering.synaptic.com/managing-state-in-a-multi-tabbed-application-our-journey-from-redux-to-zustand-6d3932544300",
+        "relevance": "GAP: per-tab dirty/unsaved tracking \u2014 validates a tabs slice holding per-tab document state + dirty flag, markClean on save/send",
+        "is_internal": false
+      }
+    ],
+    "complexity": {
+      "changes": "Low",
+      "risk": "Low",
+      "verify_cost": "Med"
+    },
+    "recommended_option_id": "A",
+    "recommended_option_rationale": "Extend the existing store convention rather than invent a new one: tabsStore mirrors internal:src/renderer/src/lib/settingsStore.ts (module-level create<State>, Store suffix, renderer-only) and the TabBar composes internal:src/renderer/src/components/molecules/Tabs.tsx instead of re-rolling tab a11y. The flat array is the KISS choice \u2014 at realistic tab counts the O(n) find-by-id is a non-issue, array order encodes tab order for free, and serialization to the persistence JSON shape is a trivial map. The normalized id-keyed map buys O(1) updates the scope does not need while adding an order/tabsById sync burden; the spec-registry option solves a multi-view problem no requirement raises (YAGNI). Acknowledged tradeoff: close\u2192select-neighbor needs explicit index bookkeeping, and updateActive/markClean do an array find \u2014 both cheap and well-contained.",
+    "_effort_estimate": "Low",
+    "_overall_fit": "Good",
+    "_derisk_count": 3
+  },
+  "discovery_block": {
+    "overall_fit": "Good",
+    "effort_estimate": "Low",
+    "fit_rationale": "Fit is Good and effort Low. All three touchpoints already exist and match: the zustand slice drops straight into the settingsStore/toastStore convention, the TabBar mounts into Shell's existing 'tabs' slot, and the Tabs primitive is reused rather than re-rolled. The only real net-new work is the GAP capabilities with no internal prior art \u2014 the RequestSpec domain model and the tab state machine (lifecycle + dirty/markClean). The one belief-vs-reality correction is favorable: the user expected to extend the Tabs primitive with both a '+' control and per-tab close \u2715, but the '+' fits the primitive's existing actions? slot (no contract change) \u2014 only the per-tab close \u2715 (sibling-to-role=tab + APG Delete) is a genuine contract extension, which /specify must record explicitly.",
+    "fit_assessments": [
+      {
+        "touchpoint": "Tabs primitive (molecules/Tabs.tsx)",
+        "user_expected": "Extend the primitive contract with per-tab close \u2715, a '+' new-tab control, and a dirty marker",
+        "reality": "Primitive is controlled/selection-only (tabs[], activeId, onChange) and ALREADY exposes an actions? slot rendered OUTSIDE role=tablist (AC-8) \u2014 the '+' new-tab control fits there with NO contract change. Only per-tab close \u2715 needs a real extension: a close button rendered as a SIBLING to the role=tab label (never nested) + an APG Delete-key path. Dirty marker can ride the existing badge? slot. Net: extension is narrower than the user assumed.",
+        "effort": "Low",
+        "blockers": [
+          "per-tab close button must not nest inside role=tab (would break roving tabindex)",
+          "needs APG Delete-key handler on the focused tab"
+        ]
+      },
+      {
+        "touchpoint": "zustand store convention (lib/)",
+        "user_expected": "New tabsStore.ts mirrors settingsStore.ts / toastStore.ts",
+        "reality": "Exact match: module-level create<State>((set)=>...), Store suffix (\u00a73.3), renderer-only (no node/electron imports), selector usage. No new state pattern invented; tabsStore drops straight into the convention.",
+        "effort": "Low",
+        "blockers": []
+      },
+      {
+        "touchpoint": "Shell 'tabs' slot",
+        "user_expected": "TabBar mounts into Shell's existing tabs slot",
+        "reality": "Confirmed: Shell renders a 'tabs' slot above PaneSplit, currently fed only by a test fixture (ShellWithTabsFixture). Wiring the real TabBar is a slot fill \u2014 no new layout plumbing.",
+        "effort": "Low",
+        "blockers": []
+      }
+    ],
+    "verdict": "Worth pursuing",
+    "override_recorded": false,
+    "memo_dimensions": {
+      "functional_scope": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "A zustand tabs slice owning the open-request tabs + the lifecycle state machine (open-from-collection with dedupe id-then-url, new-blank, close never-zero, select-active), a per-tab dirty flag + markClean(tabId) action, and new-tab seed defaults. The RequestSpec domain model: { method, url, name, params[], headers[], body:{lang,type,text}, auth } where each param/header row is { enabled, key, value, description } and auth is a discriminated union on type ({none}+{bearer,token} in scope). A TabBar strip UI composing the existing Tabs primitive (extended with close \u2715, '+' new-tab, dirty marker) and wiring it to the slice. Out of scope: request-editing panels, real send/save, variable interpolation, other auth types, auth\u2192wire-header derivation."
+      },
+      "users": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Two consumer classes. (1) End user: operates the TabBar \u2014 open/close/switch request tabs. (2) Sibling tasks consuming the zustand slice programmatically: collection-list opens tabs (open-from-collection), http-engine reads active RequestSpec + calls markClean on successful send, persistence calls markClean on save, request-editing panels bind to the active tab's RequestSpec. T4 owns only the slice + TabBar + the markClean action; the trigger sites live in those sibling tasks (out of scope)."
+      },
+      "inputs_outputs": {
+        "state": "Clear",
+        "turns": 1,
+        "value": "IN: a RequestSpec payload (from the collection store) for open-from-collection; per-field edits from editing panels via an updateActive(patch) action. OUT (selectors): tabs[] (id + RequestSpec + dirty), activeTabId, the active RequestSpec. OUT (actions): openFromCollection, newTab, closeTab, selectTab, updateActive(patch), markClean(tabId). The slice/domain ALSO owns RequestSpec (de)serialization to/from the persistence JSON shape (RequestSpec is a framework-agnostic serializable domain entity) \u2014 but NOT the actual disk read/write nor the markClean trigger, both owned by the persistence task. In-memory at the slice level \u2014 no network, no disk I/O here."
+      },
+      "integration_points": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "tabsStore in src/renderer/src/lib/ (mirrors settingsStore.ts / toastStore.ts; module-level create<State>, Store suffix, renderer-only \u2014 lib/ must NOT import components/). RequestSpec is a framework-agnostic serializable domain entity in the domain layer (not the store). TabBar COMPOSES the existing components/molecules/Tabs.tsx primitive (002) \u2014 do NOT re-roll tab a11y/roving-tabindex \u2014 and wires it to the store, mounted into Shell.tsx's existing 'tabs' slot above PaneSplit. This EXTENDS the Tabs primitive contract (currently {id,label,badge?,disabled?}, selection-only) and that extension MUST be recorded explicitly in /specify, not assumed: (a) per-tab trailing close \u2715 as a SIBLING button, NOT nested in role=tab (nested interactives break roving tabindex); APG keyboard path = Delete on focused tab; (b) a '+' new-tab control placed AFTER the tablist, outside the roving set; (c) dirty indicator via the existing badge? slot or a parallel marker \u2014 decided in /specify. open-from-collection is a store action taking a RequestSpec payload; the collection store is out of scope and must NOT be imported."
+      },
+      "constraints": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "auth is the SINGLE source of truth for authorization \u2014 NEVER seed an Authorization row into headers[] (deriving the wire header is the http-engine's job). auth shape = discriminated union on `type`; T4 defines ONLY {type:'none'} and {type:'bearer',token}, intentionally extensible (other variants owned by auth-panel). New tabs seed auth={type:'bearer',token:'{{apiKey}}'} with literal {{apiKey}} stored verbatim (no interpolation) + a default Accept header row. Never zero tabs. Import/layer boundaries: lib/ slice is renderer-only (no node/electron imports), must NOT import components/, collection store must NOT be imported; RequestSpec stays framework-agnostic in the domain layer; constitution \u00a72.1/\u00a72.3/\u00a73.3/\u00a74 apply. TabBar uses semantic class names from role/tag function; NONE of design/reference.html's generated cruft (data-om-* attrs, __OmT wrappers, inline styles, tweaks-panel) enters the build; colors strictly from design/tokens.json."
+      },
+      "non_goals": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "OUT of scope: request-editing panels (params/headers/body/auth editors); real send (http-engine task) and real save (persistence task), plus their markClean trigger sites \u2014 T4 ships only the markClean operation, never a real send; bearer-token variable interpolation (the seeded {{ }} literal is stored verbatim here); auth variants beyond {none}+{bearer} and their per-type fields (basic, api-key, oauth2 \u2014 owned by auth-panel task); deriving the Authorization wire header from auth (http-engine's job); the collection store itself (T4 consumes a RequestSpec payload, never imports it); reproducing design/reference.html markup or any of its generated cruft. NOTE: RequestSpec (de)serialization shape IS in scope per the I/O dimension \u2014 not deferred."
+      },
+      "success_criteria": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Slice unit-tested: every lifecycle action (open-from-collection dedupe id-then-url, new-blank, close never-zero, select-active) + dirty flag + markClean(tabId) covered; invariants asserted (never-zero tabs, dedupe, seed defaults = auth bearer {{apiKey}} verbatim + default Accept header, auth NOT mirrored into headers[]). TabBar renders/selects/closes AND visually matches design/reference.html (look/spacing/states) against design/tokens.json. typecheck + lint + build clean."
+      },
+      "edge_cases": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Lifecycle boundaries: close last/only tab \u2192 spawn fresh Untitled GET (never zero); close active tab \u2192 select a neighbor; open-from-collection dedupe matches by id first then url \u2192 focus existing instead of duplicating. Dirty/markClean races: markClean on non-existent/already-closed tabId = safe no-op; editing a clean tab flips dirty=true; markClean idempotent on unmodified tab; closing a dirty tab \u2192 warn/confirm vs silent-drop decided in /specify. Seed/identity integrity: every new tab gets a unique id; {{apiKey}} token + Accept header seeded verbatim (no interpolation); empty/blank-url tab valid; url dedupe normalization (trailing slash, case) defined in /specify. Selection integrity: activeTabId always points at an existing tab after any mutation; removing the active tab never leaves a dangling activeTabId."
+      }
+    },
+    "references": [
+      "Postman/Insomnia/Bruno/Hoppscotch \u2014 request/tab model concepts (Bruno .bru schema MIT, readable; concepts only, not 1:1 copy)",
+      "Existing forge zustand stores \u2014 settingsStore.ts / toastStore.ts conventions",
+      "design/reference.html \u2014 TabBar look/behavior (Claude Design export)",
+      "RequestSpec as framework-agnostic serializable domain entity living in the domain layer"
+    ],
+    "gaps": [
+      {
+        "dimension": "integration_points",
+        "description": "user-supplied placement guess (confirm via Phase 2 fit-check): implement as a zustand tabs slice + TabBar strip UI, request-editing panels out of scope"
+      }
+    ]
+  },
+  "downstream_links": {
+    "spec_path": "specs/004-working-tabs-state-machine-request-data-model-requestspec/spec.md",
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}

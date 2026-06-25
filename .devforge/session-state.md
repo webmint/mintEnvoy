@@ -1,14 +1,15 @@
 # Session State — /implement
 
-**Feature**: 003-app-shell-layout
-**Progress**: 11/11 tasks complete
-**Updated**: 2026-06-23T21:20:04Z
+**Feature**: 004-working-tabs-state-machine
+**Progress**: 2/10 tasks complete
+**Updated**: 2026-06-24T22:24:25Z
 
 ## Recent Task Modifications
 
-- [010] set-window-minwidth (?)
-- [011] shell-tests (?)
+- [001] Create RequestSpec domain model (?)
+- [002] Create tabsStore zustand slice (?)
 
 ## Recent Decisions
 
-- {'task': '011', 'decision': '241 vitest tests; CT harness pre-existing RollupError (Versions removed feat 001)'}
+- {'task': '001', 'decision': 'qa coverage gaps resolved by widening task 003 scope'}
+- {'task': '002', 'decision': 'qa test-scope gaps (close unknown-id no-op, dedupe leg precedence) folded into task 003 scope; code diff unchanged'}

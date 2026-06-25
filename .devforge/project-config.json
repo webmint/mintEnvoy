@@ -6,19 +6,47 @@
   "WORKSPACE_MODE": "standalone",
   "PROJECT_STATE": "brownfield",
   "DEFAULT_BRANCH": "main",
-  "LANGUAGES": ["TypeScript"],
-  "FRAMEWORKS": ["Electron", "React"],
+  "LANGUAGES": [
+    "TypeScript"
+  ],
+  "FRAMEWORKS": [
+    "Electron",
+    "React"
+  ],
   "PRIMARY_LANGUAGE": "TypeScript",
-  "ARCHITECTURES": ["Electron multi-process (main / preload / renderer)"],
-  "PROJECT_NATURES": ["desktop", "web"],
-  "ERROR_HANDLINGS": ["thrown exceptions"],
-  "API_LAYERS": ["Electron IPC"],
-  "TESTINGS": ["N/A"],
-  "BUILD_TOOLS": ["electron-vite", "Vite", "electron-builder"],
-  "BUILD_COMMANDS": ["npm run typecheck && electron-vite build"],
-  "TYPE_CHECK_COMMANDS": ["npm run typecheck:node && npm run typecheck:web"],
-  "LINT_COMMANDS": ["eslint --cache ."],
-  "TEST_COMMANDS": ["N/A"],
+  "ARCHITECTURES": [
+    "Electron multi-process (main / preload / renderer)"
+  ],
+  "PROJECT_NATURES": [
+    "desktop",
+    "web"
+  ],
+  "ERROR_HANDLINGS": [
+    "thrown exceptions"
+  ],
+  "API_LAYERS": [
+    "Electron IPC"
+  ],
+  "TESTINGS": [
+    "N/A"
+  ],
+  "BUILD_TOOLS": [
+    "electron-vite",
+    "Vite",
+    "electron-builder"
+  ],
+  "BUILD_COMMANDS": [
+    "npm run typecheck && electron-vite build"
+  ],
+  "TYPE_CHECK_COMMANDS": [
+    "npm run typecheck:node && npm run typecheck:web"
+  ],
+  "LINT_COMMANDS": [
+    "eslint --cache ."
+  ],
+  "TEST_COMMANDS": [
+    "N/A"
+  ],
   "PACKAGES_DETECTED": [
     {
       "path": ".",
@@ -42,7 +70,7 @@
   "ARCHITECTURE_DETAILS": "mintEnvoy follows Electron's three-process model: a **main** process (Node.js \u2014 app lifecycle + native APIs), a **preload** bridge (contextIsolation-safe IPC surface between main and renderer), and a **renderer** process (React 19 UI). UI state is held in zustand; local persistence via electron-store; outbound HTTP via undici; auto-update via electron-updater. Bundled by electron-vite, packaged by electron-builder.",
   "WRAPPER_MODE_SECTION": "",
   "COMMIT_ATTRIBUTION": "\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
-  "AGENT_LIST": "- ac-verifier\n- api-designer\n- architect\n- backend-engineer\n- code-reviewer\n- db-engineer\n- design-auditor\n- devils-advocate\n- devops-engineer\n- frontend-engineer\n- migration-engineer\n- mobile-engineer\n- performance-analyst\n- qa-engineer\n- qa-reviewer\n- runtime-debugger\n- security-reviewer\n- tech-writer",
+  "AGENT_LIST": "- ac-verifier\n- api-designer\n- architect\n- code-reviewer\n- design-auditor\n- devils-advocate\n- devops-engineer\n- frontend-engineer\n- performance-analyst\n- qa-engineer\n- qa-reviewer\n- runtime-debugger\n- security-reviewer\n- tech-writer",
   "WORKFLOW_ENFORCEMENT": "Strict",
   "AI_ATTRIBUTION": "Yes",
   "CLAUDE_TIER_THINK": "Opus",

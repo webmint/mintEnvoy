@@ -1,183 +1,180 @@
 {
-  "topic": "Single-window shell and layout for a desktop HTTP client: titlebar (logo, workspace pill, sidebar toggle, command-palette search trigger, environment selector, account pill), left sidebar with draggable divider (width clamped 200-520px), main area split into request/response panes by draggable horizontal divider (ratio clamped 0.15-0.85), and statusbar. Theme (light/dark), accent, method-style toggles as data attributes on root; persistence of sidebar width/pane ratio/theme via settings store. Mounting points for sidebar, tabs, panes, modals (contents are separate tasks). Cmd-B toggles sidebar. Visual reference design/reference.html for look/behavior only; rebuild with semantic class names; colors/spacing from design/tokens.json.",
-  "date": "2026-06-23",
-  "topic_slug": "single-window-shell-and-layout-for-a-desktop-http-client",
-  "summary": "A single-window app shell + layout for the mintEnvoy desktop HTTP client: titlebar, a resizable left sidebar (200-520px), a request/response split with a horizontal divider (ratio 0.15-0.85), and a statusbar \u2014 with named mount slots whose CONTENTS are separate tasks. The shell sets theme/accent/method-style as root data-attributes and holds sidebar width + pane ratio + view prefs in a net-new in-memory zustand settingsStore (mirroring the existing toastStore). Internal scan found the visual contract already done \u2014 tokens.css implements [data-theme] dark overrides + 6 [data-mstyle] method variants on <html> \u2014 so the shell EXTENDS that contract by setting attributes rather than defining palettes. Fit is Good with no refactor; the one open design decision is the resizable dividers (hand-roll vs react-resizable-panels vs allotment), where both libraries owning layout state internally conflicts with the requirement that the settings store be the single source of truth. Primary risk: a data-accent attribute is visually inert today (no [data-accent] CSS), so accent is persisted but drives no visuals this task.",
+  "topic": "Working-tabs state machine + request data model (RequestSpec) for an HTTP client, built as a zustand tabs slice with a TabBar strip UI",
+  "date": "2026-06-24",
+  "topic_slug": "working-tabs-state-machine-request-data-model-requestspec",
+  "summary": "T4 builds the working-tabs state machine + RequestSpec request data model for the HTTP client as a renderer zustand slice (tabsStore) plus a TabBar strip. Prior-art is decisive: the slice convention (settingsStore/toastStore), the tab a11y primitive (molecules/Tabs.tsx), and the Shell 'tabs' mount slot all already exist internally, and Bruno's .bru/OpenCollection schema validates the RequestSpec shape (method/url/params/headers/body/auth with an extensible auth discriminated union seeded at none+bearer). Overall fit is Good and effort Low \u2014 the only net-new work is the GAP capabilities with no internal prior art (the RequestSpec domain model and the lifecycle/dirty state machine), and the one belief-vs-reality correction is favorable: the '+' new-tab control fits the Tabs primitive's existing actions? slot with no contract change, leaving only a per-tab close \u2715 as a genuine (and narrow) primitive extension. Recommended direction: build a flat tab-array slice that composes the existing primitive and mirrors the existing store convention. Primary risk: the Tabs-primitive close-\u2715 extension must not break its roving-tabindex a11y, and the RequestSpec serialization shape must be pinned against the out-of-scope persistence task to avoid rework.",
   "prior_art": [
     {
-      "reference": "tokens.css (theme + method-style CSS contract)",
+      "reference": "Tabs primitive (TabDescriptor/TabsProps)",
       "kind": "pattern",
-      "relevance": "internal \u2014 EXISTING implementation of theme + method-style application: :root light + [data-theme='dark'] overrides + 6 [data-mstyle] method variants. Header states data-theme + data-mstyle live on <html>. Shell EXTENDS by setting attributes; CSS already done. NOTE attr is data-mstyle not data-method-style; NO data-accent block exists.",
-      "source": "internal:src/renderer/styles/tokens.css"
+      "relevance": "internal \u2014 existing tab a11y/roving-tabindex + selection primitive (002); TabBar composes & extends it (close \u2715, '+', dirty), does NOT re-roll",
+      "source": "internal:src/renderer/src/components/molecules/Tabs.tsx"
     },
     {
-      "reference": "toastStore.ts (zustand store pattern)",
+      "reference": "zustand store convention (settingsStore/toastStore)",
       "kind": "pattern",
-      "relevance": "internal \u2014 existing zustand store the new settingsStore mirrors (create() + selector hooks + reset for tests). No settings store exists yet; settingsStore is net-new but follows this shape.",
-      "source": "internal:src/renderer/src/lib/toastStore.ts"
+      "relevance": "internal \u2014 module-level create<State>((set)=>...), Store suffix (\u00a73.3), renderer-only, selectors; tabsStore mirrors this exactly",
+      "source": "internal:src/renderer/src/lib/settingsStore.ts"
     },
     {
-      "reference": "react-resizable-panels (bvaughn)",
-      "kind": "library",
-      "relevance": "Most battle-tested React split lib (shadcn/ui Resizable wraps it). Flexbox PERCENTAGE model + accessible WAI-ARIA separator + onLayoutChanging/onLayoutChanged batching. Tension: % model awkward for the px sidebar clamp (200-520px), and the lib owns layout state internally \u2014 duplicates the requirement that the zustand settings store own width/ratio (controlled mode needs glue).",
-      "source": "https://github.com/bvaughn/react-resizable-panels"
+      "reference": "Shell organism 'tabs' slot",
+      "kind": "pattern",
+      "relevance": "internal \u2014 existing mount point above PaneSplit where TabBar renders; no new layout plumbing needed",
+      "source": "internal:src/renderer/src/components/organisms/Shell.tsx"
     },
     {
-      "reference": "allotment (johnwalley)",
-      "kind": "library",
-      "relevance": "VS Code-derived split-view; supports px min/max sizes natively (better for the 200-520px sidebar clamp than %), IDE snap UX. Heavier/opinionated; also owns layout state internally (same single-source-of-truth tension with settings store).",
-      "source": "https://github.com/johnwalley/allotment"
-    },
-    {
-      "reference": "shadcn/ui Resizable",
+      "reference": "Bruno .bru / OpenCollection request schema",
       "kind": "product",
-      "relevance": "Reference for idiomatic API shape over react-resizable-panels; copy-paste component pattern, not a dep \u2014 confirms react-resizable-panels is the mainstream React choice.",
-      "source": "https://ui.shadcn.com/docs/components/radix/resizable"
+      "relevance": "GAP: RequestSpec shape \u2014 validates {method,url,headers,params(typed array),body{type,data},auth{type,...}}; auth types none/inherit/basic/bearer/apikey/digest/oauth2/awsv4/ntlm confirm the extensible discriminated-union with none+bearer as the minimal seed",
+      "source": "https://docs.usebruno.com/bru-lang/tag-reference"
     },
     {
-      "reference": "Hand-rolled pointer-event divider (rAF + CSS var)",
+      "reference": "Zustand slices pattern (official)",
       "kind": "pattern",
-      "relevance": "Zero-dep pattern: useRef + pointer events writing a CSS custom property (no setState-per-move), clamp px/ratio exactly in JS, ARIA separator role + aria-valuenow by hand. Cheap for a fixed 2-divider layout; keeps the zustand settings store the single source of truth (no lib-owned layout state).",
-      "source": ""
+      "relevance": "GAP: tab state machine \u2014 canonical single-slice shape (tabs[] + activeTab + actions); matches the project's existing module-level store convention",
+      "source": "https://zustand.docs.pmnd.rs/learn/guides/slices-pattern"
+    },
+    {
+      "reference": "Redux\u2192Zustand multi-tab editor case study",
+      "kind": "pattern",
+      "relevance": "GAP: per-tab dirty/unsaved tracking \u2014 validates a tabs slice holding per-tab document state + dirty flag, markClean on save/send",
+      "source": "https://engineering.synaptic.com/managing-state-in-a-multi-tabbed-application-our-journey-from-redux-to-zustand-6d3932544300"
     }
   ],
   "integration_touchpoints": [
     {
-      "name": "tokens.css theme/method-style contract",
-      "module_path": "src/renderer/styles/tokens.css",
-      "reason": "existing CSS contract for [data-theme] + [data-mstyle] on <html> \u2014 shell sets these attributes; candidate for reuse over fresh build. accent NOT attribute-switched here."
+      "name": "Tabs primitive (molecules/Tabs.tsx)",
+      "module_path": "src/renderer/src/components/molecules/Tabs.tsx",
+      "reason": "existing capability \u2014 candidate for reuse over fresh build; TabBar composes it; its {id,label,badge?,disabled?} selection-only contract is EXTENDED (close \u2715 sibling button, '+' control, dirty marker) \u2014 record extension in /specify"
     },
     {
-      "name": "toastStore zustand pattern",
-      "module_path": "src/renderer/src/lib/toastStore.ts",
-      "reason": "existing zustand store shape \u2014 new settingsStore mirrors it; candidate for reuse over fresh build"
+      "name": "zustand store convention (lib/)",
+      "module_path": "src/renderer/src/lib/settingsStore.ts",
+      "reason": "existing capability \u2014 new tabsStore.ts mirrors this slice convention; reuse over inventing a new state pattern"
     },
     {
-      "name": "App.tsx mount root",
-      "module_path": "src/renderer/src/App.tsx",
-      "reason": "current renderer mount (renders PrimitivesDemo) \u2014 shell organism mounts here, attribute-set on <html> root"
+      "name": "Shell 'tabs' slot",
+      "module_path": "src/renderer/src/components/organisms/Shell.tsx",
+      "reason": "existing capability \u2014 TabBar mounts into the existing 'tabs' slot above PaneSplit; no new layout plumbing"
     }
   ],
   "fit_assessments": [
     {
-      "touchpoint": "toastStore zustand pattern",
-      "user_expected": "Persist sidebar width / pane ratio / theme via the EXISTING settings store",
-      "reality": "No settings store exists. CBM scan shows only toastStore.ts; electron-store appears solely in config/docs, not src. settingsStore is net-new, mirroring toastStore's zustand shape; persistence is in-memory this task.",
+      "touchpoint": "Tabs primitive (molecules/Tabs.tsx)",
+      "user_expected": "Extend the primitive contract with per-tab close \u2715, a '+' new-tab control, and a dirty marker",
+      "reality": "Primitive is controlled/selection-only (tabs[], activeId, onChange) and ALREADY exposes an actions? slot rendered OUTSIDE role=tablist (AC-8) \u2014 the '+' new-tab control fits there with NO contract change. Only per-tab close \u2715 needs a real extension: a close button rendered as a SIBLING to the role=tab label (never nested) + an APG Delete-key path. Dirty marker can ride the existing badge? slot. Net: extension is narrower than the user assumed.",
       "effort": "Low",
       "blockers": [
-        "user belief of an existing settings store is incorrect \u2014 store must be created net-new",
-        "disk persistence (electron-store/IPC) does not exist and is deferred"
+        "per-tab close button must not nest inside role=tab (would break roving tabindex)",
+        "needs APG Delete-key handler on the focused tab"
       ]
     },
     {
-      "touchpoint": "tokens.css theme/method-style contract",
-      "user_expected": "Set theme + accent + method-style as data attributes on root; all three drive visuals via tokens",
-      "reality": "tokens.css already implements [data-theme='dark'] overrides and 6 [data-mstyle] method variants on <html> \u2014 theme + method-style fully wired (attr is data-mstyle, NOT data-method-style). BUT accent is a single --accent var with NO [data-accent] switch block: setting data-accent has zero CSS effect today, and defining accent palettes is a non_goal. So accent persistence is store-only/inert this task.",
+      "touchpoint": "zustand store convention (lib/)",
+      "user_expected": "New tabsStore.ts mirrors settingsStore.ts / toastStore.ts",
+      "reality": "Exact match: module-level create<State>((set)=>...), Store suffix (\u00a73.3), renderer-only (no node/electron imports), selector usage. No new state pattern invented; tabsStore drops straight into the convention.",
       "effort": "Low",
-      "blockers": [
-        "accent data-attribute is visually inert \u2014 no [data-accent] CSS exists; persist the value but expect no visual change",
-        "naming: use data-mstyle to match existing CSS, not data-method-style"
-      ]
+      "blockers": []
     },
     {
-      "touchpoint": "App.tsx mount root",
-      "user_expected": "Shell mounts as the top-level renderer chrome",
-      "reality": "App.tsx currently renders PrimitivesDemo. Swap to the Shell organism is a small, contained edit; attributes set on <html> via effect from settingsStore.",
+      "touchpoint": "Shell 'tabs' slot",
+      "user_expected": "TabBar mounts into Shell's existing tabs slot",
+      "reality": "Confirmed: Shell renders a 'tabs' slot above PaneSplit, currently fed only by a test fixture (ShellWithTabsFixture). Wiring the real TabBar is a slot fill \u2014 no new layout plumbing.",
       "effort": "Low",
       "blockers": []
     }
   ],
   "overall_fit": "Good",
-  "effort_estimate": "Medium",
-  "fit_rationale": "Fit is Good: the shell drops cleanly into the existing renderer as a net-new components/organisms/ tier plus a net-new settingsStore.ts that mirrors the existing toastStore zustand pattern, and it consumes an ALREADY-COMPLETE CSS contract (tokens.css implements [data-theme] dark overrides + 6 [data-mstyle] method variants on <html>). No existing code is refactored \u2014 App.tsx swaps PrimitivesDemo for the Shell. Two belief-vs-reality corrections, both minor: (1) there is no existing settings store to persist 'via' \u2014 it is created net-new and in-memory this task (disk/electron-store deferred); (2) accent is not attribute-switched in tokens.css, so a data-accent attribute is visually inert today and defining accent palettes is out of scope \u2014 the store persists the choice but it drives no CSS this task. Effort is Medium: integration is Low, but the resizable dividers (px + ratio clamp, smooth drag without re-render storms, ARIA separators, drag-release-outside-window) plus the slot API are the real build cost, and the divider build-vs-buy (hand-roll vs react-resizable-panels vs allotment) is the one open design decision \u2014 complicated by both libs owning layout state internally, which conflicts with the requirement that the settings store be the single source of truth for width/ratio.",
+  "effort_estimate": "Low",
+  "fit_rationale": "Fit is Good and effort Low. All three touchpoints already exist and match: the zustand slice drops straight into the settingsStore/toastStore convention, the TabBar mounts into Shell's existing 'tabs' slot, and the Tabs primitive is reused rather than re-rolled. The only real net-new work is the GAP capabilities with no internal prior art \u2014 the RequestSpec domain model and the tab state machine (lifecycle + dirty/markClean). The one belief-vs-reality correction is favorable: the user expected to extend the Tabs primitive with both a '+' control and per-tab close \u2715, but the '+' fits the primitive's existing actions? slot (no contract change) \u2014 only the per-tab close \u2715 (sibling-to-role=tab + APG Delete) is a genuine contract extension, which /specify must record explicitly.",
   "design_options": [
     {
-      "name": "Single settings store + CSS-var layout, hand-rolled dividers",
-      "shape": "One zustand settingsStore is the single source of truth: { theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed } + actions. The Shell organism writes sidebarWidth/paneRatio to CSS custom properties on its own root and sets data-theme/data-accent/data-mstyle on <html> via effect. Dividers are hand-rolled pointer-event components that clamp px/ratio in JS and write to a CSS var during drag (rAF-batched, store committed on release). Slots are named React children/context mount points.",
+      "name": "Flat tab array with embedded spec",
+      "shape": "state = { tabs: Tab[]; activeTabId: string } where Tab = { id; spec: RequestSpec; dirty }. Tab order IS the array order. Actions find-by-id over a small N; serialization = tabs.map(t => t.spec).",
       "pros": [
-        "Settings store is the single source of truth \u2014 no lib-owned layout state to sync (satisfies the stated requirement)",
-        "Exact px (200-520) + ratio (0.15-0.85) clamp control; full ARIA-separator + keyboard control",
-        "Zero new dependency (constraint: prefer zero-dep hand-roll if cheap)",
-        "Mirrors existing toastStore + extends existing tokens.css contract directly"
+        "Simplest shape \u2014 mirrors settingsStore/toastStore minimalism (KISS)",
+        "Array order naturally encodes tab order; no separate order list to sync",
+        "Trivial (de)serialization to the persistence JSON shape",
+        "Close-neighbor selection is a simple index walk"
       ],
       "cons": [
-        "Must hand-write ARIA separator + keyboard resize + drag-release-outside-window handling (the lib gives these free)",
-        "More component code to test than adopting a lib"
+        "O(n) find-by-id on markClean/updateActive (irrelevant for small N tab counts)",
+        "Index/id bookkeeping needed for close\u2192select-neighbor"
+      ],
+      "complexity": "Low"
+    },
+    {
+      "name": "Normalized id-keyed map plus order list",
+      "shape": "state = { tabsById: Record<string,Tab>; order: string[]; activeTabId }. Lookups and updates are by id; order[] holds tab sequence separately.",
+      "pros": [
+        "O(1) lookup/update by id for markClean, updateActive, dedupe-by-id",
+        "Cleaner immutable per-tab updates"
+      ],
+      "cons": [
+        "Two structures (order vs tabsById) must be kept in sync on every open/close",
+        "More boilerplate than the array for no real gain at small N",
+        "dedupe-by-url is still an O(n) scan"
       ],
       "complexity": "Med"
     },
     {
-      "name": "Library-backed panels + thin settings store",
-      "shape": "Adopt react-resizable-panels (or allotment) for the split/resize surfaces. settingsStore holds only { theme, accent, mstyle } plus the library's serialized layout string; the library owns sidebar/pane sizing internally and is driven controlled-mode from the store. Dividers/ARIA come from the library.",
+      "name": "Spec registry with tab refs (decoupled)",
+      "shape": "RequestSpecs live in their own registry map; tabs hold only spec-id refs, so one spec could back multiple tabs/views.",
       "pros": [
-        "Accessible WAI-ARIA separators + keyboard + edge-case drag handling come built-in and battle-tested",
-        "Less custom layout/drag code to write and maintain"
+        "Decouples spec lifetime from tab lifetime",
+        "Enables future multi-view of a single spec"
       ],
       "cons": [
-        "Two layout-state owners (library internal + settings store) need sync glue \u2014 violates the single-source-of-truth requirement",
-        "react-resizable-panels % model is awkward for the px sidebar clamp (allotment fits px better but is heavier/opinionated)",
-        "New dependency must be vetted (constraint) and adds bundle weight to an Electron renderer"
-      ],
-      "complexity": "Med"
-    },
-    {
-      "name": "Slot-registry layout reducer",
-      "shape": "A layout context exposes a register/unregister slot API (a registry of named mount points) backed by a reducer, instead of fixed named-children slots; settings still in the zustand store. Future panes/tabs/modals attach dynamically by id.",
-      "pros": [
-        "Most extensible slot API for future dynamic panes/tabs",
-        "Decouples shell from knowing its slot set at build time"
-      ],
-      "cons": [
-        "Over-engineered for the current fixed slot set (sidebar/tabs/panes/modals) \u2014 adds a registry abstraction with no current consumer needing it",
-        "More indirection to test; risks YAGNI against the minimal scope"
+        "Over-engineered for an in-memory single-window scope (YAGNI)",
+        "Extra indirection on every read/edit",
+        "No requirement in scope motivates the decoupling"
       ],
       "complexity": "High"
     }
   ],
   "recommended_option": {
-    "name": "Single settings store + CSS-var layout, hand-rolled dividers",
-    "rationale": "Best fit to the stated constraints. The requirement that the settings store own sidebar width + pane ratio makes a library-owned layout state (react-resizable-panels / allotment) a net liability \u2014 both would need controlled-mode sync glue and duplicate the source of truth. This option EXTENDS existing internal:src/renderer/src/lib/toastStore.ts (the zustand pattern settingsStore mirrors) and EXTENDS the already-complete CSS contract in internal:src/renderer/styles/tokens.css (which the existing implementation covers for [data-theme] + [data-mstyle] but does NOT cover for accent \u2014 no [data-accent] block exists, so this option persists accent in the store while accepting it is visually inert until accent palettes are added in a later task). The hand-roll cost (ARIA separator, keyboard resize, drag-release-outside-window) is bounded for a fixed 2-divider layout and is the price of exact px/ratio clamp control + zero new dependency. Acknowledged tradeoff: more divider/a11y code to write and test than option B; mitigated by the derisk spike below, with react-resizable-panels documented as the fallback if the hand-rolled a11y proves costly."
+    "name": "Flat tab array with embedded spec",
+    "rationale": "Extend the existing store convention rather than invent a new one: tabsStore mirrors internal:src/renderer/src/lib/settingsStore.ts (module-level create<State>, Store suffix, renderer-only) and the TabBar composes internal:src/renderer/src/components/molecules/Tabs.tsx instead of re-rolling tab a11y. The flat array is the KISS choice \u2014 at realistic tab counts the O(n) find-by-id is a non-issue, array order encodes tab order for free, and serialization to the persistence JSON shape is a trivial map. The normalized id-keyed map buys O(1) updates the scope does not need while adding an order/tabsById sync burden; the spec-registry option solves a multi-view problem no requirement raises (YAGNI). Acknowledged tradeoff: close\u2192select-neighbor needs explicit index bookkeeping, and updateActive/markClean do an array find \u2014 both cheap and well-contained."
   },
   "build_vs_buy": {
-    "build": "Hand-roll the shell: net-new components/organisms/ Shell + Sidebar/PaneSplit/Titlebar/Statusbar, net-new settingsStore.ts (mirrors toastStore), dividers as pointer-event components writing CSS vars. Consumes existing tokens.css contract.",
-    "buy": "Adopt react-resizable-panels (mainstream React choice, wrapped by shadcn/ui Resizable) or allotment (VS Code-derived, native px sizing) for the resize surfaces only; still build the titlebar/statusbar/store by hand.",
+    "build": "Build the tabsStore slice + the RequestSpec domain model fresh, composing the existing internal Tabs primitive and the zustand dependency the project already ships. No new runtime dependency.",
+    "buy": "Adopt an external request-collection model/SDK (e.g. postman-collection, or Bruno's bru parser) to supply the RequestSpec shape and (de)serialization.",
     "recommendation": "Build",
-    "reasoning": "Build (hand-roll dividers). The constraint set explicitly prefers a zero-dep hand-roll when cheap, and the single-source-of-truth requirement (settings store owns width/ratio) actively penalizes the library path, which keeps its own layout state. The shell is a fixed 2-divider layout \u2014 bounded enough that hand-rolling the clamp + drag + ARIA is cheaper end-to-end than adopting, vetting, and sync-gluing a controlled-mode panel library. react-resizable-panels stays the documented fallback if the hand-rolled accessibility/edge-cases prove more expensive than the derisk spike predicts."
+    "reasoning": "The buy path drags a heavyweight collection SDK in to model a handful of in-memory fields \u2014 a poor trade for an extensible discriminated-union we fully control, and it would couple the domain entity to a third-party schema. zustand is already a dependency and the Tabs primitive already exists, so the build path is mostly composition of internal assets; only the domain model + state machine are genuinely net-new. Bruno/OpenCollection inform the shape as a reference, not as a runtime dependency."
   },
   "derisk_plan": [
-    "Spike a hand-rolled divider (pointer events + rAF + CSS custom property) and measure drag smoothness vs a setState-per-move baseline before committing",
-    "Prototype the clamp/resize math against the window-resize edge case (sidebar 200-520px + pane ratio 0.15-0.85 re-clamp on shrink) to confirm no negative/overflow panes",
-    "Run an axe + keyboard/screen-reader pass on the divider (ARIA separator role, aria-valuenow, keyboard resize) to validate accessibility before the lib-vs-handroll decision is locked",
-    "Mount one real consumer (e.g. the existing Tabs molecule) into the tab slot to prove the slot API is genuinely content-decoupled",
-    "Confirm the accent reality with the user/spec: persist the value but mark data-accent visually inert until a later accent-palette task (or pull accent into scope explicitly)"
+    "Spike the Tabs-primitive close-\u2715 extension (close button as sibling to role=tab + APG Delete key) against the primitives existing roving-tabindex tests, confirming the contract extension is non-breaking BEFORE building the TabBar",
+    "Pin the RequestSpec serialization JSON shape as a shared contract test with the out-of-scope persistence task before implementing, to avoid rework when persistence lands",
+    "Establish the renderer test stack (Vitest + Testing Library per constitution \u00a73.4 \u2014 no test infra exists yet) as part of this feature, since the success bar requires slice unit tests",
+    "Decide and fixture the url-dedupe normalization rule (trailing slash, case) and the dirty-tab-close behavior (warn/confirm vs silent-drop) during /specify"
   ],
   "constitution_constraints": [
     {
+      "rule": "\u00a73.3 Naming Conventions",
+      "impact": "zustand store is camelCase + Store suffix \u2192 name it tabsStore (not TabsStore/TabSlice); aligns with settingsStore/toastStore for clean discovery"
+    },
+    {
+      "rule": "\u00a72.1 / \u00a72.3 Process Boundaries & Imports",
+      "impact": "tabsStore is renderer-only \u2014 no node/electron imports, resolve via @renderer alias, no cross-process imports; reinforces the scope rule that lib/ must not import components/ and the collection store must not be imported"
+    },
+    {
       "rule": "\u00a73.1 Type Safety",
-      "impact": "No 'any'; type IPC/external input as 'unknown' and narrow. The settingsStore state + slot props must be fully typed; any future disk-load values (deferred) are validated at the boundary."
+      "impact": "strict mode, no any \u2192 the auth discriminated union must be exhaustively typed and narrowed via type guards on ; RequestSpec is fully typed, enabling the extensible-union design without escape hatches"
     },
     {
-      "rule": "\u00a73.3 Naming",
-      "impact": "zustand store is camelCase + Store suffix -> settingsStore.ts (matches recommended option); React components PascalCase (Shell, Sidebar, PaneSplit, Titlebar, Statusbar)."
+      "rule": "\u00a73.4 Testing Requirements",
+      "impact": "no renderer test infra exists yet; the success bar (slice unit tests) makes this feature the one that must stand up Vitest + Testing Library \u2014 added setup scope to budget in /plan"
     },
     {
-      "rule": "\u00a75 State Management",
-      "impact": "Shared renderer state lives in a zustand store; never mutate state outside store actions; prefer selectors over reading the whole store. Drag handlers commit width/ratio via store actions, not direct mutation."
-    },
-    {
-      "rule": "\u00a72 Process boundaries (electron-store in main)",
-      "impact": "Persistence (electron-store) is a MAIN-process responsibility \u2014 confirms the renderer settingsStore stays in-memory this task; disk persistence later goes through a typed IPC wrapper, not the renderer store directly."
-    },
-    {
-      "rule": "\u00a76 Reuse-before-build",
-      "impact": "Search for existing utilities before building generic ones \u2014 honored: reuses toastStore zustand pattern + the existing tokens.css [data-theme]/[data-mstyle] contract rather than re-defining either."
+      "rule": "\u00a74 Patterns (Always Do, project-specific)",
+      "impact": "'Shared renderer state lives in a zustand store' directly validates the slice approach over component-local state"
     }
   ],
-  "verdict": "Promising with caveats",
+  "verdict": "Worth pursuing",
   "recommendation": {
-    "action": "Run /specify for the app-shell + layout feature, locking: net-new components/organisms/ Shell tree + net-new in-memory settingsStore (mirror toastStore), hand-rolled clamped dividers (Build), consuming the existing tokens.css contract. Resolve the accent-inert caveat in the spec (persist value, data-accent visually inert this task) and treat the divider build-vs-buy as decided (Build, lib fallback documented).",
-    "next": "Author the spec with the derisk spikes as early acceptance-criteria checks."
+    "action": "Run /specify for T4 \u2014 author the spec, explicitly recording the Tabs-primitive contract extension (per-tab close \u2715 sibling button + APG Delete; '+' via the existing actions? slot) and the in-scope RequestSpec serialization shape as acceptance criteria",
+    "next": "Proceed to /specify with the flat-tab-array slice + composed-primitive direction"
   },
-  "next_step_text": "/specify \"Single-window app shell + layout: titlebar, resizable sidebar (200-520px) + request/response split (0.15-0.85), statusbar, named mount slots, root theme/method-style data-attrs, in-memory zustand settingsStore.\"\n\nDiscovery reference: discover/2026-06-23-single-window-shell-and-layout-for-a-desktop-http-client.md\nKey facts:\n- Functional scope: App-shell + layout component tree: titlebar (logo, workspace pill, sidebar toggle, command-palette trigger, environment selector, account pill), resizable left sidebar (clamped 200-520px) with draggable divider, main area split into request/response panes by a draggable horizontal divider (ratio clamped 0.15-0.85), statusbar. Theme(light/dark)/accent/method-style applied as root data-attributes. Cmd-B toggles sidebar. Empty named mount slots for sidebar/tabs/panes/modals (slot CONTENTS out of scope). A new zustand settings store (mirroring toastStore.ts) holds sidebar width + pane ratio + theme + accent + method-style IN-MEMORY only; disk persistence (electron-store wiring) deferred to a later persistence-port task. Styled from design/tokens.json with semantic class names per design/reference.html (markup never copied).\n- Users: Co-primary consumers: (1) Human end users \u2014 developers/API testers operating the mintEnvoy desktop window; the shell is the top-level chrome they see every session (titlebar, sidebar, panes, statusbar). (2) Downstream feature tasks \u2014 code that mounts content into the shell's named slots (sidebar tree, tab bodies, request/response editors, modal bodies); for them the shell is an integration contract (a stable slot API), not just visuals.\n- Success criteria: (1) Visual fidelity: rendered shell matches design/reference.html layout and design/tokens.json colors/spacing under design-auditor review (look/behavior only, never markup). (2) Behavior: both dividers drag and clamp to range (200-520px, 0.15-0.85); Cmd-B toggles sidebar; view settings (theme/accent/method-style) + sidebar width + pane ratio survive within the session via the settings store \u2014 all covered by component tests. (3) Decoupled slots: sidebar/tabs/panes/modals mount slots accept arbitrary children and render them without the shell knowing their contents. (4) Gates green: typecheck + lint + build + existing test suite pass; zero reference-export cruft (no data-om-*, __OmT, inline styles, tweaks-panel) anywhere in the build.\n- Recommended option: Single settings store + CSS-var layout, hand-rolled dividers\n- Open uncertainties: 1 (see discovery doc \u00a7Open uncertainties)",
+  "next_step_text": "/specify \"T4 working-tabs state machine + RequestSpec model: a renderer zustand tabsStore (flat tab array, lifecycle + dirty/markClean, seed defaults) and a TabBar composing the existing Tabs primitive.\"\n\nDiscovery reference: discover/2026-06-24-working-tabs-state-machine-request-data-model-requestspec.md\nKey facts:\n- Functional scope: A zustand tabs slice owning the open-request tabs + the lifecycle state machine (open-from-collection with dedupe id-then-url, new-blank, close never-zero, select-active), a per-tab dirty flag + markClean(tabId) action, and new-tab seed defaults. The RequestSpec domain model: { method, url, name, params[], headers[], body:{lang,type,text}, auth } where each param/header row is { enabled, key, value, description } and auth is a discriminated union on type ({none}+{bearer,token} in scope). A TabBar strip UI composing the existing Tabs primitive (extended with close \u2715, '+' new-tab, dirty marker) and wiring it to the slice. Out of scope: request-editing panels, real send/save, variable interpolation, other auth types, auth\u2192wire-header derivation.\n- Users: Two consumer classes. (1) End user: operates the TabBar \u2014 open/close/switch request tabs. (2) Sibling tasks consuming the zustand slice programmatically: collection-list opens tabs (open-from-collection), http-engine reads active RequestSpec + calls markClean on successful send, persistence calls markClean on save, request-editing panels bind to the active tab's RequestSpec. T4 owns only the slice + TabBar + the markClean action; the trigger sites live in those sibling tasks (out of scope).\n- Success criteria: Slice unit-tested: every lifecycle action (open-from-collection dedupe id-then-url, new-blank, close never-zero, select-active) + dirty flag + markClean(tabId) covered; invariants asserted (never-zero tabs, dedupe, seed defaults = auth bearer {{apiKey}} verbatim + default Accept header, auth NOT mirrored into headers[]). TabBar renders/selects/closes AND visually matches design/reference.html (look/spacing/states) against design/tokens.json. typecheck + lint + build clean.\n- Recommended option: Flat tab array with embedded spec\n- Open uncertainties: 1 (see discovery doc \u00a7Open uncertainties)",
   "open_uncertainties": []
 }

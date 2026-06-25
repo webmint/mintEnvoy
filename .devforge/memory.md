@@ -42,6 +42,8 @@
 - **[Task 010 / 003-app-shell-layout]**: set-window-minwidth — completed. _(Task 010)_
 - **[Task 011 / 003-app-shell-layout]**: shell-tests — completed. _(Task 011)_
 
+- **[Task 001 / 004-working-tabs-state-machine]**: Create RequestSpec domain model — completed. _(Task 001)_
+- **[Task 002 / 004-working-tabs-state-machine]**: Create tabsStore zustand slice — completed. _(Task 002)_
 ## 2026-06-22 — /verify scope pollution (feature 001-ui-primitives)
 
 **Lesson**: /verify computed NEEDS WORK entirely from artifacts, not real defects. Causes: (1) `review.md` was stale — its 7 confirmed findings were already remediated by `/fix` before `/verify` ran (re-run `/review` after `/fix` to refresh); (2) the assembled-diff scope is `main..HEAD`, which here includes framework reformats (a repo-wide `prettier --write .`), `specs/`, `.devforge/`, and `docs/` housekeeping commits → 147 scope-creep + most leftover flags are NON-feature files; (3) the leftover-artifact detector flags ordinary `//` explanatory comments as `commented_code_block` (56 false positives in feature test files). Real feature signal was clean: 24/24 AC PASS, mechanical PASS, src/renderer hygiene clean.

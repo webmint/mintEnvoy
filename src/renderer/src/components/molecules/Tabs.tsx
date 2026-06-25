@@ -23,6 +23,8 @@
  * | ArrowLeft  | Select previous enabled tab (with wrap) |
  * | Home       | Select first enabled tab |
  * | End        | Select last enabled tab |
+ * | Delete     | Close focused tab (only when `closable` is true — AC-22) |
+ * | Backspace  | Close focused tab (only when `closable` is true — AC-22) |
  *
  * Disabled tabs are skipped by all keyboard navigation (AC-9).
  * Vertical arrow keys are intentionally ignored (horizontal-only).
@@ -32,6 +34,22 @@
  * When `activeId` matches no enabled tab — empty array, no match, or all
  * disabled — the strip renders with no `aria-selected="true"` tab and
  * auto-selects nothing.
+ *
+ * ## Opt-in close affordance (AC-11, AC-12, AC-22, AC-23 — feature-004 extension)
+ *
+ * When `closable` is true, a sibling ✕ `<button tabIndex={-1}>` is rendered next
+ * to each tab's `role="tab"` button. The ✕ is a pointer target only — it is
+ * NEVER added to `buttonRefs`, NEVER given `role="tab"`, and NEVER a roving tab
+ * stop (AC-12). Clicking it calls `onClose?.(tab.id)` without also triggering
+ * `onChange`. Delete/Backspace on the focused tab also fires `onClose`.
+ *
+ * `onClose` is signal-only: it emits the tab id and mutates no list — the store
+ * owns the lifecycle. The primitive's only post-close job is roving-focus
+ * integrity on the next render (AC-23), handled by `useLayoutEffect`.
+ *
+ * When `closable` is falsy (the default), the component is byte-identical to
+ * the feature-002 selection-only contract — no Delete/Backspace handler active,
+ * no extra close DOM node, no extra roving tab stop (AC-11).
  *
  * ## Usage
  *
@@ -65,6 +83,7 @@
  *   roving tabindex (AC-7).
  * - `aria-controls` is deliberately NOT emitted — no panels are mounted (AC-7).
  * - Disabled tabs carry `disabled` + `aria-disabled="true"` (AC-9).
+ * - ✕ close button (when `closable`) is `tabIndex={-1}`, not `role="tab"` (AC-12).
  *
  * ## Constraints
  *
@@ -78,7 +97,7 @@
 
 import './Tabs.css'
 
-import { useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { cx } from '@renderer/lib/cx'
 
 // ---------------------------------------------------------------------------
@@ -125,6 +144,14 @@ export interface TabDescriptor {
  * aria-selected), AC-8 (actions slot), AC-10 (render-no-selection guard when
  * activeId matches no enabled tab), AC-11 (JSDoc), AC-14 (no inline styles),
  * AC-15 (no electron/node imports).
+ *
+ * ## Backward-compatible contract extension (feature-004, AC-28/AC-29)
+ *
+ * `closable` and `onClose` are opt-in additions to the feature-002
+ * selection-only contract. When both are omitted (or `closable` is falsy), the
+ * component is byte-identical to the 002 contract: no ✕ DOM node is rendered,
+ * no Delete/Backspace close path is active, and no extra roving tab stop is
+ * introduced (AC-11/AC-12). Existing consumers need not update.
  */
 export interface TabsProps {
   /**
@@ -166,6 +193,36 @@ export interface TabsProps {
    * Maps directly to `aria-label` on the `role="tablist"` element (AC-7).
    */
   'aria-label'?: string
+
+  /**
+   * Opt-in per-tab close affordance (default `false`/`undefined` — off).
+   *
+   * When `true`, a sibling ✕ `<button tabIndex={-1}>` is rendered next to
+   * each tab button. The ✕ is a pointer target only — it is NEVER added to
+   * `buttonRefs`, NEVER given `role="tab"`, and NEVER a roving tab stop
+   * (AC-12). Delete/Backspace while a tab is focused also fires `onClose`.
+   *
+   * When `false` or omitted, the component is byte-identical to the 002
+   * selection-only contract (AC-11).
+   *
+   * @since feature-004 (backward-compatible opt-in extension — AC-28)
+   */
+  closable?: boolean
+
+  /**
+   * Called with the closed tab's `id` when the ✕ button is clicked or
+   * Delete/Backspace is pressed while the tab is focused.
+   *
+   * Signal-only: this callback emits the id and mutates no list. The store
+   * owns the tab lifecycle. The primitive's only post-close responsibility is
+   * roving-focus integrity on the next render (AC-22, AC-23).
+   *
+   * Only fired when `closable` is `true`. Safe to omit even with `closable`:
+   * calling it is a no-op when `onClose` is `undefined`.
+   *
+   * @since feature-004 (backward-compatible opt-in extension — AC-28)
+   */
+  onClose?: (id: string) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -251,6 +308,11 @@ function rovingTabStopIndex(tabs: TabDescriptor[], activeId: string): number {
  * The `actions` slot renders right-aligned content outside the tablist —
  * useful for add/more buttons scoped to the current tab group.
  *
+ * When `closable` is true, a sibling ✕ button (tabIndex={-1}, not role="tab")
+ * is rendered per tab and `onClose` fires on click or Delete/Backspace (AC-22).
+ * Focus is restored via `useLayoutEffect` when the active tab changes after a
+ * close re-render, without hijacking mouse-user focus (AC-23).
+ *
  * @param props - See {@link TabsProps}.
  *
  * AC-1: component exists in the molecules dir.
@@ -260,9 +322,13 @@ function rovingTabStopIndex(tabs: TabDescriptor[], activeId: string): number {
  * AC-8: actions slot rendered right-aligned outside the tablist.
  * AC-9: disabled tabs skip onChange on click and keyboard.
  * AC-10: no-selection guard when activeId matches no enabled tab.
- * AC-11: JSDoc on all exported symbols.
+ * AC-11: JSDoc on all exported symbols; closable=false path byte-identical to 002.
+ * AC-12: exactly one roving tab stop per tab regardless of closable.
  * AC-14: no inline style={{...}}.
  * AC-15: no electron/node: imports.
+ * AC-22: ✕ button + Delete/Backspace → onClose (signal-only, no list mutation).
+ * AC-23: useLayoutEffect restores roving focus to neighbor after close re-render.
+ * AC-28: closable/onClose JSDoc records the backward-compatible contract extension.
  */
 export function Tabs({
   tabs,
@@ -270,27 +336,76 @@ export function Tabs({
   onChange,
   actions,
   className,
-  'aria-label': ariaLabel
+  'aria-label': ariaLabel,
+  closable,
+  onClose
 }: TabsProps): React.JSX.Element {
   // Ref map: keyed by tab id → the button DOM element.
   // Used to move DOM focus after keyboard navigation (AC-6).
+  // GUARDRAIL: the ✕ close button is NEVER added to this map (AC-12, Risk-1).
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+
+  // Tracks whether focus is currently inside the tablist (capture phase).
+  // Used by useLayoutEffect to decide whether to restore focus after a close
+  // re-render — prevents hijacking focus from a mouse user (AC-23).
+  const lastFocusWasInListRef = useRef<boolean>(false)
 
   // Determine which tab (if any) is truly active for aria-selected.
   // When activeId matches no enabled tab → no tab is selected (AC-10).
   const activeEnabledId = tabs.find((t) => t.id === activeId && t.disabled !== true)?.id
 
   // Roving tab-stop: the index of the single focusable tab (AC-7).
+  // Re-derived from (tabs, activeId) on EVERY render so tabIndex={0} can
+  // never dangle after a tab is removed (AC-12, AC-23).
   const tabStopIndex = rovingTabStopIndex(tabs, activeId)
 
   // ---------------------------------------------------------------------------
+  // Focus restoration after close re-render (AC-23 — useLayoutEffect, not useEffect)
+  //
+  // After a close fires, the store removes the tab and updates activeId to a
+  // neighbor. On the very next synchronous paint, this effect checks whether:
+  //   1. Focus was inside the tablist immediately before the re-render, AND
+  //   2. The active tab's button is not already focused (covers non-close navigations).
+  // When both conditions hold, it moves focus to the new active tab button.
+  //
+  // useLayoutEffect (not useEffect) fires before the browser paints, so the
+  // focus move happens in the same frame as the DOM update — no flash of
+  // focus falling to <body>.
+  //
+  // MUST NOT use a DOM selector to find the target — use buttonRefs (index-based
+  // engine, Risk-1 guardrail 3). The effect reads buttonRefs.current.get(activeId)
+  // which is always populated by the ref callback below before this fires.
+  // ---------------------------------------------------------------------------
+  useLayoutEffect(() => {
+    if (!lastFocusWasInListRef.current) return
+
+    const activeEl = buttonRefs.current.get(activeId)
+    if (activeEl === undefined) return
+    if (document.activeElement === activeEl) return
+
+    activeEl.focus()
+  }, [activeId, tabs])
+
+  // ---------------------------------------------------------------------------
   // Keyboard handler (automatic activation — AC-6)
+  //
+  // GUARDRAIL 3 (Risk-1): this handler is index-based and MUST stay that way.
+  // Do NOT switch to a DOM selector (querySelectorAll / closest / etc.).
   // ---------------------------------------------------------------------------
 
   function handleKeyDown(
     event: React.KeyboardEvent<HTMLButtonElement>,
-    currentIndex: number
+    currentIndex: number,
+    tabId: string
   ): void {
+    // Delete/Backspace close path — only active when closable=true (AC-11/AC-22).
+    // Keep this branch BEFORE the switch so early-return doesn't hide it.
+    if (closable && (event.key === 'Delete' || event.key === 'Backspace')) {
+      event.preventDefault()
+      onClose?.(tabId)
+      return
+    }
+
     let targetIndex = -1
 
     switch (event.key) {
@@ -321,6 +436,7 @@ export function Tabs({
     onChange(targetTab.id)
 
     // Move DOM focus to the target button (AC-6).
+    // GUARDRAIL 3: use buttonRefs (index-based), not a DOM selector.
     const targetEl = buttonRefs.current.get(targetTab.id)
     targetEl?.focus()
   }
@@ -338,52 +454,141 @@ export function Tabs({
         aria-label={ariaLabel}
         aria-orientation="horizontal"
         className="tabs__list"
+        // Capture-phase focus/blur to track whether focus is inside the list.
+        // Only wired when closable=true — the closable=false path adds no handlers
+        // to preserve the 002 byte-identical contract (AC-11).
+        // Used by useLayoutEffect to guard focus restoration (AC-23):
+        // only restore if the user was navigating by keyboard inside the list,
+        // never if they clicked elsewhere (mouse-user protection).
+        onFocus={
+          closable
+            ? () => {
+                lastFocusWasInListRef.current = true
+              }
+            : undefined
+        }
+        onBlur={
+          closable
+            ? (e) => {
+                // Clear the guard only when focus truly leaves the tablist.
+                // relatedTarget is the element receiving focus; when it is inside
+                // this element, the blur is an internal transfer — keep the guard set.
+                const next = e.relatedTarget
+                if (!(next instanceof Node) || !e.currentTarget.contains(next)) {
+                  lastFocusWasInListRef.current = false
+                }
+              }
+            : undefined
+        }
       >
         {tabs.map((tab, index) => {
           const isActive = tab.id === activeEnabledId
           const isDisabled = tab.disabled === true
           const isTabStop = index === tabStopIndex
 
-          return (
-            <button
-              key={tab.id}
-              role="tab"
-              // aria-selected reflects the active tab; false (not absent) for
-              // inactive tabs (WAI-ARIA Tabs pattern requires explicit false).
-              // When no tab is active (AC-10), every tab gets false.
-              aria-selected={isActive}
-              // Disabled: native `disabled` attribute prevents click/focus;
-              // aria-disabled="true" is the explicit ARIA signal (AC-9).
-              disabled={isDisabled}
-              aria-disabled={isDisabled || undefined}
-              // Roving tabindex: exactly one tab is the keyboard entry point (AC-7).
-              tabIndex={isTabStop ? 0 : -1}
-              className={cx(
-                'tabs__tab',
-                isActive && 'tabs__tab--active',
-                isDisabled && 'tabs__tab--disabled'
-              )}
-              onClick={() => {
-                // Guard: the `disabled` attribute already prevents browser
-                // clicks, but also guard in JS to be safe (AC-9).
-                if (isDisabled) return
-                onChange(tab.id)
-              }}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-              ref={(el) => {
-                if (el !== null) {
-                  buttonRefs.current.set(tab.id, el)
-                } else {
-                  buttonRefs.current.delete(tab.id)
-                }
-              }}
-            >
-              {/* Label text — rendered as a JSX text node (React escapes it). */}
-              <span className="tabs__tab-label">{tab.label}</span>
+          // closable=false (default): render exactly the 002-contract tab button
+          // with no wrapper div and no ✕ node — byte-identical DOM output (AC-11).
+          // GUARDRAIL 1 (Risk-1): only this button enters buttonRefs.
+          // GUARDRAIL 3 (Risk-1): onKeyDown uses index-based engine, not a DOM selector.
+          if (!closable) {
+            return (
+              <button
+                key={tab.id}
+                role="tab"
+                // aria-selected reflects the active tab; false (not absent) for
+                // inactive tabs (WAI-ARIA Tabs pattern requires explicit false).
+                // When no tab is active (AC-10), every tab gets false.
+                aria-selected={isActive}
+                // Disabled: native `disabled` attribute prevents click/focus;
+                // aria-disabled="true" is the explicit ARIA signal (AC-9).
+                disabled={isDisabled}
+                aria-disabled={isDisabled || undefined}
+                // Roving tabindex: exactly one tab is the keyboard entry point (AC-7).
+                tabIndex={isTabStop ? 0 : -1}
+                className={cx(
+                  'tabs__tab',
+                  isActive && 'tabs__tab--active',
+                  isDisabled && 'tabs__tab--disabled'
+                )}
+                onClick={() => {
+                  if (isDisabled) return
+                  onChange(tab.id)
+                }}
+                onKeyDown={(e) => handleKeyDown(e, index, tab.id)}
+                ref={(el) => {
+                  if (el !== null) {
+                    buttonRefs.current.set(tab.id, el)
+                  } else {
+                    buttonRefs.current.delete(tab.id)
+                  }
+                }}
+              >
+                {/* Label text — rendered as a JSX text node (React escapes it). */}
+                <span className="tabs__tab-label">{tab.label}</span>
 
-              {/* Optional badge — rendered only when badge is not undefined (AC-3 reuse). */}
-              {tab.badge !== undefined && <span className="tabs__badge">{tab.badge}</span>}
-            </button>
+                {/* Optional badge — rendered only when badge is not undefined (AC-3 reuse). */}
+                {tab.badge !== undefined && <span className="tabs__badge">{tab.badge}</span>}
+              </button>
+            )
+          }
+
+          // closable=true: wrap the tab button with a presentational div that
+          // groups it with the sibling ✕ button. The wrapper carries no ARIA role.
+          // AC-12: the ✕ is tabIndex={-1} — exactly one roving stop per tab.
+          return (
+            <div key={tab.id} className="tabs__tab-wrapper">
+              {/* role="tab" button — same structure as the closable=false branch. */}
+              <button
+                role="tab"
+                aria-selected={isActive}
+                disabled={isDisabled}
+                aria-disabled={isDisabled || undefined}
+                // AC-12: this is the ONLY tabIndex={0} stop per tab — the ✕ is -1.
+                tabIndex={isTabStop ? 0 : -1}
+                className={cx(
+                  'tabs__tab',
+                  isActive && 'tabs__tab--active',
+                  isDisabled && 'tabs__tab--disabled'
+                )}
+                onClick={() => {
+                  if (isDisabled) return
+                  onChange(tab.id)
+                }}
+                onKeyDown={(e) => handleKeyDown(e, index, tab.id)}
+                ref={(el) => {
+                  // GUARDRAIL 1 (Risk-1): only role="tab" buttons enter buttonRefs.
+                  // The ✕ button is registered via a SEPARATE ref and is NEVER
+                  // passed here.
+                  if (el !== null) {
+                    buttonRefs.current.set(tab.id, el)
+                  } else {
+                    buttonRefs.current.delete(tab.id)
+                  }
+                }}
+              >
+                <span className="tabs__tab-label">{tab.label}</span>
+                {tab.badge !== undefined && <span className="tabs__badge">{tab.badge}</span>}
+              </button>
+
+              {/* Close button — opt-in, rendered only when closable=true (AC-11).
+                  GUARDRAIL 1: NOT in buttonRefs.
+                  GUARDRAIL 2: NOT role="tab".
+                  tabIndex={-1}: not a roving tab stop (AC-12). */}
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-label={`Close ${tab.label}`}
+                className="tabs__tab-close"
+                onClick={(e) => {
+                  // stopPropagation prevents the click from bubbling up and
+                  // accidentally triggering the tab button's onClick (AC-22).
+                  e.stopPropagation()
+                  onClose?.(tab.id)
+                }}
+              >
+                ✕
+              </button>
+            </div>
           )
         })}
       </div>

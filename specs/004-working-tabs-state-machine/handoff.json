@@ -1,0 +1,519 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/004-working-tabs-state-machine/spec.md",
+  "specify_completed_at": "2026-06-24T20:22:34Z",
+  "classification": {
+    "spec_number": "004",
+    "feature_name": "working-tabs-state-machine",
+    "feature_slug": "working-tabs-state-machine",
+    "spec_type": "greenfield_feature",
+    "spec_type_rationale": "Upstream is /discover (greenfield-locked); the tabsStore slice + RequestSpec domain model + TabBar are net-new with no internal prior art \u2014 discover doc confirms the only net-new work is the GAP capabilities (RequestSpec model + lifecycle/dirty state machine).",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "Build the working-tabs state machine and the RequestSpec domain model for the mintEnvoy HTTP client as a renderer-only zustand slice (tabsStore) plus a TabBar strip that composes the existing Tabs primitive. The slice owns the open-request tabs, the lifecycle state machine (open-from-collection with id-then-url dedupe, new-blank, close with a never-zero invariant, select-active), a per-tab dirty flag with a markClean(tabId) action, and new-tab seed defaults; the TabBar renders/selects/closes tabs and mounts into Shell's existing tabs slot. T4 owns only the slice, the TabBar, and markClean \u2014 the sibling trigger sites (collection-list, http-engine, persistence, request editors) are out of scope.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide a tabsStore zustand slice module under the lib directory.",
+        "verification_command": "test -f src/renderer/src/lib/tabsStore.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide a RequestSpec domain-model module under the lib directory.",
+        "verification_command": "test -f src/renderer/src/lib/requestSpec.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide a TabBar component module with a sibling token-bound stylesheet under the organisms directory.",
+        "verification_command": "test -f src/renderer/src/components/organisms/TabBar.tsx && test -f src/renderer/src/components/organisms/TabBar.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The build shall reuse the existing zustand dependency without introducing a new state-management library.",
+        "verification_command": "grep -q '\"zustand\"' package.json",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer source shall pass strict type-checking.",
+        "verification_command": "npm run typecheck:web",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The codebase shall pass ESLint without new errors.",
+        "verification_command": "npm run lint",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The project shall build cleanly.",
+        "verification_command": "npm run build",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The tabsStore slice unit suite shall pass.",
+        "verification_command": "npx vitest run src/renderer/src/lib/__tests__/tabsStore.test.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The new tabsStore, requestSpec, and TabBar source shall contain no inline style attributes.",
+        "verification_command": "! grep -REn 'style=[{][{]' src/renderer/src/lib/tabsStore.ts src/renderer/src/lib/requestSpec.ts src/renderer/src/components/organisms/TabBar.tsx | grep -vqE ':[[:space:]]*(\\*|//|/[*])'",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The new renderer modules shall not import the electron or node built-in modules directly.",
+        "verification_command": "! grep -REn \"from '(electron|node:)\" src/renderer/src/lib/tabsStore.ts src/renderer/src/lib/requestSpec.ts src/renderer/src/components/organisms/TabBar.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-11",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the Tabs primitive is rendered without the closable option (its default), the primitive shall behave identically to its prior selection-only contract \u2014 no Delete/Backspace close handler, no extra close DOM node, and no additional roving tab stop.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-12",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The Tabs primitive shall maintain exactly one roving tab stop per tab regardless of the closable option.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-13",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN openFromCollection is called with a request whose collection id matches an open tab, the tabsStore shall activate that existing tab and shall not append a new tab.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-14",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN openFromCollection is called and no open tab matches by collection id but an open tab has the same verbatim non-empty url, the tabsStore shall activate that existing tab and shall not append a new tab.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-15",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF a tab has an empty url, THEN the tabsStore shall not treat it as a url-dedupe match, so multiple empty-url tabs remain distinct.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-16",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN newBlank is invoked, the tabsStore shall append a tab seeded with method GET, empty url, empty name, empty body, dirty false, auth of type bearer with token literal {{apiKey}}, and a single enabled Accept header valued application/json, and shall not mirror auth into the headers array.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-17",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the last remaining tab is closed, the tabsStore shall spawn a fresh seeded GET tab so the open-tab count is never zero.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-18",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the active tab is closed and other tabs remain, the tabsStore shall set the active tab to the right neighbor, or to the left neighbor when the closed tab was the last in order.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-19",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a tab is dirty, the tabsStore shall close it through the same unconditional path as a clean tab, discarding its spec without a confirmation prompt.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-20",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN markClean is called with an open tab id, the tabsStore shall set that tab's dirty flag to false and leave all other tabs unchanged.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-21",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN selectActive is called with an open tab id, the tabsStore shall set activeTabId to that id.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-22",
+        "subsection": "behavior_change",
+        "ears_variant": "optional",
+        "statement": "WHERE the Tabs primitive is rendered with closable enabled, the primitive shall render a per-tab close control as a sibling to the role=tab element with tabIndex -1, and shall emit onClose with the tab id when that control is clicked or when Delete or Backspace is pressed on the focused tab.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-23",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN a focused tab is closed through the Tabs primitive, the primitive shall move roving focus to a neighboring tab on the next render without losing focus or leaving a dangling tabindex, and onClose shall mutate no tab list itself.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-24",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user activates a tab or its close control or the new-tab plus control in the TabBar, the TabBar shall route the gesture to the tabsStore as a select close or new-blank action respectively.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-25",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a tab is rendered, the TabBar shall label it with the spec name when non-empty, otherwise the method followed by the url when the url is non-empty, otherwise the literal Untitled, rendered verbatim without interpolation.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-26",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a tab is dirty, the TabBar shall render a dirty marker alongside the tab label without replacing the label text.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-27",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the application shell renders, the Shell shall mount the TabBar into its tabs slot.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-28",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The exported tabsStore actions, the RequestSpec, Row, and Auth types, the seed-default factory, and the new Tabs closable and onClose props shall carry documentation comments.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-29",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The Tabs primitive contract extension shall be recorded in the feature-002 spec lineage as a contract change rather than a silent prop addition.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "ci_pipeline": "No CI pipeline changes in scope; tests run via existing npm scripts (vitest/playwright), not a new pipeline stage.",
+      "hooks_gates": "No new git hooks or commit gates introduced; the project's existing forge gates apply unchanged."
+    },
+    "constraints": [
+      {
+        "kind": "constitution_anchor",
+        "content": "zustand store is camelCase + Store suffix \u2192 the slice MUST be named tabsStore (not TabsStore/TabSlice), aligning with settingsStore/toastStore.",
+        "quantifier": null,
+        "constitution_ref": "3.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "tabsStore, requestSpec, and TabBar are renderer-only \u2014 no Node or electron imports; outbound HTTP and persistence stay out of the renderer.",
+        "quantifier": null,
+        "constitution_ref": "2.1",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Resolve renderer modules via the @renderer alias, not deep relative paths; lib/ (the store + model) must not import components/.",
+        "quantifier": null,
+        "constitution_ref": "2.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Strict mode, no any: RequestSpec is fully typed and the auth field is an exhaustively-typed discriminated union narrowed via a type guard.",
+        "quantifier": null,
+        "constitution_ref": "3.1",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Never swallow errors; handle both success and error paths (e.g. openFromCollection with a malformed/duplicate input, close on a missing id).",
+        "quantifier": null,
+        "constitution_ref": "3.2",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Gate slice + primitive-extension behavior with Vitest + Testing Library (and Playwright CT for keyboard/focus), co-located under __tests__/ split .test.tsx/.ct.tsx \u2014 the test stack already established by feature 001.",
+        "quantifier": null,
+        "constitution_ref": "3.4",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "One responsibility per function; keep slice actions small (extract past ~40 lines); SOLID/DRY/KISS \u2014 favors the flat-array slice over a normalized map.",
+        "quantifier": null,
+        "constitution_ref": "3.6",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Search before building: reuse the existing Tabs primitive, the Icon atom, cx(), and tokens.css; compose the primitive rather than re-rolling tab a11y; introduce no new runtime dependency.",
+        "quantifier": null,
+        "constitution_ref": "6.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Mirror the in-repo zustand convention exactly: a single module-level create<State>((set)=>...) instance, state mutated only through store actions, consumed via per-field selectors; tabsStore holds a flat { tabs: Tab[]; activeTabId } where array order IS tab order.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Style exclusively via tokens-bound semantic class names (color/bg/border/text vars, radius/font/shadow scales, per-method colors for any method marker); a per-component sibling .css; no inline styles; animations gated behind prefers-reduced-motion.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Author hygiene/AC verification commands behaviorally or with comment-line stripping so a grep does not self-match JSDoc/comments that quote the forbidden pattern (lesson from feature 002 AC-14).",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "The opt-in Tabs primitive extension must not break existing selection-only consumers: closable/onClose default-off, with a test proving the 002 path is byte-identical (no Delete handler, no extra DOM node, no extra tab stop).",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "tabsStore slice",
+        "files": [
+          "src/renderer/src/lib/tabsStore.ts"
+        ],
+        "impact": "Create new \u2014 module-level zustand slice (tabs[], activeTabId) with lifecycle actions (openFromCollection id-then-url dedupe, newBlank, close never-zero + right-then-left neighbor, selectActive), per-tab dirty + markClean(tabId), and seed-default construction; mirrors settingsStore/toastStore convention"
+      },
+      {
+        "area": "RequestSpec domain model",
+        "files": [
+          "src/renderer/src/lib/requestSpec.ts"
+        ],
+        "impact": "Create new \u2014 RequestSpec + Row + Auth discriminated-union ({none}|{bearer,token}) types, a type guard for auth narrowing, and a makeBlankRequest() seed factory (GET, empty url/name/body, Accept: application/json header, auth bearer {{apiKey}}); no auth->headers mirroring"
+      },
+      {
+        "area": "TabBar organism",
+        "files": [
+          "src/renderer/src/components/organisms/TabBar.tsx",
+          "src/renderer/src/components/organisms/TabBar.css"
+        ],
+        "impact": "Create new \u2014 strip UI composing the Tabs primitive; maps tabsStore tabs to TabDescriptors (label precedence name->method+url->Untitled, dirty marker via badge slot, '+' via actions slot), wires selectActive/close/newBlank, styled via tokens-bound semantic classes"
+      },
+      {
+        "area": "Tabs primitive extension",
+        "files": [
+          "src/renderer/src/components/molecules/Tabs.tsx",
+          "src/renderer/src/components/molecules/Tabs.css"
+        ],
+        "impact": "Modify \u2014 add opt-in closable/onClose props (default-off, backward-compatible): per-tab X as a sibling tabIndex=-1 button (not a roving stop) + Delete/Backspace close on the focused tab; onClose signal-only; preserve roving-focus integrity on close re-render"
+      },
+      {
+        "area": "Shell tabs-slot wiring",
+        "files": [
+          "src/renderer/src/components/organisms/Shell.tsx"
+        ],
+        "impact": "Modify \u2014 mount the real <TabBar/> into the existing shell tabs slot (replacing the test fixture); no new layout plumbing"
+      },
+      {
+        "area": "Slice + component tests",
+        "files": [
+          "src/renderer/src/lib/__tests__/tabsStore.test.ts",
+          "src/renderer/src/components/organisms/__tests__/TabBar.test.tsx",
+          "src/renderer/src/components/molecules/__tests__/Tabs.test.tsx",
+          "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx"
+        ],
+        "impact": "Create new / extend \u2014 Vitest unit tests for every lifecycle action + dirty/markClean + invariants; TabBar render/select/close tests; closable=true a11y (axe, no interactive nested in role=tab) + closable=false byte-identical regression for the 002 path"
+      },
+      {
+        "area": "PrimitivesDemo gallery",
+        "files": [
+          "src/renderer/src/components/PrimitivesDemo.tsx"
+        ],
+        "impact": "Modify \u2014 register a closable Tabs variant (and/or TabBar) for dev-only manual visual fidelity check against design/reference.html"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Request-editing panels \u2014 the params/headers/body/auth editors that bind to the active tab's RequestSpec (T4 ships the model + slice they will consume, not the editors).",
+        "finding_ref": "F-2026-06-24-working-tabs-state-machine-request-data-model-requestspec-14"
+      },
+      {
+        "content": "Real send and save \u2014 no http-engine wiring and no persistence; tabs state is in-memory only this release (markClean is exposed for those siblings to call, but the trigger sites are not built here).",
+        "finding_ref": "F-claude-3"
+      },
+      {
+        "content": "Variable interpolation / {{...}} template resolution \u2014 urls, tokens, and headers are stored and displayed verbatim; no resolution at any point in T4.",
+        "finding_ref": "F-2026-06-24-working-tabs-state-machine-request-data-model-requestspec-14"
+      },
+      {
+        "content": "Auth types beyond none and bearer \u2014 basic, apikey, digest, oauth2, awsv4, ntlm, inherit are deferred; the discriminated union is extensible but seeded with only {none} and {bearer,token}.",
+        "finding_ref": "F-2026-06-24-working-tabs-state-machine-request-data-model-requestspec-14"
+      },
+      {
+        "content": "Auth-to-wire-header derivation \u2014 auth is NOT mirrored into headers[]; computing an Authorization header from the auth field is a later concern.",
+        "finding_ref": "F-2026-06-24-working-tabs-state-machine-request-data-model-requestspec-14"
+      },
+      {
+        "content": "The sibling trigger sites that drive the slice \u2014 collection-list calling openFromCollection, http-engine calling markClean on a successful send, and persistence calling markClean on save; T4 owns only the slice, the TabBar, and the markClean action.",
+        "finding_ref": "F-2026-06-24-working-tabs-state-machine-request-data-model-requestspec-13"
+      },
+      {
+        "content": "Reproducing design/reference.html markup or its generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks-panel); the reference is for look only, matched via tokens-bound semantic classes.",
+        "finding_ref": "F-spec-4"
+      },
+      {
+        "content": "Repo-wide reformatting or unrelated housekeeping commits on this feature branch \u2014 they pollute the /verify hygiene scope vs the breakdown baseline.",
+        "finding_ref": "F-memory-2"
+      }
+    ],
+    "open_questions": [
+      {
+        "question_id": "Q-1",
+        "content": "Richer URL-dedupe normalization (single trailing-slash trim, scheme/host lowercasing) is deferred to a later task that operates on RESOLVED urls (T4 compares verbatim un-interpolated templates). Flag for that task: trailing-slash trim is lossy for non-root paths (/users != /users/) and must not collapse them blindly.",
+        "category_no_dp_reason": ""
+      },
+      {
+        "question_id": "Q-2",
+        "content": "The RequestSpec serialization JSON shape is a cross-task contract with the out-of-scope persistence task; T4 should pin it (a shared contract test) to avoid rework when persistence lands. Resolved direction: keep RequestSpec a plain serializable object (no class instances/Symbols) so JSON.stringify(tab.spec) round-trips.",
+        "category_no_dp_reason": ""
+      }
+    ],
+    "risks": [
+      {
+        "risk": "The per-tab close-X primitive extension breaks the existing roving-tabindex a11y (nested interactive element in role=tab, lost focus on close, or dangling aria-controls).",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "Spike the extension against the primitive's existing roving-tabindex tests BEFORE building TabBar; X is a sibling tabIndex=-1 button (not a roving stop); add a closable=false byte-identical regression test and an axe pass for closable=true."
+      },
+      {
+        "risk": "The RequestSpec serialization shape drifts from the out-of-scope persistence task, forcing rework when persistence lands.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Pin the serialization JSON shape as a shared contract test now; keep RequestSpec a plain serializable object."
+      },
+      {
+        "risk": "A stale Vite/Playwright build cache makes a clean source file look broken (false RollupError naming a clean file), derailing diagnosis of the new slice/TabBar tests.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "When a build/test error names a clean file as the import source, clear the cache (playwright/.cache, node_modules/.vite, dist) and re-run BEFORE editing source or filing a bug."
+      },
+      {
+        "risk": "Repo-wide reformatting or housekeeping committed on the feature branch pollutes the /verify hygiene scope and produces false NEEDS-WORK artifacts.",
+        "likelihood": "Med",
+        "impact": "Low",
+        "mitigation": "Keep this branch's commits to the feature's src + test files; avoid prettier --write . and unrelated housekeeping."
+      }
+    ]
+  },
+  "provenance": {
+    "upstream_handoff_path": null,
+    "upstream_handoff_kind": null,
+    "upstream_completed_at": null
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}
