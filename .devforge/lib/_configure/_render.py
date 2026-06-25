@@ -275,8 +275,9 @@ def _build_substitution_map(project_config: dict, packages_detected: object) -> 
     (D) Identity passthrough:
         UPPERCASE → literal "{{UPPERCASE}}".
 
-    (E) Deprecated (substituted to empty string, WARNING emitted once):
-        STATE_MANAGEMENT, STYLING.
+    Keys not in any category above are NOT in sub_map; callers treating
+    an absent key as "missing" will return exit 2 (STATE_MANAGEMENT,
+    STYLING, and any other unlisted key fall into this class).
 
     project_config is the dict loaded from project-config.json (uppercase
     keys). packages_detected is the list from init.yaml's packages_detected

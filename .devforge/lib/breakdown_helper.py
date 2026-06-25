@@ -56,6 +56,14 @@ Subcommands:
       Exit 2: roster absent/empty, task files missing, or at least one offender.
               Prints a "## Agent roster findings" block to stdout on offenders.
 
+  verify-manifest-present <tasks-dir> [--reference-path <path>] [--manifest-path <path>] [--scope-only]
+      Assert design/reference.html present => specs/[feature]/design-manifest.json
+      present AND valid (plan 42 WI-1 — the 4th PHASE 3.5 integrity gate).
+      Exit 0: reference absent (non-UI feature) or manifest present-and-valid.
+      Exit 2: reference present but manifest absent, unreadable, or invalid.
+      Exit 3 (--scope-only): reference absent; Exit 0 (--scope-only): reference present.
+      Workspace root is cwd; feature-dir is parent of tasks-dir.
+
   verify-contract-chain <tasks-dir>
       Walk every *.md task file in <tasks-dir> (ignoring README.md). Parse
       each task's ### Expects and ### Produces bullet lists, skipping
@@ -1541,6 +1549,247 @@ def cmd_verify_agent_roster(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Phase 3.5 — manifest-presence validation (shared predicate + verify-manifest-present).
+# ---------------------------------------------------------------------------
+
+
+def _reference_present(workspace_root, reference_path="design/reference.html"):
+    # type: (str, str) -> bool
+    """Return True iff the design reference file exists at workspace_root/reference_path.
+
+    This is the SHARED, AUTHORITATIVE in-scope determination for the design-fidelity
+    apparatus (plan 42 D4).  Both the PHASE 2.5 produce step and the PHASE 3.5
+    backstop gate call this function so they cannot disagree about whether a feature
+    is in design scope.
+
+    Parameters
+    ----------
+    workspace_root : str
+        The workspace root directory (cwd of the CLI invocation).
+    reference_path : str
+        Path to the reference HTML, relative to workspace_root.
+        Default: 'design/reference.html'.
+
+    Returns
+    -------
+    bool — True when the file exists as a regular file.
+    """
+    full_path = Path(workspace_root) / reference_path
+    return full_path.is_file()
+
+
+def _validate_manifest_present(
+    feature_dir,
+    workspace_root,
+    reference_path="design/reference.html",
+    manifest_path_override=None,
+):
+    # type: (str, str, str, Optional[str]) -> Tuple[int, str, str]
+    """Core validation for the design-manifest-present invariant (plan 42 WI-1).
+
+    Asserts: reference_present => manifest_present AND manifest_valid.
+
+    Used by both the standalone verb (verify-manifest-present) and the
+    finalize-handoff chokepoint (Phase 2).
+
+    Parameters
+    ----------
+    feature_dir : str
+        The feature directory (parent of tasks/).  The manifest is expected at
+        feature_dir/design-manifest.json unless manifest_path_override is given.
+    workspace_root : str
+        Workspace root used to locate design/reference.html.
+    reference_path : str
+        Path to the reference HTML relative to workspace_root.
+    manifest_path_override : str or None
+        Override the manifest path (for testing / explicit --manifest-path flag).
+
+    Returns
+    -------
+    (exit_code, stdout_text, stderr_text)
+
+    exit_code:
+      0  — ok (either reference absent — not a design feature — or manifest valid)
+      2  — violation (reference present but manifest absent or invalid)
+
+    stdout_text:
+      On exit 0 (no reference):  one-liner skip message.
+      On exit 0 (valid):         one-liner ok message.
+      On exit 2 (absent):        '## Design manifest findings' block with remedy.
+      On exit 2 (invalid):       '## Design manifest findings' block with errors.
+
+    stderr_text:
+      Non-empty only when the feature-dir itself is broken/unresolvable (caller
+      should write this to stderr directly and return the exit code).
+    """
+    # Ensure _design is importable from the same lib dir as this file.
+    _lib_dir = Path(__file__).resolve().parent
+    if str(_lib_dir) not in sys.path:
+        sys.path.insert(0, str(_lib_dir))
+
+    from _design._schema import validate_manifest, manifest_from_json  # type: ignore[import]
+
+    feature_path = Path(feature_dir)
+
+    # Determine manifest path.
+    if manifest_path_override:
+        manifest_file = Path(manifest_path_override)
+    else:
+        manifest_file = feature_path / "design-manifest.json"
+
+    # Infer feature name for messages from the feature dir basename.
+    feature_name = feature_path.name
+
+    # --- Step 1: is this a design-reference feature? ---
+    if not _reference_present(workspace_root, reference_path):
+        return (
+            0,
+            "design-manifest: skip (no {ref} — not a design-reference feature)\n".format(
+                ref=reference_path
+            ),
+            "",
+        )
+
+    # --- Step 2: reference present, manifest absent → hard fail ---
+    if not manifest_file.is_file():
+        stdout = (
+            "## Design manifest findings\n"
+            "\n"
+            "- {ref} is present but {manifest} is absent.\n"
+            "  The PHASE 2.5 design-intake gate was skipped or did not complete.\n"
+            "\n"
+            "Remedy: re-run /breakdown PHASE 2.5 to produce the manifest for\n"
+            "  feature '{feature}' before proceeding to PHASE 3.5.\n"
+            "  Run `design_helper resolve-reference --html-path {ref}` then\n"
+            "  `design_helper init-manifest --reference-json <output>` and\n"
+            "  classify every element before running validate-manifest.\n"
+        ).format(
+            ref=reference_path,
+            manifest=str(manifest_file.relative_to(feature_path.parent)
+                         if manifest_file.is_absolute() and manifest_file.parts[:len(feature_path.parent.parts)] == feature_path.parent.parts
+                         else manifest_file),
+            feature=feature_name,
+        )
+        return (2, stdout, "")
+
+    # --- Step 3: both present → validate ---
+    try:
+        with open(str(manifest_file), "r", encoding="utf-8") as fh:
+            container = manifest_from_json(fh.read())
+    except (OSError, ValueError) as exc:
+        stdout = (
+            "## Design manifest findings\n"
+            "\n"
+            "- {manifest}: cannot be read or parsed: {exc}\n"
+        ).format(manifest=manifest_file, exc=exc)
+        return (2, stdout, "")
+
+    errors = validate_manifest(container)
+
+    if not errors:
+        return (
+            0,
+            "design-manifest: ok (manifest present and valid for '{feature}')\n".format(
+                feature=feature_name
+            ),
+            "",
+        )
+
+    # Validation errors → findings block.
+    lines = ["## Design manifest findings\n", "\n"]
+    for err in errors:
+        lines.append("- {0}\n".format(err))
+    lines.append(
+        "\nRemedy: classify all unclassified elements and resolve all gap-list\n"
+        "  entries before proceeding to PHASE 3.5.\n"
+    )
+    return (2, "".join(lines), "")
+
+
+def cmd_verify_manifest_present(args):
+    # type: (argparse.Namespace) -> int
+    """Assert design/reference.html present => design-manifest.json present AND valid.
+
+    This is the 4th PHASE 3.5 integrity gate (plan 42 WI-1), sibling to
+    verify-contract-chain, verify-ac-coverage, and verify-agent-roster.
+
+    Usage:
+      verify-manifest-present <tasks-dir>
+      verify-manifest-present <tasks-dir> [--reference-path <path>] [--manifest-path <path>]
+      verify-manifest-present <tasks-dir> --scope-only
+
+    Positional argument:
+      tasks-dir — path to the feature's tasks/ directory (e.g. specs/001-foo/tasks).
+        The feature directory is the parent of tasks-dir.
+        The workspace root is cwd.
+
+    Options:
+      --reference-path PATH
+        Reference file path relative to cwd (default: 'design/reference.html').
+      --manifest-path PATH
+        Override the manifest path (default: feature-dir/design-manifest.json).
+      --scope-only
+        In this mode: exit 0 if design/reference.html is present (feature IS in
+        design scope); exit 3 if absent (NOT a design feature).  No manifest
+        assertion is performed.  Callers use this to decide whether to run the
+        PHASE 2.5 design-intake producer step.
+
+    Exit codes (default mode):
+      0 — ok: either reference absent (non-UI feature, trivial pass) or manifest
+              present-and-valid.  Prints a one-liner ok/skip message to stdout.
+      2 — violation: reference present but manifest absent or invalid.
+              Prints a '## Design manifest findings' block to stdout (same shape
+              as '## Agent roster findings' — the orchestrator can branch on it).
+              Broken state (tasks-dir/feature-dir missing) also exits 2 with a
+              short message on stderr.
+
+    Exit codes (--scope-only mode):
+      0 — reference is present (feature IS in design scope).
+      3 — reference is absent (NOT a design feature).
+    """
+    tasks_dir_raw = args.tasks_dir
+    reference_path = getattr(args, "reference_path", "design/reference.html") or "design/reference.html"
+    manifest_path_override = getattr(args, "manifest_path_override", None)
+    scope_only = getattr(args, "scope_only", False)
+
+    # Resolve tasks dir and feature dir.
+    tasks_path = Path(tasks_dir_raw)
+    if not tasks_path.is_absolute():
+        tasks_path = Path.cwd() / tasks_path
+
+    workspace_root = str(Path.cwd())
+
+    # Broken state: tasks dir does not exist.
+    if not tasks_path.exists():
+        sys.stderr.write(
+            "breakdown_helper: tasks directory not found: {0}\n".format(tasks_dir_raw)
+        )
+        return 2
+
+    feature_dir = tasks_path.parent
+
+    # --scope-only: pure existence check, no manifest assertion.
+    if scope_only:
+        if _reference_present(workspace_root, reference_path):
+            return 0
+        return 3
+
+    # Full assertion mode.
+    exit_code, stdout_text, stderr_text = _validate_manifest_present(
+        feature_dir=str(feature_dir),
+        workspace_root=workspace_root,
+        reference_path=reference_path,
+        manifest_path_override=manifest_path_override,
+    )
+
+    if stdout_text:
+        sys.stdout.write(stdout_text)
+    if stderr_text:
+        sys.stderr.write(stderr_text)
+    return exit_code
+
+
+# ---------------------------------------------------------------------------
 # Phase 4 — task-file parsing helpers (for finalize-handoff).
 # ---------------------------------------------------------------------------
 
@@ -1800,7 +2049,9 @@ def cmd_finalize_handoff_breakdown(args: argparse.Namespace) -> int:
 
     Exit 0: prints written path on stdout.
     Exit 2: plan.md missing, tasks_dir missing/empty, placeholder agent detected,
-            or schema validation failure.
+            schema validation failure, unknown assigned agent (roster check), or
+            design-manifest violation (design/reference.html present but
+            design-manifest.json absent/invalid — plan 42 WI-1 chokepoint).
     Exit 1: I/O write failure.
     """
     # Ensure lib dir on path for schema imports.
@@ -1976,6 +2227,26 @@ def cmd_finalize_handoff_breakdown(args: argparse.Namespace) -> int:
         sys.stdout.write(
             "\nAvailable agents: {agents}\n".format(agents=", ".join(roster))
         )
+        return 2
+
+    # Design-manifest validation (plan 42 WI-1 chokepoint): a reference-present
+    # feature must have a present-and-valid design-manifest.json before the
+    # handoff is written.  Uses the same _validate_manifest_present predicate as
+    # the standalone verify-manifest-present verb (Phase 3.5).
+    # feature_dir = plan_dir (the manifest is specs/NNN-slug/design-manifest.json,
+    # sibling to plan.md; plan_dir is the parent of tasks_dir).
+    # reference_path is always the default for finalize-handoff — the
+    # finalize-handoff subparser registers no --reference-path flag (only
+    # verify-manifest-present does), so this is the constant 'design/reference.html'.
+    _manifest_exit, _manifest_out, _manifest_err = _validate_manifest_present(
+        feature_dir=str(plan_dir),
+        workspace_root=str(Path.cwd()),
+        reference_path="design/reference.html",
+    )
+    if _manifest_exit != 0:
+        sys.stdout.write(_manifest_out)
+        if _manifest_err:
+            sys.stderr.write(_manifest_err)
         return 2
 
     # Parse README.md for dependency_graph and additions.
@@ -2282,6 +2553,47 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to the installed agent roster directory (default: .claude/agents).",
     )
     sp.set_defaults(func=cmd_verify_agent_roster)
+
+    # verify-manifest-present
+    sp = sub.add_parser(
+        "verify-manifest-present",
+        help=(
+            "Assert design/reference.html present => specs/[feature]/design-manifest.json "
+            "present AND valid (plan 42 WI-1).  The 4th PHASE 3.5 integrity gate.  "
+            "Exit 0: reference absent (non-UI feature, trivial pass) or manifest valid.  "
+            "Exit 2: reference present but manifest absent or invalid.  "
+            "Exit 3 (--scope-only): reference absent (NOT a design feature).  "
+            "Exit 0 (--scope-only): reference present (IS in design scope)."
+        ),
+    )
+    sp.add_argument("tasks_dir", help="Directory containing task *.md files.")
+    sp.add_argument(
+        "--reference-path",
+        dest="reference_path",
+        default="design/reference.html",
+        help=(
+            "Reference HTML path relative to cwd (default: 'design/reference.html')."
+        ),
+    )
+    sp.add_argument(
+        "--manifest-path",
+        dest="manifest_path_override",
+        default=None,
+        help=(
+            "Override the manifest path (default: <feature-dir>/design-manifest.json)."
+        ),
+    )
+    sp.add_argument(
+        "--scope-only",
+        dest="scope_only",
+        action="store_true",
+        default=False,
+        help=(
+            "Exit 0 if design/reference.html is present (feature in scope), "
+            "exit 3 if absent (not a design feature). No manifest assertion."
+        ),
+    )
+    sp.set_defaults(func=cmd_verify_manifest_present)
 
     # verify-contract-chain
     sp = sub.add_parser(

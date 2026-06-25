@@ -1,105 +1,125 @@
 {
   "project_name": "mintenvoy",
-  "generated_date": "2026-06-21",
-  "last_updated": "2026-06-21",
+  "generated_date": "2026-06-25",
+  "last_updated": "2026-06-25",
   "mode": "existing-codebase",
   "project_identity": {
     "name": "mintenvoy",
     "type": "desktop app",
-    "domain": "Desktop tooling for composing, sending, and inspecting HTTP API requests",
-    "stack": "TypeScript on Electron + React, three-process model (main / preload / renderer), bundled by electron-vite and packaged by electron-builder"
+    "domain": "Desktop API client for composing and sending HTTP requests, built on Electron's three-process model (main / preload / renderer) with a reusable headless UI-primitive library \u2014 Icon, Dropdown, Modal, Toast, Tabs.",
+    "stack": "TypeScript, React 19, Electron multi-process (main / preload / renderer), zustand state, Radix UI primitives, undici HTTP, electron-store persistence, electron-updater auto-update; bundled by electron-vite + Vite, packaged by electron-builder."
   },
   "architecture_rules": [
     {
       "number": "2.1",
       "title": "Process Boundaries",
       "tag": "project-specific",
-      "description": "mintEnvoy runs as three Electron processes \u2014 main (Node.js), preload (bridge), and renderer (React UI) \u2014 that communicate only over IPC; the renderer never touches Node APIs directly.",
+      "description": "Electron's three-process security model: a Node.js main process, a contextIsolation-safe preload bridge, and a browser-only React renderer \u2014 each with a fixed import boundary.",
       "rules": [
         {
-          "tag": "project-specific",
-          "text": "Main process owns app lifecycle, windows, native APIs, persistence (electron-store), and auto-update (electron-updater)."
+          "tag": "extracted",
+          "text": "main may use Node/Electron freely; it never imports renderer code"
         },
         {
-          "tag": "project-specific",
-          "text": "Renderer is sandboxed React UI; it reaches privileged capability only through the preload bridge."
+          "tag": "extracted",
+          "text": "preload is the only bridge \u2014 it exposes APIs to the renderer via contextBridge and depends on neither renderer UI nor main internals"
         },
         {
-          "tag": "project-specific",
-          "text": "Outbound HTTP (undici) runs in main, not the renderer; the renderer requests it over IPC."
+          "tag": "extracted",
+          "text": "renderer depends only on browser/React APIs and preload-exposed window globals \u2014 never on Node, Electron, or main"
+        },
+        {
+          "tag": "enforced",
+          "text": "contextBridge exposure runs only under a process.contextIsolated guard and is wrapped in try/catch"
         }
       ],
       "tables": [
         {
-          "columns": ["Process", "Path", "Contains", "Imports from"],
+          "columns": [
+            "Layer",
+            "Path",
+            "Contains",
+            "Imports from"
+          ],
           "rows": [
             [
-              "Main",
+              "Main process",
               "src/main/",
-              "Lifecycle, windows, native APIs, electron-store, electron-updater",
-              "Node.js, electron"
+              "BrowserWindow, app lifecycle, IPC host",
+              "Node, Electron (freely)"
             ],
             [
-              "Preload",
+              "Preload bridge",
               "src/preload/",
-              "contextBridge IPC surface",
-              "electron, @electron-toolkit/preload"
+              "contextBridge API surface to window",
+              "@electron-toolkit/preload only"
             ],
             [
               "Renderer",
-              "src/renderer/src/",
-              "React 19 UI, zustand state",
-              "react, @renderer alias"
+              "src/renderer/",
+              "React UI, stores, design tokens",
+              "browser/React + preload window globals"
             ]
           ]
         }
       ],
-      "code_examples": []
+      "code_examples": [
+        {
+          "label": "CORRECT",
+          "language": "ts",
+          "code": "// renderer \u2014 reach the platform via a preload-exposed global\nconst versions = window.electron.process.versions",
+          "annotation": "renderer talks to the platform only through preload globals"
+        },
+        {
+          "label": "WRONG",
+          "language": "ts",
+          "code": "// renderer \u2014 FORBIDDEN: direct Node/Electron import\nimport { ipcRenderer } from 'electron'",
+          "annotation": "renderer must never import Node/Electron directly"
+        }
+      ]
     },
     {
       "number": "2.2",
-      "title": "IPC & Security",
+      "title": "Renderer Tier Organization",
       "tag": "project-specific",
-      "description": "All main-renderer communication crosses the preload contextBridge; contextIsolation stays on and nodeIntegration stays off.",
+      "description": "The renderer is a small atomic-design system; component tiers and the leaf lib layer import in one direction only.",
       "rules": [
         {
-          "tag": "project-specific",
-          "text": "Expose the IPC surface from src/preload via contextBridge.exposeInMainWorld; never enable nodeIntegration in the renderer."
+          "tag": "extracted",
+          "text": "renderer component tiers flow downward only: organisms \u2192 molecules \u2192 atoms; no sibling-tier or upward imports"
         },
         {
-          "tag": "universal",
-          "text": "Validate and narrow every IPC payload at the boundary before use."
+          "tag": "extracted",
+          "text": "renderer lib (cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec) is leaf-level \u2014 components depend on lib, lib depends on nothing renderer-external"
+        },
+        {
+          "tag": "extracted",
+          "text": "requestSpec is imported by tabsStore but stays a pure data module \u2014 no component imports"
         }
       ],
       "tables": [],
       "code_examples": [
         {
-          "label": "CORRECT",
-          "language": "ts",
-          "code": "import { contextBridge, ipcRenderer } from 'electron'\n\ncontextBridge.exposeInMainWorld('api', {\n  sendRequest: (req: ApiRequest) => ipcRenderer.invoke('http:send', req)\n})",
-          "annotation": "preload exposes a typed API surface"
-        },
-        {
-          "label": "WRONG",
-          "language": "ts",
-          "code": "// in renderer code\nconst { ipcRenderer } = require('electron')\nipcRenderer.invoke('http:send', req) // nodeIntegration must be OFF",
-          "annotation": "renderer reaching electron directly bypasses isolation"
+          "label": "EXAMPLE",
+          "language": "text",
+          "code": "src/\n\u251c\u2500\u2500 main/        # Node.js main process \u2014 BrowserWindow, app lifecycle, IPC host\n\u251c\u2500\u2500 preload/     # contextIsolation-safe bridge (contextBridge \u2192 window globals)\n\u2514\u2500\u2500 renderer/src/\n    \u251c\u2500\u2500 components/\n    \u2502   \u251c\u2500\u2500 atoms/      # Icon\n    \u2502   \u251c\u2500\u2500 molecules/  # Dropdown, Modal, Toast (Radix); Tabs (hand-rolled WAI-ARIA)\n    \u2502   \u2514\u2500\u2500 organisms/  # Shell, Titlebar, Sidebar, PaneSplit, Statusbar, Divider, TabBar\n    \u251c\u2500\u2500 lib/    # cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec\n    \u2514\u2500\u2500 styles/ # tokens.css design tokens",
+          "annotation": "renderer module structure"
         }
       ]
     },
     {
       "number": "2.3",
-      "title": "Module Organization & Imports",
+      "title": "Import & Path Rules",
       "tag": "project-specific",
-      "description": "Renderer modules resolve through the @renderer alias defined in electron.vite.config.ts.",
+      "description": "Cross-module renderer imports resolve through a path alias, never deep relative chains; Node/Electron stay out of the renderer entirely.",
       "rules": [
         {
           "tag": "enforced",
-          "text": "@renderer resolves to src/renderer/src (electron.vite.config.ts); import renderer modules via the alias, not deep relative paths."
+          "text": "renderer imports cross-module code via the @renderer path alias rather than deep relative paths"
         },
         {
-          "tag": "project-specific",
-          "text": "Keep code in its process dir: src/main, src/preload, src/renderer \u2014 no cross-process imports except the preload-exposed API."
+          "tag": "enforced",
+          "text": "renderer modules import no Node/Electron APIs"
         }
       ],
       "tables": [],
@@ -111,15 +131,19 @@
       "number": "3.1",
       "title": "Type Safety",
       "tag": "project-specific",
-      "description": "TypeScript runs in strict mode (@electron-toolkit/tsconfig base) across node + web configs.",
+      "description": "TypeScript strict mode across both node and web configs; untyped boundaries narrow rather than cast.",
       "rules": [
         {
           "tag": "enforced",
-          "text": "strict is on; do not weaken it per-file. Type-check via 'npm run typecheck' (node + web) before completing a task."
+          "text": "TypeScript strict mode is on (tsconfig strict) \u2014 no implicit any"
         },
         {
           "tag": "enforced",
-          "text": "No 'any'. Type external/IPC input as 'unknown' and narrow with a type guard."
+          "text": "type-check passes for both configs before task completion (npm run typecheck:node && npm run typecheck:web)"
+        },
+        {
+          "tag": "universal",
+          "text": "prefer unknown + a type guard over any at untyped boundaries"
         }
       ],
       "tables": [],
@@ -127,14 +151,14 @@
         {
           "label": "CORRECT",
           "language": "ts",
-          "code": "function parse(input: unknown): ApiRequest {\n  if (!isApiRequest(input)) throw new Error('invalid request')\n  return input\n}",
-          "annotation": "narrow unknown with a guard"
+          "code": "function parse(raw: string): RequestSpec {\n  const data: unknown = JSON.parse(raw)\n  if (isRequestSpec(data)) return data\n  return makeBlankRequest()\n}",
+          "annotation": "narrow unknown through a type guard"
         },
         {
           "label": "WRONG",
           "language": "ts",
-          "code": "function parse(input: any) {\n  return input\n}",
-          "annotation": "any disables type checking"
+          "code": "const data = JSON.parse(raw) as any  // bypasses type safety",
+          "annotation": "any defeats strict mode"
         }
       ]
     },
@@ -142,19 +166,19 @@
       "number": "3.2",
       "title": "Error Handling",
       "tag": "project-specific",
-      "description": "The project uses thrown exceptions.",
+      "description": "Boundary lookups degrade gracefully; bridge exposure logs on failure rather than swallowing.",
       "rules": [
         {
-          "tag": "universal",
-          "text": "Never swallow errors \u2014 no empty catch; handle, re-throw, or log with reason."
+          "tag": "extracted",
+          "text": "boundary lookups degrade gracefully instead of throwing (resolveIcon returns a fallback entry)"
+        },
+        {
+          "tag": "extracted",
+          "text": "contextBridge exposure is wrapped in try/catch and logs on failure rather than swallowing"
         },
         {
           "tag": "universal",
-          "text": "Handle both success and error paths of every fallible operation."
-        },
-        {
-          "tag": "project-specific",
-          "text": "IPC handlers in main catch and convert errors into structured results the renderer can render \u2014 don't leak raw stack traces across the bridge."
+          "text": "never swallow errors \u2014 handle, re-throw, or log with a reason; no empty catch blocks"
         }
       ],
       "tables": [],
@@ -163,18 +187,46 @@
     {
       "number": "3.3",
       "title": "Naming Conventions",
-      "tag": "universal",
-      "description": "Consistent naming across React, hooks, stores, and IPC channels.",
-      "rules": [],
+      "tag": "project-specific",
+      "description": "Components PascalCase one-per-file; lib helpers and stores camelCase; styles in sibling .css.",
+      "rules": [
+        {
+          "tag": "extracted",
+          "text": "components in PascalCase, one per file (Icon.tsx, Dropdown.tsx)"
+        },
+        {
+          "tag": "extracted",
+          "text": "lib helpers and stores in camelCase modules (cx.ts, toastStore.ts)"
+        }
+      ],
       "tables": [
         {
-          "columns": ["What", "Convention", "Example"],
+          "columns": [
+            "What",
+            "Convention",
+            "Example"
+          ],
           "rows": [
-            ["React component", "PascalCase", "Versions"],
-            ["Hook", "camelCase, use-prefix", "useRequestStore"],
-            ["zustand store", "camelCase, Store suffix", "requestStore"],
-            ["Component file", "PascalCase.tsx", "App.tsx"],
-            ["IPC channel", "namespaced colon", "http:send"]
+            [
+              "Component",
+              "PascalCase, one per file",
+              "Icon.tsx, Modal.tsx"
+            ],
+            [
+              "lib helper/store",
+              "camelCase module",
+              "cx.ts, toastStore.ts"
+            ],
+            [
+              "Component style",
+              "sibling .css file",
+              "Icon.css, Shell.css"
+            ],
+            [
+              "Test file",
+              "__tests__/ co-located",
+              "Icon.test.tsx, Icon.ct.tsx"
+            ]
           ]
         }
       ],
@@ -183,16 +235,16 @@
     {
       "number": "3.4",
       "title": "Testing Requirements",
-      "tag": "universal",
-      "description": "No test infrastructure exists yet (testings: N/A).",
+      "tag": "project-specific",
+      "description": "Vitest unit + Playwright component tests, co-located by tier.",
       "rules": [
         {
-          "tag": "universal",
-          "text": "When adding tests, cover acceptance criteria including edge + error paths; follow the chosen runner's existing patterns once established."
+          "tag": "extracted",
+          "text": "co-located tests under __tests__/ next to the code, split .test.tsx (Vitest) and .ct.tsx (Playwright CT)"
         },
         {
-          "tag": "project-specific",
-          "text": "Pick a renderer test stack (e.g. Vitest + Testing Library) before the first feature that needs coverage; record it in docs/architecture.md."
+          "tag": "universal",
+          "text": "cover the acceptance criteria including edge and error paths"
         }
       ],
       "tables": [],
@@ -200,21 +252,21 @@
     },
     {
       "number": "3.5",
-      "title": "Documentation",
+      "title": "Documentation & Code Discovery",
       "tag": "universal",
-      "description": "Code discovery routes through codebase-memory-mcp; new code carries clear docs.",
+      "description": "New code is documented; structural code exploration routes through the codebase-memory graph, not raw file reads.",
       "rules": [
         {
+          "tag": "universal",
+          "text": "all new functions/variables carry clear documentation"
+        },
+        {
           "tag": "enforced",
-          "text": "Structural code queries use codebase-memory-mcp tools (search_graph / trace_path / get_code_snippet / search_code / query_graph), not raw Read/Grep/Glob over source \u2014 CBM hooks block raw discovery on first match per session."
+          "text": "structural code queries route through codebase-memory-mcp tools (search_graph / trace_path / get_code_snippet / search_code / query_graph) \u2014 NOT raw Read/Grep/Glob over source files; CBM hooks block raw discovery at PreToolUse on the first match per session"
         },
         {
           "tag": "universal",
-          "text": "docs/ is LLM-context-source first, dev-greppable second; structural metadata stays in CBM, not embedded in docs/."
-        },
-        {
-          "tag": "universal",
-          "text": "All new functions and exported types carry clear documentation."
+          "text": "docs/ is LLM-context-source first, dev-greppable second; concern prose lives in docs/<pkg>/<concern>/index.md; structural metadata stays in CBM, never embedded in docs/"
         }
       ],
       "tables": [],
@@ -222,17 +274,17 @@
     },
     {
       "number": "3.6",
-      "title": "Function Length & Complexity",
+      "title": "Simplicity & Reuse",
       "tag": "universal",
-      "description": "Keep units small and single-purpose.",
+      "description": "Keep changes minimal and reuse before building.",
       "rules": [
         {
           "tag": "universal",
-          "text": "One responsibility per function; extract when a function grows past ~40 lines or mixes concerns."
+          "text": "SOLID, DRY, KISS \u2014 single responsibility; don't repeat logic 3+ times; keep it simple"
         },
         {
           "tag": "universal",
-          "text": "SOLID, DRY (don't repeat logic 3+ times), KISS."
+          "text": "search the codebase for an existing utility/helper/component before writing anything generic"
         }
       ],
       "tables": [],
@@ -243,81 +295,109 @@
     "always_universal": [
       {
         "tag": "universal",
-        "text": "Validate inputs at module boundaries; trust internal code."
+        "text": "Validate external input at module boundaries; trust internal code"
       },
       {
         "tag": "universal",
-        "text": "Read a file before modifying it."
+        "text": "Handle both success and error paths for every fallible operation"
       },
       {
         "tag": "universal",
-        "text": "Handle both success and error paths of every fallible operation."
+        "text": "Read a file before modifying it"
       }
     ],
     "always_project_specific": [
       {
-        "tag": "project-specific",
-        "text": "Shared renderer state lives in a zustand store."
+        "tag": "extracted",
+        "text": "Shared UI state lives in module-level zustand stores (toastStore, settingsStore, tabsStore) \u2014 one instance each"
       },
       {
-        "tag": "project-specific",
-        "text": "Reach privileged capability only through the preload-exposed API."
+        "tag": "extracted",
+        "text": "Mutate state only through store actions"
       },
       {
-        "tag": "project-specific",
-        "text": "Run outbound HTTP (undici) in main; the renderer requests it over IPC."
+        "tag": "extracted",
+        "text": "Shell view state (theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed) lives exclusively in settingsStore \u2014 Shell.tsx is the sole writer of the matching document.documentElement attrs/vars"
+      },
+      {
+        "tag": "extracted",
+        "text": "Working-tabs lifecycle (open, dedupe, close, dirty) lives exclusively in tabsStore \u2014 TabBar.tsx is the sole subscriber wiring store actions to the Tabs molecule"
+      },
+      {
+        "tag": "extracted",
+        "text": "Compose conditional class tokens with cx() (falsy-filtering merge)"
+      },
+      {
+        "tag": "extracted",
+        "text": "Resolve icon names through resolveIcon \u2014 total, never throws, returns a fallback entry"
       }
     ],
     "never_universal": [
       {
         "tag": "universal",
-        "text": "Never swallow errors (no empty catch)."
+        "text": "Never swallow errors silently"
       },
       {
         "tag": "universal",
-        "text": "Never commit secrets, API keys, or tokens."
+        "text": "Never commit secrets or debug artifacts (console.log, debugger, stray print)"
       },
       {
         "tag": "universal",
-        "text": "Never leave debug artifacts (console.log, debugger) behind."
+        "text": "Never modify code outside the task scope"
       }
     ],
     "never_project_specific": [
       {
-        "tag": "project-specific",
-        "text": "Never enable nodeIntegration in the renderer."
+        "tag": "extracted",
+        "text": "Never import Node/Electron in the renderer"
       },
       {
-        "tag": "project-specific",
-        "text": "Never import Node or electron directly in renderer code."
+        "tag": "extracted",
+        "text": "Never expose privileged APIs outside the preload contextBridge"
       },
       {
-        "tag": "project-specific",
-        "text": "Never mutate zustand state outside its store actions."
+        "tag": "extracted",
+        "text": "Never mutate zustand state outside a store action"
+      },
+      {
+        "tag": "extracted",
+        "text": "Never write Shell document.documentElement vars/attrs from anywhere but Shell.tsx"
+      },
+      {
+        "tag": "extracted",
+        "text": "Never add a raw px delta to a unitless ratio (Divider ratio-valued drag hazard)"
+      },
+      {
+        "tag": "extracted",
+        "text": "Never use inline styles \u2014 class-based styling composed with cx()"
       }
     ],
     "prefer_universal": [
       {
         "tag": "universal",
-        "text": "Prefer composition over inheritance."
+        "text": "Prefer composition over inheritance"
       },
       {
         "tag": "universal",
-        "text": "Prefer small, pure, single-purpose functions."
+        "text": "Prefer small, single-responsibility modules"
       }
     ],
     "prefer_project_specific": [
       {
-        "tag": "project-specific",
-        "text": "Prefer zustand selectors over reading the whole store."
+        "tag": "extracted",
+        "text": "Prefer wrapping Radix for new molecules (Dropdown/Modal/Toast); hand-rolled WAI-ARIA only as a documented departure (Tabs)"
       },
       {
-        "tag": "project-specific",
-        "text": "Prefer the @renderer alias over deep relative imports."
+        "tag": "extracted",
+        "text": "Prefer design tokens (CSS custom properties in tokens.css) over literal style values"
       },
       {
-        "tag": "project-specific",
-        "text": "Prefer typed IPC wrappers over raw ipcRenderer calls in components."
+        "tag": "extracted",
+        "text": "Prefer the imperative toast() API for fire-and-forget toasts (wraps toastStore)"
+      },
+      {
+        "tag": "extracted",
+        "text": "Prefer the @renderer alias over deep relative imports"
       }
     ]
   },
@@ -326,23 +406,53 @@
       "number": "5.1",
       "title": "Key Entities",
       "tag": "project-specific",
-      "description": "The API-client domain centers on a small set of entities (design intent \u2014 not yet implemented in the scaffold).",
+      "description": "The core domain objects of the API client and its UI shell.",
       "rules": [
         {
-          "tag": "project-specific",
-          "text": "Request \u2014 an HTTP call definition (method, URL, headers, body)."
+          "tag": "extracted",
+          "text": "RequestSpec \u2014 the HTTP request domain model (method, url, headers, body); created blank via makeBlankRequest"
         },
         {
-          "tag": "project-specific",
-          "text": "Response \u2014 the result of sending a Request (status, headers, body, timing)."
+          "tag": "extracted",
+          "text": "Working tab \u2014 an open request in the tabs strip; lifecycle (open, dedupe, close, dirty) owned by tabsStore"
         },
         {
-          "tag": "project-specific",
-          "text": "Collection \u2014 a saved, organized group of Requests."
+          "tag": "extracted",
+          "text": "Toast \u2014 a transient notification queued in toastStore, surfaced via the imperative toast() API"
         },
         {
-          "tag": "project-specific",
-          "text": "Environment \u2014 a named set of variables substituted into Requests at send time."
+          "tag": "extracted",
+          "text": "View state \u2014 theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed; the Shell SSOT in settingsStore"
+        },
+        {
+          "tag": "extracted",
+          "text": "UI primitives \u2014 Icon (atom); Dropdown/Modal/Toast/Tabs (molecules); Shell/Titlebar/Sidebar/PaneSplit/Statusbar/Divider/TabBar (organisms)"
+        }
+      ],
+      "tables": [],
+      "code_examples": []
+    },
+    {
+      "number": "5.2",
+      "title": "Domain Invariants",
+      "tag": "project-specific",
+      "description": "Lifecycle and ownership rules the domain state must hold.",
+      "rules": [
+        {
+          "tag": "extracted",
+          "text": "A working tab is deduped on open \u2014 re-opening the same request focuses the existing tab instead of duplicating it"
+        },
+        {
+          "tag": "extracted",
+          "text": "A working tab carries a dirty flag tracking unsaved edits"
+        },
+        {
+          "tag": "extracted",
+          "text": "settingsStore is the single source of truth for Shell view state; Shell.tsx is the only writer of the matching document attrs/vars"
+        },
+        {
+          "tag": "extracted",
+          "text": "requestSpec stays a pure data module \u2014 imported by tabsStore, never by components"
         }
       ],
       "tables": [],
@@ -354,11 +464,15 @@
       "number": "6.1",
       "title": "Minimal Changes",
       "tag": "universal",
-      "description": "Keep every change as small as possible.",
+      "description": null,
       "rules": [
         {
           "tag": "universal",
-          "text": "Every change impacts as little code as possible; don't fix unrelated code you happen to see."
+          "text": "Every change impacts as little code as possible"
+        },
+        {
+          "tag": "universal",
+          "text": "Never \"fix\" unrelated code you happen to see"
         }
       ],
       "tables": [],
@@ -368,11 +482,11 @@
       "number": "6.2",
       "title": "Read Before Write",
       "tag": "universal",
-      "description": "Understand a file before changing it.",
+      "description": null,
       "rules": [
         {
           "tag": "universal",
-          "text": "Always read a file before modifying it."
+          "text": "Always read a file before modifying it"
         }
       ],
       "tables": [],
@@ -382,11 +496,11 @@
       "number": "6.3",
       "title": "Search Before Building",
       "tag": "universal",
-      "description": "Reuse before reinventing.",
+      "description": null,
       "rules": [
         {
           "tag": "universal",
-          "text": "Before writing anything generic/reusable, search the codebase for an existing utility, helper, or component that already does it."
+          "text": "Search the codebase for an existing utility/helper/component before writing anything generic or reusable"
         }
       ],
       "tables": [],
@@ -396,11 +510,11 @@
       "number": "6.4",
       "title": "One Task At A Time",
       "tag": "universal",
-      "description": "Sequential execution along the dependency graph.",
+      "description": null,
       "rules": [
         {
           "tag": "universal",
-          "text": "Execute tasks sequentially along the dependency graph; finish and verify one before starting the next."
+          "text": "Execute tasks sequentially following the dependency graph"
         }
       ],
       "tables": [],
@@ -410,11 +524,11 @@
       "number": "6.5",
       "title": "Pre-flight Check",
       "tag": "universal",
-      "description": "Load context before each task.",
+      "description": null,
       "rules": [
         {
           "tag": "universal",
-          "text": "Before each task, read constitution.md + .devforge/memory.md so the task starts with the right context."
+          "text": "Read constitution.md and .devforge/memory.md before starting each task"
         }
       ],
       "tables": [],
@@ -422,21 +536,25 @@
     },
     {
       "number": "6.6",
-      "title": "Spec-Driven Workflow",
+      "title": "Project-Specific Workflow",
       "tag": "project-specific",
-      "description": "Enforcement level: Strict \u2014 every pipeline step requires explicit approval.",
+      "description": null,
       "rules": [
         {
           "tag": "project-specific",
-          "text": "Follow /specify, /plan, /breakdown, /implement, /review, /verify, /finalize; each hard gate needs explicit approval before advancing."
+          "text": "Spec-driven flow is strict \u2014 specs are contracts; once approved, implementation must satisfy every acceptance criterion"
         },
         {
           "tag": "project-specific",
-          "text": "Commits follow Conventional Commits; WIP commits squash into one clean feature commit at /finalize."
+          "text": "Hard gates block: spec approval \u2192 /plan; plan approval \u2192 /breakdown; breakdown approval \u2192 /implement; ACs verified in /verify"
+        },
+        {
+          "tag": "enforced",
+          "text": "Lint + type-check must pass on all changed files before task completion"
         },
         {
           "tag": "project-specific",
-          "text": "Commit messages include the AI attribution footer."
+          "text": "Commits follow Conventional Commits and include the Co-Authored-By: Claude attribution trailer"
         }
       ],
       "tables": [],
@@ -452,6 +570,9 @@
       "enabled": false
     },
     "any_with_generated_available": {
+      "enabled": false
+    },
+    "design_token_provenance": {
       "enabled": false
     }
   }

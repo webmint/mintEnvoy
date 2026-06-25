@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, Iterator, Union
 
-from ._schema import SPEC_STATUS_DEFAULT, STATE_FILE_NAME
+from ._schema import DESIGN_SOURCE_DEFAULT, SPEC_STATUS_DEFAULT, STATE_FILE_NAME
 
 try:
     import fcntl
@@ -33,6 +33,7 @@ def default_state() -> Dict[str, Any]:
         "spec_type_rationale": None,
         "spec_type_seeded_by_upstream": False,
         "status": SPEC_STATUS_DEFAULT,
+        "design_source": DESIGN_SOURCE_DEFAULT,
 
         # --- Phase 0 — branch state ----------------------------------------
         "current_branch": None,

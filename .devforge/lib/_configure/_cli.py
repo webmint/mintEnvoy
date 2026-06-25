@@ -4,7 +4,7 @@ Dispatcher-only. All cmd_* handler bodies live in sibling modules:
   _cmds_set    — all 28 cmd_set_* + cmd_reset + cmd_add_package_stack
                  + cmd_set_package_stacks
   _cmds_read   — read-init / read-docs / read-manifests / read-configs
-  _cmds_render — render-config / substitute-templates / prune-agents
+  _cmds_render — render-config / substitute-templates / substitute-file / prune-agents
   _cmds_verify — verify / summary
 """
 
@@ -26,6 +26,7 @@ from ._cmds_lint_ignore import cmd_lint_ignore
 from ._cmds_render import (
     cmd_prune_agents,
     cmd_render_config,
+    cmd_substitute_file,
     cmd_substitute_templates,
 )
 from ._cmds_set import (
@@ -357,6 +358,22 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     sp.set_defaults(func=cmd_substitute_templates)
+
+    sp = subparsers.add_parser(
+        "substitute-file",
+        help=(
+            "Substitute {{KEY}} placeholders in a single arbitrary file in place. "
+            "Reads project-config.json; writes atomically. "
+            "Exit 0 = substituted; exit 1 = config or file missing/malformed; "
+            "exit 2 = unknown placeholder (file unchanged)."
+        ),
+    )
+    sp.add_argument(
+        "--file",
+        required=True,
+        help="Path to the file to substitute in place.",
+    )
+    sp.set_defaults(func=cmd_substitute_file)
 
     # ------------------------------------------------------------------
     # Step 5a: prune-agents.

@@ -40,6 +40,14 @@ SPEC_TYPE_ENUM: Tuple[str, ...] = (
     "greenfield_feature",
 )
 
+# Design source — scheme enum and sentinel default for the **Design source**:
+# frontmatter field (plan 43 Step 1A).  Values: html:<path>,
+# figma:<url>, screenshot:<path>, or the literal "none".
+DESIGN_SOURCE_SCHEME_ENUM: Tuple[str, ...] = (
+    "html", "figma", "screenshot", "none",
+)
+DESIGN_SOURCE_DEFAULT = "none"
+
 # Phase 1.5 — Variance rule #5 finding-landing tracker.
 LANDED_IN_ENUM: Tuple[str, ...] = (
     "AC", "Constraint", "OOS", "Risk", "unlanded",

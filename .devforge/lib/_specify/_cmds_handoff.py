@@ -225,6 +225,84 @@ def _next_spec_number(devforge_dir: Path) -> int:
 
 
 
+def _normalize_ws(s: str) -> str:
+    """Collapse internal whitespace runs and strip ends.
+
+    Used for dedupe identity-key comparison only.  Does NOT casefold — constraint
+    and question text may carry case-sensitive identifiers (GET vs get, etc.).
+    """
+    return " ".join(s.split())
+
+
+def _dedupe_seeds(
+    items: List[Any],
+    key_fn: Any,  # Callable[[Any], Any] — avoided to stay 3.8-compat without TYPE_CHECKING
+    section: str,
+) -> List[Any]:
+    """Insertion-ordered first-occurrence-wins dedupe over a seed list.
+
+    items    — list of dataclass instances (Constraint / AffectedArea / Risk /
+               OpenQuestion from either the research or discover schema).
+    key_fn   — callable(item) -> hashable normalized identity key.  Used for
+               comparison ONLY; the original (un-normalized) field values from
+               the dataclass object are logged to stderr.
+    section  — human-readable section name for stderr drop lines, e.g. "constraints".
+
+    Semantics:
+    - First occurrence wins; later duplicates are dropped with a stderr log line.
+    - Relative order of survivors is preserved (insertion-ordered dict).
+    - The surviving object is returned verbatim (no field mutation).
+    - Each dropped entry produces exactly one stderr line showing the RAW
+      (pre-normalize) field values of both the dropped item AND the surviving
+      first occurrence, so an operator can confirm the collapse was correct:
+        import-handoff: dedupe <section> — dropped <dropped_item>
+          → collapsed into surviving <surviving_item>
+
+    Returns the deduped list (may be shorter than input).
+    """
+    seen: Dict[Any, Any] = {}  # normalized key -> original (first-occurrence) item
+    result: List[Any] = []
+    for item in items:
+        key = key_fn(item)
+        if key in seen:
+            sys.stderr.write(
+                "import-handoff: dedupe {section} — dropped {dropped}"
+                " → collapsed into surviving {surviving}\n".format(
+                    section=section,
+                    dropped=repr(item),
+                    surviving=repr(seen[key]),
+                )
+            )
+        else:
+            seen[key] = item
+            result.append(item)
+    return result
+
+
+def _constraint_key(c: Any) -> Any:
+    """Identity key for a Constraint: compound (kind, normalized content).
+
+    kind stays literal — two same-content constraints of different kind are
+    NOT duplicates.
+    """
+    return (c.kind, _normalize_ws(c.content))
+
+
+def _affected_area_key(a: Any) -> Any:
+    """Identity key for an AffectedArea: normalized area name."""
+    return _normalize_ws(a.area)
+
+
+def _risk_key(r: Any) -> Any:
+    """Identity key for a Risk: normalized risk text."""
+    return _normalize_ws(r.risk)
+
+
+def _open_question_key(q: Any) -> Any:
+    """Identity key for an OpenQuestion: normalized question text."""
+    return _normalize_ws(q.question)
+
+
 def _constraint_to_dict(c: handoff_schema.Constraint) -> Dict[str, Any]:
     """Serialize a handoff_schema.Constraint to the specify-state dict shape."""
     record: Dict[str, Any] = {"kind": c.kind, "content": c.content}
@@ -364,12 +442,16 @@ def _import_handoff_research(
         )
         return 2
 
-    # Extract spec seeds.
+    # Extract spec seeds — dedupe at source before converting to dicts.
     seeds = handoff.spec_seeds
-    constraints = [_constraint_to_dict(c) for c in seeds.constraints]
-    affected_areas = [_affected_area_to_dict(a) for a in seeds.affected_areas]
-    risks = [_risk_to_dict(r) for r in seeds.risks]
-    open_questions = [_open_question_to_dict(q, i) for i, q in enumerate(seeds.open_questions)]
+    constraints_src = _dedupe_seeds(seeds.constraints, _constraint_key, "constraints")
+    affected_areas_src = _dedupe_seeds(seeds.affected_areas, _affected_area_key, "affected_areas")
+    risks_src = _dedupe_seeds(seeds.risks, _risk_key, "risks")
+    open_questions_src = _dedupe_seeds(seeds.open_questions, _open_question_key, "open_questions")
+    constraints = [_constraint_to_dict(c) for c in constraints_src]
+    affected_areas = [_affected_area_to_dict(a) for a in affected_areas_src]
+    risks = [_risk_to_dict(r) for r in risks_src]
+    open_questions = [_open_question_to_dict(q, i) for i, q in enumerate(open_questions_src)]
     spec_type = seeds.spec_type_hint
     research_completed_at = handoff.research_completed_at
 
@@ -518,11 +600,15 @@ def _import_handoff_discover(
         )
         return 2
 
-    # Extract spec seeds.  Converters are compatible (same field names).
-    constraints = [_constraint_to_dict(c) for c in seeds.constraints]
-    affected_areas = [_discover_affected_area_to_dict(a) for a in seeds.affected_areas]
-    risks = [_risk_to_dict(r) for r in seeds.risks]
-    open_questions = [_open_question_to_dict(q, i) for i, q in enumerate(seeds.open_questions)]
+    # Extract spec seeds — dedupe at source before converting to dicts.
+    constraints_src = _dedupe_seeds(seeds.constraints, _constraint_key, "constraints")
+    affected_areas_src = _dedupe_seeds(seeds.affected_areas, _affected_area_key, "affected_areas")
+    risks_src = _dedupe_seeds(seeds.risks, _risk_key, "risks")
+    open_questions_src = _dedupe_seeds(seeds.open_questions, _open_question_key, "open_questions")
+    constraints = [_constraint_to_dict(c) for c in constraints_src]
+    affected_areas = [_discover_affected_area_to_dict(a) for a in affected_areas_src]
+    risks = [_risk_to_dict(r) for r in risks_src]
+    open_questions = [_open_question_to_dict(q, i) for i, q in enumerate(open_questions_src)]
     spec_type = seeds.spec_type_hint
 
     # Discover-specific source fields.

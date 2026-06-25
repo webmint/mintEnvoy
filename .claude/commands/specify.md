@@ -722,7 +722,31 @@ Non-blocking. Helper greps `constitution.md` for `MUST` / `MUST NOT` / `SHALL` /
 
 Non-blocking. Helper token-overlaps each §6 Out-of-Scope entry against every §5 AC `statement` and §4 affected-area `impact`, and surfaces a WARNING naming the §6 entry plus the conflicting §5/§4 entry whenever an OOS exclusion overlaps a mandate (the spec both excludes and requires the same concern). Warnings appear on stderr but exit code is 0 unless the helper itself fails — a warning is NOT a verify failure, so do not treat it as one. Surface any warning text to the user as plain prose. Recovery is advisory reconciliation, not a block: the author reconciles the real contradiction by EITHER dropping the §6 OOS entry (the concern is actually in scope) OR weakening/removing the §5/§4 mandate (the concern is actually out of scope). This is a token-overlap heuristic and WILL surface false positives (a §6 entry and a §5 AC sharing a noun without truly conflicting); on a false positive, note it and proceed — the hard human gate is the Phase 5 approval echo-back, and this check is a warning backstop behind it.
 
-### Step 4.10 — Render + save
+### Step 4.10 — Capture the design source
+
+Declare where this feature's UI design comes from. The declaration shape is `scheme:target` where scheme is one of `html`, `figma`, `screenshot`, or the bare literal `none`. This fires on every spec — a feature with no UI simply declares `none`.
+
+Ask via AskUserQuestion: `"What is this feature's design source?"` with options `["None — no UI, or no design reference", "Local design/reference.html", "Figma", "Screenshot / image file"]`. Default = the first option (None). Single-line question text. End the turn. The user's reply opens the next turn.
+
+<!-- Authoring note: the four options are a structured scheme (the composed `scheme:target` value feeds the `set-design-source` setter below); the Figma URL / screenshot path is captured in a next-turn prose follow-up. This split is intentional and must NOT be collapsed into an "Other" free-text option — that would make 5 options (over AskUserQuestion's 2–4 limit) and would not capture a structured scheme. -->
+
+
+Compose the declaration value from the choice:
+
+- `None — no UI, or no design reference` → `none` (fully determined; no follow-up needed).
+- `Local design/reference.html` → `html:design/reference.html` (fully determined; no follow-up needed).
+- `Figma` → in the next turn, ask in plain prose: `"Paste the Figma frame URL."` Compose `figma:<url>` from the URL the user supplies.
+- `Screenshot / image file` → in the next turn, ask in plain prose: `"Give the screenshot path, relative to the repo root."` Compose `screenshot:<path>` from the path the user supplies.
+
+Write the composed value:
+
+```bash
+.devforge/lib/specify_helper set-design-source --value "<composed value>"
+```
+
+The setter validates the shape: it exits non-zero (with a stderr message naming the valid shapes `html:<path> | figma:<url> | screenshot:<path> | none`) on an unknown scheme, an empty target, a bare recognized scheme with no colon, or any `none:<...>` (`none` must be bare). On non-zero exit, surface the stderr to the user, fix the value, and re-call.
+
+### Step 4.11 — Render + save
 
 ```bash
 .devforge/lib/specify_helper render
@@ -791,7 +815,7 @@ Re-run as an entry gate: state may have changed between Phase 4's first invocati
 AskUserQuestion: `"Approve this spec?"` with options `["approve", "request-changes", "cancel"]`. Single-line question text. End the turn. The user's reply opens the next turn.
 
 - **`approve`** → emit the manual-next-step block (Step 5.4). Spec status stays `Draft`. The user (or `/plan` on its first run) flips status to `Approved` separately — `/specify` does not auto-flip.
-- **`request-changes`** → in the next turn, ask the user which phase/section to revise. Re-enter the relevant phase (re-run the setters that touch the cited area), then re-run Phase 4 Step 4.9 verifiers + `render` + write the file + Phase 5 Step 5.1 summary + Step 5.3 approval. The state file persists across the loop; setters mutate in place.
+- **`request-changes`** → in the next turn, ask the user which phase/section to revise. Re-enter the relevant phase (re-run the setters that touch the cited area), then re-run Phase 4 Step 4.9 verifiers + Step 4.10 design-source capture + `render` + write the file + Phase 5 Step 5.1 summary + Step 5.3 approval. The state file persists across the loop; setters mutate in place.
 - **`cancel`** → leave `.devforge/specify-state.json` in its current state and the rendered `spec.md` on disk as a draft; tell the user `"Run /specify again when ready; current state preserved at .devforge/specify-state.json (will be overwritten on the next /specify invocation)."` End the turn.
 
 ### Step 5.4 — Manual-next-step block

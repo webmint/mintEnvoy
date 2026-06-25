@@ -1,4 +1,5 @@
-"""cmd_validate (4-dim content quality) + cmd_verify_universal_defaults (drift detector)."""
+"""cmd_validate (4-dim content quality) + cmd_verify_universal_defaults (drift detector)
++ cmd_verify_forcing_function_keys (forcing-function key drift detector)."""
 
 from __future__ import annotations
 
@@ -8,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List
 
+from ._schema import FORCING_FUNCTION_RULES
 from ._universal import (
     _extract_universal_rules_from_state,
     _parse_universal_blocks,
@@ -221,4 +223,87 @@ def cmd_verify_universal_defaults(args: argparse.Namespace) -> int:
             line += " [{0}]".format(f["rule"])
         line += " — {detail}".format(**f)
         sys.stderr.write(line + "\n")
+    return 2
+
+
+def cmd_verify_forcing_function_keys(args: argparse.Namespace) -> int:
+    """Diff consumer .devforge/constitute.json forcing_functions keys vs canonical.
+
+    Compares the set of rule keys present under ``forcing_functions`` in the
+    consumer's ``.devforge/constitute.json`` against the canonical
+    ``FORCING_FUNCTION_RULES`` frozenset from ``_schema``.  Reports ONLY the
+    MISSING direction — rules in the schema that are absent from the consumer.
+    Extra/unknown consumer keys are silently tolerated (forward-compat).
+
+    Args:
+        args.consumer_path — consumer project root containing
+            .devforge/constitute.json.
+
+    Exit codes:
+        0 — constitute.json exists and has no missing rules.
+        1 — constitute.json present but unreadable / invalid JSON.
+        2 — constitute.json exists but one or more schema rules are missing
+            (drift).
+        3 — constitute.json does NOT exist (project not yet constituted).
+
+    stdout — JSON report object (exit 0 and exit 2 only; absent on exit 1
+        and exit 3 — always check exit code before parsing stdout):
+        {"consumer": "<abs path>", "missing_rules": [...sorted...],
+         "schema_rules": [...sorted...]}
+
+    stderr — one ``MISSING forcing-function rule: <name>`` line per missing
+        rule (exit 2); or a single diagnostic note on exit codes 1 and 3.
+    """
+    consumer_path = Path(args.consumer_path).resolve()
+    consumer_json = consumer_path / ".devforge" / "constitute.json"
+
+    if not consumer_json.is_file():
+        sys.stderr.write(
+            "verify-forcing-function-keys: consumer constitute.json not found:"
+            " {0}\n".format(consumer_json)
+        )
+        return 3
+
+    try:
+        raw = consumer_json.read_text(encoding="utf-8")
+        data = json.loads(raw)
+    except (OSError, json.JSONDecodeError) as err:
+        sys.stderr.write(
+            "verify-forcing-function-keys: cannot read {path}: {err}\n".format(
+                path=consumer_json, err=err
+            )
+        )
+        return 1
+
+    if not isinstance(data, dict):
+        sys.stderr.write(
+            "verify-forcing-function-keys: cannot read {0}: top-level value is {1},"
+            " expected dict\n".format(consumer_json, type(data).__name__)
+        )
+        return 1
+
+    # forcing_functions absent or null → treat as all rules missing (exit 2 = drift).
+    # Covers both a pre-plan-01 install that predates the ff block and a block that
+    # was cleared. OQ1 (plan 44 Phase 0) is resolved here: absent inside a present
+    # constitute.json == drift. (Greenfield silent-skip — no constitute.json at all —
+    # is exit 3, handled separately, and the shell caller also guards on file presence.)
+    ff = data.get("forcing_functions")
+    consumer_keys = set((ff or {}).keys())
+    schema_rules = FORCING_FUNCTION_RULES
+
+    missing = sorted(schema_rules - consumer_keys)
+    report = {
+        "consumer": str(consumer_path),
+        "missing_rules": missing,
+        "schema_rules": sorted(schema_rules),
+    }
+    sys.stdout.write(json.dumps(report, indent=2) + "\n")
+
+    if not missing:
+        return 0
+
+    for rule in missing:
+        sys.stderr.write(
+            "MISSING forcing-function rule: {0}\n".format(rule)
+        )
     return 2

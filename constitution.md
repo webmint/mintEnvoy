@@ -1,7 +1,7 @@
 # Project Constitution — mintenvoy
 
-Generated: 2026-06-21
-Last updated: 2026-06-21
+Generated: 2026-06-25
+Last updated: 2026-06-25
 Mode: Existing Codebase
 
 > Sections marked `[universal]` are pre-populated with rules that apply to ALL projects.
@@ -13,8 +13,8 @@ Mode: Existing Codebase
 
 **Name**: mintenvoy
 **Type**: desktop app
-**Domain**: Desktop tooling for composing, sending, and inspecting HTTP API requests
-**Stack**: TypeScript on Electron + React, three-process model (main / preload / renderer), bundled by electron-vite and packaged by electron-builder
+**Domain**: Desktop API client for composing and sending HTTP requests, built on Electron's three-process model (main / preload / renderer) with a reusable headless UI-primitive library — Icon, Dropdown, Modal, Toast, Tabs.
+**Stack**: TypeScript, React 19, Electron multi-process (main / preload / renderer), zustand state, Radix UI primitives, undici HTTP, electron-store persistence, electron-updater auto-update; bundled by electron-vite + Vite, packaged by electron-builder.
 
 ---
 
@@ -24,49 +24,59 @@ These rules MUST be followed in every code change. Violating these rules require
 
 ### 2.1 Process Boundaries
 
-mintEnvoy runs as three Electron processes — main (Node.js), preload (bridge), and renderer (React UI) — that communicate only over IPC; the renderer never touches Node APIs directly.
+Electron's three-process security model: a Node.js main process, a contextIsolation-safe preload bridge, and a browser-only React renderer — each with a fixed import boundary.
 
-| Process  | Path              | Contains                                                          | Imports from                        |
-| -------- | ----------------- | ----------------------------------------------------------------- | ----------------------------------- |
-| Main     | src/main/         | Lifecycle, windows, native APIs, electron-store, electron-updater | Node.js, electron                   |
-| Preload  | src/preload/      | contextBridge IPC surface                                         | electron, @electron-toolkit/preload |
-| Renderer | src/renderer/src/ | React 19 UI, zustand state                                        | react, @renderer alias              |
+| Layer | Path | Contains | Imports from |
+|-------|------|----------|--------------|
+| Main process | src/main/ | BrowserWindow, app lifecycle, IPC host | Node, Electron (freely) |
+| Preload bridge | src/preload/ | contextBridge API surface to window | @electron-toolkit/preload only |
+| Renderer | src/renderer/ | React UI, stores, design tokens | browser/React + preload window globals |
+- [extracted] main may use Node/Electron freely; it never imports renderer code
+- [extracted] preload is the only bridge — it exposes APIs to the renderer via contextBridge and depends on neither renderer UI nor main internals
+- [extracted] renderer depends only on browser/React APIs and preload-exposed window globals — never on Node, Electron, or main
+- [enforced] contextBridge exposure runs only under a process.contextIsolated guard and is wrapped in try/catch
 
-- [project-specific] Main process owns app lifecycle, windows, native APIs, persistence (electron-store), and auto-update (electron-updater).
-- [project-specific] Renderer is sandboxed React UI; it reaches privileged capability only through the preload bridge.
-- [project-specific] Outbound HTTP (undici) runs in main, not the renderer; the renderer requests it over IPC.
-
-### 2.2 IPC & Security
-
-All main-renderer communication crosses the preload contextBridge; contextIsolation stays on and nodeIntegration stays off.
-
-- [project-specific] Expose the IPC surface from src/preload via contextBridge.exposeInMainWorld; never enable nodeIntegration in the renderer.
-- [universal] Validate and narrow every IPC payload at the boundary before use.
-
-**CORRECT** — preload exposes a typed API surface
+**CORRECT** — renderer talks to the platform only through preload globals
 
 ```ts
-import { contextBridge, ipcRenderer } from 'electron'
-
-contextBridge.exposeInMainWorld('api', {
-  sendRequest: (req: ApiRequest) => ipcRenderer.invoke('http:send', req)
-})
+// renderer — reach the platform via a preload-exposed global
+const versions = window.electron.process.versions
 ```
 
-**WRONG** — renderer reaching electron directly bypasses isolation
+**WRONG** — renderer must never import Node/Electron directly
 
 ```ts
-// in renderer code
-const { ipcRenderer } = require('electron')
-ipcRenderer.invoke('http:send', req) // nodeIntegration must be OFF
+// renderer — FORBIDDEN: direct Node/Electron import
+import { ipcRenderer } from 'electron'
 ```
 
-### 2.3 Module Organization & Imports
+### 2.2 Renderer Tier Organization
 
-Renderer modules resolve through the @renderer alias defined in electron.vite.config.ts.
+The renderer is a small atomic-design system; component tiers and the leaf lib layer import in one direction only.
+- [extracted] renderer component tiers flow downward only: organisms → molecules → atoms; no sibling-tier or upward imports
+- [extracted] renderer lib (cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec) is leaf-level — components depend on lib, lib depends on nothing renderer-external
+- [extracted] requestSpec is imported by tabsStore but stays a pure data module — no component imports
 
-- [enforced] @renderer resolves to src/renderer/src (electron.vite.config.ts); import renderer modules via the alias, not deep relative paths.
-- [project-specific] Keep code in its process dir: src/main, src/preload, src/renderer — no cross-process imports except the preload-exposed API.
+**EXAMPLE** — renderer module structure
+
+```text
+src/
+├── main/        # Node.js main process — BrowserWindow, app lifecycle, IPC host
+├── preload/     # contextIsolation-safe bridge (contextBridge → window globals)
+└── renderer/src/
+    ├── components/
+    │   ├── atoms/      # Icon
+    │   ├── molecules/  # Dropdown, Modal, Toast (Radix); Tabs (hand-rolled WAI-ARIA)
+    │   └── organisms/  # Shell, Titlebar, Sidebar, PaneSplit, Statusbar, Divider, TabBar
+    ├── lib/    # cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec
+    └── styles/ # tokens.css design tokens
+```
+
+### 2.3 Import & Path Rules
+
+Cross-module renderer imports resolve through a path alias, never deep relative chains; Node/Electron stay out of the renderer entirely.
+- [enforced] renderer imports cross-module code via the @renderer path alias rather than deep relative paths
+- [enforced] renderer modules import no Node/Electron APIs
 
 ---
 
@@ -74,108 +84,105 @@ Renderer modules resolve through the @renderer alias defined in electron.vite.co
 
 ### 3.1 Type Safety [project-specific]
 
-TypeScript runs in strict mode (@electron-toolkit/tsconfig base) across node + web configs.
+TypeScript strict mode across both node and web configs; untyped boundaries narrow rather than cast.
+- [enforced] TypeScript strict mode is on (tsconfig strict) — no implicit any
+- [enforced] type-check passes for both configs before task completion (npm run typecheck:node && npm run typecheck:web)
+- [universal] prefer unknown + a type guard over any at untyped boundaries
 
-- [enforced] strict is on; do not weaken it per-file. Type-check via 'npm run typecheck' (node + web) before completing a task.
-- [enforced] No 'any'. Type external/IPC input as 'unknown' and narrow with a type guard.
-
-**CORRECT** — narrow unknown with a guard
+**CORRECT** — narrow unknown through a type guard
 
 ```ts
-function parse(input: unknown): ApiRequest {
-  if (!isApiRequest(input)) throw new Error('invalid request')
-  return input
+function parse(raw: string): RequestSpec {
+  const data: unknown = JSON.parse(raw)
+  if (isRequestSpec(data)) return data
+  return makeBlankRequest()
 }
 ```
 
-**WRONG** — any disables type checking
+**WRONG** — any defeats strict mode
 
 ```ts
-function parse(input: any) {
-  return input
-}
+const data = JSON.parse(raw) as any  // bypasses type safety
 ```
 
 ### 3.2 Error Handling [project-specific]
 
-The project uses thrown exceptions.
+Boundary lookups degrade gracefully; bridge exposure logs on failure rather than swallowing.
+- [extracted] boundary lookups degrade gracefully instead of throwing (resolveIcon returns a fallback entry)
+- [extracted] contextBridge exposure is wrapped in try/catch and logs on failure rather than swallowing
+- [universal] never swallow errors — handle, re-throw, or log with a reason; no empty catch blocks
 
-- [universal] Never swallow errors — no empty catch; handle, re-throw, or log with reason.
-- [universal] Handle both success and error paths of every fallible operation.
-- [project-specific] IPC handlers in main catch and convert errors into structured results the renderer can render — don't leak raw stack traces across the bridge.
+### 3.3 Naming Conventions [project-specific]
 
-### 3.3 Naming Conventions [universal]
+Components PascalCase one-per-file; lib helpers and stores camelCase; styles in sibling .css.
 
-Consistent naming across React, hooks, stores, and IPC channels.
+| What | Convention | Example |
+|------|------------|---------|
+| Component | PascalCase, one per file | Icon.tsx, Modal.tsx |
+| lib helper/store | camelCase module | cx.ts, toastStore.ts |
+| Component style | sibling .css file | Icon.css, Shell.css |
+| Test file | __tests__/ co-located | Icon.test.tsx, Icon.ct.tsx |
+- [extracted] components in PascalCase, one per file (Icon.tsx, Dropdown.tsx)
+- [extracted] lib helpers and stores in camelCase modules (cx.ts, toastStore.ts)
 
-| What            | Convention              | Example         |
-| --------------- | ----------------------- | --------------- |
-| React component | PascalCase              | Versions        |
-| Hook            | camelCase, use-prefix   | useRequestStore |
-| zustand store   | camelCase, Store suffix | requestStore    |
-| Component file  | PascalCase.tsx          | App.tsx         |
-| IPC channel     | namespaced colon        | http:send       |
+### 3.4 Testing Requirements [project-specific]
 
-### 3.4 Testing Requirements [universal]
+Vitest unit + Playwright component tests, co-located by tier.
+- [extracted] co-located tests under __tests__/ next to the code, split .test.tsx (Vitest) and .ct.tsx (Playwright CT)
+- [universal] cover the acceptance criteria including edge and error paths
 
-No test infrastructure exists yet (testings: N/A).
+### 3.5 Documentation & Code Discovery [universal]
 
-- [universal] When adding tests, cover acceptance criteria including edge + error paths; follow the chosen runner's existing patterns once established.
-- [project-specific] Pick a renderer test stack (e.g. Vitest + Testing Library) before the first feature that needs coverage; record it in docs/architecture.md.
+New code is documented; structural code exploration routes through the codebase-memory graph, not raw file reads.
+- [universal] all new functions/variables carry clear documentation
+- [enforced] structural code queries route through codebase-memory-mcp tools (search_graph / trace_path / get_code_snippet / search_code / query_graph) — NOT raw Read/Grep/Glob over source files; CBM hooks block raw discovery at PreToolUse on the first match per session
+- [universal] docs/ is LLM-context-source first, dev-greppable second; concern prose lives in docs/<pkg>/<concern>/index.md; structural metadata stays in CBM, never embedded in docs/
 
-### 3.5 Documentation [universal]
+### 3.6 Simplicity & Reuse [universal]
 
-Code discovery routes through codebase-memory-mcp; new code carries clear docs.
-
-- [enforced] Structural code queries use codebase-memory-mcp tools (search_graph / trace_path / get_code_snippet / search_code / query_graph), not raw Read/Grep/Glob over source — CBM hooks block raw discovery on first match per session.
-- [universal] docs/ is LLM-context-source first, dev-greppable second; structural metadata stays in CBM, not embedded in docs/.
-- [universal] All new functions and exported types carry clear documentation.
-
-### 3.6 Function Length & Complexity [universal]
-
-Keep units small and single-purpose.
-
-- [universal] One responsibility per function; extract when a function grows past ~40 lines or mixes concerns.
-- [universal] SOLID, DRY (don't repeat logic 3+ times), KISS.
+Keep changes minimal and reuse before building.
+- [universal] SOLID, DRY, KISS — single responsibility; don't repeat logic 3+ times; keep it simple
+- [universal] search the codebase for an existing utility/helper/component before writing anything generic
 
 ---
 
 ## 4. Patterns & Anti-Patterns
 
 ### Always Do (Universal)
-
-- [universal] Validate inputs at module boundaries; trust internal code.
-- [universal] Read a file before modifying it.
-- [universal] Handle both success and error paths of every fallible operation.
+- [universal] Validate external input at module boundaries; trust internal code
+- [universal] Handle both success and error paths for every fallible operation
+- [universal] Read a file before modifying it
 
 ### Always Do (Project-Specific)
-
-- [project-specific] Shared renderer state lives in a zustand store.
-- [project-specific] Reach privileged capability only through the preload-exposed API.
-- [project-specific] Run outbound HTTP (undici) in main; the renderer requests it over IPC.
+- [extracted] Shared UI state lives in module-level zustand stores (toastStore, settingsStore, tabsStore) — one instance each
+- [extracted] Mutate state only through store actions
+- [extracted] Shell view state (theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed) lives exclusively in settingsStore — Shell.tsx is the sole writer of the matching document.documentElement attrs/vars
+- [extracted] Working-tabs lifecycle (open, dedupe, close, dirty) lives exclusively in tabsStore — TabBar.tsx is the sole subscriber wiring store actions to the Tabs molecule
+- [extracted] Compose conditional class tokens with cx() (falsy-filtering merge)
+- [extracted] Resolve icon names through resolveIcon — total, never throws, returns a fallback entry
 
 ### Never Do (Universal)
-
-- [universal] Never swallow errors (no empty catch).
-- [universal] Never commit secrets, API keys, or tokens.
-- [universal] Never leave debug artifacts (console.log, debugger) behind.
+- [universal] Never swallow errors silently
+- [universal] Never commit secrets or debug artifacts (console.log, debugger, stray print)
+- [universal] Never modify code outside the task scope
 
 ### Never Do (Project-Specific)
-
-- [project-specific] Never enable nodeIntegration in the renderer.
-- [project-specific] Never import Node or electron directly in renderer code.
-- [project-specific] Never mutate zustand state outside its store actions.
+- [extracted] Never import Node/Electron in the renderer
+- [extracted] Never expose privileged APIs outside the preload contextBridge
+- [extracted] Never mutate zustand state outside a store action
+- [extracted] Never write Shell document.documentElement vars/attrs from anywhere but Shell.tsx
+- [extracted] Never add a raw px delta to a unitless ratio (Divider ratio-valued drag hazard)
+- [extracted] Never use inline styles — class-based styling composed with cx()
 
 ### Prefer (Universal)
-
-- [universal] Prefer composition over inheritance.
-- [universal] Prefer small, pure, single-purpose functions.
+- [universal] Prefer composition over inheritance
+- [universal] Prefer small, single-responsibility modules
 
 ### Prefer (Project-Specific)
-
-- [project-specific] Prefer zustand selectors over reading the whole store.
-- [project-specific] Prefer the @renderer alias over deep relative imports.
-- [project-specific] Prefer typed IPC wrappers over raw ipcRenderer calls in components.
+- [extracted] Prefer wrapping Radix for new molecules (Dropdown/Modal/Toast); hand-rolled WAI-ARIA only as a documented departure (Tabs)
+- [extracted] Prefer design tokens (CSS custom properties in tokens.css) over literal style values
+- [extracted] Prefer the imperative toast() API for fire-and-forget toasts (wraps toastStore)
+- [extracted] Prefer the @renderer alias over deep relative imports
 
 ---
 
@@ -183,51 +190,43 @@ Keep units small and single-purpose.
 
 ### 5.1 Key Entities
 
-The API-client domain centers on a small set of entities (design intent — not yet implemented in the scaffold).
+The core domain objects of the API client and its UI shell.
+- [extracted] RequestSpec — the HTTP request domain model (method, url, headers, body); created blank via makeBlankRequest
+- [extracted] Working tab — an open request in the tabs strip; lifecycle (open, dedupe, close, dirty) owned by tabsStore
+- [extracted] Toast — a transient notification queued in toastStore, surfaced via the imperative toast() API
+- [extracted] View state — theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed; the Shell SSOT in settingsStore
+- [extracted] UI primitives — Icon (atom); Dropdown/Modal/Toast/Tabs (molecules); Shell/Titlebar/Sidebar/PaneSplit/Statusbar/Divider/TabBar (organisms)
 
-- [project-specific] Request — an HTTP call definition (method, URL, headers, body).
-- [project-specific] Response — the result of sending a Request (status, headers, body, timing).
-- [project-specific] Collection — a saved, organized group of Requests.
-- [project-specific] Environment — a named set of variables substituted into Requests at send time.
+### 5.2 Domain Invariants
+
+Lifecycle and ownership rules the domain state must hold.
+- [extracted] A working tab is deduped on open — re-opening the same request focuses the existing tab instead of duplicating it
+- [extracted] A working tab carries a dirty flag tracking unsaved edits
+- [extracted] settingsStore is the single source of truth for Shell view state; Shell.tsx is the only writer of the matching document attrs/vars
+- [extracted] requestSpec stays a pure data module — imported by tabsStore, never by components
 
 ---
 
 ## 6. Workflow Rules
 
 ### 6.1 Minimal Changes
-
-Keep every change as small as possible.
-
-- [universal] Every change impacts as little code as possible; don't fix unrelated code you happen to see.
+- [universal] Every change impacts as little code as possible
+- [universal] Never "fix" unrelated code you happen to see
 
 ### 6.2 Read Before Write
-
-Understand a file before changing it.
-
-- [universal] Always read a file before modifying it.
+- [universal] Always read a file before modifying it
 
 ### 6.3 Search Before Building
-
-Reuse before reinventing.
-
-- [universal] Before writing anything generic/reusable, search the codebase for an existing utility, helper, or component that already does it.
+- [universal] Search the codebase for an existing utility/helper/component before writing anything generic or reusable
 
 ### 6.4 One Task At A Time
-
-Sequential execution along the dependency graph.
-
-- [universal] Execute tasks sequentially along the dependency graph; finish and verify one before starting the next.
+- [universal] Execute tasks sequentially following the dependency graph
 
 ### 6.5 Pre-flight Check
+- [universal] Read constitution.md and .devforge/memory.md before starting each task
 
-Load context before each task.
-
-- [universal] Before each task, read constitution.md + .devforge/memory.md so the task starts with the right context.
-
-### 6.6 Spec-Driven Workflow
-
-Enforcement level: Strict — every pipeline step requires explicit approval.
-
-- [project-specific] Follow /specify, /plan, /breakdown, /implement, /review, /verify, /finalize; each hard gate needs explicit approval before advancing.
-- [project-specific] Commits follow Conventional Commits; WIP commits squash into one clean feature commit at /finalize.
-- [project-specific] Commit messages include the AI attribution footer.
+### 6.6 Project-Specific Workflow
+- [project-specific] Spec-driven flow is strict — specs are contracts; once approved, implementation must satisfy every acceptance criterion
+- [project-specific] Hard gates block: spec approval → /plan; plan approval → /breakdown; breakdown approval → /implement; ACs verified in /verify
+- [enforced] Lint + type-check must pass on all changed files before task completion
+- [project-specific] Commits follow Conventional Commits and include the Co-Authored-By: Claude attribution trailer

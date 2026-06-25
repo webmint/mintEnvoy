@@ -269,7 +269,18 @@ Inline tests stay the per-engineer default — each stack engineer writes the te
 
 When a `design/reference.html` DOES exist, this gate produces a per-element disposition manifest — the pre-code contract that classifies every reference element before any task file is written — and HALTS intake if any reference value cannot be resolved or any element is left unclassified. The gate runs at INTAKE (before Phase 3 writes task files), not at verify: a fidelity gap is escalated to the user BEFORE code is written, never after. The `design_helper` owns the manifest's structure, validation, and the gap-list computation; the orchestrator composes only the disposition values.
 
-**Detect the design reference.** Check whether `design/reference.html` exists at the workspace root. If it does not exist, tell the user `"No design/reference.html for this feature; skipping the design-fidelity intake gate."` and proceed to Phase 3. If it exists, continue.
+**Detect the design reference.** Run a mechanical existence test from the workspace root (cwd) — `test -f design/reference.html` — and branch on its boolean result, not on eyeballing the filesystem. If it is present (`test` is zero), continue to Step 1.
+
+If the file is absent (`test` is non-zero), there is no enforceable reference to gate against, so this feature skips the intake gate either way — but first surface any declared non-file design source. Run the source check (substitute `NNN-<feature>` with the resolved feature dir name, the same substitution the Steps below use for the manifest path; the spec lives at `specs/NNN-<feature>/spec.md`, sibling to where `design-manifest.json` would go):
+
+```bash
+.devforge/lib/design_helper check-design-source \
+  --spec specs/NNN-<feature>/spec.md --workspace-root .
+```
+
+The verb's exit code is ALWAYS 0 (this is a non-blocking warning, never a halt) — branch on whether the verb produced output (a WARN), not on its exit code. The verb is SILENT in the common cases and prints a WARN (to stderr, exit 0) only when a non-file design source is declared without an enforceable reference. If the verb produced a WARN, the spec declared a non-file design source (`figma`/`screenshot`, or an `html` target that is not an existing file) with no enforceable `design/reference.html`: copy that output VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase), then proceed to Phase 3 — the WARN's own text explains the skip and the convert-to-`design/reference.html` remedy, so it replaces the plain "skipping" line in this case. If the verb produced no output, tell the user `"No design/reference.html for this feature; skipping the design-fidelity intake gate."` and proceed to Phase 3 (the common cases: the spec declared `none` or declared nothing; note an `html:` source pointing to an existing non-`design/reference.html` path also produces no output but is a misdeclaration this gate does not catch — the plan-40 apparatus enforces only `design/reference.html`).
+
+The PHASE 3.5 `verify-manifest-present` gate is the authoritative backstop for the reference-PRESENT case — it re-derives the `design/reference.html` existence check mechanically — so a wrongly-skipped PHASE 2.5 is caught downstream, never silently lost.
 
 **Step 1 — Resolve the reference into elements + a gap-list.** Run the helper, capturing its stdout JSON to a scratch file outside the work tree (the helper's next verb reads a file path, not a pipe):
 
@@ -394,7 +405,7 @@ The helper takes no arguments and owns the column names and verdict enum. Copy i
 
 ## PHASE 3.5: Integrity gates
 
-Three forcing-functions walk the task set mechanically. Contract-chain and AC-coverage findings MAY be carried to Phase 4 as a documented deferral — explicitly recorded in the index `## Risk Assessment` with a one-line justification. The agent-roster gate has NO such bypass: it is a HARD gate, and a roster violation must be re-routed before Phase 4 (a task literally cannot be implemented by an agent that is not installed).
+Four forcing-functions walk the task set mechanically. Contract-chain and AC-coverage findings MAY be carried to Phase 4 as a documented deferral — explicitly recorded in the index `## Risk Assessment` with a one-line justification. The agent-roster gate has NO such bypass: it is a HARD gate, and a roster violation must be re-routed before Phase 4 (a task literally cannot be implemented by an agent that is not installed). The design-manifest gate likewise has NO bypass: it is a HARD gate, and a reference-present feature whose `design-manifest.json` is absent or invalid must return to PHASE 2.5 to PRODUCE/complete the manifest before Phase 4 (without it the two downstream design-fidelity gates are silently void).
 
 **Contract chain** — orphan `Produces` / unsatisfied `Expects`:
 
@@ -429,6 +440,18 @@ Pass only the tasks directory — do NOT pass `--agents-dir`. The verb defaults 
 - Exit 2 with `no agent roster found...` on stderr → `.claude/agents/` is missing or has no agent files (a broken install). Copy the helper's stderr VERBATIM into a fenced code block; this is an install problem to resolve before breakdown can assign agents.
 - Exit 2 with `no task files...` on stderr → the tasks directory is missing or empty (Phase 3 did not write the task files). Copy the helper's stderr VERBATIM into a fenced code block; return to Phase 3.
 
+**Design manifest** — a reference-present feature has a present-and-valid `design-manifest.json` (the PHASE 2.5 disposition contract the two downstream design-fidelity gates depend on):
+
+```bash
+.devforge/lib/breakdown_helper verify-manifest-present <tasks-dir>
+```
+
+Pass only the tasks directory — do NOT pass `--scope-only`, `--reference-path`, or `--manifest-path` (those flags exist for testing and an alternate scope-check mode; `--scope-only` in particular changes the exit-code semantics). The verb defaults the workspace root to the working directory (cwd), the reference to `design/reference.html`, and the manifest to `specs/NNN-<feature>/design-manifest.json` (deriving the feature dir as the parent of the tasks dir), which are correct for Phase 3.5 in both standalone and wrapper mode: the helper is invoked via the relative path `.devforge/lib/breakdown_helper`, so the working directory is always the install root, where `.claude/` and `design/` live.
+
+- Exit 0 (`design-manifest: skip (...)` or `design-manifest: ok (...)`) → pass; no action. `skip` = this is not a design-reference feature (no `design/reference.html`); `ok` = the manifest is present and valid.
+- Exit 2 with a `## Design manifest findings` block on stdout → a HARD failure: the feature has a `design/reference.html` but its `design-manifest.json` is absent or invalid (an unclassified element or an unresolvable reference value). Copy the helper's stdout VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase). Re-enter PHASE 2.5 to produce/complete and re-validate the manifest, then re-run THIS gate. This is a HARD gate with NO `## Risk Assessment` deferral/bypass: do not proceed to Phase 4 with an unresolved manifest violation.
+- Exit 2 with `breakdown_helper: tasks directory not found: ...` on stderr → copy the helper's stderr VERBATIM into a fenced code block; the tasks directory is missing (Phase 3 did not write the task files) — return to Phase 3.
+
 ## PHASE 4: User approval (HARD GATE)
 
 **Mode-dependent execution path** (mirrors `/plan` Phase 3):
@@ -448,7 +471,10 @@ Present a summary. This block is LLM-authored (breakdown state lives on disk in 
 **Review checkpoints**: [count] (before tasks [list])
 **Contract chain**: [ok | N findings recorded in Risk Assessment]
 **AC coverage**: [all covered | N flagged in Risk Assessment]
-**Agent roster**: all agents installed"
+**Agent roster**: all agents installed
+**Design fidelity**: manifest present-and-valid"
+
+The `**Design fidelity**:` line is CONDITIONAL — include it ONLY when this feature has a `design/reference.html` (i.e. the PHASE 3.5 design-manifest gate ran against a present reference and passed). For a non-UI feature with no `design/reference.html`, OMIT the line entirely — do not emit a "not a design feature" line. Unlike the always-present `**Agent roster**` line, this line is reference-present-gated.
 
 Then ask via `AskUserQuestion`:
 
@@ -472,8 +498,9 @@ On `approve`, first write the structured breakdown→implement handoff via the h
 The helper parses `<plan-dir>/tasks/*.md` + the tasks `README.md` and atomic-writes `<plan-dir>/breakdown-handoff.json` (a structured handoff carrying the per-task machine contract — agent, depends_on, touched_files, expects, produces, ac_addressed, review_checkpoint — plus provenance to the sibling `plan-handoff.json`). Handle the exit code:
 
 - Exit 0 → the helper wrote `specs/NNN-<feature>/breakdown-handoff.json` and printed its path on stdout. Surface the written path to the user in one line, e.g. `"Structured breakdown handoff written: <path>."`
-- Non-zero exit → the helper could not write or validate the handoff. `finalize-handoff` runs the roster check internally as a backstop, so capture BOTH stdout and stderr and branch on their content:
+- Non-zero exit → the helper could not write or validate the handoff. `finalize-handoff` runs the roster check AND the design-manifest assertion internally as backstops, so capture BOTH stdout and stderr and branch on their content (the design-manifest assertion never emits to stderr from `finalize-handoff` — every manifest failure surfaces as a `## Design manifest findings` block on stdout):
   - If STDOUT contains a `## Agent roster findings` block → this is a HARD failure, NOT best-effort: one or more tasks assign an uninstalled agent. Copy that stdout block VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase), then HALT and return to Phase 3.5 to re-route the offending task per its gate; do NOT continue to the `render-implement-handoff` block. (In normal flow the Phase 3.5 roster gate already caught this, so this stdout-block path should rarely fire.)
+  - Else if STDOUT contains a `## Design manifest findings` block → this is a HARD failure, NOT best-effort: the feature has a `design/reference.html` but its `design-manifest.json` is absent or invalid. Copy that stdout block VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase), then HALT and return to PHASE 2.5 to produce/complete the manifest before re-running; do NOT continue to the `render-implement-handoff` block. (In normal flow the Phase 3.5 design-manifest gate already caught this, so this stdout-block path should rarely fire.)
   - Else if STDERR contains `no agent roster found` → this is a HARD failure (broken install — `.claude/agents/` is missing or empty). Copy the helper's stderr VERBATIM into a fenced code block, then HALT and resolve the install before re-running; do NOT continue to the `render-implement-handoff` block.
   - Else (any other non-zero cause — Exit 2 → plan or task files missing, a task carries a placeholder agent, or rendered content failed schema validation; Exit 1 → I/O error writing `breakdown-handoff.json`, e.g. permissions or disk-full) → copy the helper's stderr VERBATIM into a fenced code block, then do NOT abort. Continue to the `render-implement-handoff` block below. The structured handoff is best-effort for these causes; the manual block is the guaranteed human bridge.
 

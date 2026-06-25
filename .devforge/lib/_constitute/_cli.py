@@ -4,7 +4,7 @@ Dispatcher-only. All cmd_* handler bodies live in sibling modules:
   _cmds_set     — cmd_reset + 10 cmd_set_* / cmd_add_* setters
   _cmds_read    — read-init / read-configure / read-docs / read-glossary
   _cmds_render  — cmd_render + cmd_verify + cmd_summary
-  _cmds_quality — cmd_validate + cmd_verify_universal_defaults
+  _cmds_quality — cmd_validate + cmd_verify_universal_defaults + cmd_verify_forcing_function_keys
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import argparse
 import sys
 from typing import List, Optional
 
-from ._cmds_quality import cmd_validate, cmd_verify_universal_defaults
+from ._cmds_quality import cmd_validate, cmd_verify_universal_defaults, cmd_verify_forcing_function_keys
 from ._forcing_functions._magic_enum._cmd import cmd_verify_magic_enum
 from ._forcing_functions._cross_layer._cmd import cmd_verify_cross_layer_imports
 from ._forcing_functions._any_leak._cmd import cmd_verify_any_leak
@@ -531,6 +531,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Canonical constitution.md path (default: src/constitution.md).",
     )
     sp.set_defaults(func=cmd_verify_universal_defaults)
+
+    sp = subparsers.add_parser(
+        "forge-internal:verify-forcing-function-keys",
+        help=(
+            "Diff consumer .devforge/constitute.json forcing_functions keys vs "
+            "canonical FORCING_FUNCTION_RULES schema. Maintainer-only."
+        ),
+    )
+    sp.add_argument(
+        "--consumer-path",
+        required=True,
+        dest="consumer_path",
+        help="Consumer project root containing .devforge/constitute.json.",
+    )
+    sp.set_defaults(func=cmd_verify_forcing_function_keys)
 
     return parser
 

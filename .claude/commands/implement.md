@@ -15,6 +15,7 @@ allowed-tools:
   - Bash(.devforge/lib/implement_helper mark-skipped *)
   - Bash(.devforge/lib/implement_helper update-session-state *)
   - Bash(.devforge/lib/cbm_sync_helper write *)
+  - Bash(test -f *)
   - Bash(git commit --allow-empty *)
   - Bash(git -C * commit --allow-empty *)
   - Bash(git diff *)
@@ -199,7 +200,17 @@ Start the loop iteration counter at 0 and run:
      - Relaunch the **implementing agent** ONCE with the synthesized findings, then **re-fan-out the FULL panel** (all four reviewers over `touched_files` — no delta-scoping) at iteration `N + 1`. Full-panel re-review each round closes the cross-file-regression hole a repair could open.
    - **`clean: false` and `escalate: true`** → the cap was reached without converging. Exit the loop and record a `could-not-converge` decision item carrying the unresolved reviewer objection(s) for Stage A.
 
-After the review panel exits clean, run the forcing-functions gate via the helper:
+After the review panel exits clean, first run the design-manifest tripwire, then run the forcing-functions gate.
+
+**Design-manifest tripwire (loud WARN, non-blocking).** Before the gate, check whether this feature has a design reference but is missing its disposition manifest:
+
+```bash
+test -f design/reference.html && ! test -f <feature_dir>/design-manifest.json && echo VOID
+```
+
+Substitute `<feature_dir>` with the resolved feature's `feature_dir` from PHASE 1 (`design/reference.html` is at the install root, where you run; `feature_dir` is the absolute `specs/NNN-*/` path). When the command prints `VOID` — a `design/reference.html` is present but this feature's `specs/<feature>/design-manifest.json` is absent — emit a loud, operator-visible WARN in your next user-facing message: this feature has a design reference but no design-manifest, so the forcing-functions gate's static design-token provenance check (`verify-design-tokens` Check 5 — MATCH-element token binding) is voided. Check 5 globs `specs/*/design-manifest.json` project-wide, so with this feature's manifest absent it either no-ops (no manifest on disk) or — if another feature's `design-manifest.json` is present — runs against the WRONG feature's MATCH refs, silently checking the wrong element set. The remedy is to re-run `/breakdown` PHASE 2.5 to produce this feature's manifest. Then CONTINUE to the gate — this is a WARN, not a halt; the task still proceeds. When the command prints nothing (no `design/reference.html`, or the manifest is present), say nothing and proceed silently — a genuine non-UI feature must not trip this WARN.
+
+Then run the forcing-functions gate via the helper:
 
 ```bash
 .devforge/lib/implement_helper run-forcing-functions-gate

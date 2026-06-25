@@ -13,6 +13,8 @@ from ._schema import (
     AC_SUBSECTION_ENUM,
     AC_UBIQUITOUS_ONLY_SUBSECTIONS,
     CONSTRAINT_KIND_ENUM,
+    DESIGN_SOURCE_DEFAULT,
+    DESIGN_SOURCE_SCHEME_ENUM,
     EARS_REGEX,
     EARS_VARIANT_ENUM,
     FEATURE_NAME_RE,
@@ -505,6 +507,80 @@ def cmd_add_ac(args: argparse.Namespace) -> int:
 _LANDABLE_BUCKETS: Tuple[str, ...] = tuple(
     b for b in LANDED_IN_ENUM if b != "unlanded"
 )
+
+
+def _validate_design_source(value: str) -> Optional[str]:
+    """Return None on success; an error message string on failure.
+
+    Valid forms:
+    - The literal "none"
+    - "<scheme>:<target>" where scheme ∈ DESIGN_SOURCE_SCHEME_ENUM (excluding
+      "none") and target is non-empty.
+
+    Splitting on the FIRST colon only preserves figma URLs that contain
+    'https://' (which contains a second colon).
+    """
+    if value == "none":
+        return None
+    colon_pos = value.find(":")
+    if colon_pos < 0:
+        return (
+            "set-design-source: {0!r} is not a valid design source. "
+            "Valid forms: html:<path> | figma:<url> | screenshot:<path> | none"
+            .format(value)
+        )
+    scheme = value[:colon_pos]
+    target = value[colon_pos + 1:]
+    # SYNC contract: "none" is a bare sentinel — "none:" or "none:<target>"
+    # is invalid.  Check this before the generic "scheme not recognised" path
+    # so the error message is accurate (none IS recognised, it just cannot
+    # take a colon).
+    if scheme == "none":
+        return (
+            "set-design-source: 'none' is a bare sentinel and cannot take a "
+            "colon/target (e.g. 'none:something' is invalid). "
+            "Valid forms: html:<path> | figma:<url> | screenshot:<path> | none"
+        )
+    valid_schemes = tuple(s for s in DESIGN_SOURCE_SCHEME_ENUM if s != "none")
+    if scheme not in valid_schemes:
+        return (
+            "set-design-source: scheme {0!r} not recognised. "
+            "Valid forms: html:<path> | figma:<url> | screenshot:<path> | none"
+            .format(scheme)
+        )
+    if not target:
+        return (
+            "set-design-source: target (after the colon) cannot be empty for "
+            "scheme {0!r}. Valid forms: html:<path> | figma:<url> | "
+            "screenshot:<path> | none".format(scheme)
+        )
+    return None
+
+
+def cmd_set_design_source(args: argparse.Namespace) -> int:
+    """Set the design_source field (renders as **Design source**: in spec.md).
+
+    --value must be the literal "none" or "<scheme>:<target>" where scheme
+    is one of html / figma / screenshot and target is non-empty.
+    Figma URLs containing multiple colons are handled by splitting on the
+    FIRST colon only.
+    """
+    value = (getattr(args, "value", None) or "").strip()
+    if not value:
+        return _die(
+            "set-design-source: --value is required and non-empty. "
+            "Valid forms: html:<path> | figma:<url> | screenshot:<path> | none",
+            code=2,
+        )
+    err = _validate_design_source(value)
+    if err is not None:
+        return _die(err, code=2)
+    try:
+        with _state_transaction(args.devforge_dir) as state:
+            state["design_source"] = value
+    except (OSError, json.JSONDecodeError) as err:
+        return _die("set-design-source: {0}".format(err))
+    return 0
 
 
 def cmd_set_finding_landed(args: argparse.Namespace) -> int:

@@ -30,6 +30,7 @@ from ._manifest import (
     cmd_validate_manifest,
     cmd_extract_spacing_scale,
 )
+from ._source import cmd_check_design_source
 
 
 # ---------------------------------------------------------------------------
@@ -80,6 +81,20 @@ _SUBCOMMAND_REGISTRY = [
         ),
         cmd_extract_spacing_scale,
     ),
+    (
+        "check-design-source",
+        (
+            "Read the **Design source**: frontmatter line from a spec.md "
+            "(--spec) and emit a NON-BLOCKING WARN to stderr (exit 0) when a "
+            "non-file design source (figma/screenshot) is declared but no "
+            "enforceable design/reference.html exists in the workspace root "
+            "(--workspace-root, default '.').  Also warns on malformed values. "
+            "Silent on 'none', on valid html: sources, and when a reference.html "
+            "is already present alongside a figma/screenshot source.  "
+            "Always exits 0 (non-blocking). (plan 43 Step 1A)."
+        ),
+        cmd_check_design_source,
+    ),
 ]
 
 
@@ -98,7 +113,7 @@ def build_parser():
             "Produces and validates a per-element disposition manifest from a "
             "reference.html (+ optional design/styles.css). "
             "Verbs: resolve-reference, init-manifest, validate-manifest, "
-            "extract-spacing-scale."
+            "extract-spacing-scale, check-design-source."
         ),
     )
     subparsers = parser.add_subparsers(dest="subcommand")
@@ -159,6 +174,29 @@ def _register_subcommands(subparsers):
                     "Path to design/styles.css. When the file does not exist, "
                     "exits 0 with available=false (OQ-6 relaxation). "
                     "Emits {available, scale, source} JSON to stdout."
+                ),
+            )
+
+        elif verb == "check-design-source":
+            sp.add_argument(
+                "--spec",
+                required=True,
+                dest="spec",
+                metavar="PATH",
+                help=(
+                    "Path to the spec.md file to inspect for a **Design source**: "
+                    "frontmatter line.  Unreadable or absent spec → silent exit 0."
+                ),
+            )
+            sp.add_argument(
+                "--workspace-root",
+                required=False,
+                default=".",
+                dest="workspace_root",
+                metavar="DIR",
+                help=(
+                    "Workspace root directory used to resolve design/reference.html. "
+                    "Defaults to '.' (current directory)."
                 ),
             )
 

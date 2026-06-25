@@ -1,4 +1,4 @@
-"""Render handlers: render-config + substitute-templates + prune-agents."""
+"""Render handlers: render-config + substitute-templates + substitute-file + prune-agents."""
 
 from __future__ import annotations
 
@@ -220,6 +220,105 @@ def cmd_substitute_templates(args: argparse.Namespace) -> int:
                 "{0}: {1}\n".format(path_str, ", ".join(keys))
             )
         return 2
+
+    return 0
+
+
+def cmd_substitute_file(args: argparse.Namespace) -> int:
+    """Substitute {{KEY}} placeholders in a single arbitrary file in place.
+
+    Reads project-config.json from <devforge_dir>; reads init.yaml for
+    packages_detected; builds substitution map; reads --file; substitutes;
+    writes atomically.
+
+    Exit 0 = file substituted (or had no placeholders).
+    Exit 1 = project-config.json missing or malformed; --file unreadable.
+    Exit 2 = file has unknown placeholder(s); file is NOT modified.
+    """
+    devforge_dir = Path(args.devforge_dir)
+
+    # --- Load project-config.json ---
+    config_path = devforge_dir / "project-config.json"
+    if not config_path.exists():
+        sys.stderr.write(
+            "configure_helper substitute-file: project-config.json not found at "
+            "{0}\n".format(config_path)
+        )
+        return 1
+    try:
+        config_text = config_path.read_text(encoding="utf-8")
+    except OSError as err:
+        sys.stderr.write(
+            "configure_helper substitute-file: cannot read {0}: {1}\n".format(
+                config_path, err
+            )
+        )
+        return 1
+    try:
+        project_config = json.loads(config_text)
+    except (json.JSONDecodeError, ValueError) as err:
+        sys.stderr.write(
+            "configure_helper substitute-file: malformed project-config.json: "
+            "{0}\n".format(err)
+        )
+        return 1
+
+    # --- Load packages_detected from init.yaml ---
+    init_yaml_path = devforge_dir / init_helper.OUTPUT_FILE_NAME
+    packages_detected = []  # type: List[dict]
+    if init_yaml_path.exists():
+        try:
+            init_text = init_yaml_path.read_text(encoding="utf-8")
+            init_state = init_helper.parse_yaml(init_text)
+            packages_detected = init_state.get("packages_detected") or []
+        except (OSError, init_helper.YamlParseError):
+            packages_detected = []
+
+    # --- Build substitution map ---
+    sub_map = _build_substitution_map(project_config, packages_detected)
+
+    # --- Read the target file ---
+    target_path = Path(args.file)
+    if not target_path.exists():
+        sys.stderr.write(
+            "configure_helper substitute-file: not found at {0}\n".format(target_path)
+        )
+        return 1
+    if not target_path.is_file():
+        sys.stderr.write(
+            "configure_helper substitute-file: not a file: {0}\n".format(target_path)
+        )
+        return 1
+    try:
+        original = target_path.read_text(encoding="utf-8")
+    except OSError as err:
+        sys.stderr.write(
+            "configure_helper substitute-file: cannot read {0}: {1}\n".format(
+                target_path, err
+            )
+        )
+        return 1
+
+    # --- Substitute placeholders ---
+    new_text, missing = _substitute_placeholders(original, sub_map)
+
+    if missing:
+        sys.stderr.write(
+            "configure_helper substitute-file: unknown placeholders in "
+            "{0}: {1}\n".format(target_path, ", ".join(missing))
+        )
+        return 2
+
+    # --- Write atomically ---
+    try:
+        _write_file_atomic(target_path, new_text)
+    except OSError as err:
+        sys.stderr.write(
+            "configure_helper substitute-file: cannot write {0}: {1}\n".format(
+                target_path, err
+            )
+        )
+        return 1
 
     return 0
 

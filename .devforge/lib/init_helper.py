@@ -378,7 +378,7 @@ def _parse_scalar_token(token, lineno):
         )
     if token.startswith("'"):
         raise YamlParseError(
-            "line {0}: single-quoted strings are not supported".format(lineno)
+            "line {0}: single-quoted strings are not supported — values are written double-quoted by the owning helper; this file was likely edited outside the setter API (convert the value to double quotes, or regenerate the file via its owning command)".format(lineno)
         )
     return token
 

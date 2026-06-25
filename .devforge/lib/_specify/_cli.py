@@ -50,6 +50,7 @@ from ._cmds_phase4_setters import (
     cmd_record_risk,
     cmd_set_current_state,
     cmd_set_date,
+    cmd_set_design_source,
     cmd_set_desired_behavior,
     cmd_set_finding_landed,
     cmd_set_overview,
@@ -78,6 +79,7 @@ from ._cmds_phase5 import (
 from ._schema import (
     AC_SUBSECTION_ENUM,
     CONSTRAINT_KIND_ENUM,
+    DESIGN_SOURCE_SCHEME_ENUM,
     DP_DEFERRAL_KIND_ENUM,
     IMPACT_ENUM,
     LANDED_IN_DEFAULT,
@@ -337,6 +339,23 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sp.add_argument("--date", required=True)
     sp.set_defaults(func=cmd_set_date)
+
+    sp = sub.add_parser(
+        "set-design-source",
+        help=(
+            "Set the design_source field rendered as **Design source**: in "
+            "spec.md. --value must be 'none' or '<scheme>:<target>' where "
+            "scheme ∈ {html, figma, screenshot} and target is non-empty."
+        ),
+    )
+    sp.add_argument(
+        "--value", required=True,
+        help=(
+            "Design source value. Valid forms: "
+            "html:<path> | figma:<url> | screenshot:<path> | none"
+        ),
+    )
+    sp.set_defaults(func=cmd_set_design_source)
 
     sp = sub.add_parser(
         "create-branch",

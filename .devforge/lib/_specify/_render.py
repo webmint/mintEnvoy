@@ -10,6 +10,7 @@ from ._schema import (
     COVERAGE_RULE_BANNER,
     CONSTRAINT_KIND_ENUM,
     CONSTRAINT_KIND_LABEL,
+    DESIGN_SOURCE_DEFAULT,
     DP_STATUS_ENUM,
     SPEC_STATUS_DEFAULT,
     SUBSECTION_HEADING_BY_KEY,
@@ -127,8 +128,10 @@ def render_spec(state: Dict[str, Any]) -> str:
 
     out.append("# Spec: {0}".format(name))
     out.append("")
+    design_source = state.get("design_source", DESIGN_SOURCE_DEFAULT) or DESIGN_SOURCE_DEFAULT
     out.append("**Date**: {0}".format(date))
     out.append("**Status**: {0}".format(status))
+    out.append("**Design source**: {0}".format(design_source))
     out.append("**Author**: Claude + User")
     out.append("")
 
