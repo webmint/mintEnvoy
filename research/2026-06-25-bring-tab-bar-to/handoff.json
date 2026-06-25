@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.1",
+  "research_path": "research/2026-06-25-bring-tab-bar-to.md",
+  "research_completed_at": "2026-06-25T22:10:54+00:00",
+  "mode": "feature_addition",
+  "intent": {
+    "symptom_summary": "Tab bar UI does not match design/reference.html across 8 structural/visual points (method chip, active-tab accent, dirty-XOR-close, tabbar geometry/separators, SVG close icon, +/spacer/chevron actions, tab padding/gap, double bottom border). Feature 004 shipped 'look only' with zero visual-fidelity ACs; close all drift as new feature 005.",
+    "desired_summary": "Target = reference's 8-item spec with TIERED fidelity (not flat pixel-perfect): (1) Verification = computed-style EXACT equality on enumerated props (font-size, padding, gap, border, color-tokens) PLUS screenshot diff with explicit anti-aliasing pixel-threshold; 'verified' = computed-style assertions pass, not eyeballed. (2) Semantic/interaction items EXACT + non-negotiable: active ::before/::after, dirty-dot-XOR-close, method chip. (3) 'More tabs' chevron = VISUAL fidelity only; overflow behavior OUT \u2014 no working overflow required to pass. (4) HEAD method color is closed: add --m-head/.method.HEAD token (colored HEAD); uncolored HEAD NOT accepted. (5) Geometry items exact-by-computed-style. Hard constraint: opt-in contract stays backward-compatible \u2014 non-closable render path byte-identical, proven by test.",
+    "scope": "feature-wide",
+    "verbatim_prompt": "# Tab bar \u2014 full visual fidelity to `design/reference.html`\n\n> Intake note for `/research` \u2014 feature `005-tab-bar-visual-fidelity` (follow-on to shipped 004).\n\n## Context\n\nFeature 004 (working tabs state machine) shipped and is **spec-complete** \u2014 but its spec declared `design/reference.html` \"look only\" (`spec.md:13,107`) with **zero visual-fidelity ACs**. A design-auditor run surfaced large visual drift. After scope cross-check, the user chose to close **all** drift, including new structural elements (method chips, overflow chevron, dirty-dot-replaces-close).\n\nThis is **not a `/fix` on 004**: it changes the exported `TabDescriptor` contract on the 002 Tabs primitive and adds a new closable interaction model. Correct framing = a **new feature `005-tab-bar-visual-fidelity`** routed through `/specify \u2192 /plan \u2192 /breakdown \u2192 /implement`, with the contract change recorded in 002 lineage (the AC-29 pattern 004 already used).\n\n## What the reference requires (verified vs current impl)\n\n| # | Target (reference) | Current | Files |\n|---|---|---|---|\n| 1 | `.method` color chip inside each tab before label | none \u2014 `deriveLabel` emits string only | `Tabs.tsx`, `TabBar.tsx:73` |\n| 2 | Active = top accent bar (`::before`) + bottom mask (`::after`) + `--bg` bg | bottom underline `inset 0 -2px accent` + `--accent-soft` wash | `Tabs.css:142-148` |\n| 3 | Dirty dot **XOR** close button (dot is clickable-to-close) | badge `\u25cf` alongside + always-present hover-reveal \u2715 | `Tabs.tsx`, `TabBar.tsx:73` |\n| 4 | `.tabbar` `--bg-sunken`, 36px, `border-bottom`, `padding-right:8px`; per-tab `border-right` | `--bg`, ~32px, no separators | `TabBar.css` |\n| 5 | Close = 16px SVG `x` (Icon size 11), always visible | unicode `\u2715`, `opacity:0` hover-reveal | `Tabs.tsx`, `Tabs.css:295-337` |\n| 6 | `+` (Icon plus 13) inline + `flex:1` spacer + \"More tabs\" chevron (Icon chevronDown 13) | single `+` text in actions slot | `TabBar.tsx`, `TabBar.css` |\n| 7 | Tab padding `0 10px 0 12px`, gap 8px, label `flex:1` ellipsis | symmetric `0 0.75rem`, gap 6px | `Tabs.css:83-84` |\n| 8 | Single bottom border | double (`Shell.css:130` + `Tabs.css:38`) | both |\n\nReuse assets confirmed present: `Icon` atom (`atoms/Icon.tsx`, has `x`/`plus`/`chevronDown`); `.method.*` per-method color classes in `tokens.css` (resolve at runtime via `data-mstyle` on `<html>`). Gaps found: base `.method { font-family: var(--font-mono) }` rule missing; no `--m-head`/`.method.HEAD` token.\n\n## Implementation (4 tasks; A\u2192B ordered, C/D alongside)\n\n### Task A \u2014 Tabs primitive (`Tabs.tsx`, `Tabs.css`)\n- `TabDescriptor` (`Tabs.tsx:116`): add `method?: string` + `dirty?: boolean` (both optional \u2192 backward compatible; non-closable consumers omit; keep `badge`).\n- Method chip in both render branches, before label: `{tab.method && <span className={cx('method', tab.method)}>{tab.method}</span>}` \u2014 uses **global** `.method`/`{METHOD}` classes (documented departure from 002's BEM-only convention). React-escaped text, safe.\n- Closable branch: dirty/close mutual exclusion \u2014 `tab.dirty ? <span className=\"tabs__tab-dirty\" onClick=close/> : <button tabIndex={-1} aria-label=\"Close {label}\"><Icon x 11/></button>`. **Non-closable branch keeps `badge` byte-identical** (AC-11 002 guarantee).\n- A11y: dirty dot is a non-focusable span (zero tab stops \u2192 AC-12 roving preserved); Delete/Backspace close path is gated on `closable` not `dirty` \u2192 dirty tabs stay keyboard-closable (add test). **Accepted tradeoff:** dirty dot has no accessible name (matches reference `<span title>`); AT close routes via keyboard \u2014 document explicitly.\n- **AC-26 stays satisfied** \u2014 the change replaces the close *button*, never the *label* span.\n- CSS: replace active block with top `::before` accent + bottom `::after` mask + `--bg` bg; rewrite `.tabs__tab-close` always-visible 16px grid-centered; add `.tabs__tab-dirty` 7px `--text-faint` circle; geometry gap 8px / padding `0 10px 0 12px` / label `flex:1` ellipsis.\n\n### Task B \u2014 TabBar (`TabBar.tsx`, `TabBar.css`)\n- `toDescriptor` (`:73`): add `method: tab.spec.method`, `dirty: tab.dirty`; **remove** `badge: tab.dirty ? '\u25cf' : undefined`. Leave `deriveLabel` unchanged (AC-25). Method appearing twice on unnamed-URL tabs (chip + in label) is intentional/reference-faithful.\n- Actions slot: `+` Icon button + `.tabbar__spacer{flex:1}` + static \"More tabs\" chevron button. **Overflow chevron is a static affordance in v1** (reference's is also static `<button title>`); real overflow (measurement + dropdown + scroll) is a separate follow-up \u2014 mark `// TODO(overflow)` + spec Out-of-Scope note.\n- Accepted departure: `+` sits at row-end (actions slot is outside `role=tablist`) not hugging the last tab \u2014 keeps clean ARIA boundary; document.\n- CSS: `.tabbar` `--bg-sunken`/36px/`border-bottom`/`padding-right:8px`; `.tabbar .tabs__tab{border-right:1px solid var(--border)}`; `.tabbar__new` grid-centered icon button; delete the `.tabbar .tabs__badge` dirty block; update header JSDoc.\n\n### Task C \u2014 tokens / global CSS (`tokens.css`, `Shell.css`)\n- Add base `.method { font-family: var(--font-mono); \u2026 }` (port reference `styles.css:490-517`); confirm `--font-mono` exists.\n- HEAD parity: add `--m-head` + `.method.HEAD` (recommended) or accept uncolored HEAD.\n- De-dup border: remove `border-bottom` from `.shell__tabs` (`Shell.css:130`); keep `.tabs` border (request-pane section-tabs consumer needs it). Verify `overflow:hidden` on `.tabs` (`:40`) doesn't clip the new `::before` accent or chevron \u2014 remove if it does.\n\n### Task D \u2014 lineage + tests\n- Append `### Extension: feature 005\u2026` under \u00a710 of `specs/002-tabs-primitive/spec.md` (mirror the 004 block): document `method`/`dirty` fields, dirty-XOR-close render model, AC-26-preserved note, unchanged roving model, byte-identical non-closable path, global-`.method`-class departure.\n- Tests: `Tabs.test.tsx` (close lookups by `aria-label` survive; add dirty-XOR-close + method-chip cases), `TabBar.test.tsx` (badge `\u25cf` assertions \u2192 `.tabs__tab-dirty`/`.tabs__tab-close`; dirty-dot click \u2192 `close`; method chip; static chevron), `Tabs.ct.tsx`/`Tabs.stories.tsx` (add `TabsDirtyFixture`: dirty-dot click \u2192 onClose, dot not a tab stop, active `::before`, method chip).\n\n## Out of scope (v1)\n\n- **Functional tab overflow** \u2014 the \"More tabs\" chevron is a static affordance only; real overflow (tab measurement + hidden-tab dropdown + scroll-into-view + keyboard) is a separate follow-on feature.\n\n## Verification\n\n- Type/lint/build/test: `npm run typecheck && npm run lint && npm run build` + the touched test suites.\n- Runtime fidelity (the audit that motivated this was static \u2014 Chrome was down): `npm run dev`, then re-run `design-auditor` with Chrome DevTools MCP live for the computed-style + screenshot diff against `design/reference.html`. Confirm the active-tab `::after` seam renders cleanly after the border de-dup, and `::before`/chevron aren't clipped by `overflow:hidden`.\n- Manual: dirty a tab \u2192 dot replaces \u2715 and click discards; method chip color per method; tab strip 36px on `--bg-sunken` with separators; keyboard Delete still closes a dirty tab."
+  },
+  "spec_seeds": {
+    "spec_type_hint": "feature_addition",
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Search before building",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Minimal changes / backward-compatible contract",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Accessibility \u2014 roving single-stop (002 AC-12)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Design Fidelity principle",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [],
+    "risks": [
+      {
+        "risk": "Shared 002 contract change; active-CSS rewrite + overflow:hidden removal could regress other Tabs consumers / clip accent; mitigated by .tabbar-scoping + byte-identical-path test + runtime probe.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "tbd via /plan"
+      }
+    ],
+    "open_questions": [],
+    "value_semantics": [],
+    "value_production_sites": [],
+    "literal_archaeology": [],
+    "data_flow_chain": null
+  },
+  "plan_seeds": {
+    "recommended_approach_id": "additive_opt_in_tokens_completion_note_s_4_task_plan_gaps_closed",
+    "recommended_approach_summary": "Recommended as the only candidate that completely meets the tiered acceptance bar the user defined; the cheaper alternative deliberately leaves required visuals unmet and is non-compliant by construction. It preserves every stated guarantee and REUSES the project's canonical Icon-atom idiom (glyph definitions already present in atoms/icons.ts:14) instead of reinventing it, honoring the search-first reuse rule. Residual unknowns are tracked as open questions Q1 and Q2 and settled by the live design-auditor pass rather than asserted here.",
+    "layer_destination": "tbd",
+    "layer_justification": "multi-layer",
+    "complexity": {
+      "changes": "Med",
+      "risk": "Med",
+      "verify_cost": "Med"
+    },
+    "cited_canonical_patterns": [],
+    "alternatives_considered": [
+      {
+        "id": "markup_first_defer_token_gaps",
+        "summary": "Add chip span + SVG close + active-CSS + border-dedup now; rely on Shell's existing data-mstyle='soft' for chip color and DEFER the base .method{font-mono} rule, --m-head and .method.HEAD token to a follow-up.",
+        "rejected_reason": "not recommended; see /plan if needed"
+      }
+    ],
+    "proposed_call_shape": null
+  },
+  "probe": {
+    "tier": "3",
+    "actor": "user",
+    "discriminator": {
+      "primary_confirms_if": "If computed .method background/color is empty on a chip \u2192 tokens/data-mstyle gap confirmed (H-B); if HEAD chip uncolored while others colored \u2192 HEAD-token gap; if active ::before/::after or chevron clipped \u2192 overflow:hidden regression (H-C); all assertions pass \u2192 H-A confirmed.",
+      "runner_up_confirms_if": "tbd \u2014 manual observation required",
+      "both_disproved_if": "tbd",
+      "production_site_check": null
+    },
+    "feasibility_check": {
+      "data_shape_only": false,
+      "auth_required": false,
+      "network_dependent": false,
+      "timing_dependent": false,
+      "is_test_code": false
+    },
+    "test_framework": null,
+    "test_path": null,
+    "script_path": null,
+    "is_first_test_for_file": false
+  },
+  "downstream_links": {
+    "spec_path": null,
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}
