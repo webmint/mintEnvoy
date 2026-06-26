@@ -50,6 +50,7 @@
   --m-patch: #a855f7;
   --m-delete: #ef4444;
   --m-options: #64748b;
+  --m-head: #ec4899;
 
   /* status colors (theme-invariant) */
   --status-2xx: #16a34a;
@@ -99,6 +100,14 @@
   --m-patch: #c084fc;
   --m-delete: #f87171;
   --m-options: #94a3b8;
+  --m-head: #f472b6;
+}
+
+.method {
+  font-family: var(--font-mono);
+}
+.method.HEAD {
+  color: var(--m-head);
 }
 
 /* ===== Method style variants — switched by [data-mstyle] on <html> =====
@@ -174,6 +183,10 @@
 [data-mstyle='soft'] .method.OPTIONS {
   background: color-mix(in oklab, var(--m-options) 16%, transparent);
   color: var(--m-options);
+}
+[data-mstyle='soft'] .method.HEAD {
+  background: color-mix(in oklab, var(--m-head) 16%, transparent);
+  color: var(--m-head);
 }
 
 /* Outline: transparent bg, colored text + ring */

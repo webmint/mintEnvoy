@@ -19,6 +19,11 @@
  * feature-004 additions: .tabs__tab-wrapper, .tabs__tab-close. These are
  * additive — the closable=false path renders no .tabs__tab-wrapper or
  * .tabs__tab-close nodes (AC-11).
+ *
+ * feature-005 additions: .tabs__tab-dirty (dirty-state dot), and a block of
+ * .tabbar-scoped overrides at the bottom of this file (AC-22). The scoped
+ * block changes overflow, geometry, active treatment, and separator border for
+ * the tabbar variant without touching any bare .tabs consumer rule.
  */
 
 /* ---------------------------------------------------------------------------
@@ -189,6 +194,7 @@
  * (overflow deferred per spec §6 OOS, but guarded here for robustness).
  */
 .tabs__tab-label {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -287,10 +293,9 @@
 
 /**
  * Per-tab ✕ close control.
- * Sized to match the tab row height (32 px) so it stretches flush with the
- * tab button. Uses token --text-faint for the resting icon color and elevates
- * to --text-muted on hover to signal interactivity without competing with the
- * active-tab accent.
+ * Always-visible 16×16 grid-centered icon button (feature-005: AC-13).
+ * Uses token --text-faint for the resting icon color and elevates to --text
+ * on hover to signal interactivity without competing with the active-tab accent.
  */
 .tabs__tab-close {
   /* Reset button defaults */
@@ -300,13 +305,20 @@
   margin: 0;
   padding: 0;
 
-  /* Layout — sit flush to the right of the label area, full tab row height */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 32px;
+  /* Layout — 16×16 grid-centered icon button */
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
+  /* Center the 16px button vertically in a stretch wrapper (align-items: stretch
+     on .tabs__tab-wrapper). Using align-self rather than changing the wrapper's
+     align-items preserves the tab button's stretch rendering in bare .tabs
+     consumers (AC-22). */
+  align-self: center;
+
+  /* Shape */
+  border-radius: 3px;
 
   /* Typography */
   font-size: var(--fs-sm, 10.5px);
@@ -317,23 +329,13 @@
   cursor: pointer;
   user-select: none;
 
-  /* Fade in on hover over the parent wrapper — unobtrusive at rest */
-  opacity: 0;
-  transition: opacity 80ms ease, color 80ms ease, background-color 80ms ease;
-}
-
-/* Show the ✕ when hovering anywhere on the tab wrapper (AC-22 discoverability). */
-.tabs__tab-wrapper:hover .tabs__tab-close,
-.tabs__tab-wrapper:focus-within .tabs__tab-close {
-  opacity: 1;
+  transition: color 80ms ease, background-color 80ms ease;
 }
 
 /* Hover on the ✕ itself: elevate color and add a subtle tinted background. */
 .tabs__tab-close:hover {
   color: var(--text, #18181b);
   background-color: var(--bg-active, #e8e6e3);
-  border-radius: var(--radius-sm, 5px);
-  opacity: 1;
 }
 
 /* Pressed state */
@@ -347,7 +349,6 @@
   outline: 2px solid var(--accent, #10b981);
   outline-offset: -2px;
   border-radius: var(--radius-sm, 5px);
-  opacity: 1;
 }
 
 /* ---------------------------------------------------------------------------
@@ -365,4 +366,177 @@
   .tabs__tab-close {
     transition: none;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Dirty-state indicator (.tabs__tab-dirty)
+ * Feature-005: dot shown when the tab has unsaved changes (AC-12).
+ * Task 002 renders <span class="tabs__tab-dirty"> inside the tab button.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Unsaved-changes dot rendered as a sibling of the role=tab button inside
+ * .tabs__tab-wrapper. 7×7 px circle, token-bound to --text-faint at rest.
+ * flex-shrink: 0 prevents the dot from collapsing when the label is truncated.
+ */
+.tabs__tab-dirty {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint, #a1a1aa);
+  flex-shrink: 0;
+  /* Same rationale as .tabs__tab-close: center the 7px dot relative to the
+     stretch wrapper without touching the wrapper's align-items (AC-22). */
+  align-self: center;
+}
+
+/* ---------------------------------------------------------------------------
+ * .tabbar-scoped overrides (feature-005, AC-22)
+ * ALL rules below use compound selectors (.tabbar .tabs__*, .tabs.tabbar) so
+ * they ONLY apply when .tabbar is present on the outer container. The global
+ * .tabs / .tabs__tab--active rules above are intentionally left untouched so
+ * bare .tabs consumers are unaffected.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Allow the active-wrapper ::after bottom mask (bottom: -1px) to bleed past
+ * the outer container edge without being clipped. The global .tabs keeps
+ * overflow: hidden for bare consumers; this override restores visibility only
+ * for the tabbar variant.
+ */
+.tabs.tabbar {
+  overflow: visible;
+}
+
+/**
+ * Per-tab cell: the padded wrapper is the design's .tab equivalent — it holds
+ * the role=tab button (chip + label) and the close/dirty sibling with an 8px
+ * gap between them. align-items: center vertically centers the 32px button
+ * and 16px close element within the 36px strip height. The right-edge border
+ * separator is retained on the wrapper (AC-15).
+ * Fix A: padding and gap moved from the button to the wrapper so the full
+ * cell (button + close sibling) is padded uniformly, matching the design's
+ * single-padded-cell .tab rule.
+ */
+.tabbar .tabs__tab-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 12px;
+  border-right: 1px solid var(--border, #e8e6e3);
+}
+
+/**
+ * Active wrapper: lift the background to --bg so it visually "floats" above
+ * the tab strip. The ::before/::after pseudo-elements draw the accent stripe
+ * and the bottom border mask respectively.
+ */
+.tabbar .tabs__tab-wrapper--active {
+  background: var(--bg, #ffffff);
+}
+
+/** Top accent stripe (1.5px, --accent) across the full wrapper width. */
+.tabbar .tabs__tab-wrapper--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1.5px;
+  background: var(--accent, #10b981);
+}
+
+/**
+ * Bottom mask (1px, --bg) that hides the outer .tabs border-bottom under the
+ * active tab, creating a seamless "lifted" appearance. bottom: -1px bleeds
+ * one pixel below the container edge — only possible because .tabs.tabbar
+ * sets overflow: visible above.
+ */
+.tabbar .tabs__tab-wrapper--active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--bg, #ffffff);
+}
+
+/**
+ * Neutralize the global active box-shadow underline and --accent-soft wash
+ * inside .tabbar. The wrapper's ::before/::after pseudo-elements own the
+ * active visual treatment here; keeping both would cause doubling (AC-22).
+ * The global .tabs__tab--active rule is UNCHANGED (bare .tabs consumers keep
+ * the box-shadow underline and --accent-soft wash).
+ */
+.tabbar .tabs__tab--active,
+.tabbar .tabs__tab[aria-selected='true'] {
+  box-shadow: none;
+  background: transparent;
+}
+
+/** Keep hover transparent inside the active tab — wrapper bg handles the fill. */
+.tabbar .tabs__tab--active:hover,
+.tabbar .tabs__tab[aria-selected='true']:hover {
+  background: transparent;
+}
+
+/**
+ * Tabbar-scoped tab geometry (AC-14, AC-15):
+ * Fix A: padding and gap live on the WRAPPER (.tabs__tab-wrapper), not the
+ * button. The button is content-only: padding: 0, flex: 1 1 auto so it fills
+ * the cell, min-width: 0 so CSS ellipsis works (AC-16). gap: 8px remains on
+ * the button for the method chip ↔ label internal spacing.
+ * The global .tabs__tab geometry (gap: 0.375rem; padding: 0 0.75rem) is
+ * untouched and continues to serve bare .tabs consumers.
+ */
+.tabbar .tabs__tab {
+  padding: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 8px;
+}
+
+/* Fix C: tablist is content-width so the actions row (+ / spacer / chevron)
+   sits right after the last tab instead of floating at the strip's far right
+   edge. The global .tabs__list { flex: 1 } is intentionally left unchanged
+   so bare .tabs consumers (section tabs) remain unaffected. */
+.tabbar .tabs__list {
+  flex: 0 0 auto;
+}
+
+/* Fix C companion: actions area fills the remaining strip space so the flex
+   spacer inside it (.tabbar__spacer { flex: 1 }) can push the overflow
+   chevron to the right. padding: 0 removes the global .tabs__actions side
+   gutter so the + button sits flush against the last tab separator.
+   align-items: stretch ensures + and chevron fill the full 36px strip height
+   (required for fix D — flush no-radius buttons). */
+.tabbar .tabs__actions {
+  flex: 1;
+  padding: 0;
+  align-items: stretch;
+}
+
+/* Fix B: hover tints the WHOLE cell (wrapper) not just the role=tab button.
+   :not(.tabs__tab-wrapper--active) skips the active tab so its --bg surface
+   (from .tabbar .tabs__tab-wrapper--active) is not overridden on hover. */
+.tabbar .tabs__tab-wrapper:not(.tabs__tab-wrapper--active):hover {
+  background-color: var(--bg-hover, #f0efed);
+}
+
+/* Elevate text color when the wrapper is hovered. On hover the cell text
+   resolves to --text for all tabs incl. the active one, matching the reference
+   .tab:hover (which has no active-tab exemption). The hover rule specificity
+   (0,4,0 — .tabbar + :hover + .tabs__tab-wrapper + .tabs__tab) exceeds the
+   global .tabs__tab--active (0,1,0), so active-tab text also resolves to
+   --text on hover; this is correct and design-faithful. */
+.tabbar .tabs__tab-wrapper:hover .tabs__tab {
+  color: var(--text, #18181b);
+}
+
+/* Neutralize button-level hover background inside .tabbar so it does not
+   paint a partial tint when the user hovers between the button and the
+   dirty/close sibling. The wrapper rule above owns the cell hover fill. */
+.tabbar .tabs__tab:not(:disabled):not(.tabs__tab--disabled):hover {
+  background-color: transparent;
 }

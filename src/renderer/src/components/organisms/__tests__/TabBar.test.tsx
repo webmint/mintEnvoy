@@ -14,8 +14,12 @@
  *          1. spec.name when non-empty.
  *          2. method + ' ' + url when url is non-empty.
  *          3. 'Untitled' when both name and url are empty.
- * - AC-26: Dirty marker — '●' badge renders alongside a dirty tab's label;
- *          no badge renders for a clean tab.
+ * - AC-4:  Dirty marker — a dirty tab renders a .tabs__tab-dirty dot alongside
+ *          its label; a clean tab renders .tabs__tab-close instead. No '●' text.
+ * - AC-9:  Method chip — a tab's method is rendered as a .method chip in the
+ *          tab button (the accessible name of the tab includes the chip text).
+ * - AC-20: Actions row — + new-tab button / spacer / static "More tabs" chevron.
+ *          Chevron click is a no-op (no tab added, no tab closed).
  *
  * ## Store reset strategy
  *
@@ -23,6 +27,14 @@
  * call tabsStore.setState({ tabs: [...], activeTabId }) to replace the data
  * fields while leaving the zustand actions intact — the same pattern used in
  * tabsStore.test.ts.
+ *
+ * ## Accessible name note (feature-005)
+ *
+ * TabBar now forwards each tab's method to the Tabs molecule, which renders a
+ * .method chip INSIDE the role="tab" button. As a result, a tab's accessible
+ * name includes the method chip text (e.g. "GET Tab A", not just "Tab A").
+ * Tests that query by accessible name use regex patterns (e.g. /Tab A/) to
+ * match the label portion without hardcoding the chip prefix.
  */
 
 import { render, screen } from '@testing-library/react'
@@ -77,8 +89,9 @@ describe('AC-24 — gesture routing', () => {
     const user = userEvent.setup()
     render(<TabBar />)
 
-    // Tab A is active; click Tab B (non-active)
-    const tabBButton = screen.getByRole('tab', { name: 'Tab B' })
+    // Tab A is active; click Tab B (non-active).
+    // Accessible name includes the method chip: "POST Tab B" — use regex to match label.
+    const tabBButton = screen.getByRole('tab', { name: /Tab B/ })
     await user.click(tabBButton)
 
     expect(tabsStore.getState().activeTabId).toBe(TAB_B_ID)
@@ -88,7 +101,7 @@ describe('AC-24 — gesture routing', () => {
     const user = userEvent.setup()
     render(<TabBar />)
 
-    // TabBar renders with closable=true; each tab gets a "Close <label>" button
+    // TabBar renders with closable=true; each clean tab gets a "Close <label>" button
     const closeTabB = screen.getByRole('button', { name: 'Close Tab B' })
     await user.click(closeTabB)
 
@@ -185,7 +198,8 @@ describe('AC-24 — gesture routing', () => {
 
     // TabBar must re-render with the left neighbor carrying aria-selected="true"
     // (store → TabBar → Tabs activeId binding for the left-fallback branch).
-    const midTab = screen.getByRole('tab', { name: 'Mid Tab' })
+    // Accessible name includes the method chip: "GET Mid Tab" — use regex.
+    const midTab = screen.getByRole('tab', { name: /Mid Tab/ })
     expect(midTab).toHaveAttribute('aria-selected', 'true')
   })
 
@@ -199,7 +213,8 @@ describe('AC-24 — gesture routing', () => {
     const tabLengthBefore = tabsStore.getState().tabs.length
 
     // Click the already-active tab (Tab A).
-    const tabAButton = screen.getByRole('tab', { name: 'Tab A' })
+    // Accessible name includes the method chip: "GET Tab A" — use regex.
+    const tabAButton = screen.getByRole('tab', { name: /Tab A/ })
     await user.click(tabAButton)
 
     const { tabs, activeTabId } = tabsStore.getState()
@@ -238,8 +253,9 @@ describe('AC-25 — label precedence', () => {
 
     render(<TabBar />)
 
-    // The tab label text must be exactly "My Request"
-    expect(screen.getByRole('tab', { name: 'My Request' })).toBeInTheDocument()
+    // The tab label text must be "My Request".
+    // Accessible name also includes the method chip ("GET"), so use regex to match label.
+    expect(screen.getByRole('tab', { name: /My Request/ })).toBeInTheDocument()
   })
 
   it('renders "METHOD url" when name is empty and url is non-empty', () => {
@@ -250,8 +266,14 @@ describe('AC-25 — label precedence', () => {
 
     render(<TabBar />)
 
-    // Label must be exactly "POST https://api.example.com/v1" — method + single space + url
-    expect(screen.getByRole('tab', { name: 'POST https://api.example.com/v1' })).toBeInTheDocument()
+    // Label is derived as "POST https://api.example.com/v1" (method + single space + url).
+    // IMPORTANT: assert on .tabs__tab-label textContent directly — NOT on the tab's accessible
+    // name — because the accessible name also includes the method chip ("POST"), so a regex on
+    // the accessible name would match even if deriveLabel regressed to URL-only.
+    const tabBtn = screen.getByRole('tab', { name: /https:\/\/api\.example\.com\/v1/ })
+    const labelEl = tabBtn.querySelector('.tabs__tab-label')
+    expect(labelEl).not.toBeNull()
+    expect(labelEl!.textContent).toBe('POST https://api.example.com/v1')
   })
 
   it('renders "Untitled" when both name and url are empty', () => {
@@ -262,8 +284,8 @@ describe('AC-25 — label precedence', () => {
 
     render(<TabBar />)
 
-    // Label must be exactly "Untitled"
-    expect(screen.getByRole('tab', { name: 'Untitled' })).toBeInTheDocument()
+    // Label must be "Untitled". Accessible name also includes the method chip, so use regex.
+    expect(screen.getByRole('tab', { name: /Untitled/ })).toBeInTheDocument()
   })
 
   it('all three branches render in a single TabBar with the correct verbatim text', () => {
@@ -278,49 +300,56 @@ describe('AC-25 — label precedence', () => {
 
     render(<TabBar />)
 
-    expect(screen.getByRole('tab', { name: 'My Request' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'POST https://api.example.com/v1' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Untitled' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /My Request/ })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /https:\/\/api\.example\.com\/v1/ })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Untitled/ })).toBeInTheDocument()
   })
 })
 
 // ---------------------------------------------------------------------------
-// AC-26 — Dirty marker
+// AC-4 — Dirty marker (dot, not ● badge)
 // ---------------------------------------------------------------------------
 
-describe('AC-26 — dirty marker (● badge)', () => {
-  it('a dirty tab renders the ● badge alongside its label (label text still present)', () => {
+describe('AC-4 — dirty marker (dot, not ● badge)', () => {
+  it('a dirty tab renders a .tabs__tab-dirty dot alongside its label (no ● text)', () => {
     tabsStore.setState({
       tabs: [makeTab('tab-dirty', { name: 'Dirty Request' }, { dirty: true })],
       activeTabId: 'tab-dirty'
     })
 
-    render(<TabBar />)
+    const { container } = render(<TabBar />)
 
-    // The label text must still be accessible
+    // The label text must still be accessible via the role="tab" button.
+    // Accessible name includes the method chip — use regex to match the label portion.
     const tab = screen.getByRole('tab', { name: /Dirty Request/ })
     expect(tab).toBeInTheDocument()
 
-    // The dirty marker '●' must be rendered inside the tab
-    expect(tab.textContent).toContain('●')
+    // The dirty dot must be rendered as .tabs__tab-dirty (not a '●' text node).
+    const dot = container.querySelector('.tabs__tab-dirty')
+    expect(dot).not.toBeNull()
+
+    // No '●' character anywhere in the tab button.
+    expect(tab.textContent).not.toContain('●')
+
+    // XOR: a dirty tab must NOT render the close button (dirty-dot replaces it).
+    expect(container.querySelector('.tabs__tab-close')).toBeNull()
   })
 
-  it('a clean tab renders NO ● badge', () => {
+  it('a clean tab renders .tabs__tab-close (no dirty dot)', () => {
     tabsStore.setState({
       tabs: [makeTab('tab-clean', { name: 'Clean Request' }, { dirty: false })],
       activeTabId: 'tab-clean'
     })
 
-    render(<TabBar />)
+    const { container } = render(<TabBar />)
 
-    const tab = screen.getByRole('tab', { name: 'Clean Request' })
-    expect(tab).toBeInTheDocument()
-
-    // No dirty marker on a clean tab
-    expect(tab.textContent).not.toContain('●')
+    // A clean tab must show the close button, not the dirty dot.
+    expect(container.querySelector('.tabs__tab-dirty')).toBeNull()
+    const closeBtn = container.querySelector('.tabs__tab-close')
+    expect(closeBtn).not.toBeNull()
   })
 
-  it('only the dirty tab carries ● when both dirty and clean tabs are present', () => {
+  it('only the dirty tab carries the dirty dot when dirty and clean tabs coexist', () => {
     tabsStore.setState({
       tabs: [
         makeTab('tab-clean', { name: 'Clean' }, { dirty: false }),
@@ -329,13 +358,65 @@ describe('AC-26 — dirty marker (● badge)', () => {
       activeTabId: 'tab-clean'
     })
 
-    render(<TabBar />)
+    const { container } = render(<TabBar />)
 
-    const cleanTab = screen.getByRole('tab', { name: 'Clean' })
-    const dirtyTab = screen.getByRole('tab', { name: /Dirty/ })
+    // Exactly one dirty dot — only the dirty tab.
+    const dots = container.querySelectorAll('.tabs__tab-dirty')
+    expect(dots).toHaveLength(1)
 
-    expect(cleanTab.textContent).not.toContain('●')
-    expect(dirtyTab.textContent).toContain('●')
+    // Exactly one close button — only the clean tab.
+    const closeBtns = container.querySelectorAll('.tabs__tab-close')
+    expect(closeBtns).toHaveLength(1)
+  })
+
+  it('clicking the dirty dot routes to the store close action (dirty tab is removed)', async () => {
+    const DIRTY_ID = 'tab-dirty-close'
+    tabsStore.setState({
+      tabs: [
+        makeTab('tab-anchor', { name: 'Anchor Tab' }),
+        makeTab(DIRTY_ID, { name: 'Dirty Tab' }, { dirty: true })
+      ],
+      activeTabId: 'tab-anchor'
+    })
+
+    const user = userEvent.setup()
+    const { container } = render(<TabBar />)
+
+    const dot = container.querySelector('.tabs__tab-dirty')
+    expect(dot).not.toBeNull()
+    await user.click(dot!)
+
+    const tabs = tabsStore.getState().tabs
+    expect(tabs.find((t) => t.id === DIRTY_ID)).toBeUndefined()
+  })
+
+  it('clicking the dirty dot on the ACTIVE dirty tab removes it and migrates activeTabId to a neighbor', async () => {
+    const DIRTY_ACTIVE_ID = 'tab-dirty-active'
+    const LEFT_ID = 'tab-left-anchor'
+    const RIGHT_ID = 'tab-right-anchor'
+    tabsStore.setState({
+      tabs: [
+        makeTab(LEFT_ID, { name: 'Left Anchor' }),
+        makeTab(DIRTY_ACTIVE_ID, { name: 'Active Dirty' }, { dirty: true }),
+        makeTab(RIGHT_ID, { name: 'Right Anchor' })
+      ],
+      activeTabId: DIRTY_ACTIVE_ID
+    })
+
+    const user = userEvent.setup()
+    const { container } = render(<TabBar />)
+
+    const dot = container.querySelector('.tabs__tab-dirty')
+    expect(dot).not.toBeNull()
+    await user.click(dot!)
+
+    const { tabs, activeTabId } = tabsStore.getState()
+
+    // (a) The active dirty tab must be removed.
+    expect(tabs.find((t) => t.id === DIRTY_ACTIVE_ID)).toBeUndefined()
+
+    // (b) activeTabId must have migrated to a neighbor (right is preferred; left is the fallback).
+    expect([LEFT_ID, RIGHT_ID]).toContain(activeTabId)
   })
 })
 
@@ -428,5 +509,77 @@ describe('AC-24 — ✕ close-button aria-label: method+url and Untitled branche
 
     // The ✕ button aria-label must be "Close Untitled"
     expect(screen.getByRole('button', { name: 'Close Untitled' })).toBeInTheDocument()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-9 — Method chip in TabBar
+// ---------------------------------------------------------------------------
+
+describe('AC-9 — method chip in TabBar', () => {
+  it('a tab with method "GET" renders a .method chip carrying "GET" inside the tab button', () => {
+    tabsStore.setState({
+      tabs: [makeTab('tab-get', { name: 'My Request', url: 'https://x', method: 'GET' })],
+      activeTabId: 'tab-get'
+    })
+
+    render(<TabBar />)
+
+    // Scope the query to the tab button itself so the assertion pins the chip
+    // inside the correct tab element rather than anywhere in the container.
+    const tabBtn = screen.getByRole('tab', { name: /My Request/ })
+    const chip = tabBtn.querySelector('.method')
+    expect(chip).not.toBeNull()
+    expect(chip!.textContent).toBe('GET')
+  })
+
+  it('a tab with method "POST" renders a .method chip carrying "POST"', () => {
+    tabsStore.setState({
+      tabs: [makeTab('tab-post', { name: 'Post Request', url: 'https://x', method: 'POST' })],
+      activeTabId: 'tab-post'
+    })
+
+    render(<TabBar />)
+
+    // Scope the query to the tab button itself so the assertion pins the chip
+    // inside the correct tab element rather than anywhere in the container.
+    const tabBtn = screen.getByRole('tab', { name: /Post Request/ })
+    const chip = tabBtn.querySelector('.method')
+    expect(chip).not.toBeNull()
+    expect(chip!.textContent).toBe('POST')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-20 — Static chevron in actions row
+// ---------------------------------------------------------------------------
+
+describe('AC-20 — actions row: new-tab button + static chevron', () => {
+  it('renders both a "New tab" button and a "More tabs" chevron button', () => {
+    render(<TabBar />)
+
+    expect(screen.getByRole('button', { name: 'New tab' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'More tabs' })).toBeInTheDocument()
+  })
+
+  it('renders a spacer element between the + button and the chevron', () => {
+    const { container } = render(<TabBar />)
+
+    expect(container.querySelector('.tabbar__spacer')).not.toBeNull()
+  })
+
+  it('clicking the "More tabs" chevron does not change tab state (no-op)', async () => {
+    const user = userEvent.setup()
+    render(<TabBar />)
+
+    const tabCountBefore = tabsStore.getState().tabs.length
+    const activeIdBefore = tabsStore.getState().activeTabId
+
+    const chevron = screen.getByRole('button', { name: 'More tabs' })
+    await user.click(chevron)
+
+    // Chevron is a static affordance — no tab added, no active tab changed.
+    expect(tabsStore.getState().tabs.length).toBe(tabCountBefore)
+    expect(tabsStore.getState().activeTabId).toBe(activeIdBefore)
   })
 })

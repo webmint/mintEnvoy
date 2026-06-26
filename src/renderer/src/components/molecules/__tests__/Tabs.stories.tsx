@@ -18,12 +18,31 @@
  *   TabsClosableRemoveFixture      — closable + removal + focus restoration (AC-23)
  *   TabsNonCloseReRenderFixture    — non-close re-render with focus inside list (AC-23 guard)
  *   TabsClosableRemoveTwoPhase     — two-phase close: close non-active tab then close active (AC-23 guard)
+ *   TabbarFidelityFixture          — .tabbar-scoped closable strip for feature-005 fidelity (Task 009)
+ *   TabbarInShellTabsFixture       — TabbarFidelityFixture inside .shell__tabs wrapper for AC-17 Shell-context assertion
  */
 
 import { useEffect, useState } from 'react'
 import { Tabs } from '@renderer/components/molecules/Tabs'
 import type { TabDescriptor } from '@renderer/components/molecules/Tabs'
 import { selectNeighborId } from '@renderer/lib/tabsStore'
+import { Icon } from '@renderer/components/atoms/Icon'
+
+// Fidelity harness composition: load TabBar.css so the .tabbar organism-level
+// rules (background, height, padding-right) resolve on the mounted
+// <div class="tabs tabbar"> element — reproducing the same CSS cascade that the
+// production element receives when TabBar.tsx renders (TabBar.tsx imports
+// TabBar.css; Tabs.tsx imports Tabs.css; the real element gets both).
+// Without this import the CT harness only loads Tabs.css, so .tabbar strip
+// geometry would remain unset and AC-14 computed-style assertions would fail.
+// This is a documented test-harness composition, mirroring task 006's
+// tokens.css import in playwright/index.tsx.
+import '@renderer/components/organisms/TabBar.css'
+// Import Shell.css so the .shell__tabs rule resolves in the Shell-context AC-17
+// fixture (TabbarInShellTabsFixture). Same test-harness composition pattern as the
+// TabBar.css import above — mirrors the CSS cascade the production element receives
+// when TabBar mounts inside Shell's workspace column.
+import '@renderer/components/organisms/Shell.css'
 
 // Re-export TabDescriptor so fixtures below can use it without
 // introducing a separate import in Tabs.ct.tsx.
@@ -361,8 +380,7 @@ export function TabsNonCloseReRenderFixture(): React.JSX.Element {
     return () => {
       delete (window as Window & { __tabsNonCloseAddTab?: () => void }).__tabsNonCloseAddTab
     }
-  // addTab is stable (defined once per render cycle); deps intentionally empty.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // addTab is stable (defined once per render cycle); deps intentionally empty.
   }, [])
 
   return (
@@ -462,6 +480,108 @@ export function TabsClosableRemoveTwoPhase(): React.JSX.Element {
       />
       <div data-testid="ct-twophase-last-change">{lastChange}</div>
       <div data-testid="ct-twophase-last-close">{lastClose}</div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TabbarFidelityFixture — .tabbar-scoped fidelity fixture (feature-005, Task 009)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fidelity fixture for feature-005 tabbar computed-style assertions (Task 009).
+ *
+ * Mounts <Tabs className="tabbar" closable> so the .tabbar-scoped CSS rules
+ * engage (they require the compound .tabbar selector on the outer container).
+ * The active tab carries method="HEAD" so the HEAD chip color can be asserted
+ * under [data-mstyle="soft"]. A dirty tab and a clean tab complete the set.
+ *
+ * F1 grill binding: every fidelity assertion is .tabbar-compound-scoped and the
+ * active ::before/::after only render on the wrapper in the closable branch.
+ * Mounting a bare <Tabs> would measure unscoped, inert rules.
+ *
+ * Tab layout:
+ *   0 — "head-tab"   active, method="HEAD"  (asserts AC-19 HEAD chip color)
+ *   1 — "dirty-tab"  dirty=true             (dirty-state dot path)
+ *   2 — "clean-tab"  default                (close-button path)
+ *
+ * The CT test sets [data-mstyle="soft"] in beforeEach so the HEAD chip color
+ * rule ([data-mstyle="soft"] .method.HEAD { color: var(--m-head) }) applies.
+ */
+export function TabbarFidelityFixture(): React.JSX.Element {
+  const [activeId, setActiveId] = useState('head-tab')
+
+  const tabs: TabDescriptor[] = [
+    { id: 'head-tab', label: 'GET /users', method: 'HEAD' },
+    { id: 'dirty-tab', label: 'POST /data', dirty: true },
+    { id: 'clean-tab', label: 'PUT /item' }
+  ]
+
+  return (
+    <Tabs
+      aria-label="Tabbar fidelity"
+      tabs={tabs}
+      activeId={activeId}
+      onChange={setActiveId}
+      className="tabbar"
+      closable
+      onClose={() => {}}
+      actions={
+        <>
+          {/* Mirror TabBar.tsx's actions row so CT tests can assert the + button
+              geometry (Fix D: no border-radius, flush height). The spacer pushes
+              the chevron to the right within the actions area. */}
+          <button type="button" className="tabbar__new" aria-label="New tab">
+            <Icon name="plus" size={13} />
+          </button>
+          <span className="tabbar__spacer" />
+          <button type="button" className="tabbar__overflow" aria-label="More tabs">
+            <Icon name="chevronDown" size={13} />
+          </button>
+        </>
+      }
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TabbarInShellTabsFixture — .tabbar inside .shell__tabs wrapper (AC-17)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fixture for the AC-17 Shell-context assertion.
+ *
+ * Wraps the same <Tabs className="tabbar" closable> setup inside a
+ * <div className="shell__tabs"> element so Shell.css's .shell__tabs rule
+ * applies. The CT test asserts that .shell__tabs has NO bottom border
+ * (border-bottom-width: 0px), proving the single-border de-dup guarantee:
+ * the strip border lives exclusively on .tabbar, not doubled by the Shell
+ * wrapper. If Shell.css ever re-introduces a .shell__tabs border-bottom,
+ * this test fails.
+ *
+ * A SEPARATE mount from TabbarFidelityFixture — the screenshot baseline for
+ * TabbarFidelityFixture is unchanged by this fixture.
+ */
+export function TabbarInShellTabsFixture(): React.JSX.Element {
+  const [activeId, setActiveId] = useState('head-tab')
+
+  const tabs: TabDescriptor[] = [
+    { id: 'head-tab', label: 'GET /users', method: 'HEAD' },
+    { id: 'dirty-tab', label: 'POST /data', dirty: true },
+    { id: 'clean-tab', label: 'PUT /item' }
+  ]
+
+  return (
+    <div className="shell__tabs">
+      <Tabs
+        aria-label="Tabbar fidelity in shell"
+        tabs={tabs}
+        activeId={activeId}
+        onChange={setActiveId}
+        className="tabbar"
+        closable
+        onClose={() => {}}
+      />
     </div>
   )
 }

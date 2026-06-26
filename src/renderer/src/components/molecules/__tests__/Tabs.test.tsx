@@ -723,6 +723,427 @@ describe('AC-23 — focus restoration after close: positive path', () => {
 })
 
 // ---------------------------------------------------------------------------
+// AC-2 (feature-005) — non-closable with dirty/method descriptors: no extra DOM
+//
+// When `closable` is omitted (default false), the component must produce zero
+// close-affordance DOM nodes even when the descriptor carries `dirty: true` or
+// `method`. The selection-only roving tabindex contract must be unchanged.
+// ---------------------------------------------------------------------------
+
+describe('AC-2 (feature-005) — non-closable: dirty/method descriptors leave no close-affordance DOM', () => {
+  it('no .tabs__tab-dirty node when closable is omitted even with dirty: true on the descriptor', () => {
+    render(
+      <Tabs
+        tabs={[{ id: 'a', label: 'Alpha', dirty: true }]}
+        activeId="a"
+        onChange={vi.fn()}
+        aria-label="Test"
+      />
+    )
+    expect(document.querySelector('.tabs__tab-dirty')).toBeNull()
+  })
+
+  it('no .tabs__tab-close node when closable is omitted even with dirty: true on the descriptor', () => {
+    render(
+      <Tabs
+        tabs={[{ id: 'a', label: 'Alpha', dirty: true }]}
+        activeId="a"
+        onChange={vi.fn()}
+        aria-label="Test"
+      />
+    )
+    expect(document.querySelector('.tabs__tab-close')).toBeNull()
+  })
+
+  it('no .tabs__tab-dirty or .tabs__tab-close when closable is omitted with a method descriptor', () => {
+    render(
+      <Tabs
+        tabs={[{ id: 'a', label: 'Alpha', method: 'GET' }]}
+        activeId="a"
+        onChange={vi.fn()}
+        aria-label="Test"
+      />
+    )
+    expect(document.querySelector('.tabs__tab-dirty')).toBeNull()
+    expect(document.querySelector('.tabs__tab-close')).toBeNull()
+  })
+
+  it('exactly one tabIndex=0 among role="tab" when closable is omitted with dirty+method descriptors', () => {
+    render(
+      <Tabs
+        tabs={[
+          { id: 'a', label: 'Alpha', dirty: true, method: 'GET' },
+          { id: 'b', label: 'Beta' }
+        ]}
+        activeId="a"
+        onChange={vi.fn()}
+        aria-label="Test"
+      />
+    )
+    const tabStops = screen.getAllByRole('tab').filter((t) => t.getAttribute('tabindex') === '0')
+    expect(tabStops).toHaveLength(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Dirty-XOR-close (AC-12 / AC-13 — feature-005)
+//
+// In the closable branch, each tab renders EITHER a dirty dot OR a close button,
+// never both. Clicking the dirty dot fires onClose but must NOT propagate to
+// onChange (stopPropagation contract, AC-13).
+// ---------------------------------------------------------------------------
+
+describe('Dirty-XOR-close — feature-005 (AC-12, AC-13)', () => {
+  it('dirty: true → .tabs__tab-dirty IS present; .tabs__tab-close is NOT present', () => {
+    const { container } = render(
+      <Tabs
+        tabs={[{ id: 'r1', label: 'Request 1', dirty: true }]}
+        activeId="r1"
+        onChange={vi.fn()}
+        aria-label="Test"
+        closable
+        onClose={vi.fn()}
+      />
+    )
+    expect(container.querySelector('.tabs__tab-dirty')).not.toBeNull()
+    expect(container.querySelector('.tabs__tab-close')).toBeNull()
+  })
+
+  it('dirty: false → .tabs__tab-close IS present; .tabs__tab-dirty is NOT present', () => {
+    const { container } = render(
+      <Tabs
+        tabs={[{ id: 'r1', label: 'Request 1', dirty: false }]}
+        activeId="r1"
+        onChange={vi.fn()}
+        aria-label="Test"
+        closable
+        onClose={vi.fn()}
+      />
+    )
+    expect(container.querySelector('.tabs__tab-close')).not.toBeNull()
+    expect(container.querySelector('.tabs__tab-dirty')).toBeNull()
+  })
+
+  it('dirty omitted → .tabs__tab-close IS present; .tabs__tab-dirty is NOT present', () => {
+    const { container } = render(
+      <Tabs
+        tabs={[{ id: 'r1', label: 'Request 1' }]}
+        activeId="r1"
+        onChange={vi.fn()}
+        aria-label="Test"
+        closable
+        onClose={vi.fn()}
+      />
+    )
+    expect(container.querySelector('.tabs__tab-close')).not.toBeNull()
+    expect(container.querySelector('.tabs__tab-dirty')).toBeNull()
+  })
+
+  it('clicking the dirty dot calls onClose with the tab id', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    const { container } = render(
+      <Tabs
+        tabs={[{ id: 'r1', label: 'Request 1', dirty: true }]}
+        activeId="r1"
+        onChange={vi.fn()}
+        aria-label="Test"
+        closable
+        onClose={onClose}
+      />
+    )
+    const dirtyDot = container.querySelector('.tabs__tab-dirty')
+    expect(dirtyDot).not.toBeNull()
+    await user.click(dirtyDot!)
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledWith('r1')
+  })
+
+  it('clicking the dirty dot does NOT fire onChange (stopPropagation — AC-13)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    const { container } = render(
+      <Tabs
+        tabs={[{ id: 'r1', label: 'Request 1', dirty: true }]}
+        activeId="r1"
+        onChange={onChange}
+        aria-label="Test"
+        closable
+        onClose={vi.fn()}
+      />
+    )
+    const dirtyDot = container.querySelector('.tabs__tab-dirty')
+    expect(dirtyDot).not.toBeNull()
+    await user.click(dirtyDot!)
+    expect(onChange).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-3 (feature-005) — roving integrity with dirty closable tab
+//
+// A dirty dot span must not become a tab stop: exactly one role="tab" button
+// has tabIndex=0, and the dirty dot carries no tabindex attribute at all.
+// ---------------------------------------------------------------------------
+
+describe('AC-3 (feature-005) — roving integrity with dirty closable tab', () => {
+  it('exactly one element has tabIndex=0 (the active tab button) when a dirty closable tab is present', () => {
+    render(
+      <Tabs
+        tabs={[
+          { id: 'a', label: 'Alpha', dirty: true },
+          { id: 'b', label: 'Beta' }
+        ]}
+        activeId="a"
+        onChange={vi.fn()}
+        aria-label="Test"
+        closable
+        onClose={vi.fn()}
+      />
+    )
+    const tabStops = screen.getAllByRole('tab').filter((t) => t.getAttribute('tabindex') === '0')
+    expect(tabStops).toHaveLength(1)
+  })
+
+  it('the dirty dot span has no tabindex attribute (not a focusable tab stop)', () => {
+    const { container } = render(
+      <Tabs
+        tabs={[{ id: 'a', label: 'Alpha', dirty: true }]}
+        activeId="a"
+        onChange={vi.fn()}
+        aria-label="Test"
+        closable
+        onClose={vi.fn()}
+      />
+    )
+    const dirtyDot = container.querySelector('.tabs__tab-dirty')
+    expect(dirtyDot).not.toBeNull()
+    expect(dirtyDot!.getAttribute('tabindex')).toBeNull()
+  })
+
+  it('getAllByRole("tab") count equals the tab descriptor count (dirty dot carries no role="tab")', () => {
+    const tabs: TabDescriptor[] = [
+      { id: 'a', label: 'Alpha', dirty: true },
+      { id: 'b', label: 'Beta' }
+    ]
+    render(
+      <Tabs
+        tabs={tabs}
+        activeId="a"
+        onChange={vi.fn()}
+        aria-label="Test"
+        closable
+        onClose={vi.fn()}
+      />
+    )
+    expect(screen.getAllByRole('tab')).toHaveLength(tabs.length)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-6 (feature-005) — keyboard close (Delete / Backspace) gated on closable
+//
+// Delete/Backspace fire onClose regardless of the tab's dirty state.
+// The close path is gated on `closable`, not `dirty`.
+// ---------------------------------------------------------------------------
+
+describe('AC-6 (feature-005) — keyboard close gated on closable, not dirty', () => {
+  it('Delete on a focused dirty closable tab fires onClose with that tab id', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    const onChange = vi.fn()
+    render(
+      <Tabs
+        tabs={[{ id: 'dirty', label: 'Dirty Tab', dirty: true }]}
+        activeId="dirty"
+        onChange={onChange}
+        aria-label="Test"
+        closable
+        onClose={onClose}
+      />
+    )
+    screen.getByRole('tab', { name: 'Dirty Tab' }).focus()
+    await user.keyboard('{Delete}')
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledWith('dirty')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('Backspace on a focused dirty closable tab fires onClose with that tab id', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    const onChange = vi.fn()
+    render(
+      <Tabs
+        tabs={[{ id: 'dirty', label: 'Dirty Tab', dirty: true }]}
+        activeId="dirty"
+        onChange={onChange}
+        aria-label="Test"
+        closable
+        onClose={onClose}
+      />
+    )
+    screen.getByRole('tab', { name: 'Dirty Tab' }).focus()
+    await user.keyboard('{Backspace}')
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledWith('dirty')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('Delete on a clean (dirty: false) closable tab also fires onClose (gated on closable, not dirty)', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    const onChange = vi.fn()
+    render(
+      <Tabs
+        tabs={[{ id: 'clean', label: 'Clean Tab', dirty: false }]}
+        activeId="clean"
+        onChange={onChange}
+        aria-label="Test"
+        closable
+        onClose={onClose}
+      />
+    )
+    screen.getByRole('tab', { name: 'Clean Tab' }).focus()
+    await user.keyboard('{Delete}')
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledWith('clean')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('Backspace on a clean (dirty: false) closable tab also fires onClose (Delete/Backspace × dirty/clean matrix)', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    const onChange = vi.fn()
+    render(
+      <Tabs
+        tabs={[{ id: 'clean', label: 'Clean Tab', dirty: false }]}
+        activeId="clean"
+        onChange={onChange}
+        aria-label="Test"
+        closable
+        onClose={onClose}
+      />
+    )
+    screen.getByRole('tab', { name: 'Clean Tab' }).focus()
+    await user.keyboard('{Backspace}')
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledWith('clean')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Method chip (feature-005 — AC-9/AC-10 in task-007 scope)
+//
+// A known HTTP method gets a color-modifier class; an unknown method renders
+// only the base `method` class. The chip appears before the label in the DOM.
+// ---------------------------------------------------------------------------
+
+describe('Method chip (feature-005)', () => {
+  it('a known method "GET" renders a .method span with the GET class containing the text "GET"', () => {
+    const { container } = render(
+      <Tabs
+        tabs={[{ id: 'r', label: 'My Tab', method: 'GET' }]}
+        activeId="r"
+        onChange={vi.fn()}
+        aria-label="Test"
+      />
+    )
+    const chip = container.querySelector('.method')
+    expect(chip).not.toBeNull()
+    expect(chip!.textContent).toBe('GET')
+    // Known method gets the color modifier class matching the uppercased method
+    expect(chip).toHaveClass('GET')
+  })
+
+  it('a known method chip appears before the label in the tab button DOM order', () => {
+    const { container } = render(
+      <Tabs
+        tabs={[{ id: 'r', label: 'My Tab', method: 'GET' }]}
+        activeId="r"
+        onChange={vi.fn()}
+        aria-label="Test"
+      />
+    )
+    const tabButton = container.querySelector('[role="tab"]')!
+    const children = Array.from(tabButton.children)
+    const chipIndex = children.findIndex((el) => el.classList.contains('method'))
+    const labelIndex = children.findIndex((el) => el.classList.contains('tabs__tab-label'))
+    expect(chipIndex).toBeGreaterThanOrEqual(0)
+    expect(labelIndex).toBeGreaterThanOrEqual(0)
+    expect(chipIndex).toBeLessThan(labelIndex)
+  })
+
+  it('an unknown method "FROBNICATE" renders a .method span with the text but only the base method class', () => {
+    const { container } = render(
+      <Tabs
+        tabs={[{ id: 'r', label: 'My Tab', method: 'FROBNICATE' }]}
+        activeId="r"
+        onChange={vi.fn()}
+        aria-label="Test"
+      />
+    )
+    const chip = container.querySelector('.method')
+    expect(chip).not.toBeNull()
+    expect(chip!.textContent).toBe('FROBNICATE')
+    // Unknown method must NOT receive a color modifier class
+    expect(chip).not.toHaveClass('FROBNICATE')
+    expect((chip as HTMLElement).className).toBe('method')
+  })
+
+  it('no .method span renders when method is undefined', () => {
+    const { container } = render(
+      <Tabs
+        tabs={[{ id: 'r', label: 'My Tab' }]}
+        activeId="r"
+        onChange={vi.fn()}
+        aria-label="Test"
+      />
+    )
+    expect(container.querySelector('.method')).toBeNull()
+  })
+
+  it('method chip renders inside the closable branch too (closable=true with a known method)', () => {
+    const { container } = render(
+      <Tabs
+        tabs={[{ id: 'r', label: 'My Tab', method: 'POST' }]}
+        activeId="r"
+        onChange={vi.fn()}
+        aria-label="Test"
+        closable
+        onClose={vi.fn()}
+      />
+    )
+    const chip = container.querySelector('.method')
+    expect(chip).not.toBeNull()
+    expect(chip!.textContent).toBe('POST')
+    expect(chip).toHaveClass('POST')
+  })
+
+  it('a lowercase method "get" renders the chip with raw text "get" and the uppercased GET color class (normalization branch)', () => {
+    // The component renders tab.method verbatim as text but uses method.toUpperCase()
+    // to match KNOWN_METHODS — so a lowercase "get" shows as "get" but still gets
+    // the "GET" color modifier class. This covers the case where an API client stores
+    // methods in lowercase.
+    const { container } = render(
+      <Tabs
+        tabs={[{ id: 'r', label: 'My Tab', method: 'get' }]}
+        activeId="r"
+        onChange={vi.fn()}
+        aria-label="Test"
+      />
+    )
+    const chip = container.querySelector('.method')
+    expect(chip).not.toBeNull()
+    // Raw method string is displayed as-is (lowercase preserved)
+    expect(chip!.textContent).toBe('get')
+    // Color class uses the uppercased form (normalization — toUpperCase() branch)
+    expect(chip).toHaveClass('GET')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // AC-23 (non-close guard) — re-render with CHANGED tabs[] but SAME activeId
 // while focus is outside the list must NOT steal focus.
 // ---------------------------------------------------------------------------

@@ -10,7 +10,7 @@ source_stamp: b44087ca58806208
 
 ## Purpose
 
-React 19 renderer process — the user-facing UI. Houses the reusable UI-primitive library (Icon atom; Dropdown, Modal, Toast, and Tabs molecules — Dropdown/Modal/Toast wrap Radix UI, Tabs hand-rolls its WAI-ARIA engine and also supports an opt-in closable affordance), the single-window app shell (Shell, Titlebar, Sidebar, PaneSplit, Statusbar, and a hand-rolled WAI-ARIA Divider splitter, all in the organisms tier), the working-tabs strip organism (TabBar, composing Tabs and wired to tabsStore), three module-level zustand stores (toastStore for the toast queue; settingsStore as the SSOT for theme/accent/method-style/sidebarWidth/paneRatio/sidebarCollapsed; tabsStore as the working-tabs lifecycle state machine), the requestSpec domain model (RequestSpec, Row, Auth discriminated union, isBearerAuth type guard, makeBlankRequest factory), className-merge and safe icon-resolution helpers, design tokens as CSS variables, and a dev-only primitives gallery gated on import.meta.env.DEV. main.tsx mounts App into index.html; the layer carries no Node/Electron imports per the renderer-isolation rule.
+React 19 renderer process — the user-facing UI. Houses the reusable UI-primitive library (Icon atom; Dropdown, Modal, Toast, and Tabs molecules — Dropdown/Modal/Toast wrap Radix UI, Tabs hand-rolls its WAI-ARIA engine and also supports opt-in closable, per-tab method-chip (HTTP-method color chip, `aria-hidden`), and dirty-state affordances), the single-window app shell (Shell, Titlebar, Sidebar, PaneSplit, Statusbar, and a hand-rolled WAI-ARIA Divider splitter, all in the organisms tier), the working-tabs strip organism (TabBar, composing Tabs and wired to tabsStore), three module-level zustand stores (toastStore for the toast queue; settingsStore as the SSOT for theme/accent/method-style/sidebarWidth/paneRatio/sidebarCollapsed; tabsStore as the working-tabs lifecycle state machine), the requestSpec domain model (RequestSpec, Row, Auth discriminated union, isBearerAuth type guard, makeBlankRequest factory), className-merge and safe icon-resolution helpers, design tokens as CSS variables, and a dev-only primitives gallery gated on import.meta.env.DEV. main.tsx mounts App into index.html; the layer carries no Node/Electron imports per the renderer-isolation rule.
 
 ## Structure
 
@@ -52,8 +52,8 @@ src/renderer/
 │   │   │   ├── Dropdown.tsx  # Controlled dropdown menu over Radix DropdownMenu
 │   │   │   ├── Modal.css  # Modal styles; overlay scrim + gated animation
 │   │   │   ├── Modal.tsx  # Controlled modal dialog over Radix Dialog
-│   │   │   ├── Tabs.css  # Tabs styles; token-bound BEM classes; reduced-motion guard
-│   │   │   ├── Tabs.tsx  # Controlled tab-strip; hand-rolled WAI-ARIA tablist (no Radix)
+│   │   │   ├── Tabs.css  # Tabs styles; token-bound BEM classes; reduced-motion guard; .tabbar-scoped override block (feature-005)
+│   │   │   ├── Tabs.tsx  # Controlled tab-strip; hand-rolled WAI-ARIA tablist (no Radix); opt-in method-chip and dirty-state (feature-005)
 │   │   │   ├── Toast.css  # Toast queue styles per variant
 │   │   │   └── Toast.tsx  # Toast queue UI; ToastProvider + ToastViewport
 │   │   ├── organisms
@@ -70,7 +70,7 @@ src/renderer/
 │   │   │   ├── Statusbar.css  # Statusbar styles
 │   │   │   ├── Statusbar.tsx  # Bottom statusbar strip
 │   │   │   ├── TabBar.css  # TabBar strip styles
-│   │   │   ├── TabBar.tsx  # Working-tabs strip; composes closable Tabs; wired to tabsStore
+│   │   │   ├── TabBar.tsx  # Working-tabs strip; composes closable Tabs; wired to tabsStore; renders + / spacer / overflow-chevron actions row
 │   │   │   ├── Titlebar.css  # Titlebar styles; drag region for OS window move
 │   │   │   └── Titlebar.tsx  # Top titlebar; sidebar-toggle button (forwarded toggleRef)
 │   │   ├── PrimitivesDemo.css  # Styles for the dev-only primitives gallery
