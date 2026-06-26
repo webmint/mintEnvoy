@@ -1,0 +1,552 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/005-tab-bar-visual-fidelity/spec.md",
+  "specify_completed_at": "2026-06-25T22:55:06Z",
+  "classification": {
+    "spec_number": "005",
+    "feature_name": "tab-bar-visual-fidelity",
+    "feature_slug": "tab-bar-visual-fidelity",
+    "spec_type": "feature_addition",
+    "spec_type_rationale": "pre-seeded from research handoff (spec_type=feature_addition); 005 adds new structural UI elements (method chip, dirty-XOR-close, overflow chevron affordance) + extends the 002 Tabs contract additively",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "Close the visual-fidelity gap between the working-tabs TabBar (feature 004) and design/reference.html across the reference's 8 structural/visual points \u2014 method chip, active-tab accent (top ::before + bottom ::after mask), dirty-dot-XOR-close, tabbar geometry + per-tab separators, 16px SVG close icon, +/spacer/'More tabs'-chevron actions row, tab padding/gap, and single bottom border. Feature 004 shipped 'look only' with zero visual-fidelity acceptance criteria; 005 adds those criteria with TIERED fidelity (computed-style EXACT equality on enumerated props plus a thresholded screenshot diff \u2014 not eyeballed), extends the 002 Tabs primitive additively (optional method/dirty descriptor fields) under a backward-compatible byte-identical guarantee, and completes the method-token set (colored HEAD via a new --m-head/.method.HEAD).",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The tokens stylesheet shall define a --m-head custom property so the HEAD method has a dedicated color token.",
+        "verification_command": "grep -qE '\\-\\-m-head\\s*:' src/renderer/styles/tokens.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the Tabs primitive is rendered without the closable option, the primitive shall remain byte-identical to its 002 selection-only contract \u2014 no method chip, no dirty or close DOM node, and no extra roving tab stop.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The Tabs primitive shall maintain exactly one roving tab stop per tab regardless of the closable option or the new method and dirty descriptor fields.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a tab is dirty, the TabBar shall leave the tab's derived label text unchanged, replacing only the close control with the dirty dot and never the label (feature 004 AC-26 preserved).",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "behavior_preservation",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the TabBar derives a tab label, the TabBar shall apply the unchanged feature 004 AC-25 precedence of name then method-plus-url then the literal Untitled, rendered verbatim.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a tab is dirty, the Tabs primitive shall keep the dirty dot a non-focusable element and shall keep Delete or Backspace closing the focused tab so a dirty tab stays keyboard-closable.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The tokens stylesheet shall define a HEAD-method color rule so a HEAD chip renders colored rather than uncolored.",
+        "verification_command": "grep -qE '\\.method\\.HEAD' src/renderer/styles/tokens.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The tokens stylesheet shall define a base method rule that binds the chip font to the monospace token.",
+        "verification_command": "grep -qE '^\\.method[[:space:]]*\\{' src/renderer/styles/tokens.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "behavior_change",
+        "ears_variant": "optional",
+        "statement": "WHERE a tab descriptor carries a method, the Tabs primitive shall render a leading method chip before the tab label, colored per the method via the global method classes.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF a tab's method is outside the colored method set, THEN the Tabs primitive shall render the chip uncolored so it inherits the tab text color.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-11",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a tab is active, the Tabs primitive shall render a top accent bar in the accent color via a ::before pseudo-element and a bottom mask in the surface color via a ::after pseudo-element over a surface-colored background.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-12",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a closable tab is dirty, the Tabs primitive shall render a faint dirty dot in place of the close control and shall emit onClose when the dot is clicked.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-13",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a closable tab is clean, the Tabs primitive shall render an always-visible grid-centered SVG close control sized 16px square rather than an opacity-hover-revealed glyph.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-14",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the TabBar is rendered, the tabbar element shall have a computed sunken background, a height of 36px, a 1px bottom border in the border color, and a right padding of 8px.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-15",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a tab is rendered in the TabBar, each tab shall have a computed gap of 8px, a padding of 0 10px 0 12px, a 1px right-border separator in the border color, and a font size equal to the --fs-base token.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-16",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a tab label overflows its width, the label shall be a flex-filling element truncated with an ellipsis.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-17",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the shell renders the tabs strip, exactly one bottom border shall be present after the duplicate shell-tabs border is removed.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-18",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the fidelity suite runs, the enumerated computed-style properties of font size, padding, gap, border, color tokens, and active pseudo-element geometry shall be asserted by exact equality in a real browser via Playwright component tests.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-19",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the method style is at its default, the Tabs primitive shall render a HEAD-method chip colored via the --m-head token rather than uncolored.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-20",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the TabBar renders its actions slot, the TabBar shall render a plus new-tab button, a flex-filling spacer, and a static More-tabs chevron button.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-21",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the fidelity suite runs, the fidelity suite shall pass the screenshot diff against the design reference only within an explicit anti-aliasing pixel-threshold, resting verification on the computed-style assertions and the thresholded diff rather than on visual eyeballing.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-22",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the new active and geometry styles are applied, the Tabs styling shall scope them to the tabbar so the request-pane section-tabs consumer of the Tabs primitive renders unchanged.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-23",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The feature 002 Tabs spec lineage shall record the 005 contract extension covering the new method and dirty descriptor fields, the dirty-XOR-close render model, the byte-identical non-closable path, and the global method-class departure, rather than a silent prop addition.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-24",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The new TabDescriptor method and dirty fields and the dirty-XOR-close behavior shall carry documentation comments on the exported symbols.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-25",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer source shall pass strict type-checking.",
+        "verification_command": "npm run typecheck:web",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-26",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The codebase shall pass ESLint without new errors.",
+        "verification_command": "npm run lint",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-27",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The project shall build cleanly.",
+        "verification_command": "npm run build",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-28",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The touched renderer source shall contain no inline style attributes outside comments.",
+        "verification_command": "! grep -REn 'style=[{][{]' src/renderer/src/components/molecules/Tabs.tsx src/renderer/src/components/organisms/TabBar.tsx | grep -vqE ':[[:space:]]*(\\*|//|/[*])'",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-29",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The touched renderer modules shall not import the electron or node built-in modules directly.",
+        "verification_command": "! grep -REn \"from '(electron|node:)\" src/renderer/src/components/molecules/Tabs.tsx src/renderer/src/components/organisms/TabBar.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "ci_pipeline": "No CI pipeline changes in scope; tests run via the existing npm scripts (vitest/playwright), not a new pipeline stage.",
+      "hooks_gates": "No new git hooks or commit gates introduced; the project's existing forge gates apply unchanged."
+    },
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Search before building",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Minimal changes / backward-compatible contract",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Accessibility \u2014 roving single-stop (002 AC-12)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Design Fidelity principle",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "The opt-in Tabs contract must stay backward-compatible: the non-closable render path stays byte-identical to the 002 selection-only contract (no method chip, no dirty/close node, no extra roving stop), proven by a regression test (002 AC-11).",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "The deriveLabel/AC-25 label precedence and the tabsStore lifecycle must not regress \u2014 005 changes presentation and descriptor mapping only.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Scope the new active (::before/::after) and geometry CSS to the working-tabs .tabbar so the request-pane section-tabs Tabs consumer is not regressed; reuse the existing .tabbar-scoping precedent in TabBar.css.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Style exclusively via tokens-bound semantic class names (no inline styles); gate any animation behind prefers-reduced-motion; never reproduce the design reference markup.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Search before building: reuse the Icon atom glyphs (x, plus, chevronDown \u2014 already present in atoms/icons.ts) and the existing tokens.css .method color classes; introduce no new runtime dependency.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Author hygiene/AC verification commands behaviorally or with comment-line stripping so a grep does not self-match JSDoc/comments that quote the forbidden pattern (lesson from feature 002 AC-14).",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Renderer-only: Tabs, TabBar, tokens.css carry no Node or electron imports; the renderer reaches the platform only through preload-exposed globals.",
+        "quantifier": null,
+        "constitution_ref": "2.1",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Resolve renderer cross-module imports via the @renderer alias; lib stays leaf. The global .method/.{METHOD} class usage inside Tabs is a documented departure from the BEM-only convention and must be recorded in the 002 lineage.",
+        "quantifier": null,
+        "constitution_ref": "2.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Strict mode, no any: the new optional TabDescriptor.method and .dirty fields are fully typed; method is narrowed against the known set before applying a color class.",
+        "quantifier": null,
+        "constitution_ref": "3.1",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Gate behavior and fidelity with Vitest + Testing Library and Playwright CT, co-located under __tests__/ split .test.tsx/.ct.tsx; the real-browser computed-style assertions require Playwright CT because jsdom cannot resolve pseudo-element computed styles.",
+        "quantifier": null,
+        "constitution_ref": "3.4",
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "Tabs primitive (contract + render)",
+        "files": [
+          "src/renderer/src/components/molecules/Tabs.tsx"
+        ],
+        "impact": "Modify \u2014 add optional method?:string + dirty?:boolean to TabDescriptor (additive, backward-compatible); render a leading .method chip before the label when method is set; in the closable branch render dirty-dot-XOR-close (dirty \u2192 clickable 7px dot replacing the close button; clean \u2192 always-visible SVG x via Icon); keep non-closable path byte-identical (002 AC-11); keep hand-rolled roving a11y intact"
+      },
+      {
+        "area": "Tabs primitive styles",
+        "files": [
+          "src/renderer/src/components/molecules/Tabs.css"
+        ],
+        "impact": "Modify \u2014 replace box-shadow active underline with top ::before accent (1.5px --accent) + bottom ::after mask (1px --bg) over --bg bg; add .tabs__tab-dirty (7px --text-faint circle); rewrite .tabs__tab-close to always-visible 16px grid-centered (border-radius 3px, --text-faint, hover --bg-active); geometry gap 8px, padding 0 10px 0 12px, label flex:1 ellipsis; new active/geometry rules scoped under .tabbar; remove/guard overflow:hidden only if it clips ::before/chevron"
+      },
+      {
+        "area": "TabBar organism",
+        "files": [
+          "src/renderer/src/components/organisms/TabBar.tsx"
+        ],
+        "impact": "Modify \u2014 toDescriptor adds method: tab.spec.method + dirty: tab.dirty and REMOVES badge: tab.dirty ? '\u25cf'; deriveLabel unchanged (004 AC-25); actions slot becomes + new-tab button (Icon plus) + flex:1 spacer + static 'More tabs' chevron button (Icon chevronDown) with a TODO(overflow) marker"
+      },
+      {
+        "area": "TabBar styles",
+        "files": [
+          "src/renderer/src/components/organisms/TabBar.css"
+        ],
+        "impact": "Modify \u2014 .tabbar gets --bg-sunken, height 36px, border-bottom 1px --border, padding-right 8px; per-tab .tabbar .tabs__tab border-right 1px --border; .tabbar__new + .tabbar chevron as grid-centered icon buttons; delete the .tabbar .tabs__badge dirty block"
+      },
+      {
+        "area": "Design tokens + global method CSS",
+        "files": [
+          "src/renderer/styles/tokens.css"
+        ],
+        "impact": "Modify \u2014 add base .method { font-family: var(--font-mono); ... }; add --m-head token (light + dark) and a .method.HEAD color rule (colored HEAD); confirm --font-mono present"
+      },
+      {
+        "area": "Shell tabs-slot border de-dup",
+        "files": [
+          "src/renderer/src/components/organisms/Shell.css"
+        ],
+        "impact": "Modify \u2014 remove the duplicate border-bottom from .shell__tabs (Shell.css:130) so the strip shows a single bottom border (the .tabbar border-bottom owns it)"
+      },
+      {
+        "area": "002 Tabs contract lineage",
+        "files": [
+          "specs/002-tabs-primitive/spec.md"
+        ],
+        "impact": "Modify \u2014 append a '### Extension: feature 005-tab-bar-visual-fidelity' block under \u00a710 documenting the new method/dirty descriptor fields, dirty-XOR-close render model, AC-26-preserved note, byte-identical non-closable path, and the global-.method-class departure (the AC-29 lineage pattern)"
+      },
+      {
+        "area": "Fidelity + behavior tests",
+        "files": [
+          "src/renderer/src/components/molecules/__tests__/Tabs.test.tsx",
+          "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx",
+          "src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx",
+          "src/renderer/src/components/organisms/__tests__/TabBar.test.tsx"
+        ],
+        "impact": "Create/extend \u2014 Tabs.test: byte-identical non-closable regression, dirty-XOR-close, method chip, keyboard-Delete still closes a dirty tab; TabBar.test: migrate the AC-26 '\u25cf' badge assertions to .tabs__tab-dirty/.tabs__tab-close, dirty-dot-click \u2192 close, method chip, static chevron; Tabs.ct: real-browser computed-style EXACT assertions on .tabbar geometry/typography/colors + active ::before/::after + thresholded screenshot diff (anti-aliasing pixel-threshold); add a dirty fixture (dot click \u2192 onClose, dot not a tab stop)"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Functional tab overflow \u2014 the 'More tabs' chevron is a static visual affordance only; real overflow behavior (tab measurement, hidden-tab dropdown, scroll-into-view, keyboard) is a separate follow-on feature and is not required to pass.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Reproducing design/reference.html markup or its generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks panel) \u2014 fidelity is matched via tokens-bound semantic classes, not by copying the reference DOM.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Changing the tab label derivation \u2014 deriveLabel and the 004 AC-25 precedence (name then method-plus-url then Untitled) stay byte-for-byte unchanged; the method chip is additive and the label keeps the method on unnamed-URL tabs (reference-faithful).",
+        "finding_ref": ""
+      },
+      {
+        "content": "tabsStore lifecycle behavior (open, dedupe, close never-zero, dirty, markClean) \u2014 005 touches only the TabBar/Tabs presentation and the descriptor mapping, not the store state machine.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Visual changes to the request-pane section-tabs Tabs consumer \u2014 the new active/geometry CSS is scoped to the working-tabs .tabbar so the other Tabs consumer renders unchanged.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Separate dark-theme fidelity work \u2014 dark rendering is driven by the existing light/dark token pairs (including the new --m-head pair); no theme-specific layout or geometry work is in scope.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Repo-wide reformatting or unrelated housekeeping commits on this feature branch \u2014 they pollute the /verify hygiene scope vs the breakdown baseline (memory lesson from features 001/002).",
+        "finding_ref": ""
+      }
+    ],
+    "open_questions": [
+      {
+        "question_id": "Q-1",
+        "content": "Exact --m-head color value (light + dark) is deferred to /plan; spec mandates HEAD IS colored via a new --m-head token + .method.HEAD class (uncolored HEAD rejected), /plan picks a hue distinct from the existing six methods.",
+        "category_no_dp_reason": ""
+      },
+      {
+        "question_id": "Q-2",
+        "content": "Exact screenshot-diff anti-aliasing pixel-threshold value is deferred to /plan; spec mandates an explicit threshold MUST be set (verification is computed-style assertions + thresholded diff, not eyeballing), /plan fixes the concrete number (e.g. Playwright toHaveScreenshot threshold + maxDiffPixelRatio).",
+        "category_no_dp_reason": ""
+      },
+      {
+        "question_id": "Q-3",
+        "content": "Accessibility tradeoff: the dirty dot has no accessible name (matching the reference's span-title pattern); assistive-tech close routes via the retained Delete/Backspace keyboard path, not a pointer label. Accepted for v1 and to be documented in the 002 lineage; revisit if an explicit aria-label on the dirty dot is later wanted.",
+        "category_no_dp_reason": ""
+      },
+      {
+        "question_id": "Q-4",
+        "content": "The .tabs overflow:hidden (Tabs.css:40) must be removed or guarded only if it clips the new active ::before accent or the chevron; whether removal is needed is settled by the runtime design-auditor probe during /plan or /implement (no blind removal).",
+        "category_no_dp_reason": ""
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Shared 002 contract change; active-CSS rewrite + overflow:hidden removal could regress other Tabs consumers / clip accent; mitigated by .tabbar-scoping + byte-identical-path test + runtime probe.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "tbd via /plan"
+      },
+      {
+        "risk": "Shared 002 contract change: the active-CSS rewrite + possible overflow:hidden removal could regress other Tabs consumers or clip the new ::before accent/chevron.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Scope new active/geometry CSS to .tabbar; keep a closable=false byte-identical regression test; confirm via a runtime design-auditor (Chrome DevTools MCP) probe that ::before/::after/chevron are not clipped."
+      },
+      {
+        "risk": "jsdom cannot resolve ::before/::after computed styles, so the EXACT computed-style fidelity assertions must run in Playwright CT (real browser); a flaky or stale CT build cache could mask a clean source as broken.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Author fidelity assertions in Playwright CT (established by feature 001); when a build/test error names a clean file, clear the CT cache (playwright/.cache, node_modules/.vite, dist) and re-run before editing source (memory lesson 2026-06-24)."
+      },
+      {
+        "risk": "Removing the badge:'\u25cf' mapping + deleting the .tabbar .tabs__badge block leaves the existing TabBar.test AC-26 '\u25cf' assertions failing.",
+        "likelihood": "Med",
+        "impact": "Low",
+        "mitigation": "Migrate the TabBar.test AC-26 dirty-marker assertions to .tabs__tab-dirty/.tabs__tab-close and dirty-dot-click-to-close in the same change; verify the label text is still asserted present."
+      },
+      {
+        "risk": "The dirty dot lacking an accessible name reduces screen-reader clarity for the unsaved + close affordance.",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Retain and test the keyboard Delete/Backspace close path on dirty tabs; document the accepted tradeoff in the 002 lineage; leave an explicit aria-label as a flagged future option (Q-3)."
+      }
+    ]
+  },
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/research/2026-06-25-bring-tab-bar-to/handoff.json",
+    "upstream_handoff_kind": "research",
+    "upstream_completed_at": "2026-06-25T22:10:54+00:00"
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}

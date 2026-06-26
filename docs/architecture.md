@@ -65,7 +65,7 @@ Renderer test stack: Vitest + @testing-library/react + user-event (jsdom) for in
 
 mintEnvoy is structured around Electron's three-process security model. The **main** process (Node.js) owns the application lifecycle and creates the single BrowserWindow with sandbox-friendly webPreferences and a preload script attached. The **preload** bridge runs with context isolation and is the only place permitted to expose privileged Electron APIs to the UI, doing so through contextBridge under a process.contextIsolated guard. The **renderer** is a React 19 single-page UI that must never import Node or Electron modules — it talks to the platform exclusively through the globals the preload bridge exposes on window.
 
-Within the renderer, the code is organized as a small design-system with three atomic-design tiers: an Icon atom; Dropdown/Modal/Toast/Tabs molecules (Dropdown/Modal/Toast wrap Radix; Tabs hand-rolls its WAI-ARIA engine and also supports an opt-in closable affordance — see Patterns §); and organisms — Shell, Titlebar, Sidebar, PaneSplit, Statusbar, a hand-rolled WAI-ARIA Divider splitter, and TabBar (the working-tabs strip) — that compose the single-window app shell. A shared lib layer provides className merge, safe icon resolution, three module-level zustand stores (toastStore for the toast queue; settingsStore as the view-state SSOT; tabsStore as the working-tabs lifecycle state machine), and the requestSpec domain model (RequestSpec types + makeBlankRequest factory). UI styling is driven by CSS custom-property design tokens rather than inline styles. A dev-only PrimitivesDemo gallery is dynamically imported behind import.meta.env.DEV so it is tree-shaken out of production builds.
+Within the renderer, the code is organized as a small design-system with three atomic-design tiers: an Icon atom; Dropdown/Modal/Toast/Tabs molecules (Dropdown/Modal/Toast wrap Radix; Tabs hand-rolls its WAI-ARIA engine and also supports opt-in closable, method-chip, and dirty-state affordances — see Patterns §); and organisms — Shell, Titlebar, Sidebar, PaneSplit, Statusbar, a hand-rolled WAI-ARIA Divider splitter, and TabBar (the working-tabs strip) — that compose the single-window app shell. A shared lib layer provides className merge, safe icon resolution, three module-level zustand stores (toastStore for the toast queue; settingsStore as the view-state SSOT; tabsStore as the working-tabs lifecycle state machine), and the requestSpec domain model (RequestSpec types + makeBlankRequest factory). UI styling is driven by CSS custom-property design tokens rather than inline styles. A dev-only PrimitivesDemo gallery is dynamically imported behind import.meta.env.DEV so it is tree-shaken out of production builds.
 
 The toolchain is electron-vite (three build targets: main, preload, renderer) for bundling and electron-builder for OS packaging, with Vitest + Playwright component tests covering the primitive library.
 
@@ -79,7 +79,7 @@ src/
     └── src/
         ├── components/
         │   ├── atoms/      # Icon
-        │   ├── molecules/  # Dropdown, Modal, Toast (Radix-based); Tabs (hand-rolled WAI-ARIA; opt-in closable)
+        │   ├── molecules/  # Dropdown, Modal, Toast (Radix-based); Tabs (hand-rolled WAI-ARIA; opt-in closable, method-chip, dirty-state)
         │   ├── organisms/  # Shell, Titlebar, Sidebar, PaneSplit, Statusbar, Divider (app shell); TabBar (working-tabs strip)
         │   └── PrimitivesDemo.tsx  # dev-only gallery
         ├── lib/    # cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec
@@ -188,6 +188,38 @@ The Tabs primitive does NOT wrap Radix Tabs, departing from the Dropdown/Modal/T
  * attribute dangles and fails AC-7.
  */
 ```
+
+**Feature-005 opt-in extensions to `TabDescriptor`**: two new fields, both backward-compatible (absent = byte-identical output to the pre-005 contract).
+
+- `method?: string` — renders a `<span aria-hidden="true">` chip before the label using global class names `.method` and `.{METHOD}` (e.g. `.GET`, `.DELETE`); unknown methods use the base `.method` class only (uncolored). See hazards below.
+- `dirty?: boolean` — in the closable branch, replaces the ✕ button with a non-focusable `<span class="tabs__tab-dirty">` dot; Delete/Backspace on the focused tab still fires `onClose` regardless of dirty state.
+
+**Hazard: `.tabbar` visual contract spans two CSS files.** `TabBar` passes `className="tabbar"` to the Tabs primitive. The full visual treatment is split: `Tabs.css` carries a `.tabbar`-scoped override block (compound selectors prefixed with `.tabbar`) that changes geometry, active treatment, hover fill, tablist flex, and overflow; `TabBar.css` carries strip chrome (height, background, bottom border). Both files must be read together when debugging or changing TabBar appearance.
+
+<!-- src/renderer/src/components/molecules/Tabs.css:392 -->
+
+```css
+/* .tabbar-scoped overrides (feature-005, AC-22)
+ * ALL rules below use compound selectors (.tabbar .tabs__*, .tabs.tabbar) so
+ * they ONLY apply when .tabbar is present on the outer container. */
+.tabs.tabbar {
+  overflow: visible;
+}
+```
+
+**Hazard: global `.method`/`.{METHOD}` class names inside a BEM primitive.** The method chip renders with unprefixed global class names (`.method`, `.GET`, `.POST`, etc.), not BEM-scoped names such as `.tabs__method` — by design, so the color rules in `tokens.css` can apply wherever a chip appears. Adding a `.method` or `.{METHOD}` rule in any stylesheet affects all chip instances project-wide, not just `Tabs`.
+
+**Hazard: HEAD method rendering degrades under `chip` mstyle.** `tokens.css` defines `[data-mstyle='soft'] .method.HEAD` (pink background + text), but no other mstyle variant has a HEAD-specific rule. The global `.method.HEAD { color: var(--m-head) }` (specificity 0,2,0) is overridden by `[data-mstyle='chip'] .method { color: #fff }` (same specificity, later in file) — under `chip`, HEAD renders as white text with no background (invisible on typical tab surfaces). Under `outline`/`dot`/`bar`/`text`, HEAD inherits the global pink via `.method.HEAD` but receives no dedicated background. Callers must not assume HEAD is always visually distinct across all mstyle values.
+
+<!-- src/renderer/styles/tokens.css:109 -->
+
+```css
+.method.HEAD {
+  color: var(--m-head);
+}
+```
+
+**Hazard: `aria-hidden="true"` on the method chip (a11y tradeoff).** The chip is `aria-hidden` to prevent double-announcement on URL-only tabs, where `deriveLabel` in `TabBar.tsx` already embeds the method in the label text (e.g. `"GET https://api.example.com"`). For **named tabs** — where `label` is a human-readable request name that does not include the method string — the chip is entirely invisible to assistive technology. Callers who need AT users to hear the method for named tabs must embed it in `label`.
 
 ## Conventions
 

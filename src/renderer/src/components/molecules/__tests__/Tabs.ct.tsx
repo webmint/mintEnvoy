@@ -44,7 +44,9 @@ import {
   TabsClosableFixture,
   TabsClosableRemoveFixture,
   TabsNonCloseReRenderFixture,
-  TabsClosableRemoveTwoPhase
+  TabsClosableRemoveTwoPhase,
+  TabbarFidelityFixture,
+  TabbarInShellTabsFixture
 } from './Tabs.stories'
 
 // ---------------------------------------------------------------------------
@@ -405,7 +407,7 @@ test.describe('Tabs — AC-10 no-selection guard', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Tabs — AC-22 Delete/Backspace close key', () => {
-  test('pressing Delete on a focused tab fires onClose with that tab\'s id', async ({
+  test("pressing Delete on a focused tab fires onClose with that tab's id", async ({
     mount,
     page
   }) => {
@@ -424,7 +426,7 @@ test.describe('Tabs — AC-22 Delete/Backspace close key', () => {
     await expect(page.getByTestId('ct-closable-last-change')).toHaveText('')
   })
 
-  test('pressing Backspace on a focused tab fires onClose with that tab\'s id', async ({
+  test("pressing Backspace on a focused tab fires onClose with that tab's id", async ({
     mount,
     page
   }) => {
@@ -663,5 +665,540 @@ test.describe('Tabs — AC-23 non-close re-render with focus inside the list', (
 
     // Step 4: Sanity-check the new tab appeared (confirming the re-render happened).
     await expect(page.getByRole('tab', { name: 'Auth' })).toBeVisible()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Feature-005 — .tabbar fidelity: computed-style assertions (Task 009)
+//
+// PRIMARY gate: these exact-value computed-style assertions are the authoritative
+// proof that the .tabbar-scoped CSS rules in Tabs.css match the design reference
+// (design/styles.css .tab / .tabbar rules). A failing assertion here indicates a
+// real fidelity gap — do NOT loosen the expected values to force a pass.
+//
+// Token → rgb() map used throughout (light theme, no data-theme attribute):
+//   --bg-sunken  #f4f3f1 → rgb(244, 243, 241)
+//   --accent     #10b981 → rgb(16, 185, 129)
+//   --bg         #fbfaf9 → rgb(251, 250, 249)
+//   --border     #e8e6e3 → rgb(232, 230, 227)
+//   --m-head     #ec4899 → rgb(236, 72, 153)
+//
+// Grill binding F1: every assertion uses a .tabbar-compound-scoped fixture.
+// The active ::before/::after render only in the closable=true + wrapper branch.
+// A bare <Tabs> would measure unscoped, inert rules (incorrect baseline).
+//
+// Grill binding (per-test data-mstyle='soft'): Shell never mounts in CT, so the
+// [data-mstyle] attribute is written by beforeEach. The HEAD chip color rule
+// lives under [data-mstyle='soft'] .method.HEAD — without this attribute the
+// chip would be unstyled and the AC-19 assertion would spuriously fail.
+// ---------------------------------------------------------------------------
+
+test.describe('Tabs — Feature-005 .tabbar fidelity: computed-style (primary gate)', () => {
+  test.beforeEach(async ({ page }) => {
+    // Set data-mstyle='soft' before mount so the [data-mstyle='soft'] .method.HEAD
+    // color rule is active when the component renders (AC-19).
+    // Shell (the runtime writer) never mounts in CT — this is the CT stand-in.
+    // Do NOT set this globally in playwright/index.tsx (grill binding requirement).
+    await page.evaluate(() => {
+      document.documentElement.dataset.mstyle = 'soft'
+    })
+  })
+
+  // ---- AC-14/AC-18: tabbar strip container geometry + surface ----
+
+  test('AC-14 — .tabbar strip: background-color resolves to --bg-sunken (rgb(244,243,241))', async ({
+    mount
+  }) => {
+    // The design reference (.tabbar { background: var(--bg-sunken) }) requires
+    // the outer .tabs.tabbar container to carry the sunken surface color.
+    // Tabs.css must apply this via .tabs.tabbar or a descendant rule that reaches
+    // the outer div. A transparent computed value here is a fidelity gap.
+    const component = await mount(<TabbarFidelityFixture />)
+    const bg = await component.evaluate((el) => window.getComputedStyle(el).backgroundColor)
+    expect(bg).toBe('rgb(244, 243, 241)')
+  })
+
+  test('AC-14 — .tabbar strip: height resolves to 36px', async ({ mount }) => {
+    // The design reference specifies height: 36px for the tabbar strip.
+    // Tabs.css must set this explicitly; relying on content size (tab buttons
+    // are 32px) would yield 32px and fail this assertion.
+    const component = await mount(<TabbarFidelityFixture />)
+    const height = await component.evaluate((el) => window.getComputedStyle(el).height)
+    expect(height).toBe('36px')
+  })
+
+  test('AC-14 — .tabbar strip: padding-right resolves to 8px', async ({ mount }) => {
+    // The design reference specifies padding-right: 8px for the tabbar strip
+    // (right gutter before the new-tab button). Tabs.css must apply this.
+    const component = await mount(<TabbarFidelityFixture />)
+    const pr = await component.evaluate((el) => window.getComputedStyle(el).paddingRight)
+    expect(pr).toBe('8px')
+  })
+
+  test('AC-14 — .tabbar strip: border-bottom-width 1px + border color --border', async ({
+    mount
+  }) => {
+    // The base .tabs rule sets border-bottom: 1px solid var(--border).
+    // This test verifies both width and color resolve correctly from the token.
+    const component = await mount(<TabbarFidelityFixture />)
+    const bWidth = await component.evaluate((el) => window.getComputedStyle(el).borderBottomWidth)
+    expect(bWidth).toBe('1px')
+
+    const bColor = await component.evaluate((el) => window.getComputedStyle(el).borderBottomColor)
+    // --border: #e8e6e3 → rgb(232, 230, 227)
+    expect(bColor).toBe('rgb(232, 230, 227)')
+  })
+
+  test('AC-22 (feat-005) — .tabs.tabbar: overflow resolves to visible (::after mask not clipped)', async ({
+    mount,
+    page
+  }) => {
+    // .tabs.tabbar { overflow: visible } overrides .tabs { overflow: hidden }.
+    // This is required so the active-tab ::after mask (bottom: -1px) is not
+    // clipped at the container edge, creating the seamless "lifted" open-tab look.
+    // The flip side (bare .tabs stays overflow:hidden) is proven by the
+    // bare-consumer non-regression describe below.
+    await mount(<TabbarFidelityFixture />)
+    const tabsEl = page.locator('.tabs.tabbar')
+
+    const overflow = await tabsEl.evaluate((el) => window.getComputedStyle(el).overflow)
+    expect(overflow).toBe('visible')
+  })
+
+  // ---- AC-15: tab cell geometry ----
+
+  test('AC-15 — .tabbar .tabs__tab-wrapper: column-gap 8px, padding 0px 10px 0px 12px; button padding 0px', async ({
+    mount,
+    page
+  }) => {
+    // Fix A: padding and gap moved from the role=tab button to the wrapper so
+    // the full cell (button + close sibling) is padded uniformly.
+    // .tabbar .tabs__tab-wrapper { display: flex; gap: 8px; padding: 0 10px 0 12px }
+    // .tabbar .tabs__tab { padding: 0; flex: 1 1 auto }
+    await mount(<TabbarFidelityFixture />)
+    const wrapper = page.locator('.tabbar .tabs__tab-wrapper').first()
+
+    const gap = await wrapper.evaluate((el) => window.getComputedStyle(el).columnGap)
+    expect(gap).toBe('8px')
+
+    const padding = await wrapper.evaluate((el) => window.getComputedStyle(el).padding)
+    // Shorthand computed value in Chrome: top right bottom left
+    expect(padding).toBe('0px 10px 0px 12px')
+
+    // After Fix A the role=tab button is content-only: padding must be 0.
+    const tabButton = page.locator('.tabbar .tabs__tab').first()
+    const buttonPadding = await tabButton.evaluate((el) => window.getComputedStyle(el).padding)
+    expect(buttonPadding).toBe('0px')
+  })
+
+  test('AC-D — .tabbar__new button: border-radius 0px (flush, no border-radius)', async ({
+    mount,
+    page
+  }) => {
+    // Fix D: .tabbar__new has no border-radius so it renders as a flush full-height
+    // strip cell, matching the reference .tab-new (no border-radius in design/styles.css).
+    // TabbarFidelityFixture now passes the actions row (tabbar__new + spacer + chevron)
+    // so this element is present and can be asserted.
+    await mount(<TabbarFidelityFixture />)
+    const newBtn = page.locator('.tabbar__new')
+    await expect(newBtn).toBeVisible()
+
+    const borderRadius = await newBtn.evaluate((el) => window.getComputedStyle(el).borderRadius)
+    expect(borderRadius).toBe('0px')
+  })
+
+  test('AC-15 — .tabbar .tabs__tab-wrapper: border-right-width 1px + border-right-color --border', async ({
+    mount,
+    page
+  }) => {
+    // .tabbar .tabs__tab-wrapper { border-right: 1px solid var(--border) }
+    // provides the per-tab vertical separator in the .tabbar variant.
+    // Gap 6: also assert border-right-color resolves to --border (symmetry with
+    // AC-14's border-bottom-color assertion above).
+    await mount(<TabbarFidelityFixture />)
+    const wrapper = page.locator('.tabbar .tabs__tab-wrapper').first()
+
+    const brWidth = await wrapper.evaluate((el) => window.getComputedStyle(el).borderRightWidth)
+    expect(brWidth).toBe('1px')
+
+    const brColor = await wrapper.evaluate((el) => window.getComputedStyle(el).borderRightColor)
+    // --border: #e8e6e3 → rgb(232, 230, 227)
+    expect(brColor).toBe('rgb(232, 230, 227)')
+  })
+
+  test('AC-15 — .tabbar .tabs__tab: font-size resolves to 12.5px (--fs-base token)', async ({
+    mount,
+    page
+  }) => {
+    // .tabs__tab { font-size: var(--fs-base, 12.5px) } in Tabs.css.
+    // With tokens.css loaded via playwright/index.tsx, --fs-base must resolve to
+    // 12.5px. A fallback-only resolution (token not loaded) would still yield
+    // 12.5px from the CSS fallback literal; if tokens.css overrides --fs-base to
+    // a different value this assertion catches the drift.
+    await mount(<TabbarFidelityFixture />)
+    const tabEl = page.locator('.tabbar .tabs__tab').first()
+
+    const fontSize = await tabEl.evaluate((el) => window.getComputedStyle(el).fontSize)
+    // --fs-base: 12.5px
+    expect(fontSize).toBe('12.5px')
+  })
+
+  // ---- AC-16: label flex-grow ----
+
+  test('AC-16 — .tabs__tab-label: flex-grow 1 (label fills available space)', async ({
+    mount,
+    page
+  }) => {
+    // .tabs__tab-label { flex: 1 } → flex-grow: 1 so the label takes remaining
+    // width after the method chip and close button, enabling ellipsis truncation.
+    await mount(<TabbarFidelityFixture />)
+    const label = page.locator('.tabbar .tabs__tab-label').first()
+
+    const flexGrow = await label.evaluate((el) => window.getComputedStyle(el).flexGrow)
+    expect(flexGrow).toBe('1')
+  })
+
+  test('AC-16 — .tabs__tab-label: text-overflow ellipsis and overflow hidden (truncation guard)', async ({
+    mount,
+    page
+  }) => {
+    // .tabs__tab-label { overflow: hidden; text-overflow: ellipsis } in Tabs.css.
+    // Together with flex-grow: 1 and white-space: nowrap this ensures long labels
+    // are truncated (…) at the tab boundary rather than overflowing their button.
+    await mount(<TabbarFidelityFixture />)
+    const label = page.locator('.tabbar .tabs__tab-label').first()
+
+    const textOverflow = await label.evaluate((el) => window.getComputedStyle(el).textOverflow)
+    expect(textOverflow).toBe('ellipsis')
+
+    const overflow = await label.evaluate((el) => window.getComputedStyle(el).overflow)
+    expect(overflow).toBe('hidden')
+  })
+
+  // ---- AC-11: active wrapper pseudo-element stripes ----
+
+  test('AC-11 — active wrapper ::before: height 1.5px, background-color --accent', async ({
+    mount,
+    page
+  }) => {
+    // .tabbar .tabs__tab-wrapper--active::before draws the top accent stripe.
+    // height: 1.5px and background: var(--accent, #10b981).
+    // The pseudo-element only renders in the closable=true + wrapper branch —
+    // hence the .tabbar-scoped fixture with closable prop (grill binding F1).
+    await mount(<TabbarFidelityFixture />)
+    const activeWrapper = page.locator('.tabbar .tabs__tab-wrapper--active')
+
+    const beforeHeight = await activeWrapper.evaluate(
+      (el) => window.getComputedStyle(el, '::before').height
+    )
+    expect(beforeHeight).toBe('1.5px')
+
+    const beforeBg = await activeWrapper.evaluate(
+      (el) => window.getComputedStyle(el, '::before').backgroundColor
+    )
+    // --accent: #10b981 → rgb(16, 185, 129)
+    expect(beforeBg).toBe('rgb(16, 185, 129)')
+  })
+
+  test('AC-11 — active wrapper .tabs__tab-wrapper--active: own background-color resolves to --bg (rgb(251,250,249))', async ({
+    mount,
+    page
+  }) => {
+    // .tabbar .tabs__tab-wrapper--active { background: var(--bg, #ffffff) }
+    // lifts the active tab surface to the app background color, making it appear
+    // to "float" above the sunken strip. With tokens.css loaded, --bg resolves to
+    // #fbfaf9 (rgb(251, 250, 249)), NOT the CSS fallback #ffffff.
+    // This is the wrapper's own background, distinct from the ::after mask.
+    await mount(<TabbarFidelityFixture />)
+    const activeWrapper = page.locator('.tabbar .tabs__tab-wrapper--active')
+
+    const bgColor = await activeWrapper.evaluate(
+      (el) => window.getComputedStyle(el).backgroundColor
+    )
+    // --bg: #fbfaf9 → rgb(251, 250, 249) (from tokens.css, not the CSS fallback #ffffff)
+    expect(bgColor).toBe('rgb(251, 250, 249)')
+  })
+
+  test('AC-11 — active wrapper ::after: height 1px, background-color --bg', async ({
+    mount,
+    page
+  }) => {
+    // .tabbar .tabs__tab-wrapper--active::after is the bottom mask that hides
+    // the outer strip's border-bottom under the active tab (bottom: -1px).
+    // height: 1px and background: var(--bg, #ffffff).
+    // With tokens.css loaded, --bg resolves to #fbfaf9 (rgb(251, 250, 249)),
+    // NOT the CSS fallback #ffffff. The CT page imports tokens.css via
+    // playwright/index.tsx (task 006), so the token should resolve correctly.
+    await mount(<TabbarFidelityFixture />)
+    const activeWrapper = page.locator('.tabbar .tabs__tab-wrapper--active')
+
+    const afterHeight = await activeWrapper.evaluate(
+      (el) => window.getComputedStyle(el, '::after').height
+    )
+    expect(afterHeight).toBe('1px')
+
+    const afterBg = await activeWrapper.evaluate(
+      (el) => window.getComputedStyle(el, '::after').backgroundColor
+    )
+    // --bg: #fbfaf9 → rgb(251, 250, 249) (from tokens.css, not the CSS fallback #ffffff)
+    expect(afterBg).toBe('rgb(251, 250, 249)')
+  })
+
+  // ---- AC-19: HEAD method chip color under soft mstyle ----
+
+  test('AC-19 — HEAD method chip: color resolves to --m-head (rgb(236,72,153)) under data-mstyle=soft', async ({
+    mount,
+    page
+  }) => {
+    // [data-mstyle='soft'] .method.HEAD { color: var(--m-head) } in tokens.css.
+    // The beforeEach sets data-mstyle='soft' on document.documentElement so this
+    // rule activates. --m-head: #ec4899 → rgb(236, 72, 153).
+    await mount(<TabbarFidelityFixture />)
+    const methodChip = page.locator('.tabbar .method.HEAD')
+
+    const color = await methodChip.evaluate((el) => window.getComputedStyle(el).color)
+    // --m-head: #ec4899 → rgb(236, 72, 153)
+    expect(color).toBe('rgb(236, 72, 153)')
+  })
+
+  // ---- Gap 1: whole-cell hover (Fix B) ----
+
+  test('Fix B — whole-cell hover: wrapper background-color resolves to --bg-hover, tab text to --text', async ({
+    mount,
+    page
+  }) => {
+    // .tabbar .tabs__tab-wrapper:not(.tabs__tab-wrapper--active):hover sets the
+    // background on the whole cell; .tabbar .tabs__tab-wrapper:hover .tabs__tab
+    // elevates the inner button's text color. Both rules must fire on a non-active
+    // wrapper hover.
+    //
+    // Transition note: .tabs__tab has `transition: color 80ms ease`. Without
+    // disabling the transition, getComputedStyle reads the pre-transition color
+    // at t=0 immediately after hover(). Emulate prefers-reduced-motion: reduce
+    // so the @media rule in Tabs.css fires (.tabs__tab { transition: none }),
+    // making the computed value reflect the final hover state instantly. The
+    // wrapper's background-color has no transition (it changes immediately).
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await mount(<TabbarFidelityFixture />)
+    // dirty-tab (index 1) is non-active — hover it to trigger Fix B rules.
+    const wrapper = page.locator('.tabbar .tabs__tab-wrapper').nth(1)
+    await wrapper.hover()
+
+    // Read both values in a single synchronous page.evaluate() call to ensure
+    // both are read under the same :hover pseudo-class state.
+    const values = await page.evaluate(() => {
+      const wrappers = document.querySelectorAll('.tabbar .tabs__tab-wrapper')
+      const w = wrappers[1] as HTMLElement
+      const tab = w.querySelector('.tabs__tab') as HTMLElement
+      return {
+        bg: window.getComputedStyle(w).backgroundColor,
+        color: window.getComputedStyle(tab).color
+      }
+    })
+    // --bg-hover: #f0efed → rgb(240, 239, 237)
+    expect(values.bg).toBe('rgb(240, 239, 237)')
+    // --text: #18181b → rgb(24, 24, 27)
+    expect(values.color).toBe('rgb(24, 24, 27)')
+  })
+
+  // ---- Gap 2: tabbar active neutralization ----
+
+  test('Tabbar active-neutralization: active tab computes box-shadow none and transparent background', async ({
+    mount,
+    page
+  }) => {
+    // .tabbar .tabs__tab--active { box-shadow: none; background: transparent }
+    // overrides the global .tabs__tab--active underline + --accent-soft wash so
+    // the wrapper ::before/::after own the active visual treatment inside .tabbar.
+    await mount(<TabbarFidelityFixture />)
+    const activeTab = page.locator('.tabbar .tabs__tab--active')
+
+    const boxShadow = await activeTab.evaluate((el) => window.getComputedStyle(el).boxShadow)
+    expect(boxShadow).toBe('none')
+
+    const bgColor = await activeTab.evaluate((el) => window.getComputedStyle(el).backgroundColor)
+    // Transparent serializes as rgba(0, 0, 0, 0) in Chrome.
+    expect(bgColor).toBe('rgba(0, 0, 0, 0)')
+  })
+
+  // ---- Gap 3: Fix C — tablist is content-width ----
+
+  test('Fix C — .tabbar .tabs__list: flex-grow resolves to 0 (content-width, actions hug last tab)', async ({
+    mount,
+    page
+  }) => {
+    // .tabbar .tabs__list { flex: 0 0 auto } overrides .tabs__list { flex: 1 }
+    // so the tablist is content-width and the actions row (+ / spacer / chevron)
+    // sits directly after the last tab separator instead of floating at far right.
+    await mount(<TabbarFidelityFixture />)
+    const list = page.locator('.tabbar .tabs__list')
+
+    const flexGrow = await list.evaluate((el) => window.getComputedStyle(el).flexGrow)
+    expect(flexGrow).toBe('0')
+  })
+
+  // ---- Gap 4: overflow flush (border-radius: 0px) ----
+
+  test('AC-D — .tabbar__overflow button: border-radius 0px (flush, symmetry with tabbar__new)', async ({
+    mount,
+    page
+  }) => {
+    // TabBar.css .tabbar__overflow has no border-radius (Fix D comment: flush
+    // full-height strip cell matching .tab-new). Computed value must be 0px,
+    // symmetrical with the existing .tabbar__new AC-D assertion above.
+    await mount(<TabbarFidelityFixture />)
+    const overflowBtn = page.locator('.tabbar__overflow')
+    await expect(overflowBtn).toBeVisible()
+
+    const borderRadius = await overflowBtn.evaluate(
+      (el) => window.getComputedStyle(el).borderRadius
+    )
+    expect(borderRadius).toBe('0px')
+  })
+
+  // ---- Gap 5: method chip aria-hidden ----
+
+  test('Fix E — method chip (.method) has aria-hidden="true" (decorative visual affordance)', async ({
+    mount,
+    page
+  }) => {
+    // The method chip is rendered with aria-hidden="true" to prevent
+    // double-announcement on URL-only tabs where deriveLabel already prepends
+    // the method string (see TabDescriptor.method JSDoc for the AT tradeoff).
+    // TabbarFidelityFixture renders a HEAD chip on the active tab — assert it.
+    await mount(<TabbarFidelityFixture />)
+    const methodChip = page.locator('.tabbar .method').first()
+
+    const ariaHidden = await methodChip.getAttribute('aria-hidden')
+    expect(ariaHidden).toBe('true')
+  })
+
+  // ---- AC-21: screenshot baseline (supplementary) ----
+
+  test('AC-21 — screenshot baseline: tabbar fidelity fixture (supplementary)', async ({
+    mount
+  }) => {
+    // Supplementary visual gate. The EXACT computed-style assertions above are
+    // the primary fidelity proof. The screenshot captures the assembled visual
+    // including token colors, spacing, and the active stripe under soft mstyle.
+    //
+    // FIRST-EVER baseline: Playwright generates tabbar-fidelity.png on the first
+    // run. After this test run, MANUALLY inspect the generated baseline PNG under
+    // __snapshots__/ to confirm: the active tab shows a top green stripe, the
+    // HEAD chip renders in pink (#ec4899) on a soft tinted background, and the
+    // strip is rendered on the --bg-sunken surface. Do NOT rely on the screenshot
+    // gate until the baseline has been visually confirmed (Risk-6 in grill report).
+    const component = await mount(<TabbarFidelityFixture />)
+    await expect(component).toHaveScreenshot('tabbar-fidelity.png', {
+      threshold: 0.2,
+      maxDiffPixelRatio: 0.01,
+      animations: 'disabled'
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-17 — single strip bottom border (standalone mount context)
+//
+// Full AC-17 requires: .shell__tabs border-bottom-width = 0px (Shell wrapper
+// removes its own bottom border when the tabbar provides it) AND .tabbar
+// border-bottom-width = 1px. In the CT standalone mount (no Shell wrapper),
+// only the .tabbar side can be asserted here.
+//
+// The full Shell-context single-border guarantee (both sides) is covered by
+// the /verify design-auditor runtime probe against the running Electron app.
+// ---------------------------------------------------------------------------
+
+test.describe('Tabs — AC-17 single strip bottom border (standalone mount)', () => {
+  test('AC-17 — .tabbar computes border-bottom-width: 1px from base .tabs rule', async ({
+    mount
+  }) => {
+    // The base .tabs { border-bottom: 1px solid var(--border) } rule applies to
+    // .tabs.tabbar. .tabs.tabbar does NOT override border-bottom in Tabs.css,
+    // so the inherited 1px border from .tabs is the strip's bottom separator.
+    // Assertion: .tabbar (outer container) border-bottom-width = 1px.
+    const component = await mount(<TabbarFidelityFixture />)
+    const bWidth = await component.evaluate((el) => window.getComputedStyle(el).borderBottomWidth)
+    expect(bWidth).toBe('1px')
+  })
+
+  test('AC-17 — .shell__tabs wrapper: border-bottom-width 0px (Shell de-dup guard)', async ({
+    mount,
+    page
+  }) => {
+    // The Shell-context half of AC-17: .shell__tabs must NOT add its own bottom
+    // border. Shell.css .shell__tabs has no border-bottom rule, so the strip
+    // border lives exclusively on .tabbar (proven by the standalone-mount test
+    // above). This test mounts the tabbar INSIDE a .shell__tabs wrapper with
+    // Shell.css loaded, ensuring a future re-introduction of a .shell__tabs
+    // border-bottom fails loudly here.
+    // Shell.css is imported in Tabs.stories.tsx alongside TabBar.css (documented
+    // test-harness CSS composition).
+    await mount(<TabbarInShellTabsFixture />)
+    const shellTabsEl = page.locator('.shell__tabs')
+
+    const bWidth = await shellTabsEl.evaluate((el) => window.getComputedStyle(el).borderBottomWidth)
+    expect(bWidth).toBe('0px')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-22 (feature-005 non-regression) — bare .tabs consumer unaffected
+//
+// All .tabbar-scoped rules in Tabs.css use compound selectors (.tabbar .tabs__*,
+// .tabs.tabbar) so they ONLY fire when .tabbar is on the outer container.
+// This describe proves the task-003 scoped rules did NOT leak to bare .tabs.
+//
+// Mounts TabsClosableFixture which renders <Tabs closable> with NO className,
+// so the outer div has class "tabs" only (no "tabbar"). The PRE-005 active
+// treatment (box-shadow inset + --accent-soft wash) must remain unchanged.
+// ---------------------------------------------------------------------------
+
+test.describe('Tabs — [feat-005] AC-22 bare-consumer non-regression (.tabbar scope does not leak)', () => {
+  test('bare .tabs active tab retains PRE-005 box-shadow underline containing --accent', async ({
+    mount,
+    page
+  }) => {
+    // In a bare .tabs (no .tabbar), the active tab's box-shadow is set by:
+    //   .tabs__tab--active { box-shadow: inset 0 -2px 0 var(--accent, #10b981) }
+    // The .tabbar .tabs__tab--active override (box-shadow: none) must NOT fire
+    // because there is no .tabbar ancestor.
+    await mount(<TabsClosableFixture initialActiveId="params" />)
+    const activeTab = page.locator('.tabs__tab--active')
+
+    const boxShadow = await activeTab.evaluate((el) => window.getComputedStyle(el).boxShadow)
+    // Must be non-empty (not 'none') and must contain the accent rgb value.
+    // --accent: #10b981 → rgb(16, 185, 129)
+    expect(boxShadow).not.toBe('none')
+    expect(boxShadow).toContain('rgb(16, 185, 129)')
+  })
+
+  test('bare .tabs active tab retains --accent-soft background wash (non-transparent)', async ({
+    mount,
+    page
+  }) => {
+    // .tabs__tab--active { background-color: var(--accent-soft, color-mix(...)) }
+    // --accent-soft is a semi-transparent green tint. The .tabbar override sets
+    // background: transparent; but that only fires under .tabbar. In a bare .tabs
+    // the wash must remain (non-transparent background-color).
+    await mount(<TabsClosableFixture initialActiveId="params" />)
+    const activeTab = page.locator('.tabs__tab--active')
+
+    const bgColor = await activeTab.evaluate((el) => window.getComputedStyle(el).backgroundColor)
+    // Must NOT be transparent (rgba(0,0,0,0) is the serialized form of transparent).
+    expect(bgColor).not.toBe('rgba(0, 0, 0, 0)')
+    expect(bgColor).not.toBe('transparent')
+  })
+
+  test('bare .tabs computes overflow: hidden (NOT visible)', async ({ mount, page }) => {
+    // .tabs { overflow: hidden } in Tabs.css.
+    // .tabs.tabbar { overflow: visible } overrides ONLY for the .tabbar variant.
+    // A bare .tabs (no .tabbar) must keep overflow: hidden so tab overflow is
+    // clipped (pre-005 baseline behavior unchanged).
+    await mount(<TabsClosableFixture />)
+    const tabsEl = page.locator('.tabs')
+
+    const overflow = await tabsEl.evaluate((el) => window.getComputedStyle(el).overflow)
+    expect(overflow).toBe('hidden')
   })
 })

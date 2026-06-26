@@ -1,0 +1,16 @@
+{
+  "seed_version": "1",
+  "source": "grill",
+  "target_stage": "plan",
+  "feature": "specs/005-tab-bar-visual-fidelity",
+  "prior_conclusion": "Plan claims AC-18/AC-19 computed-style fidelity is verifiable in Playwright CT because 'the computed-style assertion pattern is already established' (citing Dropdown.ct.tsx:425 / Icon.ct.tsx:29); File Impact omits playwright/index.tsx and schedules no CT-harness styling setup. Decision (a)/(b) rationale grounds .tabbar-scoping on protecting a 'request-pane section-tabs Tabs consumer'.",
+  "invalidating_evidence": "playwright/index.tsx is an empty comment with no stylesheet import; tokens.css (token values + .method.HEAD + ALL .method box geometry, which lives only under [data-mstyle=X] selectors) is imported solely in main.tsx and never loaded in CT; Shell (the only data-mstyle writer) never runs in CT; the plan's single base .method rule adds font-family alone; the cited precedents read animation-name only (Icon.ct.tsx does not even exist). So AC-18/AC-19 computed-style color+geometry assertions would measure an unstyled span. Separately, App.tsx mounts only <Shell tabs={<TabBar/>}/>; the only other Tabs consumer, PrimitivesDemo.tsx, is self-documented as NOT mounted — the named section-tabs consumer does not ship.",
+  "must_satisfy": "Revised plan must: (1) add a CT-harness-setup work item — import tokens.css (and any base .method rule file) into playwright/index.tsx AND establish a data-mstyle='soft' context on the CT mount root (or add a bare .method box-geometry rule) so computed-style color+geometry assertions resolve real tokens; (2) add playwright/index.tsx to File Impact; (3) correct the 'computed-style pattern already established' claim — the cited precedent covers animation-name only; (4) reground the .tabbar-scoping rationale on the AC-2 closable=false byte-identical test rather than a non-shipping section-tabs consumer.",
+  "cycle_count": 1,
+  "carried_findings": [
+    "CT harness loads no tokens.css (computed-style proof can't resolve tokens)",
+    "Method-chip box geometry is [data-mstyle]-gated + has no base rule so CT mount renders an unstyled span",
+    ".tabbar-scoping rationale names a section-tabs consumer that is not mounted"
+  ],
+  "provenance": "specs/005-tab-bar-visual-fidelity/grill.md"
+}

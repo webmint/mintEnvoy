@@ -123,10 +123,13 @@
  *
  * - `flex-shrink: 0` prevents the strip from being squished when PaneSplit
  *   expands. The strip takes its natural height; PaneSplit fills the rest.
- * - A bottom border separates the strip from the pane workspace below.
+ * - `.shell__tabs` does not own a bottom border. The single strip bottom border
+ *   is provided by `.tabs` (the Tabs molecule base rule in Tabs.css) on the
+ *   `<div class="tabs tabbar">` element; `.shell__tabs` owns no border; the
+ *   active-tab `::after` mask in Tabs.css paints over that one border to create
+ *   the open-tab effect.
  */
 .shell__tabs {
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border, #e8e6e3);
   background-color: var(--bg, #fbfaf9);
 }

@@ -156,3 +156,46 @@ This guarantee is proven by the AC-11/AC-12 regression tests in feature 004 (see
 - Close-control API: `specs/004-working-tabs-state-machine/spec.md` AC-22 (`closable` prop) and AC-23 (`onClose` signal contract).
 - Keyboard close path (Delete/Backspace): `specs/004-working-tabs-state-machine/spec.md` AC-22.
 - No-extra-tab-stop constraint and departure from Radix's built-in close handling: `specs/004-working-tabs-state-machine/plan.md` — "Established-Convention Departures" section.
+
+### Extension: feature 005-tab-bar-visual-fidelity (2026-06-26)
+
+Feature `005-tab-bar-visual-fidelity` extended the `TabDescriptor` interface with two further opt-in, **default-off** fields:
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `method` | `string` | `undefined` | When set, renders a leading `.method` color chip before the tab label. Applies in both the `closable=true` and `closable=false` branches. Consumers that omit it receive no chip — fully backward-compatible. |
+| `dirty` | `boolean` | `undefined` / `false` | In the `closable=true` branch only: when `true`, replaces the per-tab close button with a non-focusable `.tabs__tab-dirty` dot that is clickable-to-close. When absent or `false`, the always-visible `.tabs__tab-close` SVG button renders as before. |
+
+**What the extension adds (closable=true path):**
+
+- A leading `.method` chip, rendered as a `.method.{METHOD}` classed element before the label text. Gated on `method !== undefined`; when `method` is absent the chip node is not emitted. Unknown method values render without a color override (inherit text). Method accent colors are sourced from `tokens.css` (`--m-*` variables, including `--m-head` introduced for the HEAD HTTP verb) — no color literals appear in Tabs.css.
+- **Dirty-XOR-close**: exactly one close-region element renders per tab in the closable branch. When `dirty` is `true`, a `.tabs__tab-dirty` span is rendered (no `role`, no `tabIndex`, not registered in `buttonRefs`, clickable → `onClose(id)`). When `dirty` is `false` or absent, the always-visible `.tabs__tab-close` `<button>` renders an `<Icon name="x">` SVG glyph. The two elements are mutually exclusive — never both visible at once.
+- **Close-button glyph change**: the 004 close button used a unicode `✕` character; 005 replaces it with the `Icon` atom's `x` SVG (`<Icon name="x">`), consistent with the project's established icon usage.
+
+**AC-26-preserved note (from feature 004):** the dirty marker replaces the close *control*, never the label span. The `.tabs__tab-label` text node is untouched whether the tab is dirty or clean (005 AC-4).
+
+**Backward-compatibility guarantee:**
+
+When `closable` is `false` or omitted, and `method` and `dirty` are both absent, the render path is byte-identical to the 002/004 selection-only contract:
+
+- No `.method` chip node is emitted.
+- No `.tabs__tab-dirty` span or `.tabs__tab-close` button is emitted.
+- No extra roving tab stop is introduced.
+
+This guarantee is proven by the closable=false regression tests in `Tabs.test.tsx` (005 AC-2), which assert that the original 002 interaction contract is unaffected when the new fields are omitted.
+
+**Global `.method`-class departure:**
+
+Using the global `.method` / `.{METHOD}` classes inside the BEM Tabs primitive is a documented departure from the BEM-only convention (constitution §2.3). The reuse is intentional — `tokens.css` already defines the full HTTP-method color palette (~40 rules covering GET, POST, PUT, PATCH, DELETE, HEAD, etc.) and re-implementing that palette in Tabs.css would violate the Search-Before-Building principle (constitution §6.3). The departure is recorded here so future maintainers understand the cross-concern coupling is load-bearing, not accidental.
+
+**Q-3 accessibility tradeoff:**
+
+The `.tabs__tab-dirty` dot carries no accessible name and no ARIA role, matching the design reference's non-interactive span treatment. Assistive-technology users who need to close a dirty tab route via the retained Delete/Backspace keyboard shortcut (gated on `closable=true`, not on `dirty`) — the shortcut fires `onClose` regardless of the `dirty` flag. This tradeoff is documented in 005 AC-3 (Q-3 answer).
+
+**Sources:**
+
+- Method chip API and color tokens: `specs/005-tab-bar-visual-fidelity/spec.md` AC-9 (chip render) and AC-10 (unknown method renders uncolored — inherits text color).
+- Dirty-XOR-close control: `specs/005-tab-bar-visual-fidelity/spec.md` AC-12 (dirty dot render) and AC-13 (clean-state always-visible 16px SVG close button; the dirty/clean XOR emerges with AC-12).
+- Byte-identical closable=false path: `specs/005-tab-bar-visual-fidelity/spec.md` AC-2.
+- JSDoc coverage for `method` and `dirty` fields: `specs/005-tab-bar-visual-fidelity/spec.md` AC-24.
+- This lineage record requirement: `specs/005-tab-bar-visual-fidelity/spec.md` AC-23.

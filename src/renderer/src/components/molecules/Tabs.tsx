@@ -99,6 +99,30 @@ import './Tabs.css'
 
 import { useLayoutEffect, useRef } from 'react'
 import { cx } from '@renderer/lib/cx'
+import { Icon } from '@renderer/components/atoms/Icon'
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/**
+ * HTTP methods that receive a color-coded chip class.
+ * Any method whose uppercased value appears here gets `cx('method', upperMethod)`;
+ * all others get `cx('method')` (uncolored — inherits text color). AC-10.
+ */
+const KNOWN_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'] as const
+
+/**
+ * Returns the CSS class string for a method chip.
+ * When the uppercased `method` is in KNOWN_METHODS the color modifier class is
+ * appended; otherwise only the base `method` class is returned (AC-10).
+ *
+ * @param method - The raw method string from the TabDescriptor.
+ */
+function methodChipClassName(method: string): string {
+  const upper = method.toUpperCase()
+  return (KNOWN_METHODS as readonly string[]).includes(upper) ? cx('method', upper) : cx('method')
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -135,6 +159,35 @@ export interface TabDescriptor {
    * Disabled tabs are skipped by all keyboard navigation (AC-9).
    */
   disabled?: boolean
+
+  /**
+   * Optional HTTP method string displayed as a colored chip before the label.
+   * When provided, a `<span class="method {METHOD}">` chip is rendered in both
+   * the closable and non-closable branches. The method string is uppercased and
+   * matched against KNOWN_METHODS to assign a color modifier class; unknown
+   * methods render with the base `method` class only (uncolored — AC-10).
+   * When absent, no chip is rendered (byte-identical to the pre-005 contract).
+   *
+   * **Accessibility tradeoff**: the rendered chip carries `aria-hidden="true"`
+   * (it is a decorative visual affordance that prevents double-announcement on
+   * URL-only tabs where `deriveLabel` already prepends the method to the label).
+   * For **named tabs** (where `label` is a human-readable request name and the
+   * method string is NOT embedded in `label`), this makes the method invisible
+   * to assistive technology. Callers who need AT users to hear the method should
+   * include it in `label` — as `deriveLabel` does for URL-only tabs. For named
+   * tabs the chip is intentionally a visual-only affordance.
+   */
+  method?: string
+
+  /**
+   * When `true`, the tab has unsaved changes (dirty state).
+   * In the closable branch: replaces the close `<button>` with a non-focusable
+   * `<span class="tabs__tab-dirty">` dot. Clicking the dot still calls
+   * `onClose?.(id)` so the store can decide the close behaviour.
+   * Delete/Backspace still fires `onClose` regardless of dirty state (AC-6).
+   * Has no effect in the non-closable branch.
+   */
+  dirty?: boolean
 }
 
 /**
@@ -523,6 +576,16 @@ export function Tabs({
                   }
                 }}
               >
+                {/* Optional method chip — rendered only when method is defined (AC-9, AC-10).
+                    aria-hidden: the chip is a decorative visual affordance; the label
+                    span carries the full accessible text (Fix E — prevents double-announce
+                    on URL-only tabs where deriveLabel already includes the method). */}
+                {tab.method !== undefined && (
+                  <span aria-hidden="true" className={methodChipClassName(tab.method)}>
+                    {tab.method}
+                  </span>
+                )}
+
                 {/* Label text — rendered as a JSX text node (React escapes it). */}
                 <span className="tabs__tab-label">{tab.label}</span>
 
@@ -533,17 +596,23 @@ export function Tabs({
           }
 
           // closable=true: wrap the tab button with a presentational div that
-          // groups it with the sibling ✕ button. The wrapper carries no ARIA role.
-          // AC-12: the ✕ is tabIndex={-1} — exactly one roving stop per tab.
+          // groups it with the sibling dirty-dot or close button.
+          // The wrapper carries no ARIA role.
+          // AC-12: the close button / dirty-dot is tabIndex={-1} — exactly one
+          // roving stop per tab.
           return (
-            <div key={tab.id} className="tabs__tab-wrapper">
+            <div
+              key={tab.id}
+              className={cx('tabs__tab-wrapper', isActive && 'tabs__tab-wrapper--active')}
+            >
               {/* role="tab" button — same structure as the closable=false branch. */}
               <button
                 role="tab"
                 aria-selected={isActive}
                 disabled={isDisabled}
                 aria-disabled={isDisabled || undefined}
-                // AC-12: this is the ONLY tabIndex={0} stop per tab — the ✕ is -1.
+                // AC-12: this is the ONLY tabIndex={0} stop per tab — dirty-dot /
+                // close button are both excluded from roving focus (AC-3).
                 tabIndex={isTabStop ? 0 : -1}
                 className={cx(
                   'tabs__tab',
@@ -557,8 +626,7 @@ export function Tabs({
                 onKeyDown={(e) => handleKeyDown(e, index, tab.id)}
                 ref={(el) => {
                   // GUARDRAIL 1 (Risk-1): only role="tab" buttons enter buttonRefs.
-                  // The ✕ button is registered via a SEPARATE ref and is NEVER
-                  // passed here.
+                  // The dirty-dot span and close button are NEVER passed here.
                   if (el !== null) {
                     buttonRefs.current.set(tab.id, el)
                   } else {
@@ -566,28 +634,51 @@ export function Tabs({
                   }
                 }}
               >
+                {/* Optional method chip — rendered only when method is defined (AC-9).
+                    aria-hidden: decorative visual affordance only (Fix E — same
+                    rationale as the closable=false branch above). */}
+                {tab.method !== undefined && (
+                  <span aria-hidden="true" className={methodChipClassName(tab.method)}>
+                    {tab.method}
+                  </span>
+                )}
+
                 <span className="tabs__tab-label">{tab.label}</span>
                 {tab.badge !== undefined && <span className="tabs__badge">{tab.badge}</span>}
               </button>
 
-              {/* Close button — opt-in, rendered only when closable=true (AC-11).
-                  GUARDRAIL 1: NOT in buttonRefs.
-                  GUARDRAIL 2: NOT role="tab".
-                  tabIndex={-1}: not a roving tab stop (AC-12). */}
-              <button
-                type="button"
-                tabIndex={-1}
-                aria-label={`Close ${tab.label}`}
-                className="tabs__tab-close"
-                onClick={(e) => {
-                  // stopPropagation prevents the click from bubbling up and
-                  // accidentally triggering the tab button's onClick (AC-22).
-                  e.stopPropagation()
-                  onClose?.(tab.id)
-                }}
-              >
-                ✕
-              </button>
+              {/* Dirty-XOR-close: exactly one of these renders per tab (AC-12).
+                  GUARDRAIL 1: neither enters buttonRefs.
+                  GUARDRAIL 2: neither carries role="tab".
+                  The dirty span has no tabIndex (non-focusable) — AC-3 preserved.
+                  The close button is tabIndex={-1} — not a roving stop (AC-12). */}
+              {tab.dirty === true ? (
+                /* Dirty state: non-focusable dot; clicking still signals close
+                   so the store can apply its own save-then-close policy. */
+                <span
+                  className="tabs__tab-dirty"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onClose?.(tab.id)
+                  }}
+                />
+              ) : (
+                /* Clean state: close button with Icon SVG (AC-13). */
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label={`Close ${tab.label}`}
+                  className="tabs__tab-close"
+                  onClick={(e) => {
+                    // stopPropagation prevents the click from bubbling up and
+                    // accidentally triggering the tab button's onClick (AC-22).
+                    e.stopPropagation()
+                    onClose?.(tab.id)
+                  }}
+                >
+                  <Icon name="x" size={11} />
+                </button>
+              )}
             </div>
           )
         })}

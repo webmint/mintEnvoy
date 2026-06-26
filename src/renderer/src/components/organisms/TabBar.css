@@ -2,8 +2,8 @@
  * TabBar.css — Semantic styles for the TabBar organism component.
  *
  * All values are bound to design tokens from tokens.css (--bg, --border,
- * --text, --text-muted, --accent, --accent-soft, --bg-hover, --bg-active,
- * --bg-sunken, --border-strong, --radius-sm, --fs-base, --fs-sm).
+ * --text, --text-muted, --accent, --bg-hover, --bg-active,
+ * --bg-sunken, --radius-sm, --fs-base, --fs-sm).
  * Every var() includes a defensive fallback literal so the rule remains
  * legible when tokens.css has not yet resolved (same pattern as Shell.css,
  * Tabs.css, and Titlebar.css).
@@ -27,12 +27,11 @@
  *
  * ## Dirty marker
  *
- * TabBar passes the `'●'` character as the `badge` prop ONLY when
- * `tab.dirty` is true; clean tabs have `badge` set to `undefined` so no
- * badge node is rendered at all. Because the badge is exclusively a dirty
- * signal in this organism, its appearance is styled here via
- * `.tabbar .tabs__badge` — an accent-colored dot with no pill background,
- * so it reads as an unsaved-changes indicator rather than a count badge.
+ * The dirty state is surfaced by the Tabs primitive's `.tabs__tab-dirty` dot.
+ * That dot is emitted and fully styled in Tabs.css (feature 005). TabBar no
+ * longer passes a `badge` prop for dirty tabs — the previously used
+ * `.tabbar .tabs__badge` rule has been removed. No dirty-marker CSS lives in
+ * this file.
  *
  * ## Motion
  *
@@ -41,8 +40,7 @@
  * Tabs.css, Dropdown.css, and Titlebar.css.
  *
  * Token names referenced: --bg, --bg-hover, --bg-active, --bg-sunken,
- * --border, --border-strong, --text, --text-muted, --text-faint, --accent,
- * --accent-soft, --radius-sm, --fs-base, --fs-sm.
+ * --border, --text, --text-muted, --accent, --radius-sm, --fs-base, --fs-sm.
  */
 
 /* ---------------------------------------------------------------------------
@@ -61,7 +59,12 @@
  * layer above the workspace area defined by Shell.css `.shell__tabs`.
  */
 .tabbar {
-  background-color: var(--bg, #fbfaf9);
+  background: var(--bg-sunken, #f4f3f1);
+  height: 36px;
+  /* Fix F: border-bottom removed — the single strip border is provided by the
+     base .tabs rule (Tabs.css) on the <div class="tabs tabbar"> element.
+     Declaring it here was a redundant duplicate (same specificity, same value). */
+  padding-right: 8px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -88,35 +91,6 @@
   white-space: nowrap;
 }
 
-/* ---------------------------------------------------------------------------
- * Dirty-marker badge (.tabbar .tabs__badge)
- *
- * Scoped inside `.tabbar` so this override applies only to the organism's
- * tabs — it does not affect other Tabs consumers. The badge here is always
- * a dirty dot (TabBar never passes a badge for clean tabs), so it is styled
- * as a compact accent-colored dot rather than a count pill:
- *   - No pill background (background: none overrides the Tabs.css default).
- *   - Accent text colour so the dot reads as a meaningful status signal.
- *   - Tighter sizing: smaller min-width and no horizontal padding, keeping
- *     the dot small and unobtrusive alongside the label.
- * ------------------------------------------------------------------------- */
-
-/**
- * Dirty-dot badge — accent-colored, no pill background.
- *
- * Replaces the default badge chip appearance (which suits count badges) with
- * a minimal dot style matching the "unsaved changes" convention used across
- * desktop API clients. `var(--accent, #10b981)` ties to the project accent
- * token with a defensive fallback.
- */
-.tabbar .tabs__badge {
-  background: none;
-  color: var(--accent, #10b981);
-  min-width: 0;
-  padding: 0;
-  font-size: var(--fs-base, 12.5px);
-  line-height: 1;
-}
 
 /* ---------------------------------------------------------------------------
  * New-tab button (.tabbar__new)
@@ -139,15 +113,13 @@
   background: none;
   border: none;
   margin: 0;
-  padding: 0;
+  padding: 0 10px;
 
-  /* Layout — square, matches tab row height */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
+  /* Layout — grid-centered icon button; align-self: stretch fills the full
+     36px strip height (Fix D: flush, no rounded corners, matching .tab-new). */
+  display: grid;
+  place-items: center;
+  align-self: stretch;
 
   /* Typography */
   font-size: var(--fs-base, 12.5px);
@@ -158,7 +130,7 @@
   /* Interaction */
   cursor: pointer;
   user-select: none;
-  border-radius: var(--radius-sm, 5px);
+  /* Fix D: no border-radius — flush full-height strip cell matching .tab-new. */
 
   /* Smooth hover transition; suppressed by prefers-reduced-motion below. */
   transition:
@@ -193,6 +165,88 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tabbar__new {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Spacer (.tabbar__spacer)
+ *
+ * Flexible spacer between the new-tab button and the overflow chevron.
+ * Pushes the overflow button to the right edge of the strip.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Flex-grow spacer — fills remaining horizontal space after the tab list
+ * so the overflow chevron is right-aligned in the strip.
+ */
+.tabbar__spacer {
+  flex: 1;
+}
+
+/* ---------------------------------------------------------------------------
+ * Overflow chevron (.tabbar__overflow)
+ *
+ * Right-aligned icon button that reveals off-screen tabs. Mirrors the
+ * `.tabbar__new` affordance in layout and hover treatment.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Overflow chevron button.
+ *
+ * Identical grid-centered layout to `.tabbar__new`. The hover treatment
+ * (background + text colour) is the same matching affordance.
+ */
+.tabbar__overflow {
+  /* Reset button defaults */
+  appearance: none;
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0 10px;
+
+  /* Layout — grid-centered icon button; align-self: stretch fills the full
+     36px strip height (Fix D: flush, no rounded corners, matching .tab-new). */
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+
+  /* Typography */
+  font-size: var(--fs-base, 12.5px);
+  font-family: inherit;
+  line-height: 1;
+  color: var(--text-muted, #71717a);
+
+  /* Interaction */
+  cursor: pointer;
+  user-select: none;
+  /* Fix D: no border-radius — flush full-height strip cell matching .tab-new. */
+
+  /* Smooth hover transition; suppressed by prefers-reduced-motion below. */
+  transition:
+    background-color 80ms ease,
+    color 80ms ease;
+}
+
+/* Hover: elevate text color and add a subtle tinted background. */
+.tabbar__overflow:hover {
+  background-color: var(--bg-hover, #f0efed);
+  color: var(--text, #18181b);
+}
+
+/* Pressed state */
+.tabbar__overflow:active {
+  background-color: var(--bg-active, #e8e6e3);
+}
+
+/* Focus-visible ring — keyboard navigation signal. */
+.tabbar__overflow:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabbar__overflow {
     transition: none;
   }
 }
