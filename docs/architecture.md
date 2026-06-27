@@ -26,8 +26,8 @@ The renderer process has a three-sublayer structure beneath feature components:
 | Sublayer                 | Contents                                                                                                                                                                                                                          | Path                                      |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
 | Presentation — atoms     | Inline SVG `Icon` component + typed `IconName` string-literal union over the project-owned 40-icon set                                                                                                                            | `src/renderer/src/components/atoms/`      |
-| Presentation — molecules | `Dropdown`, `Modal`, `Toast` — thin wrappers over Radix UI primitives, styled via semantic classes. `Tabs` — controlled selection-only tab-strip; hand-rolled WAI-ARIA engine (see Patterns § below for the departure rationale). | `src/renderer/src/components/molecules/`  |
-| Presentation — organisms | `Shell` (root composition layer), `Titlebar`, `Sidebar`, `PaneSplit`, `Statusbar`, and `Divider` (hand-rolled WAI-ARIA splitter). Organisms compose molecules/atoms; they never import across the same tier.                      | `src/renderer/src/components/organisms/`  |
+| Presentation — molecules | `Dropdown`, `Modal`, `Toast` — thin wrappers over Radix UI primitives, styled via semantic classes. `Tabs` — controlled selection-only tab-strip; hand-rolled WAI-ARIA engine (see Patterns § below for the departure rationale). `Divider` — hand-rolled WAI-ARIA splitter (domain-agnostic; used by `PaneSplit`). | `src/renderer/src/components/molecules/`  |
+| Presentation — organisms | `Shell` (root composition layer), `Titlebar`, `Statusbar`, and `PaneSplit` — grouped under `organisms/shell/` (app-shell domain). `Sidebar` and `TabBar` — flat domain singletons directly under `organisms/`. Organisms compose molecules/atoms; they never import across the same tier. | `src/renderer/src/components/organisms/`  |
 | Support — lib/ (thin)    | `toastStore` (zustand queue + imperative `toast()` API), `settingsStore` (zustand SSOT for theme/accent/mstyle/sidebarWidth/paneRatio/sidebarCollapsed + clamp helpers), `icons-glue` (Icon lookup/fallback), shared `cx()` className helper | `src/renderer/src/lib/`          |
 
 **Dependency direction**: organisms import from molecules and atoms; molecules and atoms import from lib/; `lib/` must NOT import from `components/`. No sibling-tier imports (organisms must not import other organisms). All intra-renderer imports use the `@renderer` alias — no deep relative paths across sublayer boundaries.
@@ -65,7 +65,7 @@ Renderer test stack: Vitest + @testing-library/react + user-event (jsdom) for in
 
 mintEnvoy is structured around Electron's three-process security model. The **main** process (Node.js) owns the application lifecycle and creates the single BrowserWindow with sandbox-friendly webPreferences and a preload script attached. The **preload** bridge runs with context isolation and is the only place permitted to expose privileged Electron APIs to the UI, doing so through contextBridge under a process.contextIsolated guard. The **renderer** is a React 19 single-page UI that must never import Node or Electron modules — it talks to the platform exclusively through the globals the preload bridge exposes on window.
 
-Within the renderer, the code is organized as a small design-system with three atomic-design tiers: an Icon atom; Dropdown/Modal/Toast/Tabs molecules (Dropdown/Modal/Toast wrap Radix; Tabs hand-rolls its WAI-ARIA engine and also supports opt-in closable, method-chip, and dirty-state affordances — see Patterns §); and organisms — Shell, Titlebar, Sidebar, PaneSplit, Statusbar, a hand-rolled WAI-ARIA Divider splitter, and TabBar (the working-tabs strip) — that compose the single-window app shell. A shared lib layer provides className merge, safe icon resolution, three module-level zustand stores (toastStore for the toast queue; settingsStore as the view-state SSOT; tabsStore as the working-tabs lifecycle state machine), and the requestSpec domain model (RequestSpec types + makeBlankRequest factory). UI styling is driven by CSS custom-property design tokens rather than inline styles. A dev-only PrimitivesDemo gallery is dynamically imported behind import.meta.env.DEV so it is tree-shaken out of production builds.
+Within the renderer, the code is organized as a small design-system with three atomic-design tiers: an Icon atom; Dropdown/Modal/Toast/Tabs/Divider molecules (Dropdown/Modal/Toast wrap Radix; Tabs hand-rolls its WAI-ARIA engine and also supports opt-in closable, method-chip, and dirty-state affordances — see Patterns §; Divider is a hand-rolled WAI-ARIA splitter); and organisms — Shell, Titlebar, Statusbar, and PaneSplit (grouped under organisms/shell/) plus flat singletons Sidebar and TabBar (the working-tabs strip) — that compose the single-window app shell. A shared lib layer provides className merge, safe icon resolution, three module-level zustand stores (toastStore for the toast queue; settingsStore as the view-state SSOT; tabsStore as the working-tabs lifecycle state machine), and the requestSpec domain model (RequestSpec types + makeBlankRequest factory). UI styling is driven by CSS custom-property design tokens rather than inline styles. A dev-only PrimitivesDemo gallery is dynamically imported behind import.meta.env.DEV so it is tree-shaken out of production builds.
 
 The toolchain is electron-vite (three build targets: main, preload, renderer) for bundling and electron-builder for OS packaging, with Vitest + Playwright component tests covering the primitive library.
 
@@ -79,8 +79,11 @@ src/
     └── src/
         ├── components/
         │   ├── atoms/      # Icon
-        │   ├── molecules/  # Dropdown, Modal, Toast (Radix-based); Tabs (hand-rolled WAI-ARIA; opt-in closable, method-chip, dirty-state)
-        │   ├── organisms/  # Shell, Titlebar, Sidebar, PaneSplit, Statusbar, Divider (app shell); TabBar (working-tabs strip)
+        │   ├── molecules/  # Dropdown, Modal, Toast (Radix-based); Tabs (hand-rolled WAI-ARIA; opt-in closable, method-chip, dirty-state); Divider (WAI-ARIA splitter)
+        │   ├── organisms/
+        │   │   ├── shell/  # Shell, Titlebar, Statusbar, PaneSplit (app-shell domain)
+        │   │   ├── Sidebar.tsx
+        │   │   └── TabBar.tsx   # working-tabs strip
         │   └── PrimitivesDemo.tsx  # dev-only gallery
         ├── lib/    # cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec
         └── styles/ # tokens.css design tokens
@@ -133,7 +136,7 @@ The shell theme, accent, method-style, and layout dimensions are surfaced to CSS
 
 All CSS layout rules that depend on sidebar width or pane ratio must read from `document.documentElement` CSS custom properties, not from React state.
 
-<!-- src/renderer/src/components/organisms/Shell.tsx:250 -->
+<!-- src/renderer/src/components/organisms/shell/Shell.tsx:250 -->
 
 ```typescript
   useEffect(() => {
@@ -157,7 +160,7 @@ When a Divider's `value` is a unitless ratio (0–1) rather than pixels, pointer
 
 Rule: any Divider whose `value` is not 1:1 with pointer pixels **must** supply `getDragExtent` and **must** set `unit=''` (unitless CSS var write) and a small `keyboardStep` (e.g. `0.02`).
 
-<!-- src/renderer/src/components/organisms/Divider.tsx:250 -->
+<!-- src/renderer/src/components/molecules/Divider.tsx:250 -->
 
 ```typescript
     const extent = getDragExtent ? getDragExtent() : null
@@ -307,8 +310,8 @@ function App(): React.JSX.Element {
 graph TD
   main[main process] -->|attaches preload| preload[preload bridge]
   preload -->|exposes window.electron / window.api| renderer[renderer UI]
-  renderer --> organisms[components/organisms: Shell / Titlebar / Sidebar / PaneSplit / Statusbar / Divider / TabBar]
-  organisms --> molecules[components/molecules: Dropdown / Modal / Toast / Tabs]
+  renderer --> organisms[components/organisms: shell/(Shell / Titlebar / Statusbar / PaneSplit) / Sidebar / TabBar]
+  organisms --> molecules[components/molecules: Dropdown / Modal / Toast / Tabs / Divider]
   molecules --> atoms[components/atoms: Icon]
   atoms --> lib[lib: cx / icons-glue / toastStore / settingsStore / tabsStore / requestSpec]
   organisms --> lib

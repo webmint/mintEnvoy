@@ -37,7 +37,7 @@ import './PaneSplit.css'
 import { useRef, type ReactNode, type JSX } from 'react'
 import { cx } from '@renderer/lib/cx'
 import { settingsStore, PANE_MIN, PANE_MAX } from '@renderer/lib/settingsStore'
-import { Divider } from '@renderer/components/organisms/Divider'
+import { Divider } from '@renderer/components/molecules/Divider'
 
 // ---------------------------------------------------------------------------
 // Types

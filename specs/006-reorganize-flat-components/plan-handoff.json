@@ -1,0 +1,207 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/006-reorganize-flat-components/plan.md",
+  "plan_completed_at": "2026-06-26T19:39:27Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/006-reorganize-flat-components/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/006-reorganize-flat-components/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "`components/molecules/`",
+        "what": "Receives Divider \u2014 the one genuinely domain-agnostic shared primitive; its two consumers become legal organism\u2192molecule downward imports",
+        "files": "`Divider.tsx`, `Divider.css` (from `organisms/`)"
+      },
+      {
+        "layer": "`components/organisms/shell/` (NEW)",
+        "what": "Shell-domain group; PaneSplit co-locates with its sole consumer Shell (props carry request/response vocabulary \u2192 cannot live in the agnostic molecules tier)",
+        "files": "`Shell.{tsx,css}`, `Titlebar.{tsx,css}`, `Statusbar.{tsx,css}`, `PaneSplit.{tsx,css}`"
+      },
+      {
+        "layer": "`components/organisms/shell/__tests__/` (NEW)",
+        "what": "Shell test trio moves intact (relative `./Shell.stories` coupling)",
+        "files": "`Shell.test.tsx`, `Shell.stories.tsx`, `Shell.ct.tsx`"
+      },
+      {
+        "layer": "`components/organisms/` (flat, unchanged)",
+        "what": "Domain singletons stay; Sidebar rewrites only its Divider import",
+        "files": "`Sidebar.{tsx,css}`, `TabBar.{tsx,css}`, `__tests__/TabBar.test.tsx` (stays)"
+      },
+      {
+        "layer": "`components/atoms/`, `lib/`, `styles/`",
+        "what": "Untouched \u2014 no move, no import rewrite",
+        "files": "\u2014"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "(a) Divider placement",
+        "chosen_approach": "`organisms/` \u2192 `molecules/`",
+        "why": "Divider is domain-agnostic (imports only `./Divider.css`, react, `@renderer/lib/cx`; pure-primitive props; 2 consumers). Move makes PaneSplit\u2192Divider and Sidebar\u2192Divider legal organism\u2192molecule downward imports, clearing the live \u00a72.2:56 sibling-tier violation. Enforces the existing canon. (AC-2)",
+        "alternatives_rejected": "Keep in organisms/: leaves the \u00a72.2:56 violation live and mis-tiers a shared primitive"
+      },
+      {
+        "decision": "(b) PaneSplit placement",
+        "chosen_approach": "`organisms/` \u2192 `organisms/shell/`",
+        "why": "Public contract carries domain vocabulary (props `request?`/`response?`, docstring \"request/response vertical split\", sole consumer Shell.tsx:80). molecules/ would breach the agnostic-tier invariant, and a zero-change move cannot strip the binding. Joins its consumer in the shell group. (AC-3)",
+        "alternatives_rejected": "PaneSplit\u2192molecules/: \u00a76-deferred (needs non-zero prop rename request/response\u2192primary/secondary)"
+      },
+      {
+        "decision": "(c) Shell test trio + its `__tests__/`",
+        "chosen_approach": "All three (`Shell.test.tsx`, `Shell.stories.tsx`, `Shell.ct.tsx`) \u2192 new `organisms/shell/__tests__/`; TabBar.test.tsx stays in `organisms/__tests__/`",
+        "why": "`Shell.ct.tsx` imports `./Shell.stories` by RELATIVE path \u2014 splitting the trio breaks that coupling. Co-locating tests at the new folder level follows the tests-next-to-code convention. (AC-7, constraint \"move co-located __tests__ together\")",
+        "alternatives_rejected": "Leave trio in `organisms/__tests__/`: dangles the relative import or forces a \u00a72.3-discouraged deep relative path"
+      },
+      {
+        "decision": "(d) Barrel / index files",
+        "chosen_approach": "None \u2014 at any of molecules/, organisms/, organisms/shell/",
+        "why": "Re-export tax, worse tree-shaking, cycle risk; `@renderer` already gives clean paths. Codebase has zero barrel files today \u2014 continuing is consistency. (AC-1)",
+        "alternatives_rejected": "Add `index.ts` re-exports: explicitly OOS (\u00a76) and contradicts the chosen convention"
+      },
+      {
+        "decision": "(e) docs/architecture.md beyond-\u00a74 citation sites",
+        "chosen_approach": "Update ALL five moved-path sites in lockstep: UI-Primitives table (l.30), prose tier description (l.68), module-structure tree (l.83), the two code-comment markers `organisms/Shell.tsx:250` (l.136) and `organisms/Divider.tsx:250` (l.160), and the mermaid Dependency Overview (l.310)",
+        "why": "AC-10 names only table + diagram, but a moved-path marker left stale is a dangling reference the feature itself creates; \u00a73 mandates lockstep and \u00a76.1 demands conscious-update-no-silent-drift. Updating exactly the moved-path references (line numbers unchanged \u2014 only the dir prefix moves) is the minimal set that leaves docs internally consistent.",
+        "alternatives_rejected": "Update only table+mermaid (literal AC-10): leaves 3 stale path sites, breaking the lockstep guarantee with no AC to catch it"
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "`src/renderer/src/components/organisms/Divider.tsx` \u2192 `molecules/Divider.tsx`",
+        "action": "Move",
+        "what_changes": "Relocate; no content change"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/Divider.css` \u2192 `molecules/Divider.css`",
+        "action": "Move",
+        "what_changes": "Sibling .css travels with .tsx"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/Shell.tsx` \u2192 `organisms/shell/Shell.tsx`",
+        "action": "Move + Modify",
+        "what_changes": "Relocate; rewrite `@renderer` imports of Titlebar/PaneSplit/Statusbar to `organisms/shell/*` (Sidebar import unchanged)"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/Shell.css` \u2192 `organisms/shell/Shell.css`",
+        "action": "Move",
+        "what_changes": "Sibling .css travels"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/Titlebar.{tsx,css}` \u2192 `organisms/shell/Titlebar.{tsx,css}`",
+        "action": "Move",
+        "what_changes": "Relocate; no content change"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/Statusbar.{tsx,css}` \u2192 `organisms/shell/Statusbar.{tsx,css}`",
+        "action": "Move",
+        "what_changes": "Relocate; no content change"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/PaneSplit.tsx` \u2192 `organisms/shell/PaneSplit.tsx`",
+        "action": "Move + Modify",
+        "what_changes": "Relocate; rewrite `@renderer` import of Divider \u2192 `molecules/Divider`"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/PaneSplit.css` \u2192 `organisms/shell/PaneSplit.css`",
+        "action": "Move",
+        "what_changes": "Sibling .css travels"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/Sidebar.tsx`",
+        "action": "Modify",
+        "what_changes": "Rewrite line 39 Divider import \u2192 `@renderer/components/molecules/Divider` (no move)"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/TabBar.{tsx,css}`",
+        "action": "None",
+        "what_changes": "Flat singleton, no moved-file import"
+      },
+      {
+        "file": "`src/renderer/src/App.tsx`",
+        "action": "Modify",
+        "what_changes": "Rewrite line 3 Shell import \u2192 `@renderer/components/organisms/shell/Shell`"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/__tests__/Shell.test.tsx` \u2192 `organisms/shell/__tests__/Shell.test.tsx`",
+        "action": "Move + Modify",
+        "what_changes": "Relocate; rewrite `@renderer` imports of Shell/Titlebar/Statusbar/PaneSplit \u2192 `organisms/shell/*` and Divider \u2192 `molecules/Divider`"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/__tests__/Shell.stories.tsx` \u2192 `organisms/shell/__tests__/Shell.stories.tsx`",
+        "action": "Move + Modify",
+        "what_changes": "Relocate; same `@renderer` rewrites as Shell.test.tsx"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/__tests__/Shell.ct.tsx` \u2192 `organisms/shell/__tests__/Shell.ct.tsx`",
+        "action": "Move",
+        "what_changes": "Relocate (DISCOVERY 1 \u2014 not in spec \u00a74); relative `./Shell.stories` import preserved by moving together; no `@renderer` rewrite needed"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/__tests__/TabBar.test.tsx`",
+        "action": "None",
+        "what_changes": "Stays in `organisms/__tests__/`; imports only flat TabBar"
+      },
+      {
+        "file": "`src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx`",
+        "action": "Modify",
+        "what_changes": "Rewrite line 45 cross-file `@renderer/components/organisms/Shell.css` import \u2192 `organisms/shell/Shell.css`"
+      },
+      {
+        "file": "`constitution.md`",
+        "action": "Modify",
+        "what_changes": "Add labelled domain-placement rule in \u00a72.2; update \u00a72.2:70 membership tree + \u00a75.1:198 UI-primitives list to new layout"
+      },
+      {
+        "file": "`docs/architecture.md`",
+        "action": "Modify",
+        "what_changes": "Update all 5 moved-path citation sites (table l.30, prose l.68, module tree l.83, markers l.136/l.160, mermaid l.310)"
+      }
+    ],
+    "doc_impact": [
+      {
+        "doc_file": "docs/architecture.md",
+        "action": "Update",
+        "what_changes": "UI-Primitives Layer table row, prose tier description, module-structure tree, two code-comment path markers (Shell.tsx / Divider.tsx), and mermaid Dependency Overview \u2014 reclassify Divider as molecule, group shell organisms under organisms/shell/"
+      }
+    ],
+    "risks": [
+      {
+        "risk": "A moved-file `@renderer` import path is missed, breaking the renderer import graph",
+        "likelihood": "Low",
+        "impact": "High",
+        "mitigation": "`typecheck:node` + `typecheck:web` (zero unresolved) and `npm run build` statically catch every dangling import; AC-11 grep asserts no old `organisms/(Divider\\"
+      },
+      {
+        "risk": "A sibling `.css` or cross-file CSS coupling is dropped, silently degrading visuals \u2014 esp. `Tabs.stories.tsx:45` importing `Shell.css` cross-folder (the 005 brittleness)",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Move each `.css` atomically with its `.tsx`; rewrite the `Tabs.stories.tsx` Shell.css import to `organisms/shell/Shell.css`; Playwright CT fidelity suite catches regression (full styling context preserved \u2014 no className/scope change)"
+      },
+      {
+        "risk": "Shell test trio split breaks the `./Shell.stories` relative coupling",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Move all three files together to `organisms/shell/__tests__/` as one unit; keep the relative import relative (legal intra-fixture story-glue, not a cross-module \u00a72.3 case)"
+      },
+      {
+        "risk": "Classification-site drift \u2014 docs code-comment markers (l.136/l.160) are NOT covered by any AC (AC-11 greps only `src/renderer`, AC-10 names only table+diagram)",
+        "likelihood": "Med",
+        "impact": "Low\u2013Med",
+        "mitigation": "Explicit task step updates all 5 moved-path sites; add a manual `grep -nE 'organisms/(Divider\\"
+      },
+      {
+        "risk": "`@renderer`-alias regression \u2014 a rewritten import introduced as a deep relative path",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "All cross-module rewrites stay on the `@renderer` alias (\u00a72.3); only the pre-existing `Shell.ct.tsx \u2192 ./Shell.stories` intra-fixture relative import is preserved relative"
+      }
+    ],
+    "specialist_consultation": [],
+    "dependencies": [
+      "None \u2014 no packages to install, no services to configure, no environment variables. The move reuses the existing electron-vite `@renderer` alias, Vitest, and Playwright CT toolchains unchanged."
+    ]
+  }
+}

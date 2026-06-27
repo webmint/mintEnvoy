@@ -1,6 +1,6 @@
 import { ToastProvider, ToastViewport } from '@renderer/components/molecules/Toast'
 import { TabBar } from '@renderer/components/organisms/TabBar'
-import { Shell } from '@renderer/components/organisms/Shell'
+import { Shell } from '@renderer/components/organisms/shell/Shell'
 
 function App(): React.JSX.Element {
   return (

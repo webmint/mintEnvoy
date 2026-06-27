@@ -1,0 +1,123 @@
+# Research: Reorganize the flat components/organisms/ folder so it stays navigable as later epics add ~25 organism files, with zero runtime or behavior change
+
+
+**Date**: 2026-06-26
+**Topic**: Reorganize the flat components/organisms/ folder so it stays navigable as later epics add ~25 organism files, with zero runtime or behavior change
+**Mode**: Enhancement
+**Verdict**: Feasible with caveats
+
+## Summary
+
+The flat organisms/ folder (7 components today) will grow toward a ~25-file junk drawer as epics C/E/F land, and the prompt's domain-nesting placement rule is a sound fix — adopt it. But the component graph disproves HALF of the proposed application: of the two components the prompt calls 'mis-classified shared primitives', only Divider qualifies (2 consumers, zero domain/store imports, pure-primitive props), while PaneSplit is request/response-domain-bound by its public contract (props request?/response?, docstring 'request/response vertical split', sole consumer Shell) — demoting PaneSplit to the domain-agnostic molecules/ tier would plant domain vocabulary in the shared tier and a zero-change move cannot de-domain it. A high-value bonus surfaced: Divider's current organisms/ placement is already a LIVE constitution §2.2:56 violation (PaneSplit->Divider and Sidebar->Divider are organism->organism sibling-tier imports), so moving Divider->molecules/ fixes a real defect, not just tidiness. Recommended cut: adopt the rule; Divider->molecules/; group Shell/Titlebar/Statusbar/PaneSplit under organisms/shell/; keep Sidebar+TabBar flat as domain singletons; consciously update constitution §2.2:70 and §5.1:198. Remaining uncertainty: whether PaneSplit's longer-term home is organisms/shell/ or a dedicated organisms/workspace|response/ once epic C ships — and whether a future (non-zero-change) prop rename request/response->primary/secondary should later promote it to molecules/.
+
+## Symptom
+
+| Dimension | Value |
+|---|---|
+| Symptom | organisms/ is a flat folder; atomic classification by composition-level stops paying at the app-specific organism tier (the meaningful axis there is domain, not how-deeply-composed), so the folder trends toward a ~25-file junk drawer as epics C (response), E (persistence/collections/history), F (navigation) add organisms. It also currently mis-places ONE genuinely shared primitive: Divider (domain-agnostic, 2 consumers) belongs in molecules/. NOTE: PaneSplit — initially suspected to be a second shared primitive — is request/response-domain-bound by its contract (props request?/response?, sole Shell consumer) and belongs in organisms/shell/, NOT molecules/ (molecules/ would breach the agnostic-tier invariant). |
+| Affected area | src/renderer/src/components/ — specifically organisms/ (7 files today: Divider, PaneSplit, Shell, Sidebar, Statusbar, TabBar, Titlebar) and the molecules/ boundary that Divider/PaneSplit cross into. Sets a placement convention every later component task inherits. |
+| Repro / Current | Today 7 organisms sit flat with no domain grouping and no placement rule; Divider + PaneSplit live under organisms/ despite being domain-agnostic primitives; nothing distinguishes shell-domain from request/sidebar-domain components. |
+| Desired | Deliverable = (1) record the placement RULE as the convention: shared + domain-agnostic -> molecules/; single-domain-bound -> organisms/<domain>/; create organisms/<domain>/ only when a domain reaches >=2 components (no empty future domain folders). (2) Apply MINIMALLY now: move Divider organisms->molecules/ (the one genuine shared-primitive mis-classification; also clears the live §2.2:56 sibling-import violation); group Shell/Titlebar/Statusbar/PaneSplit under organisms/shell/ (PaneSplit is domain-bound by contract, so molecules/ would breach the agnostic-tier invariant; it joins its consumer Shell in the shell group); keep Sidebar + TabBar flat as domain singletons. Navigable = one-level domain nesting only, NO barrel/index files (re-export tax, worse tree-shaking, cycle risk; @renderer already gives clean import paths). Zero behavior change: pure move + import-path update, all tests green. Consciously update constitution §2.2:70 and §5.1:198. |
+| Scope | cross-cutting |
+
+## Codebase Findings (WHERE)
+
+| Surface | File:line | Relevance | Framing |
+|---|---|---|---|
+| Shell composition root (sole importer of 4 organisms) | src/renderer/src/components/organisms/Shell.tsx:80 | Shell is the only production importer of Titlebar/Sidebar/PaneSplit/Statusbar; an organism composing sibling organisms — the shell-domain hub. These 4 + Shell form the shell group. | primary |
+| App root mounts only Shell + TabBar | src/renderer/src/App.tsx:2 | App imports only Shell + TabBar and renders <Shell tabs={<TabBar/>}/>; TabBar is injected as a prop. Confirms TabBar is a nav-domain singleton, not part of shell internals. | primary |
+| Divider — genuinely shared domain-agnostic primitive | src/renderer/src/components/organisms/Divider.tsx:47 | Imports only ./Divider.css, react, and @renderer/lib/cx; docstring 'No store import — caller owns state via onCommit'; pure-primitive props (orientation/value/min/max/cssVar/onCommit). 2 consumers (PaneSplit+Sidebar). CONFIRMS user's Divider->molecules/ classification. | primary |
+| Sidebar imports Divider — organism->organism sibling-tier import | src/renderer/src/components/organisms/Sidebar.tsx:39 | Sidebar (organism) imports Divider (organism) = sibling-tier import, which constitution §2.2:56 forbids. Moving Divider->molecules/ fixes this live violation. | primary |
+| PaneSplit — request/response-domain-bound contract (NOT a shared primitive) | src/renderer/src/components/organisms/PaneSplit.tsx:40 | PaneSplit props are request?/response?:ReactNode, docstring 'request/response vertical split for the main workspace area', sole production consumer Shell.tsx:80; also imports Divider (sibling violation). Its contract carries request/response vocabulary -> demoting to domain-agnostic molecules/ plants domain vocab in shared tier. CONTESTS user's PaneSplit->molecules/. | runner-up |
+| lib/icons-glue imports components/atoms/icons (sanctioned exception) | src/renderer/src/lib/icons-glue.ts:13 | lib imports @renderer/components/atoms/icons (icon DATA), self-documented as constitution §2.3-sanctioned. The user's stated 'lib must not import components/' invariant is already non-absolute; constitution §2.2:57 actually says lib depends on nothing renderer-EXTERNAL (node/electron). Reorg moves organisms (not atoms/icons) so this holds trivially. | primary |
+| Constitution §2.2 layering rule — canonical, reusable | constitution.md:56 | canonical pattern — reusable: 'renderer component tiers flow downward only: organisms -> molecules -> atoms; no sibling-tier or upward imports'. The new domain-placement rule EXTENDS this canon (does not replace it); this same rule is what makes PaneSplit->Divider and Sidebar->Divider current violations. | primary |
+| Constitution §2.2 enumerates current flat 7-organism membership | constitution.md:70 | Lists organisms/ # Shell, Titlebar, Sidebar, PaneSplit, Statusbar, Divider, TabBar — classifies Divider+PaneSplit as organisms. Conscious-update site: reorg must update this tree (unchanged_behavior item 6, no silent config break). | primary |
+| Constitution §5.1 UI-primitives list also classifies Divider/PaneSplit as organisms | constitution.md:198 | Second authoritative classification site: 'Shell/Titlebar/Sidebar/PaneSplit/Statusbar/Divider/TabBar (organisms)'. Must be consciously updated when Divider->molecules and PaneSplit regroups. | primary |
+| TabBar — nav-domain singleton, composes Tabs molecule, avoids sibling organisms | src/renderer/src/components/organisms/TabBar.tsx:31 | TabBar imports Tabs (molecule) + Icon (atom) + tabsStore (lib); docstring 'Does NOT import any sibling organism (§2.3, Risk 2)'. Confirms Tabs molecule's TabBar consumer; TabBar stays a flat nav-domain singleton. The project's own stated discipline (no sibling-organism imports) is breached only by Divider's placement. | primary |
+
+## Root Cause Hypothesis (WHY)
+
+**Primary hypothesis**: The placement rule the user proposes is correct and worth adopting, but the rule's APPLICATION mis-classifies PaneSplit: PaneSplit is request/response-domain-bound by its public contract (props request?/response?, docstring, sole Shell consumer), so it is NOT a shared primitive. The genuinely shared primitive is Divider alone (2 consumers, zero domain/store imports) — and Divider's current organisms/ placement is already a live constitution §2.2:56 sibling-tier-import violation (PaneSplit->Divider, Sidebar->Divider). Recommended cut: adopt the rule; move Divider->molecules/ (fixes the violation); group Shell/Titlebar/Statusbar/PaneSplit under organisms/shell/; keep Sidebar + TabBar as flat domain singletons; consciously update constitution §2.2:70 and §5.1:198.
+
+**Confidence**: Confirmed
+
+## Runner-up framing
+
+| Field | Value |
+|---|---|
+| Frame | The real axis is mis-drawn molecule/organism boundaries (the prompt's alternative c), and the user's own remedy partly repeats the error: PaneSplit is request/response-domain-bound by its CONTRACT — props request?/response?, docstring 'request/response vertical split for the main workspace area', sole production consumer Shell.tsx:80 — so demoting it to the domain-agnostic molecules/ tier plants request/response vocabulary in the shared tier and violates invariant (1) 'molecules/ stays domain-agnostic'. Under the zero-behavior-change constraint a pure move cannot de-domain it (renaming props is a contract change). Its correct zero-change home is organisms/shell/ (joining its consumer's group), NOT molecules/. Only Divider is a genuinely shared primitive (2 cross-context consumers, zero domain imports, pure-primitive props) that belongs in molecules/. |
+| Falsifier | If PaneSplit's prop names/types/docstring carried NO request/response vocabulary AND it had >=2 distinct-domain consumers, it would be genuinely shared and molecules/ would be the right home — which would disprove this framing and confirm the user's primary classification. |
+| Confidence vs primary | comparable |
+
+## Hypothesis Enumeration
+
+| Hypothesis | Falsifier (what would disprove it) | Runtime probe needed? |
+|---|---|---|
+| A (user's primary): folder flatness + 2 mis-classified shared primitives. Fix = domain-nest organisms (request\|response\|sidebar\|shell) by a placement rule AND move BOTH Divider and PaneSplit organisms->molecules. | If PaneSplit's public contract carries request/response domain vocabulary (prop names/docstring) and it has a single workspace consumer, then it is NOT a shared primitive and molecules/ is wrong for it — partially falsifying A. | no |
+| B (runner-up): the placement RULE is right (domain-nest at >=2; shared+agnostic->molecules), but the latent defect is mis-drawn boundaries. Only Divider is genuinely shared (->molecules/, also fixing a live §2.2:56 sibling-import violation). PaneSplit is request/response-domain-bound by contract; a zero-change move cannot de-domain it, so it belongs in organisms/shell/ (with its sole consumer Shell), NOT molecules/. | If PaneSplit had no domain vocab in its contract AND >=2 distinct-domain consumers, it would be genuinely shared -> molecules/ correct -> B wrong, A right. | no |
+| C (prompt alt a): leave every file where it sits; rely on a strict prefix-label habit (e.g. ShellTitlebar) so the long list stays readable without subfolders. | If projected organism count stays small (<~10) flat is fine; but epics C/E/F each add multiple organisms (count -> ~25) AND naming does not fix the Divider sibling-tier import — so C fails navigability + leaves the §2.2 violation. | no |
+| D (prompt alt b): drop the organism tier entirely, reorganize as features/<domain>/. | If the project had no established atomic-design vocabulary, features/ would be cheap; but constitution §2.2/§5.1 enshrine atoms/molecules/organisms and lib layering — features/ abandons that vocabulary, is a large non-zero-change churn, and violates the established-stack invariant — so D is rejected. | no |
+
+## Approaches (HOW to change)
+
+### Adopt rule + corrected PaneSplit placement (organisms/shell/)
+- **Description**: Adopt the placement rule (shared+agnostic->molecules/; single-domain-bound->organisms/<domain>/; create organisms/<domain>/ at >=2). Apply: Divider.tsx/.css organisms->molecules/; Shell/Titlebar/Statusbar/PaneSplit -> organisms/shell/; Sidebar+TabBar stay flat singletons. Update import paths + constitution §2.2:70 and §5.1:198. Pure move, no contract change.
+- **Addresses hypothesis**: A, B
+- **Does NOT cover**: C, D
+- **Pros**: Fixes the real defect: Divider->molecules/ clears the live §2.2:56 sibling-import violation (PaneSplit->Divider, Sidebar->Divider); Keeps molecules/ genuinely domain-agnostic — PaneSplit request/response vocab stays out of the shared tier; Zero behavior change: pure file move + import-path update, no prop/export-surface change, all tests green; PaneSplit co-located with its sole consumer Shell in organisms/shell/; CSS co-location preserved; Extends (not replaces) the constitution §2.2:56 layering canon
+- **Cons**: Diverges from the user-stated plan on PaneSplit (molecules/ -> organisms/shell/) — needs sign-off; Defers PaneSplit promotion to molecules/ until a future prop rename (request/response->primary/secondary); organisms/shell/ vs organisms/workspace/ home for PaneSplit is a judgment call revisited at epic C
+- **Complexity**: Low
+
+### Literal plan: domain-nest + both Divider and PaneSplit to molecules/
+- **Description**: Exactly as the prompt suspected cause: domain-nest organisms and move BOTH Divider and PaneSplit organisms->molecules/, keeping the remaining organisms grouped by domain.
+- **Addresses hypothesis**: A
+- **Does NOT cover**: B, C, D
+- **Pros**: Matches the user-stated intent verbatim; Both leaf-ish components leave the organism tier in one pass; Also clears the Divider sibling-import violation
+- **Cons**: Plants request/response domain vocabulary (PaneSplit props/docstring) into the domain-agnostic molecules/ tier — violates unchanged_behavior invariant (1); A pure zero-change move cannot de-domain PaneSplit; making it agnostic needs a prop rename = contract change = NOT zero-behavior; Mis-applies the very rule it adopts (single-domain-bound should go to organisms/<domain>/, not molecules/)
+- **Complexity**: Low
+
+### Keep organisms flat with a strict naming convention
+- **Description**: Prompt alternative (a): no folders; impose a naming convention (e.g. ShellTitlebar, RequestUrlBar) to keep the flat list scannable.
+- **Addresses hypothesis**: C
+- **Does NOT cover**: A, B, D
+- **Pros**: Zero folder moves; smallest diff today; No import-path churn
+- **Cons**: Does not scale: count -> ~25 across epics C/E/F makes a flat list unnavigable regardless of naming; Leaves the §2.2:56 Divider sibling-import violation unaddressed; Naming conventions drift without a folder forcing-function
+- **Complexity**: Low
+
+**Recommended approach**: Adopt rule + corrected PaneSplit placement (organisms/shell/) — Adopt the placement rule, but reroute PaneSplit. REUSE the existing layering canon at constitution.md:56 (organisms->molecules->atoms, no sibling-level or upward imports) — the new feature-area placement rule EXTENDS that canon rather than reinventing one; the established layering direction is preserved unchanged. Evidence forces the PaneSplit correction: its contract carries request/response vocabulary (props, docstring) with a single Shell consumer, so molecules/ would breach the feature-agnostic invariant and a zero-change move cannot strip that binding -> organisms/shell/ is its correct home. Divider alone is the genuinely shared primitive and its move to molecules/ additionally clears the live §2.2:56 sibling-import violation (PaneSplit->Divider, Sidebar->Divider). Respects unchanged_behavior: pure move + import-path update, no prop/export-surface change, constitution §2.2:70 and §5.1:198 consciously updated. Acknowledged uncertainty: organisms/shell/ vs a future organisms/workspace/ home for PaneSplit, and whether a later (separate, non-zero-change) prop rename should promote PaneSplit to molecules/.
+
+## Constitution Constraints
+
+| Rule | Impact on this change |
+|---|---|
+| §2.2 Renderer Tier Organization (constitution.md:56) | Downward-only, no-sibling-tier rule is the canon the reorg serves; it is ALSO what makes PaneSplit->Divider and Sidebar->Divider current violations — Divider->molecules/ resolves them. |
+| §2.2 membership tree (constitution.md:70) | Enumerates the flat 7-organism list incl Divider+PaneSplit as organisms; must be consciously updated to the new layout (no silent config drift). |
+| §5.1 UI primitives (constitution.md:198) | Second authoritative classification of Divider/PaneSplit as organisms; update in lockstep with §2.2 when Divider->molecules and PaneSplit regroups. |
+| §6.1 Minimal Changes (constitution.md:213) | Forces the zero-behavior-change framing: pure file move + import-path update only; the PaneSplit prop rename that would justify molecules/ placement is deliberately deferred as a separate change. |
+| Search before building | REUSE the existing layering canon at constitution.md:56 instead of inventing a new placement convention — the domain-nesting rule extends the canon (organisms->molecules->atoms, no sibling-tier imports); reuse beats reinvention. |
+
+## Complexity Assessment
+
+| Dimension | Rating | Notes |
+|---|---|---|
+| Codebase changes | Low | Move Divider.tsx/.css -> molecules/; Shell/Titlebar/Statusbar/PaneSplit .tsx/.css -> organisms/shell/; rewrite ~6-8 @renderer import paths (Shell, Sidebar, PaneSplit, App, plus test/story imports); edit constitution.md §2.2:70 + §5.1:198. No logic lines touched. |
+| Risk | Med | Import-graph breakage if any path missed (caught by tsc zero-unresolved + build); CSS co-location/load-order must travel with each .tsx (Shell.css/TabBar.css coupling proven brittle in 005); test/story import paths must move too. All mechanically detectable — no silent runtime risk. |
+| Verify cost | Low | tsc clean (zero unresolved) + full unit+component suites green + build passes. No new tests, no runtime probe — purely structural confirmation. |
+
+## Next step
+
+Copy the block below into a new `/specify` session manually. No automation — user controls when (or if) `/specify` runs.
+
+~~~
+/specify "organisms/ is a flat folder; atomic classification by composition-level stops paying at the app-specific organism tier (the meaningful axis there is domain, not how-deeply-composed), so the folder trends toward a ~25-file junk drawer as epics C (response), E (persistence/collections/history), F (navigation) add organisms. It also currently mis-places ONE genuinely shared primitive: Divider (domain-agnostic, 2 consumers) belongs in molecules/. NOTE: PaneSplit — initially suspected to be a second shared primitive — is request/response-domain-bound by its contract (props request?/response?, sole Shell consumer) and belongs in organisms/shell/, NOT molecules/ (molecules/ would breach the agnostic-tier invariant). — Deliverable = (1) record the placement RULE as the convention: shared + domain-agnostic -> molecules/; single-domain-bound -> organisms/<domain>/; create organisms/<domain>/ only when a domain reaches >=2 components (no empty future domain folders). (2) Apply MINIMALLY now: move Divider organisms->molecules/ (the one genuine shared-primitive mis-classification; also clears the live §2.2:56 sibling-import violation); group Shell/Titlebar/Statusbar/PaneSplit under organisms/shell/ (PaneSplit is domain-bound by contract, so molecules/ would breach the agnostic-tier invariant; it joins its consumer Shell in the shell group); keep Sidebar + TabBar flat as domain singletons. Navigable = one-level domain nesting only, NO barrel/index files (re-export tax, worse tree-shaking, cycle risk; @renderer already gives clean import paths). Zero behavior change: pure move + import-path update, all tests green. Consciously update constitution §2.2:70 and §5.1:198."
+
+Research reference: research/2026-06-26-reorganize-the-flat-components.md
+Key facts:
+- Mode: Enhancement
+- Symptom: organisms/ is a flat folder; atomic classification by composition-level stops paying at the app-specific organism tier (the meaningful axis there is domain, not how-deeply-composed), so the folder trends toward a ~25-file junk drawer as epics C (response), E (persistence/collections/history), F (navigation) add organisms. It also currently mis-places ONE genuinely shared primitive: Divider (domain-agnostic, 2 consumers) belongs in molecules/. NOTE: PaneSplit — initially suspected to be a second shared primitive — is request/response-domain-bound by its contract (props request?/response?, sole Shell consumer) and belongs in organisms/shell/, NOT molecules/ (molecules/ would breach the agnostic-tier invariant).
+- Desired: Deliverable = (1) record the placement RULE as the convention: shared + domain-agnostic -> molecules/; single-domain-bound -> organisms/<domain>/; create organisms/<domain>/ only when a domain reaches >=2 components (no empty future domain folders). (2) Apply MINIMALLY now: move Divider organisms->molecules/ (the one genuine shared-primitive mis-classification; also clears the live §2.2:56 sibling-import violation); group Shell/Titlebar/Statusbar/PaneSplit under organisms/shell/ (PaneSplit is domain-bound by contract, so molecules/ would breach the agnostic-tier invariant; it joins its consumer Shell in the shell group); keep Sidebar + TabBar flat as domain singletons. Navigable = one-level domain nesting only, NO barrel/index files (re-export tax, worse tree-shaking, cycle risk; @renderer already gives clean import paths). Zero behavior change: pure move + import-path update, all tests green. Consciously update constitution §2.2:70 and §5.1:198.
+- Recommended approach: Adopt rule + corrected PaneSplit placement (organisms/shell/)
+- Hypothesis addressed: A, B
+- Hypotheses NOT covered: C, D
+- Open uncertainties: 0 (see research doc §Open Uncertainties)
+~~~

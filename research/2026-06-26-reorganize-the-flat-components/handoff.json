@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.1",
+  "research_path": "research/2026-06-26-reorganize-the-flat-components.md",
+  "research_completed_at": "2026-06-26T18:38:45+00:00",
+  "mode": "feature_addition",
+  "intent": {
+    "symptom_summary": "organisms/ is a flat folder; atomic classification by composition-level stops paying at the app-specific organism tier (the meaningful axis there is domain, not how-deeply-composed), so the folder trends toward a ~25-file junk drawer as epics C (response), E (persistence/collections/history), F (navigation) add organisms. It also currently mis-places ONE genuinely shared primitive: Divider (domain-agnostic, 2 consumers) belongs in molecules/. NOTE: PaneSplit \u2014 initially suspected to be a second shared primitive \u2014 is request/response-domain-bound by its contract (props request?/response?, sole Shell consumer) and belongs in organisms/shell/, NOT molecules/ (molecules/ would breach the agnostic-tier invariant).",
+    "desired_summary": "Deliverable = (1) record the placement RULE as the convention: shared + domain-agnostic -> molecules/; single-domain-bound -> organisms/<domain>/; create organisms/<domain>/ only when a domain reaches >=2 components (no empty future domain folders). (2) Apply MINIMALLY now: move Divider organisms->molecules/ (the one genuine shared-primitive mis-classification; also clears the live \u00a72.2:56 sibling-import violation); group Shell/Titlebar/Statusbar/PaneSplit under organisms/shell/ (PaneSplit is domain-bound by contract, so molecules/ would breach the agnostic-tier invariant; it joins its consumer Shell in the shell group); keep Sidebar + TabBar flat as domain singletons. Navigable = one-level domain nesting only, NO barrel/index files (re-export tax, worse tree-shaking, cycle risk; @renderer already gives clean import paths). Zero behavior change: pure move + import-path update, all tests green. Consciously update constitution \u00a72.2:70 and \u00a75.1:198.",
+    "scope": "feature-wide",
+    "verbatim_prompt": "components/organisms/ is a flat folder that will become a ~25-file junk drawer as epics C (response), E (persistence/collections/history) and F (navigation) add their organisms on top of the request organisms already present; atomic classification by composition-level stops paying at the app-specific organism tier, where the meaningful axis is domain rather than how-deeply-composed. Desired: organisms stay navigable as the count grows with ZERO runtime or behavior change (a pure move + import-path update, all tests stay green) and no regression of the established-stack invariants \u2014 atomic vocabulary kept where it pays (atoms/ and molecules/ stay shared + domain-agnostic), lib/ must not import components/, the @renderer alias, and Tabs (002) stays a molecule with its two consumers (TabBar + request-pane section-tabs). Suspected cause: the right cut is to nest organisms by domain (organisms/request|response|sidebar|shell/) mirroring the epics and the source-jsx split, governed by a placement rule \u2014 shared + domain-agnostic goes to molecules/, single-domain-bound goes to organisms/<domain>/. Treat that as a CLAIM TO DISPROVE: verify against the real component graph whether domain-nesting is the correct cut versus (a) keeping organisms flat with a strict naming convention, (b) dropping the organism tier entirely for features/<domain>/, or (c) the real problem being mis-drawn molecule/organism boundaries \u2014 an 'organism' that is actually shared (belongs in molecules/) or a 'molecule' that is actually domain-bound \u2014 rather than folder flatness per se. Scope is cross-cutting: this sets a component-placement convention every later task inherits."
+  },
+  "spec_seeds": {
+    "spec_type_hint": "feature_addition",
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "\u00a72.2 Renderer Tier Organization (constitution.md:56)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "\u00a72.2 membership tree (constitution.md:70)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "\u00a75.1 UI primitives (constitution.md:198)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "\u00a76.1 Minimal Changes (constitution.md:213)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Search before building",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [],
+    "risks": [
+      {
+        "risk": "Import-graph breakage if any path missed (caught by tsc zero-unresolved + build); CSS co-location/load-order must travel with each .tsx (Shell.css/TabBar.css coupling proven brittle in 005); test/story import paths must move too. All mechanically detectable \u2014 no silent runtime risk.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "tbd via /plan"
+      }
+    ],
+    "open_questions": [],
+    "value_semantics": [],
+    "value_production_sites": [],
+    "literal_archaeology": [],
+    "data_flow_chain": null
+  },
+  "plan_seeds": {
+    "recommended_approach_id": "adopt_rule_corrected_panesplit_placement_organisms_shell",
+    "recommended_approach_summary": "Adopt the placement rule, but reroute PaneSplit. REUSE the existing layering canon at constitution.md:56 (organisms->molecules->atoms, no sibling-level or upward imports) \u2014 the new feature-area placement rule EXTENDS that canon rather than reinventing one; the established layering direction is preserved unchanged. Evidence forces the PaneSplit correction: its contract carries request/response vocabulary (props, docstring) with a single Shell consumer, so molecules/ would breach the feature-agnostic invariant and a zero-change move cannot strip that binding -> organisms/shell/ is its correct home. Divider alone is the genuinely shared primitive and its move to molecules/ additionally clears the live \u00a72.2:56 sibling-import violation (PaneSplit->Divider, Sidebar->Divider). Respects unchanged_behavior: pure move + import-path update, no prop/export-surface change, constitution \u00a72.2:70 and \u00a75.1:198 consciously updated. Acknowledged uncertainty: organisms/shell/ vs a future organisms/workspace/ home for PaneSplit, and whether a later (separate, non-zero-change) prop rename should promote PaneSplit to molecules/.",
+    "layer_destination": "tbd",
+    "layer_justification": "multi-layer",
+    "complexity": {
+      "changes": "Low",
+      "risk": "Med",
+      "verify_cost": "Low"
+    },
+    "cited_canonical_patterns": [],
+    "alternatives_considered": [
+      {
+        "id": "literal_plan_domain_nest_both_divider_and_panesplit_to_molecules",
+        "summary": "Exactly as the prompt suspected cause: domain-nest organisms and move BOTH Divider and PaneSplit organisms->molecules/, keeping the remaining organisms grouped by domain.",
+        "rejected_reason": "not recommended; see /plan if needed"
+      },
+      {
+        "id": "keep_organisms_flat_with_a_strict_naming_convention",
+        "summary": "Prompt alternative (a): no folders; impose a naming convention (e.g. ShellTitlebar, RequestUrlBar) to keep the flat list scannable.",
+        "rejected_reason": "not recommended; see /plan if needed"
+      }
+    ],
+    "proposed_call_shape": null
+  },
+  "probe": {
+    "tier": "1.5",
+    "actor": "llm",
+    "discriminator": {
+      "primary_confirms_if": "tbd \u2014 populated by Step 4 probe-tier classifier",
+      "runner_up_confirms_if": "if test FAILS but with different assertion outcome \u2192 runner-up applies; LLM evaluates output diff",
+      "both_disproved_if": "if test PASSES with current code \u2192 both hypotheses are wrong; widen investigation",
+      "production_site_check": null
+    },
+    "feasibility_check": {
+      "data_shape_only": true,
+      "auth_required": false,
+      "network_dependent": false,
+      "timing_dependent": false,
+      "is_test_code": false
+    },
+    "test_framework": null,
+    "test_path": null,
+    "script_path": "research/2026-06-26-reorganize-the-flat-components/probe-script.mjs",
+    "is_first_test_for_file": false
+  },
+  "downstream_links": {
+    "spec_path": null,
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}
