@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/007-remove-ping-handler/plan.md",
+  "plan_completed_at": "2026-06-27T15:23:43Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/007-remove-ping-handler/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/007-remove-ping-handler/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "Main process (Electron, Node)",
+        "what": "Delete the dead `ipcMain.on('ping', \u2026)` handler + its `// IPC test` comment inside `app.whenReady().then()`; remove `ipcMain` from the line-1 electron import",
+        "files": "src/main/index.ts"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "Disposition of the dead handler",
+        "chosen_approach": "Delete handler + comment + unused `ipcMain` import",
+        "why": "Provably dead (research: 0 ipcRenderer/send/invoke callers, sole ipcMain handler); satisfies the constitution's \"never commit debug artifacts\" rule",
+        "alternatives_rejected": "Replace with a real IPC handler (\u00a76 OOS); leave in place (violates hygiene rule)"
+      },
+      {
+        "decision": "Scope of import edit",
+        "chosen_approach": "Remove only the `ipcMain` token; keep `app, shell, BrowserWindow` byte-identical",
+        "why": "Minimal-change rule; removing the now-unused import is required to pass lint/typecheck (AC-5)",
+        "alternatives_rejected": "Rewrite/reorder the whole import line (unnecessary churn)"
+      },
+      {
+        "decision": "Rest of boot flow",
+        "chosen_approach": "Leave createWindow / app.whenReady / browser-window-created / activate / window-all-closed byte-identical",
+        "why": "Behavior-preservation constraint \u00a77; AC-2 requires lifecycle unchanged",
+        "alternatives_rejected": "Any incidental refactor of the whenReady block (out of scope)"
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "src/main/index.ts",
+        "action": "Modify",
+        "what_changes": "Line 1: drop `ipcMain` from `import { app, shell, BrowserWindow, ipcMain } from 'electron'`. Inside `app.whenReady().then()`: delete the `// IPC test` comment and the `ipcMain.on('ping', () => console.log('pong'))` line. No other edits."
+      }
+    ],
+    "doc_impact": [],
+    "risks": [
+      {
+        "risk": "Edit regresses the main\u2194preload\u2194renderer process boundary",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Edit confined to src/main/; no preload/renderer files touched; typecheck + lint + build gate the change; lint catches any residual unused import"
+      },
+      {
+        "risk": "Accidentally removing a still-needed import (`app`/`shell`/`BrowserWindow`) or altering the whenReady block, breaking app boot",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Delete only the `ipcMain` token + the two ping lines; typecheck + build + smoke-launch confirm the window still opens (mirrors spec \u00a79 risk)"
+      }
+    ],
+    "specialist_consultation": [],
+    "dependencies": [
+      "None \u2014 no packages to install, services to configure, or environment variables. Pure source deletion."
+    ]
+  }
+}

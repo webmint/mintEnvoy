@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.1",
+  "research_path": "research/2026-06-27-remove-leftover-electron-vite.md",
+  "research_completed_at": "2026-06-27T12:15:58+00:00",
+  "mode": "bug",
+  "intent": {
+    "symptom_summary": "Leftover electron-vite scaffold debug handler ipcMain.on('ping', () => console.log('pong')) at src/main/index.ts:54; constitution forbids leaving debug artifacts (console.log) behind",
+    "desired_summary": "Handler fully removed: delete line 54 and its line 53 // IPC test comment; no replacement",
+    "scope": "feature-wide",
+    "verbatim_prompt": "fix bug 002 in bugs folder"
+  },
+  "spec_seeds": {
+    "spec_type_hint": "bug_fix",
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Never commit debug artifacts (no console.log left behind)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Minimal changes",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "src/main",
+        "files": [
+          "src/main/index.ts:6"
+        ],
+        "impact": "see findings"
+      }
+    ],
+    "risks": [],
+    "open_questions": [],
+    "value_semantics": [
+      {
+        "value": "ping",
+        "classification": "unclassified",
+        "stable_across_calls": null
+      }
+    ],
+    "value_production_sites": [],
+    "literal_archaeology": [],
+    "data_flow_chain": {
+      "handler_qn": "src/main/index.ts: anonymous app.whenReady().then() callback (not a graph node)",
+      "write_boundary_qn": "console.log('pong') sink at src/main/index.ts:54 (no real persistence \u2014 dead no-op)",
+      "intermediate_qns": [],
+      "trace_mode": "calls"
+    }
+  },
+  "plan_seeds": {
+    "recommended_approach_id": "delete_the_dead_handler",
+    "recommended_approach_summary": "Static search proves src/main/index.ts:54 is unreachable \u2014 zero ipcRenderer/send/invoke references exist across src/preload and src/renderer (the value is classified unclassified, with no payload-shape consumer). Deleting that one statement is the minimal change meeting the desired outcome while preserving unchanged_behavior; createWindow and the app.whenReady boot flow stay untouched. This is deletion of unreachable code, not new code, so no canonical-pattern reuse applies.",
+    "layer_destination": "ping",
+    "layer_justification": "The symptom is one unreachable statement in the main-process entry file with no callers, no value-flow consumers, and no cross-layer dependents (verified: 0 ipcRenderer references project-wide). The change is local to src/main/index.ts; no other layer is involved.",
+    "complexity": {
+      "changes": "Low",
+      "risk": "Low",
+      "verify_cost": "Low"
+    },
+    "cited_canonical_patterns": [
+      {
+        "qn": "ping",
+        "file_line": "ping"
+      }
+    ],
+    "alternatives_considered": [
+      {
+        "id": "replace_with_a_real_ipc_handler",
+        "summary": "Keep the registration site but swap the no-op ping/pong for an actual application IPC handler wired to a preload/renderer caller.",
+        "rejected_reason": "not recommended; see /plan if needed"
+      }
+    ],
+    "proposed_call_shape": "createWindow()"
+  },
+  "probe": {
+    "tier": "3",
+    "actor": "user",
+    "discriminator": {
+      "primary_confirms_if": "tbd \u2014 populated by Step 4 probe-tier classifier",
+      "runner_up_confirms_if": "tbd \u2014 manual observation required",
+      "both_disproved_if": "tbd",
+      "production_site_check": null
+    },
+    "feasibility_check": {
+      "data_shape_only": false,
+      "auth_required": false,
+      "network_dependent": false,
+      "timing_dependent": false,
+      "is_test_code": false
+    },
+    "test_framework": null,
+    "test_path": null,
+    "script_path": null,
+    "is_first_test_for_file": false
+  },
+  "downstream_links": {
+    "spec_path": null,
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}

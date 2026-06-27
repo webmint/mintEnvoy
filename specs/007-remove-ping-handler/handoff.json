@@ -1,0 +1,136 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/007-remove-ping-handler/spec.md",
+  "specify_completed_at": "2026-06-27T14:56:55Z",
+  "classification": {
+    "spec_number": "007",
+    "feature_name": "remove-ping-handler",
+    "feature_slug": "remove-ping-handler",
+    "spec_type": "bug_fix",
+    "spec_type_rationale": "pre-seeded from research handoff at research/2026-06-27-remove-leftover-electron-vite/handoff.json (user accepted)",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "Remove the leftover electron-vite scaffold debug handler from the Electron main process. The bug (bugs/002-leftover-ping-debug-artifact.md) is a dead no-op IPC handler \u2014 ipcMain.on('ping', () => console.log('pong')) \u2014 that violates the project's no-debug-artifacts rule. This spec deletes the handler, its // IPC test comment, and the now-unused ipcMain import.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The mintenvoy main process shall not register a 'ping' IPC handler.",
+        "verification_command": "! grep -qF \"ipcMain.on('ping'\" src/main/index.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "behavior_preservation",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the application starts, the mintenvoy main process shall create the BrowserWindow and complete its ready-event lifecycle exactly as before the change.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the main process initializes, the mintenvoy main process shall register no 'ping' IPC listener and emit no 'pong' log message.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The main process entry file shall contain no console-log debug artifact.",
+        "verification_command": "! grep -qF 'console.log' src/main/index.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The mintenvoy codebase shall pass lint and type-check with no unused import remaining in the main process entry file.",
+        "verification_command": "npm run lint && npm run typecheck",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "ci_pipeline": "No CI/pipeline changes \u2014 source-only dead-code removal in src/main/index.ts",
+      "hooks_gates": "No hooks or gates added or changed by this removal",
+      "documentation": "docs/main/index.md does not document the ping handler; no docs/ update is required after removal"
+    },
+    "constraints": [
+      {
+        "kind": "not_break",
+        "content": "App boot and window-creation flow (createWindow, the app ready event, browser-window-created, activate, and window-all-closed handlers) must not regress",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Keep the change minimal: delete only the dead handler, its // IPC test comment, and the now-unused ipcMain import \u2014 do not modify unrelated main-process code",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "Electron main process entry",
+        "files": [
+          "src/main/index.ts"
+        ],
+        "impact": "Delete the ipcMain.on('ping', ...) handler (line 54) + its // IPC test comment (line 53); remove ipcMain from the line 1 electron import"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Replacing the dead handler with a real application IPC handler (research approach 2 \u2014 no current IPC need)",
+        "finding_ref": "F-claude-2"
+      },
+      {
+        "content": "Adding test infrastructure for the main process to cover this removal (none exists today)",
+        "finding_ref": "F-architecture-2"
+      },
+      {
+        "content": "Any docs/ changes \u2014 the ping handler is undocumented, so no documentation update is needed",
+        "finding_ref": "F-index-3"
+      },
+      {
+        "content": "Manually updating the bugs/002-leftover-ping-debug-artifact.md record lifecycle (Open to Fixed is a manual step outside this spec)",
+        "finding_ref": "F-claude-3"
+      },
+      {
+        "content": "Touching renderer or preload code, or any other ipcMain handler (none exist; ping is the sole undocumented dead scaffold)",
+        "finding_ref": "F-index-1"
+      }
+    ],
+    "open_questions": [],
+    "risks": [
+      {
+        "risk": "Deleting the handler accidentally removes a still-needed import or alters the whenReady block, breaking app boot",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Remove only ipcMain from the line 1 import (other imports stay); typecheck + lint + build gate the change; smoke-launch confirms the window still opens"
+      }
+    ]
+  },
+  "provenance": {
+    "upstream_handoff_path": null,
+    "upstream_handoff_kind": null,
+    "upstream_completed_at": null
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/007-remove-ping-handler/tasks",
+  "breakdown_completed_at": "2026-06-27T15:31:17Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/007-remove-ping-handler/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/007-remove-ping-handler/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/007-remove-ping-handler/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "Remove dead ping IPC handler from main process",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [],
+      "touched_files": [
+        "src/main/index.ts"
+      ],
+      "expects": [
+        "`import { app, shell, BrowserWindow, ipcMain } from 'electron'` appears in `src/main/index.ts`",
+        "`ipcMain.on('ping'` appears in `src/main/index.ts`",
+        "`function createWindow` appears in `src/main/index.ts`"
+      ],
+      "produces": [
+        "`ipcMain` no longer appears anywhere in `src/main/index.ts`",
+        "`console.log` no longer appears anywhere in `src/main/index.ts`",
+        "`function createWindow` still appears in `src/main/index.ts` (unchanged)",
+        "`app.whenReady().then` and `app.on('window-all-closed'` still appear in `src/main/index.ts` (unchanged)"
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    }
+  ],
+  "additions": [
+    "None \u2014 the plan's File Impact (src/main/index.ts only) fully covers the change; no cascading files discovered in Phase 1 analysis."
+  ],
+  "dependency_graph": "001 (Remove dead ping IPC handler from main process)  [no dependencies]"
+}
