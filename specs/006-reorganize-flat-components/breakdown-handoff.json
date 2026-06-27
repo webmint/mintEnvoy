@@ -1,0 +1,154 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/006-reorganize-flat-components/tasks",
+  "breakdown_completed_at": "2026-06-26T20:32:20Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/006-reorganize-flat-components/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/006-reorganize-flat-components/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/006-reorganize-flat-components/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "Move Divider to molecules and rewrite its importers",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "002"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/Divider.tsx \u2192 src/renderer/src/components/molecules/Divider.tsx",
+        "src/renderer/src/components/organisms/Divider.css \u2192 src/renderer/src/components/molecules/Divider.css",
+        "src/renderer/src/components/organisms/Sidebar.tsx",
+        "src/renderer/src/components/organisms/PaneSplit.tsx",
+        "src/renderer/src/components/organisms/__tests__/Shell.test.tsx",
+        "src/renderer/src/components/organisms/__tests__/Shell.stories.tsx"
+      ],
+      "expects": [
+        "`src/renderer/src/components/organisms/Divider.tsx` exists and exports `Divider`; `src/renderer/src/components/organisms/Divider.css` exists.",
+        "`Sidebar.tsx` imports `Divider` from `@renderer/components/organisms/Divider`.",
+        "`PaneSplit.tsx` imports `Divider` from `@renderer/components/organisms/Divider`.",
+        "`__tests__/Shell.test.tsx` and `__tests__/Shell.stories.tsx` each import `Divider` from `@renderer/components/organisms/Divider`."
+      ],
+      "produces": [
+        "`src/renderer/src/components/molecules/Divider.tsx` exists and exports `Divider`; `src/renderer/src/components/molecules/Divider.css` exists.",
+        "No file `src/renderer/src/components/organisms/Divider.tsx` and no file `src/renderer/src/components/organisms/Divider.css`.",
+        "`Sidebar.tsx`, `PaneSplit.tsx`, `__tests__/Shell.test.tsx`, and `__tests__/Shell.stories.tsx` each import `Divider` from `@renderer/components/molecules/Divider`.",
+        "No occurrence of `@renderer/components/organisms/Divider` anywhere under `src/renderer`."
+      ],
+      "ac_addressed": [
+        "AC-2",
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-11",
+        "AC-12",
+        "AC-13",
+        "AC-14"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "002",
+      "title": "Move shell-domain group and Shell test trio into organisms/shell",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/Shell.tsx \u2192 src/renderer/src/components/organisms/shell/Shell.tsx",
+        "src/renderer/src/components/organisms/Shell.css \u2192 src/renderer/src/components/organisms/shell/Shell.css",
+        "src/renderer/src/components/organisms/Titlebar.tsx \u2192 src/renderer/src/components/organisms/shell/Titlebar.tsx",
+        "src/renderer/src/components/organisms/Titlebar.css \u2192 src/renderer/src/components/organisms/shell/Titlebar.css",
+        "src/renderer/src/components/organisms/Statusbar.tsx \u2192 src/renderer/src/components/organisms/shell/Statusbar.tsx",
+        "src/renderer/src/components/organisms/Statusbar.css \u2192 src/renderer/src/components/organisms/shell/Statusbar.css",
+        "src/renderer/src/components/organisms/PaneSplit.tsx \u2192 src/renderer/src/components/organisms/shell/PaneSplit.tsx",
+        "src/renderer/src/components/organisms/PaneSplit.css \u2192 src/renderer/src/components/organisms/shell/PaneSplit.css",
+        "src/renderer/src/App.tsx",
+        "src/renderer/src/components/organisms/__tests__/Shell.test.tsx \u2192 src/renderer/src/components/organisms/shell/__tests__/Shell.test.tsx",
+        "src/renderer/src/components/organisms/__tests__/Shell.stories.tsx \u2192 src/renderer/src/components/organisms/shell/__tests__/Shell.stories.tsx",
+        "src/renderer/src/components/organisms/__tests__/Shell.ct.tsx \u2192 src/renderer/src/components/organisms/shell/__tests__/Shell.ct.tsx",
+        "src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx"
+      ],
+      "expects": [
+        "(from task 001) `PaneSplit.tsx` imports `Divider` from `@renderer/components/molecules/Divider`; `__tests__/Shell.test.tsx` and `__tests__/Shell.stories.tsx` import `Divider` from `@renderer/components/molecules/Divider`.",
+        "`Shell.tsx` (at `organisms/`) imports `Titlebar`, `PaneSplit`, `Statusbar` from `@renderer/components/organisms/*`.",
+        "`App.tsx` imports `Shell` from `@renderer/components/organisms/Shell`.",
+        "`__tests__/Shell.ct.tsx` imports from `./Shell.stories`.",
+        "`Tabs.stories.tsx` imports `@renderer/components/organisms/Shell.css`."
+      ],
+      "produces": [
+        "`components/organisms/shell/Shell.tsx`, `Titlebar.tsx`, `Statusbar.tsx`, `PaneSplit.tsx` exist (each exporting its component) with sibling `.css` files; none of these `.tsx`/`.css` files remain directly under `components/organisms/`.",
+        "`components/organisms/shell/__tests__/Shell.test.tsx`, `Shell.stories.tsx`, `Shell.ct.tsx` exist; `Shell.ct.tsx` still imports from `./Shell.stories`.",
+        "`App.tsx` imports `Shell` from `@renderer/components/organisms/shell/Shell`.",
+        "`Shell.tsx` imports `Titlebar`/`PaneSplit`/`Statusbar` from `@renderer/components/organisms/shell/*`.",
+        "`Tabs.stories.tsx` imports `@renderer/components/organisms/shell/Shell.css`.",
+        "`Sidebar.tsx`, `TabBar.tsx` (and `TabBar.css`) and `organisms/__tests__/TabBar.test.tsx` remain directly under `components/organisms/`.",
+        "No `index.ts` or `index.tsx` file exists in `components/molecules/`, `components/organisms/`, or `components/organisms/shell/`.",
+        "No occurrence of `@renderer/components/organisms/(Shell|Titlebar|Statusbar|PaneSplit)` anywhere under `src/renderer`."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-11",
+        "AC-12",
+        "AC-13",
+        "AC-14"
+      ],
+      "doc_refs": [
+        "docs/architecture.md"
+      ],
+      "review_checkpoint": true
+    },
+    {
+      "number": "003",
+      "title": "Update constitution and architecture-doc classification sites to the new layout",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "002"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "constitution.md",
+        "docs/architecture.md"
+      ],
+      "expects": [
+        "(from tasks 001\u2013002) `Divider` lives under `components/molecules/`; `Shell`/`Titlebar`/`Statusbar`/`PaneSplit` live under `components/organisms/shell/`.",
+        "`constitution.md` contains a \u00a72.2 section with the EXAMPLE membership tree and a \u00a75.1 UI-primitives list.",
+        "`docs/architecture.md` contains the UI-Primitives Layer table, the module-structure tree, the `Shell.tsx`/`Divider.tsx` path-comment markers, and the mermaid Dependency Overview."
+      ],
+      "produces": [
+        "`constitution.md` \u00a72.2 contains a single labelled domain-placement rule (the `molecules/` vs `organisms/<domain>/` wording).",
+        "`constitution.md` \u00a72.2 membership tree lists `Divider` under `molecules/` and shows the `organisms/shell/` group; \u00a75.1 list classifies `Divider` as a molecule \u2014 both in lockstep.",
+        "`docs/architecture.md` UI-Primitives table, prose, module tree, both path-comment markers, and mermaid all reflect the new layout.",
+        "No occurrence of `organisms/(Divider|Shell|Titlebar|Statusbar|PaneSplit)` as a path in `constitution.md` or `docs/architecture.md`."
+      ],
+      "ac_addressed": [
+        "AC-8",
+        "AC-9",
+        "AC-10",
+        "AC-14"
+      ],
+      "doc_refs": [
+        "docs/architecture.md"
+      ],
+      "review_checkpoint": false
+    }
+  ],
+  "additions": [
+    "- `src/renderer/src/components/organisms/__tests__/Shell.ct.tsx` \u2014 moves with the Shell test trio (task 002). Not named in spec \u00a74, surfaced during planning (DISCOVERY 1): it imports `./Shell.stories` relatively, so it must move with `Shell.stories.tsx` to keep that coupling valid.",
+    "- `src/renderer/src/components/organisms/__tests__/Shell.test.tsx` + `Shell.stories.tsx` Divider-import rewrite is scheduled in **task 001** (in place), not task 002 \u2014 the architect Phase-2 validation found these are 2 of the 4 Divider importers, so deferring them would break task 001's own boundary (tsc + Vitest could not resolve `Divider`).",
+    "- `docs/architecture.md` carries more moved-path citation sites than spec \u00a74 named (module-structure tree, prose tier description, and two `Shell.tsx:250`/`Divider.tsx:250` code-comment markers, beyond the AC-10 table + mermaid). Task 003 updates all five in lockstep."
+  ],
+  "dependency_graph": "001 (Move Divider to molecules) \u2500\u2500\u2192 002 (Move shell group to organisms/shell) \u2500\u2500\u2192 003 (Update classification sites)"
+}

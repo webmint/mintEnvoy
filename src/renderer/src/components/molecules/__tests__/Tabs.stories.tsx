@@ -42,7 +42,7 @@ import '@renderer/components/organisms/TabBar.css'
 // fixture (TabbarInShellTabsFixture). Same test-harness composition pattern as the
 // TabBar.css import above — mirrors the CSS cascade the production element receives
 // when TabBar mounts inside Shell's workspace column.
-import '@renderer/components/organisms/Shell.css'
+import '@renderer/components/organisms/shell/Shell.css'
 
 // Re-export TabDescriptor so fixtures below can use it without
 // introducing a separate import in Tabs.ct.tsx.

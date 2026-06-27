@@ -75,10 +75,10 @@ import './Shell.css'
 import { useEffect, useRef, type ReactNode, type JSX } from 'react'
 import { cx } from '@renderer/lib/cx'
 import { settingsStore } from '@renderer/lib/settingsStore'
-import { Titlebar } from '@renderer/components/organisms/Titlebar'
+import { Titlebar } from '@renderer/components/organisms/shell/Titlebar'
 import { Sidebar } from '@renderer/components/organisms/Sidebar'
-import { PaneSplit } from '@renderer/components/organisms/PaneSplit'
-import { Statusbar } from '@renderer/components/organisms/Statusbar'
+import { PaneSplit } from '@renderer/components/organisms/shell/PaneSplit'
+import { Statusbar } from '@renderer/components/organisms/shell/Statusbar'
 
 // ---------------------------------------------------------------------------
 // Types

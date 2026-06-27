@@ -56,6 +56,7 @@ The renderer is a small atomic-design system; component tiers and the leaf lib l
 - [extracted] renderer component tiers flow downward only: organisms → molecules → atoms; no sibling-tier or upward imports
 - [extracted] renderer lib (cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec) is leaf-level — components depend on lib, lib depends on nothing renderer-external
 - [extracted] requestSpec is imported by tabsStore but stays a pure data module — no component imports
+- [extracted] Domain placement: shared/domain-agnostic components belong in `molecules/`; single-domain-bound components belong in `organisms/<domain>/`; create an `organisms/<domain>/` subfolder only when a domain reaches ≥2 components (no empty future domain folders); no barrel/index files
 
 **EXAMPLE** — renderer module structure
 
@@ -66,8 +67,8 @@ src/
 └── renderer/src/
     ├── components/
     │   ├── atoms/      # Icon
-    │   ├── molecules/  # Dropdown, Modal, Toast (Radix); Tabs (hand-rolled WAI-ARIA)
-    │   └── organisms/  # Shell, Titlebar, Sidebar, PaneSplit, Statusbar, Divider, TabBar
+    │   ├── molecules/  # Dropdown, Modal, Toast (Radix); Tabs (hand-rolled WAI-ARIA); Divider (WAI-ARIA splitter)
+    │   └── organisms/  # shell/ (Shell, Titlebar, Statusbar, PaneSplit); Sidebar, TabBar (domain singletons)
     ├── lib/    # cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec
     └── styles/ # tokens.css design tokens
 ```
@@ -195,7 +196,7 @@ The core domain objects of the API client and its UI shell.
 - [extracted] Working tab — an open request in the tabs strip; lifecycle (open, dedupe, close, dirty) owned by tabsStore
 - [extracted] Toast — a transient notification queued in toastStore, surfaced via the imperative toast() API
 - [extracted] View state — theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed; the Shell SSOT in settingsStore
-- [extracted] UI primitives — Icon (atom); Dropdown/Modal/Toast/Tabs (molecules); Shell/Titlebar/Sidebar/PaneSplit/Statusbar/Divider/TabBar (organisms)
+- [extracted] UI primitives — Icon (atom); Dropdown/Modal/Toast/Tabs/Divider (molecules); Shell/Titlebar/Statusbar/PaneSplit (organisms/shell/), Sidebar/TabBar (organisms)
 
 ### 5.2 Domain Invariants
 
