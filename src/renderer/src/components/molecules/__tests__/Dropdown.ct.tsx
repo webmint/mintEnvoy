@@ -195,6 +195,33 @@ test.describe('Dropdown — AC-4 dismiss', () => {
     // and the dropdown content.  The CT viewport is 1280×720 by default; clicking
     // at the bottom-right corner is safely outside both elements.
     const vp = page.viewportSize() ?? { width: 1280, height: 720 }
+    await menu.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)))
+    // Macrotask-boundary readiness floor: guarantees Radix DismissableLayer's
+    // setTimeout(0)-deferred pointerdown listener has fired (not a fixed delay).
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)))
+    await page.mouse.click(vp.width - 10, vp.height - 10)
+
+    await expect(menu).not.toBeVisible()
+  })
+
+  test('clicking outside closes the menu under reduced-motion (macrotask-floor only)', async ({ mount, page }) => {
+    // Reduced-motion disables the entry animation, so getAnimations() returns []
+    // and the animation-completion await no-ops — this proves the setTimeout(0)
+    // macrotask-boundary floor alone arms Radix's dismiss listener (spec §9 Risk-1).
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await mount(<DropdownFixture initialOpen={false} />)
+
+    const trigger = page.getByTestId('ct-dropdown-trigger')
+    await trigger.click()
+
+    const menu = page.getByRole('menu')
+    await expect(menu).toBeVisible()
+
+    const vp = page.viewportSize() ?? { width: 1280, height: 720 }
+    await menu.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)))
+    // Macrotask-boundary readiness floor: guarantees Radix DismissableLayer's
+    // setTimeout(0)-deferred pointerdown listener has fired (not a fixed delay).
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)))
     await page.mouse.click(vp.width - 10, vp.height - 10)
 
     await expect(menu).not.toBeVisible()
@@ -250,6 +277,10 @@ test.describe('Dropdown — AC-3 focus return after click-outside', () => {
     // Click at a safe coordinate well outside the trigger and menu panel.
     // The CT default viewport is 1280×720; clicking at (640, 600) is safely
     // below the menu which opens near the top-left of the viewport.
+    await menu.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)))
+    // Macrotask-boundary readiness floor: guarantees Radix DismissableLayer's
+    // setTimeout(0)-deferred pointerdown listener has fired (not a fixed delay).
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)))
     await page.mouse.click(640, 600)
 
     // Menu must close

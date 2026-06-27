@@ -61,6 +61,17 @@ Renderer test stack: Vitest + @testing-library/react + user-event (jsdom) for in
 - Test files live under `src/renderer/src/**/*.{test,spec}.{ts,tsx}` (Vitest) and `src/renderer/src/**/*.ct.{ts,tsx}` (Playwright CT).
 - No test infrastructure exists for the main or preload processes; add if needed.
 
+**Hazard: Radix overlay CT — click-outside must wait for listener readiness.** `DismissableLayer` (the dismiss engine inside Radix Dropdown, Modal, and similar overlay primitives) defers its `pointerdown` handler via `setTimeout(0)`. A `page.mouse.click` issued before that macrotask executes silently misses the listener and the overlay stays open — producing intermittent false-pass failures. The required gate before any outside click in a Radix overlay CT: (1) await all overlay animations to finish; (2) yield one `setTimeout(0)` macrotask boundary to arm the listener. Step 1 is a no-op under `prefers-reduced-motion: reduce` (no animations run), but step 2 alone suffices to arm the listener in that case. Apply this two-step gate to every Playwright CT that dismisses a Radix overlay (Dropdown, Modal, and any future Tooltip, Popover, or Select CTs).
+
+<!-- src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx:198-201 -->
+
+```typescript
+await menu.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)))
+// Macrotask-boundary readiness floor: guarantees Radix DismissableLayer's
+// setTimeout(0)-deferred pointerdown listener has fired (not a fixed delay).
+await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)))
+```
+
 ## Architecture Overview
 
 mintEnvoy is structured around Electron's three-process security model. The **main** process (Node.js) owns the application lifecycle and creates the single BrowserWindow with sandbox-friendly webPreferences and a preload script attached. The **preload** bridge runs with context isolation and is the only place permitted to expose privileged Electron APIs to the UI, doing so through contextBridge under a process.contextIsolated guard. The **renderer** is a React 19 single-page UI that must never import Node or Electron modules — it talks to the platform exclusively through the globals the preload bridge exposes on window.

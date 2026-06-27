@@ -1,0 +1,214 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/008-dropdown-ct-dismiss/spec.md",
+  "specify_completed_at": "2026-06-27T17:46:23Z",
+  "classification": {
+    "spec_number": "008",
+    "feature_name": "dropdown-ct-dismiss",
+    "feature_slug": "dropdown-ct-dismiss",
+    "spec_type": "bug_fix",
+    "spec_type_rationale": "pre-seeded from research handoff at research/2026-06-27-003-dropdown-ct-click/handoff.json",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "Two Playwright component tests for the Dropdown primitive's click-outside dismissal are flaky-to-failing because each fires its outside click before Radix's DismissableLayer has armed its outside-click detection. This spec makes both tests deterministic by gating the outside click on a concrete overlay-readiness signal \u2014 a test-only change that touches no production code and keeps the existing strict assertions verbatim.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "behavior_preservation",
+        "ears_variant": "event_driven",
+        "statement": "WHEN a user clicks outside an open Dropdown menu, the Dropdown shall close the menu.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The Dropdown component-test suite shall keep all of its currently-passing tests passing.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the CT test 'clicking outside the menu closes it' (Dropdown.ct.tsx:185) runs, the Dropdown menu shall become not visible so the dismissal assertion passes.",
+        "verification_command": "npx playwright test -c playwright.config.ts --grep 'clicking outside the menu closes it'",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the CT test 'focus return after click-outside' (Dropdown.ct.tsx:236) runs, the Dropdown menu shall close and focus shall return to the trigger button.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The two click-outside Dropdown component tests shall pass deterministically across repeated runs.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The changed test files shall pass type-check and lint.",
+        "verification_command": "npm run typecheck:web && eslint --cache src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE applying the fix, the system shall keep the existing strict dismissal and focus-return assertions unchanged and unweakened.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The changed test files shall contain no leftover debug artifacts such as console statements, debugger statements, or focused or skipped tests.",
+        "verification_command": "! grep -nE 'console\\.log|debugger|\\.only\\(|\\.skip\\(' src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "tooling_artifact_presence": "No tooling artifact is added or removed; this is a behavior fix to two existing test cases.",
+      "ci_pipeline": "No CI/pipeline config change; deterministic passing is asserted by the CT acceptance criteria in \u00a75.3.",
+      "hooks_gates": "No hook or commit-gate change.",
+      "documentation": "No docs/ change required; the bugs/003 record lifecycle is handled by /verify, not this spec."
+    },
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Search before building",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Minimal changes (Key Rules #3)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Specs are contracts / strict assertions",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Search the codebase for an existing utility/helper/component before writing anything generic or reusable \u2014 reuse the Modal CT overlay-readiness pattern (Modal.ct.tsx:127) rather than inventing new test machinery.",
+        "quantifier": null,
+        "constitution_ref": "6.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Co-located tests under __tests__/ next to the code, split .test.tsx (Vitest) and .ct.tsx (Playwright CT); the click-outside behavior is CT-only and the fix stays in the .ct.tsx spec (and fixture, if needed).",
+        "quantifier": null,
+        "constitution_ref": "3.4",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "Production Dropdown click-outside dismissal behavior must not change \u2014 it works for real users; only the test's timing is corrected.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "node_modules/@radix-ui",
+        "files": [
+          "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265"
+        ],
+        "impact": "see findings"
+      },
+      {
+        "area": "Dropdown click-outside CT tests",
+        "files": [
+          "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx"
+        ],
+        "impact": "Edit the two failing test cases (the outside clicks at :198 and :253): insert an overlay-readiness wait before each corner click. Strict assertions unchanged."
+      },
+      {
+        "area": "Dropdown CT fixture (conditional)",
+        "files": [
+          "src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx"
+        ],
+        "impact": "Only if the readiness wait needs a fixture affordance (e.g. a stable test hook). Preferred approach needs no fixture change; listed so /plan can confirm."
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Modifying Radix or the production Dropdown component (src/renderer/src/components/molecules/Dropdown.tsx) \u2014 click-outside dismissal is Radix-owned and works correctly in production.",
+        "finding_ref": "F-index-2"
+      },
+      {
+        "content": "Introducing a bare fixed-delay waitForTimeout as the fix mechanism (brittle magic-number; rejected by the research).",
+        "finding_ref": "F-2026-06-27-003-dropdown-ct-click-6"
+      },
+      {
+        "content": "Hardening the sibling overlay CT specs (Modal.ct.tsx, nested-overlays.ct.tsx) that share the same arm-race risk \u2014 they pass today and are excluded per the scope decision.",
+        "finding_ref": ""
+      }
+    ],
+    "open_questions": [
+      {
+        "question_id": "Q-1",
+        "content": "Exact readiness API for the pre-click wait (e.g. awaiting element.getAnimations() completion vs a waitForFunction on the menu's computed opacity) \u2014 deferred to /plan; spec mandates a concrete readiness signal, not a fixed delay.",
+        "category_no_dp_reason": ""
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Under prefers-reduced-motion (or any zero-animation config), the entry animation is disabled, so an animation-completion readiness signal could resolve immediately and let the arm-race resurface.",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Readiness signal must not rely solely on animation presence; /plan picks a signal that holds when animations are off (e.g. a microtask/rAF settle or polling the armed state), or the test enables motion."
+      },
+      {
+        "risk": "The readiness wait could mask a genuine future production dismissal regression (test waits, then still asserts).",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Assertions stay strict (not.toBeVisible / toBeFocused), so a real dismissal break still fails the test after the wait."
+      }
+    ]
+  },
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/research/2026-06-27-003-dropdown-ct-click/handoff.json",
+    "upstream_handoff_kind": "research",
+    "upstream_completed_at": "2026-06-27T17:06:34+00:00"
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}

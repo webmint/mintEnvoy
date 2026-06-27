@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.1",
+  "research_path": "research/2026-06-27-003-dropdown-ct-click.md",
+  "research_completed_at": "2026-06-27T17:06:34+00:00",
+  "mode": "bug",
+  "intent": {
+    "symptom_summary": "Playwright CT test 'Dropdown \u2014 AC-4 dismiss \u203a clicking outside the menu closes it' (Dropdown.ct.tsx:185) fails: after opening the menu and clicking the viewport corner, the menu stays visible; expect(menu).not.toBeVisible() times out (line 200). Downstream, :236 (AC-3 focus-return after click-outside) also fails because the dismissal never fires. CT suite 125/127, these 2 the sole failures.",
+    "desired_summary": "Both CT tests pass (Dropdown.ct.tsx:185 dismiss + :236 focus-return) via a correct fix at whatever layer the root cause lives; production click-outside dismissal behavior confirmed intact (not a loosened/weakened test).",
+    "scope": "feature-wide",
+    "verbatim_prompt": "003-dropdown-ct-click-outside-dismiss bug"
+  },
+  "spec_seeds": {
+    "spec_type_hint": "bug_fix",
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Search before building",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Minimal changes (Key Rules #3)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Specs are contracts / strict assertions",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "node_modules/@radix-ui",
+        "files": [
+          "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265"
+        ],
+        "impact": "see findings"
+      }
+    ],
+    "risks": [],
+    "open_questions": [],
+    "value_semantics": [],
+    "value_production_sites": [],
+    "literal_archaeology": [],
+    "data_flow_chain": {
+      "handler_qn": "Dropdown.ct.tsx::AC-4-dismiss::clicking-outside-the-menu-closes-it::page.mouse.click",
+      "write_boundary_qn": "@radix-ui/react-menu.MenuRootContentModal.onDismiss->onOpenChange(false)",
+      "intermediate_qns": [],
+      "trace_mode": "calls"
+    }
+  },
+  "plan_seeds": {
+    "recommended_approach_id": "gate_the_two_outside_dismissal_specs_on_overlay_readiness_test_only",
+    "recommended_approach_summary": "This option has the smallest blast radius: it edits only the two failing specs, ships no change to any shipped component, and keeps both strict negative assertions exactly as written, so coverage strength is preserved. It reuses an existing convention already established elsewhere in the suite (cited in the approach description) instead of adding new helpers, honoring the reuse-first constitution principle. The alternative \u2014 a fixed numeric delay \u2014 is rejected as a brittle magic-number that degrades under slower hardware and reads as a flake-bandage; the chosen option keys on a concrete readiness signal and is deterministic.",
+    "layer_destination": "DropdownFixture.setOpen",
+    "layer_justification": "The fix is genuinely spec-layer-local: the production dismissal path works correctly once armed (proven by the Modal CT suite using the identical Radix mechanism, and by the settle experiment making the Dropdown specs deterministic). No shipped/helper-layer change is warranted \u2014 the defect is the spec exercising the outside click before the overlay is ready, which is fixed in the spec.",
+    "complexity": {
+      "changes": "Low",
+      "risk": "Low",
+      "verify_cost": "Low"
+    },
+    "cited_canonical_patterns": [
+      {
+        "qn": "DropdownFixture.setOpen",
+        "file_line": "src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx:43"
+      }
+    ],
+    "alternatives_considered": [
+      {
+        "id": "fixed_settle_delay_before_the_corner_click",
+        "summary": "Insert a fixed wait (~150ms) before the corner click in both specs. Matches the validated experiment (0ms gives 0/5 dismiss, 100ms gives 5/5).",
+        "rejected_reason": "not recommended; see /plan if needed"
+      }
+    ],
+    "proposed_call_shape": "page.mouse.click(1270, 710)"
+  },
+  "probe": {
+    "tier": "3",
+    "actor": "user",
+    "discriminator": {
+      "primary_confirms_if": "tbd \u2014 populated by Step 4 probe-tier classifier",
+      "runner_up_confirms_if": "tbd \u2014 manual observation required",
+      "both_disproved_if": "tbd",
+      "production_site_check": null
+    },
+    "feasibility_check": {
+      "data_shape_only": false,
+      "auth_required": false,
+      "network_dependent": false,
+      "timing_dependent": true,
+      "is_test_code": true
+    },
+    "test_framework": null,
+    "test_path": null,
+    "script_path": null,
+    "is_first_test_for_file": false
+  },
+  "downstream_links": {
+    "spec_path": "specs/008-003-dropdown-ct-click/spec.md",
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}
