@@ -23,3 +23,11 @@ The CT suite is 100/101 (this is the sole failure). It does not block feature 00
 ## Next step
 
 `/research "Dropdown CT click-outside dismissal fails at viewport boundary in Playwright CT"` to investigate, then `/specify` or `/fix` as appropriate. Out of scope for feature 005.
+
+## Re-confirmed — feature 006 (2026-06-27)
+
+Re-observed during feature `006-reorganize-flat-components` verification. Still Open, still pre-existing + unrelated (confirmed failing on the clean 006 baseline with the feature's changes stashed — 006 touched no Dropdown/CT/component code). Two CT tests now fail from this one root cause:
+- `Dropdown.ct.tsx:185` — `AC-4 dismiss › clicking outside the menu closes it` (the original).
+- `Dropdown.ct.tsx:236` — `AC-3 focus return after click-outside › focus returns to the trigger button after the menu closes via click-outside` — a downstream symptom (focus return cannot fire because the click-outside dismissal never happens).
+
+CT suite is 125/127 (these 2 are the sole failures). Investigate the root dismissal failure once; both tests should recover together.

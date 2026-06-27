@@ -1,0 +1,176 @@
+{
+  "topic": "Remove leftover electron-vite ping/pong debug handler in main process",
+  "date": "2026-06-27",
+  "mode": "bug",
+  "symptom_snapshot": {
+    "symptom": null,
+    "affected_area": null,
+    "repro_or_current": null,
+    "desired": null,
+    "scope": null,
+    "unchanged_behavior": null
+  },
+  "summary": "Bug 002 is a leftover electron-vite scaffold debug handler at src/main/index.ts:54 \u2014 ipcMain.on('ping', () => console.log('pong')) \u2014 registered inside the app.whenReady().then() block. A project-wide search confirms it is dead: zero ipcRenderer/send/invoke callers exist across src/preload and src/renderer, and it is the only ipcMain handler in the codebase. Root cause is confirmed: scaffold boilerplate never cleaned up after project init, violating the no-debug-artifacts (console.log) constitution rule. Recommended fix is to delete the handler and its // IPC test comment; the change is local to one file with no behavioral surface. No remaining uncertainty.",
+  "findings": [
+    {
+      "surface": "leftover ping/pong IPC debug handler",
+      "file_line": "src/main/index.ts:54",
+      "relevance": "no-op scaffold handler ipcMain.on('ping', () => console.log('pong')); sole ipcMain handler in src/ (sweep confirmed); violates no-debug-artifacts constitution rule; deletion target",
+      "framing": "primary"
+    },
+    {
+      "surface": "createWindow \u2014 nearest named symbol in file",
+      "file_line": "src/main/index.ts:6",
+      "relevance": "createWindow is the only named Function in src/main/index.ts; invoked at line 56 inside the same app.whenReady().then() block beside the dead handler; no helper carries the 'ping' value, confirming the bug is local dead-code removal with no value-flow fix-path",
+      "framing": "primary"
+    },
+    {
+      "surface": "renderer/preload 'ping' caller search (runner-up falsifier)",
+      "file_line": "(none)",
+      "relevance": "runner-up falsifier (live IPC contract) NOT found project-wide: 0 ipcRenderer/send/invoke matches across src/preload + src/renderer; disproves the runner-up framing",
+      "framing": "runner-up"
+    }
+  ],
+  "hypotheses": [
+    {
+      "label": "A",
+      "cause": "Leftover electron-vite scaffold boilerplate: the standard 'IPC test' ping/pong sample handler was never removed after project scaffolding; it has no caller and no purpose",
+      "falsifier": "A renderer/preload caller or a test references the 'ping' channel",
+      "runtime_probe_needed": false
+    },
+    {
+      "label": "B",
+      "cause": "The handler is an intentional health-check/keepalive IPC consumed elsewhere in the app",
+      "falsifier": "No ipcRenderer.send('ping')/invoke('ping') caller exists anywhere in preload/renderer (already confirmed: 0 hits)",
+      "runtime_probe_needed": false
+    }
+  ],
+  "root_cause_hypothesis": "Leftover electron-vite scaffold boilerplate (the standard 'IPC test' ping/pong sample) was never removed after project scaffolding; verified dead (0 callers project-wide), serves no purpose, and violates the no-debug-artifacts constitution rule",
+  "confidence": "Confirmed",
+  "structured_root_cause": {
+    "trigger": "electron-vite project scaffolding inserted the sample 'ping' IPC handler at project init",
+    "root_cause_systemic": "Scaffold/boilerplate cleanup was not performed during initial project setup, leaving dead debug code (console.log) that violates the no-debug-artifacts constitution rule",
+    "contributing_factors": [
+      "Handler lives inside an anonymous app.whenReady().then() callback, not a named symbol, so it is easy to overlook",
+      "No lint rule flags console.log in the main process"
+    ]
+  },
+  "verify_step": null,
+  "approaches": [
+    {
+      "name": "Delete the dead handler",
+      "description": "Remove line 54 (ipcMain.on('ping', ...)) and the line 53 // IPC test comment from src/main/index.ts. No replacement.",
+      "addresses_hypotheses": [
+        "A",
+        "B"
+      ],
+      "does_not_cover": [],
+      "pros": [
+        "Minimal one-statement diff",
+        "Removes constitution-violating console.log",
+        "No behavioral surface \u2014 handler is provably dead"
+      ],
+      "cons": [
+        "None of substance"
+      ],
+      "complexity": "Low"
+    },
+    {
+      "name": "Replace with a real IPC handler",
+      "description": "Keep the registration site but swap the no-op ping/pong for an actual application IPC handler wired to a preload/renderer caller.",
+      "addresses_hypotheses": [
+        "A"
+      ],
+      "does_not_cover": [
+        "B"
+      ],
+      "pros": [
+        "Reuses the scaffold structure"
+      ],
+      "cons": [
+        "Out of scope for bug 002 \u2014 no current IPC need",
+        "Adds code the spec did not ask for",
+        "Still leaves the bug (dead pong log) unless the old body is removed"
+      ],
+      "complexity": "Med"
+    }
+  ],
+  "recommended_approach": {
+    "name": "Delete the dead handler",
+    "rationale": "Static search proves src/main/index.ts:54 is unreachable \u2014 zero ipcRenderer/send/invoke references exist across src/preload and src/renderer (the value is classified unclassified, with no payload-shape consumer). Deleting that one statement is the minimal change meeting the desired outcome while preserving unchanged_behavior; createWindow and the app.whenReady boot flow stay untouched. This is deletion of unreachable code, not new code, so no canonical-pattern reuse applies.",
+    "hypotheses_addressed": [
+      "A",
+      "B"
+    ],
+    "hypotheses_not_covered": [],
+    "single_layer_justification": "The symptom is one unreachable statement in the main-process entry file with no callers, no value-flow consumers, and no cross-layer dependents (verified: 0 ipcRenderer references project-wide). The change is local to src/main/index.ts; no other layer is involved.",
+    "cites": [
+      "ping"
+    ],
+    "proposed_call_shape": "createWindow()"
+  },
+  "constitution_constraints": [
+    {
+      "rule": "Never commit debug artifacts (no console.log left behind)",
+      "impact": "Directly mandates removal \u2014 the ipcMain.on('ping', () => console.log('pong')) handler is exactly the debug artifact this rule forbids"
+    },
+    {
+      "rule": "Minimal changes",
+      "impact": "Constrains the fix to deleting the single dead statement + its comment; forbids the replace-with-real-IPC expansion (approach 2)"
+    }
+  ],
+  "complexity": {
+    "codebase_changes": "Low",
+    "codebase_notes": "Delete 2 lines (handler + // IPC test comment) in one file",
+    "risk": "Low",
+    "risk_notes": "Handler is dead (0 callers verified); removal has no behavioral surface",
+    "verify_cost": "Low",
+    "verify_notes": "grep confirms 'ping' gone; typecheck + build pass; app boots"
+  },
+  "open_uncertainties": [],
+  "verdict": "Root cause confirmed",
+  "next_step_text": "## Next step\n\nCopy the block below into a new `/specify` session manually. No automation \u2014 user controls when (or if) `/specify` runs.\n\n~~~\n/specify \"Leftover electron-vite scaffold debug handler ipcMain.on('ping', () => console.log('pong')) at src/main/index.ts:54; constitution forbids leaving debug artifacts (console.log) behind \u2014 Handler fully removed: delete line 54 and its line 53 // IPC test comment; no replacement\"\n\nResearch reference: research/2026-06-27-remove-leftover-electron-vite.md\nKey facts:\n- Mode: Bug\n- Symptom: Leftover electron-vite scaffold debug handler ipcMain.on('ping', () => console.log('pong')) at src/main/index.ts:54; constitution forbids leaving debug artifacts (console.log) behind\n- Desired: Handler fully removed: delete line 54 and its line 53 // IPC test comment; no replacement\n- Recommended approach: Delete the dead handler\n- Hypothesis addressed: A, B\n- Hypotheses NOT covered: (none)\n- Open uncertainties: 0 (see research doc \u00a7Open Uncertainties)\n~~~\n",
+  "runner_up_framing": {
+    "frame": "The 'ping' handler is a live IPC contract that a renderer/preload caller depends on; removing it would break an IPC round-trip",
+    "falsifier": "A renderer or preload call to ipcRenderer.send('ping') or ipcRenderer.invoke('ping')",
+    "confidence_vs_primary": "lower"
+  },
+  "fix_path_helpers": [
+    {
+      "qn": "Users-mykolakudlyk-Projects-private-mintEnvoy.src.main.createWindow",
+      "file_line": "src/main/index.ts:6"
+    }
+  ],
+  "inbound_callers": [
+    {
+      "helper_qn": "Users-mykolakudlyk-Projects-private-mintEnvoy.src.main.createWindow",
+      "caller_qn": "Users-mykolakudlyk-Projects-private-mintEnvoy.src.main.index",
+      "file_line": "src/main/index.ts:56"
+    }
+  ],
+  "dead_siblings": [],
+  "consumer_chain": [],
+  "value_semantics": [
+    {
+      "value": "ping",
+      "classification": "unclassified",
+      "evidence": "dead IPC channel \u2014 0 ipcRenderer/invoke callers project-wide (src/preload + src/renderer); no payload-shape consumer exists"
+    }
+  ],
+  "helper_rejection_log": [],
+  "data_flow_chain": {
+    "handler_qn": "src/main/index.ts: anonymous app.whenReady().then() callback (not a graph node)",
+    "write_boundary_qn": "console.log('pong') sink at src/main/index.ts:54 (no real persistence \u2014 dead no-op)",
+    "intermediate_qns": []
+  },
+  "value_production_sites": [],
+  "literal_archaeology": [],
+  "probe_feasibility": {
+    "data_shape_only": false,
+    "auth_required": false,
+    "network_dependent": false,
+    "timing_dependent": false,
+    "is_test_code": false
+  },
+  "probe_scripts": []
+}

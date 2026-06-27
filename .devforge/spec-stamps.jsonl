@@ -1,3 +1,4 @@
 {"git_sha": "51e94bfed0ba8d32533f37fa70254d104d93594a", "spec_path": "specs/001-ui-primitives/spec.md", "stamped_at": "2026-06-21T14:02:12Z"}
 {"git_sha": "0078baa7f6c73d6d45e2c873a9bcfde3ac108ede", "spec_path": "specs/003-app-shell-layout/spec.md", "stamped_at": "2026-06-23T13:18:10Z"}
 {"git_sha": "2626a40742d2bcc243669e5682610ae3bf0232be", "spec_path": "specs/004-working-tabs-state-machine/spec.md", "stamped_at": "2026-06-24T20:13:32Z"}
+{"git_sha": "64c97d4601932ec742e12263b0f01a15161af28b", "spec_path": "specs/007-remove-ping-handler/spec.md", "stamped_at": "2026-06-27T14:54:06Z"}
