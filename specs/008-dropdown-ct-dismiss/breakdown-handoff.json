@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/008-dropdown-ct-dismiss/tasks",
+  "breakdown_completed_at": "2026-06-27T19:17:37Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/008-dropdown-ct-dismiss/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/008-dropdown-ct-dismiss/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/008-dropdown-ct-dismiss/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "Gate Dropdown click-outside CT tests on overlay readiness",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx"
+      ],
+      "expects": [
+        "`Dropdown.ct.tsx` contains the test `'clicking outside the menu closes it'` whose body has a `page.mouse.click(...)` followed by `expect(menu).not.toBeVisible()` (AC-3).",
+        "`Dropdown.ct.tsx` contains the test `'focus returns to the trigger button after the menu closes via click-outside'` whose body has a `page.mouse.click(...)` followed by `expect(menu).not.toBeVisible()` and `expect(trigger).toBeFocused()` (AC-4).",
+        "`menu` is a `page.getByRole('menu')` locator in scope in both tests; `trigger` is in scope in the focus-return test."
+      ],
+      "produces": [
+        "In both tests, immediately before the corner `page.mouse.click(...)`, a `menu.evaluate(...)` call referencing `getAnimations` and `finished` is present, followed by a SEPARATE in-page `setTimeout` macrotask yield.",
+        "The `setTimeout` yield line carries an explanatory comment naming it a macrotask-boundary readiness floor (not a fixed delay).",
+        "`expect(menu).not.toBeVisible()` and `expect(trigger).toBeFocused()` are unchanged; exactly one `page.mouse.click(...)` per test (no `toPass` retry wrapper).",
+        "Both tests pass deterministically; the rest of the CT suite is unaffected."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-8"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    }
+  ],
+  "additions": [
+    "None \u2014 the single task edits exactly the one file in the plan's File Impact (`Dropdown.ct.tsx`). No cascading files discovered; the fixture (`Dropdown.stories.tsx`) and production `Dropdown.tsx` stay untouched."
+  ],
+  "dependency_graph": "001 (Gate Dropdown click-outside CT tests on overlay readiness)  [no dependencies]"
+}
