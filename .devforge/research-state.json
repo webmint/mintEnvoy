@@ -1,0 +1,48 @@
+{
+  "mode": "bug",
+  "topic_slug": "remove-leftover-electron-vite",
+  "verbatim_prompt": "fix bug 002 in bugs folder",
+  "dimensions": {
+    "symptom": {
+      "value": "Leftover electron-vite scaffold debug handler ipcMain.on('ping', () => console.log('pong')) at src/main/index.ts:54; constitution forbids leaving debug artifacts (console.log) behind",
+      "state": "Clear",
+      "turns": 0
+    },
+    "affected_area": {
+      "value": "Electron main process IPC setup \u2014 src/main/index.ts, inside app.whenReady().then()",
+      "state": "Clear",
+      "turns": 0
+    },
+    "repro_or_current": {
+      "value": "On app launch, app.whenReady() registers a no-op 'ping' IPC handler that logs 'pong' to the main-process console; dead scaffold with no renderer caller",
+      "state": "Clear",
+      "turns": 0
+    },
+    "desired": {
+      "value": "Handler fully removed: delete line 54 and its line 53 // IPC test comment; no replacement",
+      "state": "Clear",
+      "turns": 0
+    },
+    "scope": {
+      "value": "one place",
+      "state": "Clear",
+      "turns": 0,
+      "evidence": "src/main/index.ts:54"
+    },
+    "unchanged_behavior": {
+      "value": "App boot + window creation flow (createWindow, app.whenReady, activate/window-all-closed handlers) must stay intact; typecheck and build must pass",
+      "state": "Clear",
+      "turns": 0
+    }
+  },
+  "gaps": [],
+  "override_recorded": false,
+  "conflicts": [],
+  "intake_classifications": [
+    {
+      "statement": "Remove the leftover electron-vite scaffold ping/pong debug handler (bug 002)",
+      "kind": "requirement",
+      "minimal_fix": "Delete line 54 (ipcMain.on('ping', () => console.log('pong'))) and its line 53 // IPC test comment in src/main/index.ts; no renderer 'ping' caller exists (verified via search_code over src/)"
+    }
+  ]
+}
