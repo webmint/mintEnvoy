@@ -1,5 +1,5 @@
 {
-  "topic": "Remove leftover electron-vite ping/pong debug handler in main process",
+  "topic": "003-dropdown-ct-click-outside-dismiss bug",
   "date": "2026-06-27",
   "mode": "bug",
   "symptom_snapshot": {
@@ -10,74 +10,81 @@
     "scope": null,
     "unchanged_behavior": null
   },
-  "summary": "Bug 002 is a leftover electron-vite scaffold debug handler at src/main/index.ts:54 \u2014 ipcMain.on('ping', () => console.log('pong')) \u2014 registered inside the app.whenReady().then() block. A project-wide search confirms it is dead: zero ipcRenderer/send/invoke callers exist across src/preload and src/renderer, and it is the only ipcMain handler in the codebase. Root cause is confirmed: scaffold boilerplate never cleaned up after project init, violating the no-debug-artifacts (console.log) constitution rule. Recommended fix is to delete the handler and its // IPC test comment; the change is local to one file with no behavioral surface. No remaining uncertainty.",
+  "summary": "Two Playwright CT tests (Dropdown.ct.tsx:185 dismiss-on-outside-click and :236 focus-return-after-click-outside) fail because the spec dispatches page.mouse.click at a viewport corner in the same tick the menu becomes visible, before Radix DismissableLayer has armed its document pointerdown listener (attached via setTimeout(0) at index.mjs:265, while the 140ms entry animation is still running). Proven empirically: with no settle the corner click is never classified as outside (0/5 dismiss); with a 100ms settle it is deterministic (5/5). The same Radix mechanism dismisses reliably in the Modal CT suite (Modal.ct.tsx:139), which opens its overlay at mount and is therefore armed long before its corner click \u2014 confirming this is a test-timing race, not a production defect. Recommended fix is test-only: gate the two specs on a concrete overlay-readiness signal before the corner click, keeping the strict assertions; confidence is high, residual uncertainty is only the choice of readiness signal (entry-animation completion vs a fixed delay).",
   "findings": [
     {
-      "surface": "leftover ping/pong IPC debug handler",
-      "file_line": "src/main/index.ts:54",
-      "relevance": "no-op scaffold handler ipcMain.on('ping', () => console.log('pong')); sole ipcMain handler in src/ (sweep confirmed); violates no-debug-artifacts constitution rule; deletion target",
+      "surface": "Test outside-click site (race trigger): page.mouse.click at viewport corner fired in the same tick the menu became visible, before Radix's dismiss layer is armed",
+      "file_line": "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx:198",
+      "relevance": "Primary symptom site for AC-4 dismiss; clicking here immediately after toBeVisible races Radix DismissableLayer setTimeout(0) arm",
       "framing": "primary"
     },
     {
-      "surface": "createWindow \u2014 nearest named symbol in file",
-      "file_line": "src/main/index.ts:6",
-      "relevance": "createWindow is the only named Function in src/main/index.ts; invoked at line 56 inside the same app.whenReady().then() block beside the dead handler; no helper carries the 'ping' value, confirming the bug is local dead-code removal with no value-flow fix-path",
+      "surface": "Failing assertion: expect(menu).not.toBeVisible() times out at 5s",
+      "file_line": "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx:200",
+      "relevance": "The assertion that times out because the outside click was not classified as outside (dismiss never fired)",
       "framing": "primary"
     },
     {
-      "surface": "renderer/preload 'ping' caller search (runner-up falsifier)",
-      "file_line": "(none)",
-      "relevance": "runner-up falsifier (live IPC contract) NOT found project-wide: 0 ipcRenderer/send/invoke matches across src/preload + src/renderer; disproves the runner-up framing",
+      "surface": "Second affected test (AC-3 focus-return after click-outside): same immediate outside click",
+      "file_line": "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx:253",
+      "relevance": "Downstream symptom :236 \u2014 same race; focus-return cannot fire because dismissal never happens",
+      "framing": "primary"
+    },
+    {
+      "surface": "Radix DismissableLayer defers the document pointerdown listener attach via setTimeout(0)",
+      "file_line": "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265",
+      "relevance": "Root mechanism: the outside-click detection listener is attached on a macrotask AFTER content mount; an outside click before this fires is not classified as outside",
+      "framing": "primary"
+    },
+    {
+      "surface": "Radix onPointerDownCapture sets isPointerInsideReactTreeRef; reset only inside the document handler",
+      "file_line": "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:286",
+      "relevance": "Secondary mechanism in the same arm/reset cycle that gates whether a pointerdown is treated as outside",
+      "framing": "primary"
+    },
+    {
+      "surface": "Canonical reuse: Modal CT opens the overlay at mount (initialOpen=true), so DismissableLayer is armed well before the outside click",
+      "file_line": "src/renderer/src/components/molecules/__tests__/Modal.ct.tsx:127",
+      "relevance": "canonical pattern \u2014 reusable: same Radix DismissableLayer dismisses reliably in CT when the layer is armed before page.mouse.click; disproves the production-defect framing",
+      "framing": "runner-up"
+    },
+    {
+      "surface": "Modal CT outside-click via page.mouse.click(5,5) passes",
+      "file_line": "src/renderer/src/components/molecules/__tests__/Modal.ct.tsx:139",
+      "relevance": "Same dispatch mechanism as the failing Dropdown test, but passes \u2014 the only difference is open timing (armed vs racing), confirming primary framing",
       "framing": "runner-up"
     }
   ],
   "hypotheses": [
     {
       "label": "A",
-      "cause": "Leftover electron-vite scaffold boilerplate: the standard 'IPC test' ping/pong sample handler was never removed after project scaffolding; it has no caller and no purpose",
-      "falsifier": "A renderer/preload caller or a test references the 'ping' channel",
+      "cause": "CT test-timing race: page.mouse.click(outside) is dispatched in the same tick the menu became visible (toBeVisible resolves while the entry animation is still in flight), BEFORE Radix DismissableLayer arms its document pointerdown listener (attached via setTimeout(0) at index.mjs:265). The outside pointerdown is therefore not classified as 'outside', so onDismiss never fires.",
+      "falsifier": "If true, inserting a settle delay between open and the outside click should make dismissal deterministic. Observed: SETTLE=0 -> 0/5 dismiss; SETTLE=100ms -> 5/5 dismiss. Confirmed.",
       "runtime_probe_needed": false
     },
     {
       "label": "B",
-      "cause": "The handler is an intentional health-check/keepalive IPC consumed elsewhere in the app",
-      "falsifier": "No ipcRenderer.send('ping')/invoke('ping') caller exists anywhere in preload/renderer (already confirmed: 0 hits)",
+      "cause": "Genuine production defect: Radix modal DismissableLayer (body pointer-events:none, outside pointerdown lands on HTML element) cannot reliably dispatch click-outside dismissal, so real users also see the menu stay open.",
+      "falsifier": "If true, the same mechanism would also fail when armed, and a settle delay would not help. Observed: Modal CT uses the identical page.mouse.click outside dispatch and passes (Modal.ct.tsx:139, opened at mount so armed early); and a settle delay makes Dropdown deterministic. Refuted.",
       "runtime_probe_needed": false
     }
   ],
-  "root_cause_hypothesis": "Leftover electron-vite scaffold boilerplate (the standard 'IPC test' ping/pong sample) was never removed after project scaffolding; verified dead (0 callers project-wide), serves no purpose, and violates the no-debug-artifacts constitution rule",
+  "root_cause_hypothesis": "Test-timing race between Playwright's immediate page.mouse.click(outside) and Radix DismissableLayer's asynchronously-armed (setTimeout(0)) outside-pointerdown detection. 'Menu visible' (toBeVisible) does not imply 'menu dismissable' \u2014 there is a window after open where the menu is rendered but the dismiss layer is not yet listening. Not a production defect.",
   "confidence": "Confirmed",
   "structured_root_cause": {
-    "trigger": "electron-vite project scaffolding inserted the sample 'ping' IPC handler at project init",
-    "root_cause_systemic": "Scaffold/boilerplate cleanup was not performed during initial project setup, leaving dead debug code (console.log) that violates the no-debug-artifacts constitution rule",
+    "trigger": "page.mouse.click(vp.width-10, vp.height-10) at Dropdown.ct.tsx:198 fired immediately after expect(menu).toBeVisible() resolved, before Radix's setTimeout(0)-deferred document pointerdown listener was attached.",
+    "root_cause_systemic": "The CT tests equate 'menu visible' (toBeVisible) with 'menu interactive/dismissable', but Radix DismissableLayer arms outside-click detection asynchronously (setTimeout(0) listener attach at index.mjs:265) after content mount and during the 140ms entry animation. This leaves a race window where an immediate outside click is not classified as outside, so onDismiss never runs.",
     "contributing_factors": [
-      "Handler lives inside an anonymous app.whenReady().then() callback, not a named symbol, so it is easy to overlook",
-      "No lint rule flags console.log in the main process"
+      "Radix defers the document pointerdown listener attach via setTimeout(0) (index.mjs:265-266), so detection is not live the instant the menu renders.",
+      "The Dropdown CT tests open via trigger.click() immediately before the outside click, with no settle \u2014 unlike Modal CT which opens at mount (initialOpen=true) and is armed well before its outside click.",
+      "The entry animation (dropdown-content-in, 140ms) is still in flight when toBeVisible resolves (Playwright ignores opacity), reinforcing the false 'ready' signal."
     ]
   },
   "verify_step": null,
   "approaches": [
     {
-      "name": "Delete the dead handler",
-      "description": "Remove line 54 (ipcMain.on('ping', ...)) and the line 53 // IPC test comment from src/main/index.ts. No replacement.",
-      "addresses_hypotheses": [
-        "A",
-        "B"
-      ],
-      "does_not_cover": [],
-      "pros": [
-        "Minimal one-statement diff",
-        "Removes constitution-violating console.log",
-        "No behavioral surface \u2014 handler is provably dead"
-      ],
-      "cons": [
-        "None of substance"
-      ],
-      "complexity": "Low"
-    },
-    {
-      "name": "Replace with a real IPC handler",
-      "description": "Keep the registration site but swap the no-op ping/pong for an actual application IPC handler wired to a preload/renderer caller.",
+      "name": "Gate the two outside-dismissal specs on overlay readiness (test-only)",
+      "description": "In Dropdown.ct.tsx:185 and :236, after the overlay is asserted visible, await its entry-animation completion as a concrete readiness signal prior to the corner click (e.g. await menu.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)))). Mirrors the overlay-readiness convention already proven by the Modal suite at Modal.ct.tsx:127, which mounts the overlay open so its dismiss layer is armed well ahead of its corner click. Zero shipped-code changes; both strict not.toBeVisible assertions kept verbatim.",
       "addresses_hypotheses": [
         "A"
       ],
@@ -85,82 +92,109 @@
         "B"
       ],
       "pros": [
-        "Reuses the scaffold structure"
+        "Deterministic \u2014 keys on a real readiness signal, not a fixed delay",
+        "Zero shipped-code change; both strict assertions kept verbatim",
+        "Smallest blast radius: only the two failing specs",
+        "Reuses the existing Modal-suite overlay-readiness convention (Modal.ct.tsx:127), honoring the reuse-first rule"
       ],
       "cons": [
-        "Out of scope for bug 002 \u2014 no current IPC need",
-        "Adds code the spec did not ask for",
-        "Still leaves the bug (dead pong log) unless the old body is removed"
+        "Relies on the entry animation existing as the readiness proxy; a future zero-animation config would need a different ready signal",
+        "Slightly more verbose than a bare wait"
       ],
-      "complexity": "Med"
+      "complexity": "Low"
+    },
+    {
+      "name": "Fixed settle delay before the corner click",
+      "description": "Insert a fixed wait (~150ms) before the corner click in both specs. Matches the validated experiment (0ms gives 0/5 dismiss, 100ms gives 5/5).",
+      "addresses_hypotheses": [
+        "A"
+      ],
+      "does_not_cover": [
+        "B"
+      ],
+      "pros": [
+        "Trivial one-line change",
+        "Directly matches the validated settle experiment"
+      ],
+      "cons": [
+        "Magic-number \u2014 brittle under slower CI/hardware, a classic flake-bandage",
+        "No principled link to an actual readiness signal"
+      ],
+      "complexity": "Low"
     }
   ],
   "recommended_approach": {
-    "name": "Delete the dead handler",
-    "rationale": "Static search proves src/main/index.ts:54 is unreachable \u2014 zero ipcRenderer/send/invoke references exist across src/preload and src/renderer (the value is classified unclassified, with no payload-shape consumer). Deleting that one statement is the minimal change meeting the desired outcome while preserving unchanged_behavior; createWindow and the app.whenReady boot flow stay untouched. This is deletion of unreachable code, not new code, so no canonical-pattern reuse applies.",
+    "name": "Gate the two outside-dismissal specs on overlay readiness (test-only)",
+    "rationale": "This option has the smallest blast radius: it edits only the two failing specs, ships no change to any shipped component, and keeps both strict negative assertions exactly as written, so coverage strength is preserved. It reuses an existing convention already established elsewhere in the suite (cited in the approach description) instead of adding new helpers, honoring the reuse-first constitution principle. The alternative \u2014 a fixed numeric delay \u2014 is rejected as a brittle magic-number that degrades under slower hardware and reads as a flake-bandage; the chosen option keys on a concrete readiness signal and is deterministic.",
     "hypotheses_addressed": [
-      "A",
+      "A"
+    ],
+    "hypotheses_not_covered": [
       "B"
     ],
-    "hypotheses_not_covered": [],
-    "single_layer_justification": "The symptom is one unreachable statement in the main-process entry file with no callers, no value-flow consumers, and no cross-layer dependents (verified: 0 ipcRenderer references project-wide). The change is local to src/main/index.ts; no other layer is involved.",
+    "single_layer_justification": "The fix is genuinely spec-layer-local: the production dismissal path works correctly once armed (proven by the Modal CT suite using the identical Radix mechanism, and by the settle experiment making the Dropdown specs deterministic). No shipped/helper-layer change is warranted \u2014 the defect is the spec exercising the outside click before the overlay is ready, which is fixed in the spec.",
     "cites": [
-      "ping"
+      "DropdownFixture.setOpen"
     ],
-    "proposed_call_shape": "createWindow()"
+    "proposed_call_shape": "page.mouse.click(1270, 710)"
   },
   "constitution_constraints": [
     {
-      "rule": "Never commit debug artifacts (no console.log left behind)",
-      "impact": "Directly mandates removal \u2014 the ipcMain.on('ping', () => console.log('pong')) handler is exactly the debug artifact this rule forbids"
+      "rule": "Search before building",
+      "impact": "A canonical overlay-readiness pattern already exists at Modal.ct.tsx:127 (open-at-mount so the dismiss layer is armed before the corner click); reuse it rather than inventing new test machinery."
     },
     {
-      "rule": "Minimal changes",
-      "impact": "Constrains the fix to deleting the single dead statement + its comment; forbids the replace-with-real-IPC expansion (approach 2)"
+      "rule": "Minimal changes (Key Rules #3)",
+      "impact": "Fix is confined to the two failing specs; no shipped/runtime code is touched, so impact is as small as possible."
+    },
+    {
+      "rule": "Specs are contracts / strict assertions",
+      "impact": "The fix must keep expect(menu).not.toBeVisible() strict \u2014 it removes a race, it does not weaken the AC-4/AC-3 assertions."
     }
   ],
   "complexity": {
     "codebase_changes": "Low",
-    "codebase_notes": "Delete 2 lines (handler + // IPC test comment) in one file",
+    "codebase_notes": "Two test files edited (Dropdown.ct.tsx:185 and :236); a few lines each.",
     "risk": "Low",
-    "risk_notes": "Handler is dead (0 callers verified); removal has no behavioral surface",
+    "risk_notes": "Test-only; no shipped code changes. Risk limited to the readiness-signal choice.",
     "verify_cost": "Low",
-    "verify_notes": "grep confirms 'ping' gone; typecheck + build pass; app boots"
+    "verify_notes": "Re-run the CT suite; already empirically validated (settle 0 -> 0/5, 100ms -> 5/5)."
   },
   "open_uncertainties": [],
   "verdict": "Root cause confirmed",
-  "next_step_text": "## Next step\n\nCopy the block below into a new `/specify` session manually. No automation \u2014 user controls when (or if) `/specify` runs.\n\n~~~\n/specify \"Leftover electron-vite scaffold debug handler ipcMain.on('ping', () => console.log('pong')) at src/main/index.ts:54; constitution forbids leaving debug artifacts (console.log) behind \u2014 Handler fully removed: delete line 54 and its line 53 // IPC test comment; no replacement\"\n\nResearch reference: research/2026-06-27-remove-leftover-electron-vite.md\nKey facts:\n- Mode: Bug\n- Symptom: Leftover electron-vite scaffold debug handler ipcMain.on('ping', () => console.log('pong')) at src/main/index.ts:54; constitution forbids leaving debug artifacts (console.log) behind\n- Desired: Handler fully removed: delete line 54 and its line 53 // IPC test comment; no replacement\n- Recommended approach: Delete the dead handler\n- Hypothesis addressed: A, B\n- Hypotheses NOT covered: (none)\n- Open uncertainties: 0 (see research doc \u00a7Open Uncertainties)\n~~~\n",
+  "next_step_text": "## Next step\n\nCopy the block below into a new `/specify` session manually. No automation \u2014 user controls when (or if) `/specify` runs.\n\n~~~\n/specify \"Playwright CT test 'Dropdown \u2014 AC-4 dismiss \u203a clicking outside the menu closes it' (Dropdown.ct.tsx:185) fails: after opening the menu and clicking the viewport corner, the menu stays visible; expect(menu).not.toBeVisible() times out (line 200). Downstream, :236 (AC-3 focus-return after click-outside) also fails because the dismissal never fires. CT suite 125/127, these 2 the sole failures. \u2014 Both CT tests pass (Dropdown.ct.tsx:185 dismiss + :236 focus-return) via a correct fix at whatever layer the root cause lives; production click-outside dismissal behavior confirmed intact (not a loosened/weakened test).\"\n\nResearch reference: research/2026-06-27-003-dropdown-ct-click.md\nKey facts:\n- Mode: Bug\n- Symptom: Playwright CT test 'Dropdown \u2014 AC-4 dismiss \u203a clicking outside the menu closes it' (Dropdown.ct.tsx:185) fails: after opening the menu and clicking the viewport corner, the menu stays visible; expect(menu).not.toBeVisible() times out (line 200). Downstream, :236 (AC-3 focus-return after click-outside) also fails because the dismissal never fires. CT suite 125/127, these 2 the sole failures.\n- Desired: Both CT tests pass (Dropdown.ct.tsx:185 dismiss + :236 focus-return) via a correct fix at whatever layer the root cause lives; production click-outside dismissal behavior confirmed intact (not a loosened/weakened test).\n- Recommended approach: Gate the two outside-dismissal specs on overlay readiness (test-only)\n- Hypothesis addressed: A\n- Hypotheses NOT covered: B\n- Open uncertainties: 0 (see research doc \u00a7Open Uncertainties)\n~~~\n",
   "runner_up_framing": {
-    "frame": "The 'ping' handler is a live IPC contract that a renderer/preload caller depends on; removing it would break an IPC round-trip",
-    "falsifier": "A renderer or preload call to ipcRenderer.send('ping') or ipcRenderer.invoke('ping')",
+    "frame": "Genuine production defect: Radix DismissableLayer in modal mode (body pointer-events:none, outside pointerdown lands on the HTML element) fails to reliably detect/dispatch click-outside dismissal, so real users would also see the menu stay open.",
+    "falsifier": "If a settle delay before the outside click makes dismissal deterministic, the detection works once armed \u2014 so the failure is a test-timing race, not a production detection defect. (Observed: SETTLE=0 -> 0/5 dismiss; SETTLE=100ms -> 5/5 dismiss, refuting the production-defect frame.)",
     "confidence_vs_primary": "lower"
   },
   "fix_path_helpers": [
     {
-      "qn": "Users-mykolakudlyk-Projects-private-mintEnvoy.src.main.createWindow",
-      "file_line": "src/main/index.ts:6"
+      "qn": "@radix-ui/react-dismissable-layer.usePointerDownOutside",
+      "file_line": "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265"
     }
   ],
   "inbound_callers": [
     {
-      "helper_qn": "Users-mykolakudlyk-Projects-private-mintEnvoy.src.main.createWindow",
-      "caller_qn": "Users-mykolakudlyk-Projects-private-mintEnvoy.src.main.index",
-      "file_line": "src/main/index.ts:56"
+      "helper_qn": "@radix-ui/react-dismissable-layer.usePointerDownOutside",
+      "caller_qn": "@radix-ui/react-dismissable-layer.DismissableLayer",
+      "file_line": "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:51"
     }
   ],
   "dead_siblings": [],
-  "consumer_chain": [],
-  "value_semantics": [
+  "consumer_chain": [
     {
-      "value": "ping",
-      "classification": "unclassified",
-      "evidence": "dead IPC channel \u2014 0 ipcRenderer/invoke callers project-wide (src/preload + src/renderer); no payload-shape consumer exists"
+      "value": "menu open state (dismissal signal)",
+      "consumer_qn": "DropdownFixture.setOpen",
+      "file_line": "src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx:43",
+      "role": "Controlled-state consumer: receives Radix onOpenChange(false) on dismissal and flips open->false to close the menu; the value the dismissal must reach."
     }
   ],
+  "value_semantics": [],
   "helper_rejection_log": [],
   "data_flow_chain": {
-    "handler_qn": "src/main/index.ts: anonymous app.whenReady().then() callback (not a graph node)",
-    "write_boundary_qn": "console.log('pong') sink at src/main/index.ts:54 (no real persistence \u2014 dead no-op)",
+    "handler_qn": "Dropdown.ct.tsx::AC-4-dismiss::clicking-outside-the-menu-closes-it::page.mouse.click",
+    "write_boundary_qn": "@radix-ui/react-menu.MenuRootContentModal.onDismiss->onOpenChange(false)",
     "intermediate_qns": []
   },
   "value_production_sites": [],
@@ -169,8 +203,8 @@
     "data_shape_only": false,
     "auth_required": false,
     "network_dependent": false,
-    "timing_dependent": false,
-    "is_test_code": false
+    "timing_dependent": true,
+    "is_test_code": true
   },
   "probe_scripts": []
 }

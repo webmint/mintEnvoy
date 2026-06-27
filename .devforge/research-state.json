@@ -1,36 +1,35 @@
 {
   "mode": "bug",
-  "topic_slug": "remove-leftover-electron-vite",
-  "verbatim_prompt": "fix bug 002 in bugs folder",
+  "topic_slug": "003-dropdown-ct-click",
+  "verbatim_prompt": "003-dropdown-ct-click-outside-dismiss bug",
   "dimensions": {
     "symptom": {
-      "value": "Leftover electron-vite scaffold debug handler ipcMain.on('ping', () => console.log('pong')) at src/main/index.ts:54; constitution forbids leaving debug artifacts (console.log) behind",
+      "value": "Playwright CT test 'Dropdown \u2014 AC-4 dismiss \u203a clicking outside the menu closes it' (Dropdown.ct.tsx:185) fails: after opening the menu and clicking the viewport corner, the menu stays visible; expect(menu).not.toBeVisible() times out (line 200). Downstream, :236 (AC-3 focus-return after click-outside) also fails because the dismissal never fires. CT suite 125/127, these 2 the sole failures.",
       "state": "Clear",
       "turns": 0
     },
     "affected_area": {
-      "value": "Electron main process IPC setup \u2014 src/main/index.ts, inside app.whenReady().then()",
+      "value": "Dropdown component test harness: src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx (failing CT spec), Radix-based Dropdown.tsx (Radix DropdownMenu -> DismissableLayer), CT fixtures Dropdown.stories.tsx, and the shared Playwright CT mount (playwright/index.tsx). Cross-cutting candidate: any Radix overlay in CT (Modal).",
       "state": "Clear",
       "turns": 0
     },
     "repro_or_current": {
-      "value": "On app launch, app.whenReady() registers a no-op 'ping' IPC handler that logs 'pong' to the main-process console; dead scaffold with no renderer caller",
+      "value": "Run the CT suite (playwright test over CT specs). In Dropdown.ct.tsx:185: render the Dropdown fixture, open the menu (click trigger), assert menu visible, then page.mouse.click(vp.width - 10, vp.height - 10) to click the viewport corner, then expect(menu).not.toBeVisible() \u2014 times out at line 200. Fails identically with/without the tokens.css import; reproduces on a clean baseline (006 changes stashed).",
       "state": "Clear",
       "turns": 0
     },
     "desired": {
-      "value": "Handler fully removed: delete line 54 and its line 53 // IPC test comment; no replacement",
+      "value": "Both CT tests pass (Dropdown.ct.tsx:185 dismiss + :236 focus-return) via a correct fix at whatever layer the root cause lives; production click-outside dismissal behavior confirmed intact (not a loosened/weakened test).",
       "state": "Clear",
       "turns": 0
     },
     "scope": {
-      "value": "one place",
+      "value": "cross-cutting",
       "state": "Clear",
-      "turns": 0,
-      "evidence": "src/main/index.ts:54"
+      "turns": 0
     },
     "unchanged_behavior": {
-      "value": "App boot + window creation flow (createWindow, app.whenReady, activate/window-all-closed handlers) must stay intact; typecheck and build must pass",
+      "value": "All currently-passing CT + unit tests stay green: Dropdown open-on-click, keyboard nav, item selection, Escape-to-close; Modal overlay/DismissableLayer behavior; the rest of the CT suite (125/127). No production Dropdown/Modal behavior change beyond fixing the click-outside dismissal.",
       "state": "Clear",
       "turns": 0
     }
@@ -40,9 +39,14 @@
   "conflicts": [],
   "intake_classifications": [
     {
-      "statement": "Remove the leftover electron-vite scaffold ping/pong debug handler (bug 002)",
+      "statement": "Dropdown CT test for click-outside dismissal fails: after opening the menu and clicking the viewport corner, the menu stays visible (Dropdown.ct.tsx:185 + downstream :236 focus-return). Clicking outside should close the menu so both tests pass.",
       "kind": "requirement",
-      "minimal_fix": "Delete line 54 (ipcMain.on('ping', () => console.log('pong'))) and its line 53 // IPC test comment in src/main/index.ts; no renderer 'ping' caller exists (verified via search_code over src/)"
+      "minimal_fix": "Make the outside-click actually dismiss the menu in the CT environment \u2014 fix at the layer the root cause lives (likely the test's click target/dispatch or CT mount), not Radix internals."
+    },
+    {
+      "statement": "Likely a CT-environment viewport/pointer-coordinate issue or a Radix DismissableLayer interaction quirk in the Playwright CT harness; not necessarily a production defect.",
+      "kind": "hypothesis",
+      "minimal_fix": null
     }
   ]
 }

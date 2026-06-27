@@ -2,48 +2,53 @@
   "topic": null,
   "topic_slug": null,
   "date": "2026-06-27",
-  "spec_number": "007",
-  "feature_name": "remove-ping-handler",
-  "feature_slug": "remove-ping-handler",
+  "spec_number": "008",
+  "feature_name": "dropdown-ct-dismiss",
+  "feature_slug": "dropdown-ct-dismiss",
   "spec_type": "bug_fix",
-  "spec_type_rationale": "pre-seeded from research handoff at research/2026-06-27-remove-leftover-electron-vite/handoff.json (user accepted)",
+  "spec_type_rationale": "pre-seeded from research handoff at research/2026-06-27-003-dropdown-ct-click/handoff.json",
   "spec_type_seeded_by_upstream": true,
   "status": "Draft",
   "design_source": "none",
-  "current_branch": null,
-  "default_branch": null,
-  "branch_decision": null,
-  "branch_created": null,
+  "current_branch": "main",
+  "default_branch": "main",
+  "branch_decision": "create",
+  "branch_created": true,
   "input_reads": [
     {
       "path": "constitution.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-27T14:52:47Z"
+      "read_timestamp": "2026-06-27T17:23:57Z"
     },
     {
       "path": "CLAUDE.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-27T14:52:47Z"
-    },
-    {
-      "path": "docs/architecture.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-27T14:52:48Z"
-    },
-    {
-      "path": "docs/main/index.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-27T14:52:48Z"
-    },
-    {
-      "path": "research/2026-06-27-remove-leftover-electron-vite.md",
-      "source_origin": "research",
-      "read_timestamp": "2026-06-27T14:52:48Z"
+      "read_timestamp": "2026-06-27T17:23:57Z"
     },
     {
       "path": ".claude/memory/MEMORY.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-27T14:52:48Z"
+      "read_timestamp": "2026-06-27T17:23:57Z"
+    },
+    {
+      "path": "docs/architecture.md",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-27T17:23:57Z"
+    },
+    {
+      "path": "docs/renderer/index.md",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-27T17:23:57Z"
+    },
+    {
+      "path": "docs/glossary.md",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-27T17:23:57Z"
+    },
+    {
+      "path": "research/2026-06-27-003-dropdown-ct-click.md",
+      "source_origin": "research",
+      "read_timestamp": "2026-06-27T17:23:57Z"
     }
   ],
   "phase1_finalized": true,
@@ -51,147 +56,210 @@
     {
       "finding_id": "F-constitution-1",
       "source_path": "constitution.md",
-      "source_section": "\u00a74 Never Do (Universal)",
-      "content": "Never commit secrets or debug artifacts (console.log, debugger, stray print) \u2014 directly mandates removing the ipcMain.on('ping', () => console.log('pong')) handler",
+      "source_section": "\u00a73.4 Testing",
+      "content": "Co-located tests under __tests__/: .test.tsx (Vitest) + .ct.tsx (Playwright CT). Tests must cover the acceptance criteria including edge/error paths.",
       "landed_in": "AC",
-      "landed_ref": "AC-4"
+      "landed_ref": "AC-2"
     },
     {
       "finding_id": "F-constitution-2",
       "source_path": "constitution.md",
-      "source_section": "\u00a76.1 Minimal Changes",
-      "content": "Every change impacts as little code as possible; never 'fix' unrelated code \u2014 constrains fix to deleting the single dead statement + its comment, no scope expansion",
+      "source_section": "\u00a73.6 / \u00a76.3 Search before building",
+      "content": "Reuse an existing utility/component before writing anything generic. The fix must reuse an existing CT convention, not invent new test machinery.",
       "landed_in": "Constraint",
-      "landed_ref": "Constraint-2"
+      "landed_ref": "Constraint-4"
     },
     {
       "finding_id": "F-constitution-3",
       "source_path": "constitution.md",
-      "source_section": "\u00a72.1 Process Boundaries",
-      "content": "Main process (src/main/) is the IPC host and may use Node/Electron freely; ipcMain registration belongs to this layer \u2014 removal stays within the main layer, no cross-layer impact",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-1"
+      "source_section": "\u00a76.1 Minimal Changes",
+      "content": "Every change impacts as little code as possible; never 'fix' unrelated code. Confines the fix to the failing specs.",
+      "landed_in": "AC",
+      "landed_ref": "AC-7"
+    },
+    {
+      "finding_id": "F-constitution-4",
+      "source_path": "constitution.md",
+      "source_section": "\u00a74 Patterns / Prefer wrapping Radix",
+      "content": "Dropdown wraps Radix DropdownMenu; click-outside dismissal is Radix-owned. The fix stays at the test layer, not Radix internals.",
+      "landed_in": "OOS",
+      "landed_ref": ""
     },
     {
       "finding_id": "F-claude-1",
       "source_path": "CLAUDE.md",
-      "source_section": "Key Rules / Never #3",
-      "content": "Never commit debug artifacts \u2014 no console.log, debugger, print() left behind; the ping/pong handler is exactly this artifact",
+      "source_section": "Type Check Command",
+      "content": "Type-check: npm run typecheck:node && npm run typecheck:web \u2014 verification command for a hygiene AC.",
       "landed_in": "AC",
-      "landed_ref": "AC-4"
+      "landed_ref": "AC-6"
     },
     {
       "finding_id": "F-claude-2",
       "source_path": "CLAUDE.md",
-      "source_section": "Key Rules / Always #3",
-      "content": "Minimal changes \u2014 every change should impact as little code as possible; supports the delete-only approach over replace-with-real-IPC",
-      "landed_in": "OOS",
-      "landed_ref": "OOS-1"
+      "source_section": "Lint Command",
+      "content": "Lint: eslint --cache . \u2014 verification command for a hygiene AC; must pass on changed files before task completion.",
+      "landed_in": "AC",
+      "landed_ref": "AC-6"
     },
     {
       "finding_id": "F-claude-3",
       "source_path": "CLAUDE.md",
-      "source_section": "Bug lifecycle",
-      "content": "bugs/002-leftover-ping-debug-artifact.md is the source record (Status Open, Severity Info); lifecycle Open to Fixed is manual \u2014 spec should drive it to resolution",
-      "landed_in": "OOS",
-      "landed_ref": "OOS-4"
+      "source_section": "Verification (scope-aware)",
+      "content": "Verification runs at task boundaries (no per-edit hooks); CT/unit suites are the mechanical gate.",
+      "landed_in": "AC",
+      "landed_ref": "AC-8"
+    },
+    {
+      "finding_id": "F-memory-1",
+      "source_path": ".claude/memory/MEMORY.md",
+      "source_section": "ct-radix-dismiss-arm-race",
+      "content": "Radix overlay click-outside CT tests must wait for overlay readiness before page.mouse.click; DismissableLayer arms its pointerdown listener via setTimeout(0), so an immediate outside click races the arm. Avoid bare waitForTimeout magic numbers; open-at-mount (Modal CT) or await a real readiness signal.",
+      "landed_in": "AC",
+      "landed_ref": "AC-5"
+    },
+    {
+      "finding_id": "F-memory-2",
+      "source_path": ".claude/memory/MEMORY.md",
+      "source_section": "ct-fidelity-fixture-scoping",
+      "content": "Playwright CT tests must reproduce the full context (tokens.css import, production className scope) \u2014 keep fixtures faithful when editing CT specs.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-5"
+    },
+    {
+      "finding_id": "F-memory-3",
+      "source_path": ".claude/memory/MEMORY.md",
+      "source_section": "scope confirmation",
+      "content": "Memory confirms bug 003 is test-only / not a production defect \u2014 fix scope is the spec layer, production Dropdown behavior unchanged.",
+      "landed_in": "AC",
+      "landed_ref": "AC-1"
     },
     {
       "finding_id": "F-architecture-1",
       "source_path": "docs/architecture.md",
-      "source_section": "Architecture Overview / Layers",
-      "content": "Main process (Node.js) owns app lifecycle and creates the single BrowserWindow with preload attached; it is the IPC host \u2014 the ping handler lives in this entry, src/main/index.ts",
-      "landed_in": "AC",
-      "landed_ref": "AC-1"
-    },
-    {
-      "finding_id": "F-architecture-2",
-      "source_path": "docs/architecture.md",
-      "source_section": "Testing",
-      "content": "No test infrastructure exists for the main or preload processes; verification of the removal is build/typecheck/smoke, not an automated main-process test",
-      "landed_in": "OOS",
-      "landed_ref": "OOS-2"
-    },
-    {
-      "finding_id": "F-architecture-3",
-      "source_path": "docs/architecture.md",
-      "source_section": "Dependency Direction Rules",
-      "content": "main may use Node/Electron freely and never imports renderer code; removing a dead ipcMain handler does not affect preload or renderer boundaries",
-      "landed_in": "AC",
-      "landed_ref": "AC-2"
-    },
-    {
-      "finding_id": "F-index-1",
-      "source_path": "docs/main/index.md",
-      "source_section": "Purpose",
-      "content": "src/main/index.ts is the sole main-process entry file; drives ready/activate/window-all-closed lifecycle \u2014 the documented purpose does NOT include any 'ping' IPC handler, confirming it as undocumented dead scaffold",
-      "landed_in": "OOS",
-      "landed_ref": "OOS-5"
-    },
-    {
-      "finding_id": "F-index-2",
-      "source_path": "docs/main/index.md",
-      "source_section": "Structure",
-      "content": "main concern is a single file (src/main/index.ts); the change touches exactly this one file",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-2"
-    },
-    {
-      "finding_id": "F-index-3",
-      "source_path": "docs/main/index.md",
-      "source_section": "Purpose",
-      "content": "Doc omission: the ping/pong handler is absent from the documented main-process responsibilities, so no docs/ update is needed after removal",
-      "landed_in": "OOS",
-      "landed_ref": "OOS-3"
-    },
-    {
-      "finding_id": "F-2026-06-27-remove-leftover-electron-vite-1",
-      "source_path": "research/2026-06-27-remove-leftover-electron-vite.md",
-      "source_section": "Summary / Codebase Findings",
-      "content": "Symptom site: ipcMain.on('ping', () => console.log('pong')) at src/main/index.ts:54, preceded by // IPC test comment at line 53; sole ipcMain handler in src/",
-      "landed_in": "AC",
-      "landed_ref": "AC-1"
-    },
-    {
-      "finding_id": "F-2026-06-27-remove-leftover-electron-vite-2",
-      "source_path": "research/2026-06-27-remove-leftover-electron-vite.md",
-      "source_section": "Runner-up framing / Value Semantics",
-      "content": "Verified dead: 0 ipcRenderer/send/invoke callers across src/preload + src/renderer; runner-up 'live IPC contract' framing disproven",
+      "source_section": "Testing / Renderer Test Stack",
+      "content": "CT command: playwright test -c playwright.config.ts (@playwright/experimental-ct-react), real-browser focus/keyboard fidelity \u2014 the verification command for the CT ACs.",
       "landed_in": "AC",
       "landed_ref": "AC-3"
     },
     {
-      "finding_id": "F-2026-06-27-remove-leftover-electron-vite-3",
-      "source_path": "research/2026-06-27-remove-leftover-electron-vite.md",
-      "source_section": "Recommended approach",
-      "content": "Delete the handler + its // IPC test comment, no replacement; createWindow and app.whenReady boot flow must stay untouched (unchanged_behavior)",
+      "finding_id": "F-architecture-2",
+      "source_path": "docs/architecture.md",
+      "source_section": "Overlay substrate",
+      "content": "Radix unified package owns focus-trap, keyboard nav, and positioning (incl. dismissal) for Dropdown/Modal/Toast \u2014 dismissal is Radix-owned; the fix is test-layer.",
+      "landed_in": "AC",
+      "landed_ref": "AC-1"
+    },
+    {
+      "finding_id": "F-architecture-3",
+      "source_path": "docs/architecture.md",
+      "source_section": "Molecules wrap Radix",
+      "content": "Dropdown wraps Radix DropdownMenu, Modal wraps Radix Dialog; Modal CT is the sibling overlay test on the same substrate (canonical readiness pattern to reuse).",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-4"
+    },
+    {
+      "finding_id": "F-index-1",
+      "source_path": "docs/renderer/index.md",
+      "source_section": "molecules/__tests__",
+      "content": "Dropdown.ct.tsx is the failing CT; Modal.ct.tsx and nested-overlays.ct.tsx are sibling overlay CTs that must not regress.",
       "landed_in": "AC",
       "landed_ref": "AC-2"
     },
     {
-      "finding_id": "F-2026-06-27-remove-leftover-electron-vite-4",
-      "source_path": "research/2026-06-27-remove-leftover-electron-vite.md",
-      "source_section": "Complexity Assessment",
-      "content": "Verify cost Low: grep confirms 'ping' gone, typecheck + build pass, app boots; risk Low (no behavioral surface)",
+      "finding_id": "F-index-2",
+      "source_path": "docs/renderer/index.md",
+      "source_section": "molecules",
+      "content": "Dropdown.tsx = controlled dropdown over Radix DropdownMenu; Dropdown.stories.tsx holds the CT fixtures (DropdownFixture) \u2014 the fix touches test/fixture files only, no production component.",
+      "landed_in": "OOS",
+      "landed_ref": "OOS-1"
+    },
+    {
+      "finding_id": "F-index-3",
+      "source_path": "docs/renderer/index.md",
+      "source_section": "test split",
+      "content": "Tests split: .test.tsx (Vitest, jsdom) vs .ct.tsx (Playwright CT, Chromium) \u2014 the click-outside behavior is CT-only (needs a real browser).",
+      "landed_in": "AC",
+      "landed_ref": "AC-4"
+    },
+    {
+      "finding_id": "F-2026-06-27-003-dropdown-ct-click-1",
+      "source_path": "research/2026-06-27-003-dropdown-ct-click.md",
+      "source_section": "Root cause",
+      "content": "Setup-timing race: page.mouse.click(corner) fires before Radix DismissableLayer arms its document pointerdown listener (attached via setTimeout(0), index.mjs:265, during the 140ms entry animation). Proven: SETTLE=0 -> 0/5 dismiss, SETTLE=100ms -> 5/5.",
+      "landed_in": "AC",
+      "landed_ref": "AC-3"
+    },
+    {
+      "finding_id": "F-2026-06-27-003-dropdown-ct-click-2",
+      "source_path": "research/2026-06-27-003-dropdown-ct-click.md",
+      "source_section": "Symptom",
+      "content": "Two CT tests fail: Dropdown.ct.tsx:185 (AC-4 dismiss on outside click) and :236 (AC-3 focus-return after click-outside, downstream). CT suite 125/127, these the sole failures.",
+      "landed_in": "AC",
+      "landed_ref": "AC-3"
+    },
+    {
+      "finding_id": "F-2026-06-27-003-dropdown-ct-click-3",
+      "source_path": "research/2026-06-27-003-dropdown-ct-click.md",
+      "source_section": "Recommended approach",
+      "content": "Test-only fix: in both specs, after the menu is visible, await a concrete overlay-readiness signal (entry-animation completion) before the corner click; mirrors Modal CT open-at-mount (Modal.ct.tsx:127). Zero shipped code; both strict not.toBeVisible assertions kept verbatim.",
       "landed_in": "AC",
       "landed_ref": "AC-5"
+    },
+    {
+      "finding_id": "F-2026-06-27-003-dropdown-ct-click-4",
+      "source_path": "research/2026-06-27-003-dropdown-ct-click.md",
+      "source_section": "Runner-up rejected",
+      "content": "NOT a production defect: Modal CT passes the identical page.mouse.click outside dispatch (armed early); a settle delay makes Dropdown deterministic. Production click-outside works for real users.",
+      "landed_in": "AC",
+      "landed_ref": "AC-1"
+    },
+    {
+      "finding_id": "F-2026-06-27-003-dropdown-ct-click-5",
+      "source_path": "research/2026-06-27-003-dropdown-ct-click.md",
+      "source_section": "Constraint",
+      "content": "Keep expect(menu).not.toBeVisible() strict \u2014 remove the race, do not weaken/loosen the AC-4/AC-3 assertions. No production behavior change.",
+      "landed_in": "AC",
+      "landed_ref": "AC-7"
+    },
+    {
+      "finding_id": "F-2026-06-27-003-dropdown-ct-click-6",
+      "source_path": "research/2026-06-27-003-dropdown-ct-click.md",
+      "source_section": "Rejected alternative",
+      "content": "Bare waitForTimeout(~150ms) works (matches experiment) but is a brittle magic-number that rots under slower CI \u2014 rejected in favor of a real readiness signal.",
+      "landed_in": "OOS",
+      "landed_ref": "OOS-2"
     }
   ],
   "source_no_items_relevant": {
-    ".claude/memory/MEMORY.md": true
+    "docs/glossary.md": true
   },
   "findings_finalized": true,
   "decision_points": [
     {
       "dp_id": "DP-scope_boundaries-1",
       "category": "scope_boundaries",
-      "description": "After deleting the handler, ipcMain becomes an unused import on line 1; remove ipcMain from the import too, or leave it",
+      "description": "Which CT specs does this fix cover \u2014 only the two failing Dropdown specs, or also proactively harden the sibling overlay CTs that share the same arm-race risk (Modal.ct.tsx, nested-overlays.ct.tsx)?",
       "valid_implementations": [
-        "remove-unused-ipcMain-import",
-        "leave-import-as-is"
+        "only the two failing Dropdown specs",
+        "Dropdown specs + proactively harden sibling overlay CTs (Modal, nested-overlays)"
       ],
       "status": "answered",
-      "user_answer": "Remove ipcMain from the line 1 import alongside the handler \u2014 keeps lint/typecheck passing",
+      "user_answer": "Only the two failing Dropdown specs (Dropdown.ct.tsx:185 + :236). Sibling overlay CTs (Modal, nested-overlays) currently pass and stay untouched \u2014 smallest blast radius.",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-tooling_configuration-1",
+      "category": "tooling_configuration",
+      "description": "Readiness-signal mechanism for the pre-corner-click wait (the research recommends awaiting entry-animation completion; a bare fixed timeout is the rejected runner-up).",
+      "valid_implementations": [
+        "await a concrete overlay-readiness signal (entry-animation completion) \u2014 recommended",
+        "bare fixed waitForTimeout",
+        "leave exact mechanism to /plan; spec asserts deterministic outcome only"
+      ],
+      "status": "answered",
+      "user_answer": "Spec mandates awaiting a concrete overlay-readiness signal (entry-animation completion) before the corner click \u2014 deterministic, no bare magic-number timeout.",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
@@ -250,17 +318,6 @@
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
-    },
-    {
-      "dp_id": "DP-tooling_configuration-1",
-      "category": "tooling_configuration",
-      "description": "no relevant decision point for tooling_configuration",
-      "valid_implementations": [],
-      "status": "no_DP_in_category",
-      "user_answer": "",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
     }
   ],
   "dp_finalized": true,
@@ -268,58 +325,72 @@
   "mandatory_reads": [
     {
       "spec_type": "bug_fix",
-      "read_path": "src/main/index.ts",
+      "read_path": "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx",
       "slot_pattern": "__buggy_files__",
       "n_a_reason": ""
     },
     {
       "spec_type": "bug_fix",
-      "read_path": "",
+      "read_path": "src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx",
       "slot_pattern": "__direct_deps__",
-      "n_a_reason": "src/main/index.ts imports only framework/vendor (electron, path, @electron-toolkit/utils, resources/icon asset); no first-party project dependency is touched"
+      "n_a_reason": ""
     },
     {
       "spec_type": "bug_fix",
       "read_path": "",
       "slot_pattern": "__direct_callers__",
-      "n_a_reason": "src/main/index.ts is the main-process entry module (CBM in_degree 0); it has no callers"
+      "n_a_reason": "A Playwright CT spec is a test entry point \u2014 no project module imports it, so there are no callers to read."
     },
     {
       "spec_type": "bug_fix",
-      "read_path": "git log -5 -- src/main/index.ts",
+      "read_path": "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx",
       "slot_pattern": "__recent_git_log__",
       "n_a_reason": ""
     }
   ],
   "discretionary_reads": [],
   "phase3_finalized": true,
-  "overview": "Remove the leftover electron-vite scaffold debug handler from the Electron main process. The bug (bugs/002-leftover-ping-debug-artifact.md) is a dead no-op IPC handler \u2014 ipcMain.on('ping', () => console.log('pong')) \u2014 that violates the project's no-debug-artifacts rule. This spec deletes the handler, its // IPC test comment, and the now-unused ipcMain import.",
-  "current_state": "src/main/index.ts:54 registers ipcMain.on('ping', () => console.log('pong')) inside the app.whenReady().then() block, preceded by a // IPC test comment at src/main/index.ts:53. ipcMain is imported on src/main/index.ts:1 (import { app, shell, BrowserWindow, ipcMain } from 'electron') and is used ONLY at line 54. Research (research/2026-06-27-remove-leftover-electron-vite.md) confirmed via CBM search_code that this is the sole ipcMain handler in src/ and that zero ipcRenderer/send/invoke callers exist across src/preload and src/renderer \u2014 the handler is provably dead. git log shows it dates from the initial scaffold commit (8ff7b01). docs/main/index.md documents the main-process responsibilities (lifecycle + window creation) and does not mention any ping handler. No test infrastructure exists for the main process (docs/architecture.md).",
-  "desired_behavior": "src/main/index.ts no longer registers the 'ping' IPC handler: the ipcMain.on('ping', ...) statement (line 54) and its preceding // IPC test comment (line 53) are deleted, and ipcMain is removed from the line 1 electron import so no unused import remains. The app boot flow is otherwise unchanged \u2014 createWindow, app.whenReady, the browser-window-created/activate/window-all-closed handlers, and BrowserWindow creation all behave exactly as before. No console output is produced for a 'ping' message because the handler no longer exists. typecheck, lint, and build all pass.",
+  "overview": "Two Playwright component tests for the Dropdown primitive's click-outside dismissal are flaky-to-failing because each fires its outside click before Radix's DismissableLayer has armed its outside-click detection. This spec makes both tests deterministic by gating the outside click on a concrete overlay-readiness signal \u2014 a test-only change that touches no production code and keeps the existing strict assertions verbatim.",
+  "current_state": "Dropdown (src/renderer/src/components/molecules/Dropdown.tsx:204) wraps Radix DropdownMenu (modal by default); click-outside dismissal is owned by Radix's DismissableLayer. Two CT tests exercise it: 'AC-4 \u2014 clicking outside the menu closes it' (src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx:185) and 'AC-3 \u2014 focus return after click-outside' (Dropdown.ct.tsx:236). Both open the menu via trigger.click(), assert the menu visible, then immediately fire page.mouse.click at a viewport coordinate (Dropdown.ct.tsx:198 and :253) and assert expect(menu).not.toBeVisible(). They fail: research (research/2026-06-27-003-dropdown-ct-click.md) proved a setup-timing race \u2014 Radix DismissableLayer attaches its document pointerdown listener via setTimeout(0) (node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265) while the 140ms entry animation runs, so a click in the same tick the menu becomes visible is never classified as outside and onDismiss never fires (measured: zero of five runs dismissed with no settle, all five with a 100ms settle). The sibling Modal CT (src/renderer/src/components/molecules/__tests__/Modal.ct.tsx:127) passes the identical page.mouse.click outside dispatch because it mounts the overlay open, arming the layer long before its click \u2014 confirming this is a test-timing defect, not a production defect. Per docs/architecture.md the CT suite runs via 'playwright test -c playwright.config.ts'; these two are the sole failures (125 of 127 passing). The CT spec has been unchanged since it was added in 001-ui-primitives, so it has been racy since inception.",
+  "desired_behavior": "Both CT tests pass deterministically. Each test, after asserting the menu is visible and before firing the outside corner click, waits for a concrete overlay-readiness signal (the menu's entry animation having completed) so Radix's DismissableLayer is guaranteed armed. The existing strict assertions are preserved exactly \u2014 expect(menu).not.toBeVisible() for dismissal (Dropdown.ct.tsx:200) and the dismissal + expect(trigger).toBeFocused() for focus-return (Dropdown.ct.tsx:256, :259). No production code changes: only the two test cases (and, if needed, their fixture in Dropdown.stories.tsx) are edited. No bare fixed-delay timeout is introduced. The rest of the CT suite stays green.",
   "affected_areas": [
     {
-      "area": "Electron main process entry",
+      "area": "node_modules/@radix-ui",
       "files": [
-        "src/main/index.ts"
+        "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265"
       ],
-      "impact": "Delete the ipcMain.on('ping', ...) handler (line 54) + its // IPC test comment (line 53); remove ipcMain from the line 1 electron import"
+      "impact": "see findings"
+    },
+    {
+      "area": "Dropdown click-outside CT tests",
+      "files": [
+        "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx"
+      ],
+      "impact": "Edit the two failing test cases (the outside clicks at :198 and :253): insert an overlay-readiness wait before each corner click. Strict assertions unchanged."
+    },
+    {
+      "area": "Dropdown CT fixture (conditional)",
+      "files": [
+        "src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx"
+      ],
+      "impact": "Only if the readiness wait needs a fixture affordance (e.g. a stable test hook). Preferred approach needs no fixture change; listed so /plan can confirm."
     }
   ],
   "acceptance_criteria": [
     {
       "ac_id": "AC-1",
-      "subsection": "tooling_artifact_presence",
-      "ears_variant": "ubiquitous",
-      "statement": "The mintenvoy main process shall not register a 'ping' IPC handler.",
-      "verification_command": "! grep -qF \"ipcMain.on('ping'\" src/main/index.ts",
+      "subsection": "behavior_preservation",
+      "ears_variant": "event_driven",
+      "statement": "WHEN a user clicks outside an open Dropdown menu, the Dropdown shall close the menu.",
+      "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-2",
       "subsection": "behavior_preservation",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the application starts, the mintenvoy main process shall create the BrowserWindow and complete its ready-event lifecycle exactly as before the change.",
+      "ears_variant": "ubiquitous",
+      "statement": "The Dropdown component-test suite shall keep all of its currently-passing tests passing.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -328,84 +399,141 @@
       "ac_id": "AC-3",
       "subsection": "behavior_change",
       "ears_variant": "event_driven",
-      "statement": "WHEN the main process initializes, the mintenvoy main process shall register no 'ping' IPC listener and emit no 'pong' log message.",
-      "verification_command": "",
+      "statement": "WHEN the CT test 'clicking outside the menu closes it' (Dropdown.ct.tsx:185) runs, the Dropdown menu shall become not visible so the dismissal assertion passes.",
+      "verification_command": "npx playwright test -c playwright.config.ts --grep 'clicking outside the menu closes it'",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-4",
-      "subsection": "hygiene",
-      "ears_variant": "ubiquitous",
-      "statement": "The main process entry file shall contain no console-log debug artifact.",
-      "verification_command": "! grep -qF 'console.log' src/main/index.ts",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the CT test 'focus return after click-outside' (Dropdown.ct.tsx:236) runs, the Dropdown menu shall close and focus shall return to the trigger button.",
+      "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-5",
+      "subsection": "behavior_change",
+      "ears_variant": "ubiquitous",
+      "statement": "The two click-outside Dropdown component tests shall pass deterministically across repeated runs.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-6",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
-      "statement": "The mintenvoy codebase shall pass lint and type-check with no unused import remaining in the main process entry file.",
-      "verification_command": "npm run lint && npm run typecheck",
+      "statement": "The changed test files shall pass type-check and lint.",
+      "verification_command": "npm run typecheck:web && eslint --cache src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-7",
+      "subsection": "behavior_preservation",
+      "ears_variant": "state_driven",
+      "statement": "WHILE applying the fix, the system shall keep the existing strict dismissal and focus-return assertions unchanged and unweakened.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-8",
+      "subsection": "hygiene",
+      "ears_variant": "ubiquitous",
+      "statement": "The changed test files shall contain no leftover debug artifacts such as console statements, debugger statements, or focused or skipped tests.",
+      "verification_command": "! grep -nE 'console\\.log|debugger|\\.only\\(|\\.skip\\(' src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx",
       "test_anchor": "",
       "n_a_reason": ""
     }
   ],
   "ac_subsection_na": {
-    "ci_pipeline": "No CI/pipeline changes \u2014 source-only dead-code removal in src/main/index.ts",
-    "hooks_gates": "No hooks or gates added or changed by this removal",
-    "documentation": "docs/main/index.md does not document the ping handler; no docs/ update is required after removal"
+    "tooling_artifact_presence": "No tooling artifact is added or removed; this is a behavior fix to two existing test cases.",
+    "ci_pipeline": "No CI/pipeline config change; deterministic passing is asserted by the CT acceptance criteria in \u00a75.3.",
+    "hooks_gates": "No hook or commit-gate change.",
+    "documentation": "No docs/ change required; the bugs/003 record lifecycle is handled by /verify, not this spec."
   },
   "out_of_scope": [
     {
-      "content": "Replacing the dead handler with a real application IPC handler (research approach 2 \u2014 no current IPC need)",
-      "finding_ref": "F-claude-2"
+      "content": "Modifying Radix or the production Dropdown component (src/renderer/src/components/molecules/Dropdown.tsx) \u2014 click-outside dismissal is Radix-owned and works correctly in production.",
+      "finding_ref": "F-index-2"
     },
     {
-      "content": "Adding test infrastructure for the main process to cover this removal (none exists today)",
-      "finding_ref": "F-architecture-2"
+      "content": "Introducing a bare fixed-delay waitForTimeout as the fix mechanism (brittle magic-number; rejected by the research).",
+      "finding_ref": "F-2026-06-27-003-dropdown-ct-click-6"
     },
     {
-      "content": "Any docs/ changes \u2014 the ping handler is undocumented, so no documentation update is needed",
-      "finding_ref": "F-index-3"
-    },
-    {
-      "content": "Manually updating the bugs/002-leftover-ping-debug-artifact.md record lifecycle (Open to Fixed is a manual step outside this spec)",
-      "finding_ref": "F-claude-3"
-    },
-    {
-      "content": "Touching renderer or preload code, or any other ipcMain handler (none exist; ping is the sole undocumented dead scaffold)",
-      "finding_ref": "F-index-1"
+      "content": "Hardening the sibling overlay CT specs (Modal.ct.tsx, nested-overlays.ct.tsx) that share the same arm-race risk \u2014 they pass today and are excluded per the scope decision.",
+      "finding_ref": ""
     }
   ],
   "constraints": [
     {
-      "kind": "not_break",
-      "content": "App boot and window-creation flow (createWindow, the app ready event, browser-window-created, activate, and window-all-closed handlers) must not regress"
+      "kind": "follow",
+      "content": "Search before building"
     },
     {
       "kind": "follow",
-      "content": "Keep the change minimal: delete only the dead handler, its // IPC test comment, and the now-unused ipcMain import \u2014 do not modify unrelated main-process code"
+      "content": "Minimal changes (Key Rules #3)"
+    },
+    {
+      "kind": "follow",
+      "content": "Specs are contracts / strict assertions"
+    },
+    {
+      "kind": "constitution_anchor",
+      "content": "Search the codebase for an existing utility/helper/component before writing anything generic or reusable \u2014 reuse the Modal CT overlay-readiness pattern (Modal.ct.tsx:127) rather than inventing new test machinery.",
+      "constitution_ref": "6.3"
+    },
+    {
+      "kind": "constitution_anchor",
+      "content": "Co-located tests under __tests__/ next to the code, split .test.tsx (Vitest) and .ct.tsx (Playwright CT); the click-outside behavior is CT-only and the fix stays in the .ct.tsx spec (and fixture, if needed).",
+      "constitution_ref": "3.4"
+    },
+    {
+      "kind": "not_break",
+      "content": "Production Dropdown click-outside dismissal behavior must not change \u2014 it works for real users; only the test's timing is corrected."
     }
   ],
-  "open_questions": [],
+  "open_questions": [
+    {
+      "question_id": "Q-1",
+      "content": "Exact readiness API for the pre-click wait (e.g. awaiting element.getAnimations() completion vs a waitForFunction on the menu's computed opacity) \u2014 deferred to /plan; spec mandates a concrete readiness signal, not a fixed delay.",
+      "category_no_dp_reason": ""
+    }
+  ],
   "risks": [
     {
-      "risk": "Deleting the handler accidentally removes a still-needed import or alters the whenReady block, breaking app boot",
+      "risk": "Under prefers-reduced-motion (or any zero-animation config), the entry animation is disabled, so an animation-completion readiness signal could resolve immediately and let the arm-race resurface.",
+      "likelihood": "Low",
+      "impact": "Med",
+      "mitigation": "Readiness signal must not rely solely on animation presence; /plan picks a signal that holds when animations are off (e.g. a microtask/rAF settle or polling the armed state), or the test enables motion."
+    },
+    {
+      "risk": "The readiness wait could mask a genuine future production dismissal regression (test waits, then still asserts).",
       "likelihood": "Low",
       "impact": "Low",
-      "mitigation": "Remove only ipcMain from the line 1 import (other imports stay); typecheck + lint + build gate the change; smoke-launch confirms the window still opens"
+      "mitigation": "Assertions stay strict (not.toBeVisible / toBeFocused), so a real dismissal break still fails the test after the wait."
     }
   ],
-  "approval_summary": "I've created the specification at `specs/007-remove-ping-handler/spec.md`. Key points:\n- **What changes**: Remove the leftover electron-vite scaffold debug handler from the Electron main process. The bug (bugs/002-leftover-ping-debug-artifact.md) is a dead no-op IPC handler \u2014 ipcMain.on('ping', () => console.log('pong')) \u2014 that violates the p...\n- **Files affected**: 1 files across 1 areas\n- **Acceptance criteria**: 5 testable criteria across 4 AC categories\n- **Out of scope**: Replacing the dead handler with a real application IPC handler (research approac; Adding test infrastructure for the main process to cover this removal (none exis; Any docs/ changes \u2014 the ping handler is undocumented, so no documentation update; \u2026\n\nPlease review and either approve or request changes. Once approved, run `/plan` to create the technical implementation plan.",
-  "plan_handoff_block": "## Manual next step \u2014 run /plan\n\nA structured handoff (specs/007-remove-ping-handler/handoff.json) is written for /plan. /plan auto-discovers it on its first run and reads the upstream plan-seeds \u2014 but you still launch /plan manually (there is no auto-dispatch from /specify). Restart Claude Code (exit and relaunch the CLI/app so the newly installed command is picked up), then run the command below in this repo. The spec path is explicit so /plan does not need most-recent-spec discovery:\n\n~~~\n/plan specs/007-remove-ping-handler/spec.md\n~~~\n\nMinimum handoff data:\n- Spec status: Draft\n- Spec type: bug_fix\n- AC count: 5 across 4 subsections (5.1: 1, 5.2: 1, 5.3: 1, 5.4: 0, 5.5: 0, 5.6: 0, 5.7: 2)\n- Decision-point coverage: 1 answered, 0 default-applied, 0 deferred-OOS, 0 deferred-open-question\n- Affected areas: 1 across src\n- Out-of-scope items: 5\n- Open questions: 0\n- Constraints: 2\n- Risks: 1\n- Phase 1.5 finding coverage: 100% (all findings landed)\n\nReference: specs/007-remove-ping-handler/spec.md",
-  "open_question_resolutions": [],
+  "approval_summary": "I've created the specification at `specs/008-dropdown-ct-dismiss/spec.md`. Key points:\n- **What changes**: Two Playwright component tests for the Dropdown primitive's click-outside dismissal are flaky-to-failing because each fires its outside click before Radix's DismissableLayer has armed its outside-click detection. This spec makes both tes...\n- **Files affected**: 3 files across 3 areas\n- **Acceptance criteria**: 8 testable criteria across 3 AC categories\n- **Out of scope**: Modifying Radix or the production Dropdown component (src/renderer/src/component; Introducing a bare fixed-delay waitForTimeout as the fix mechanism (brittle magi; Hardening the sibling overlay CT specs (Modal.ct.tsx, nested-overlays.ct.tsx) th\n\nPlease review and either approve or request changes. Once approved, run `/plan` to create the technical implementation plan.",
+  "plan_handoff_block": "## Manual next step \u2014 run /plan\n\nA structured handoff (specs/008-dropdown-ct-dismiss/handoff.json) is written for /plan. /plan auto-discovers it on its first run and reads the upstream plan-seeds \u2014 but you still launch /plan manually (there is no auto-dispatch from /specify). Restart Claude Code (exit and relaunch the CLI/app so the newly installed command is picked up), then run the command below in this repo. The spec path is explicit so /plan does not need most-recent-spec discovery:\n\n~~~\n/plan specs/008-dropdown-ct-dismiss/spec.md\n~~~\n\nMinimum handoff data:\n- Spec status: Draft\n- Spec type: bug_fix\n- AC count: 8 across 3 subsections (5.1: 0, 5.2: 3, 5.3: 3, 5.4: 0, 5.5: 0, 5.6: 0, 5.7: 2)\n- Decision-point coverage: 2 answered, 0 default-applied, 0 deferred-OOS, 0 deferred-open-question\n- Affected areas: 3 across node_modules, src\n- Out-of-scope items: 3\n- Open questions: 1\n- Constraints: 6\n- Risks: 2\n- Phase 1.5 finding coverage: 100% (all findings landed)\n\nReference: specs/008-dropdown-ct-dismiss/spec.md",
+  "open_question_resolutions": [
+    {
+      "question_id": "Q-1",
+      "resolution_text": "Readiness API = await menu.evaluate(getAnimations().finished) + one in-page setTimeout(0) macrotask-boundary yield; deterministic and motion-independent, not a fixed-delay timeout.",
+      "resolution_phase": "plan",
+      "resolution_timestamp": "2026-06-27T18:20:09Z"
+    }
+  ],
   "conflicts": [],
   "source": {
-    "handoff_path": null,
-    "handoff_kind": null,
-    "research_completed_at": null,
+    "handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/research/2026-06-27-003-dropdown-ct-click/handoff.json",
+    "handoff_kind": "research",
+    "research_completed_at": "2026-06-27T17:06:34+00:00",
     "discover_completed_at": null,
     "discover_recommended_summary": null
   }
