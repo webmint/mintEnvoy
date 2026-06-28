@@ -35,3 +35,20 @@ describe('App — Shell tabs slot (AC-27)', () => {
     expect(tabsSlot?.querySelector('[role="tablist"]')).not.toBeNull()
   })
 })
+
+describe('App — Shell request-pane slot (AC-21)', () => {
+  it('mounts the RequestBar into the Shell request-pane slot (AC-21)', () => {
+    render(<App />)
+
+    // PaneSplit renders the request slot inside .pane-split__pane--request
+    const paneContainer = document.querySelector('.pane-split__pane--request')
+    expect(paneContainer).not.toBeNull()
+    // RequestBar renders a .request-bar root div; the tabsStore seeds one blank
+    // tab at construction so no store setup is required.
+    expect(paneContainer?.querySelector('.request-bar')).not.toBeNull()
+    // Semantic-content check: RequestBar's URL input carries aria-label="Request URL".
+    // An empty root div (broken child render) would pass the class check above but
+    // fail here — mirrors the TabBar slot test's [role="tablist"] semantic anchor.
+    expect(paneContainer?.querySelector('[aria-label="Request URL"]')).not.toBeNull()
+  })
+})

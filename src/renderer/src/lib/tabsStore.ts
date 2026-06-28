@@ -104,6 +104,25 @@ export interface TabsState {
    * @param tabId - The id of the tab to mark clean.
    */
   markClean: (tabId: string) => void
+
+  /**
+   * Shallow-merge `patch` into the active tab's spec and set `dirty=true` —
+   * but ONLY when at least one patched key carries a value that differs from
+   * the current spec value (strict equality, `===`).
+   *
+   * No-op contracts:
+   *   - If every key in `patch` already equals the corresponding value in
+   *     the active tab's spec, the method returns without calling `set` so
+   *     no re-render is triggered and `dirty` is never flipped.
+   *   - If `activeTabId` resolves to no tab (defensive), the method returns
+   *     immediately (consistent with all other actions' unknown-id no-ops).
+   *
+   * Per-tab isolation: only the active tab's entry in `tabs` is replaced;
+   * all other tabs are propagated unchanged.
+   *
+   * @param patch - Partial spec fields to shallow-merge into the active tab's spec.
+   */
+  updateActiveSpec: (patch: Partial<RequestSpec>) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -268,6 +287,26 @@ export const tabsStore = create<TabsState>((set, get) => ({
     if (!exists) return // no-op on unknown id (AC-20)
     set((state) => ({
       tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, dirty: false } : t))
+    }))
+  },
+
+  updateActiveSpec(patch) {
+    const { tabs, activeTabId } = get()
+    const tab = tabs.find((t) => t.id === activeTabId)
+
+    // Defensive: no-op if active tab id resolves to nothing (consistent with other actions)
+    if (tab === undefined) return
+
+    // No-op guard: skip set() when every patched key already equals the current value.
+    // Avoids a dirty flip and re-render churn when nothing actually changed (AC-10).
+    const isNoOp = (Object.keys(patch) as (keyof RequestSpec)[]).every(
+      (k) => patch[k] === tab.spec[k]
+    )
+    if (isNoOp) return
+
+    const merged: RequestSpec = { ...tab.spec, ...patch }
+    set((state) => ({
+      tabs: state.tabs.map((t) => (t.id === activeTabId ? { ...t, spec: merged, dirty: true } : t))
     }))
   }
 }))

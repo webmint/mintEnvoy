@@ -1,0 +1,212 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/009-request-bar/plan.md",
+  "plan_completed_at": "2026-06-28T09:03:06Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/009-request-bar/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/009-request-bar/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "lib \u2014 leaf data (new)",
+        "what": "`METHODS` const (7 methods, display order) + `HttpMethod = typeof METHODS[number]`; imports nothing renderer-external",
+        "files": "src/renderer/src/lib/httpMethods.ts"
+      },
+      {
+        "layer": "lib \u2014 domain data (modify)",
+        "what": "re-point `RequestSpec.method` from `string` to `HttpMethod` imported from httpMethods; `makeBlankRequest` GET seed stays valid",
+        "files": "src/renderer/src/lib/requestSpec.ts"
+      },
+      {
+        "layer": "lib \u2014 state store (modify)",
+        "what": "add `updateActiveSpec(patch: Partial<RequestSpec>)`: resolve active tab internally, shallow-merge, set `dirty=true` only on actual change; existing lifecycle actions untouched",
+        "files": "src/renderer/src/lib/tabsStore.ts"
+      },
+      {
+        "layer": "presentation \u2014 organism (new)",
+        "what": "flat `RequestBar`: method Dropdown trigger + URL `<input>` + Send/Save/Share; per-field tabsStore selectors; `\u2318\u21b5`/`\u2318S` document-keydown effect; `onSend` prop; token-bound semantic classes, zero inline styles",
+        "files": "src/renderer/src/components/organisms/RequestBar.tsx, src/renderer/src/components/organisms/RequestBar.css"
+      },
+      {
+        "layer": "presentation \u2014 app composition (modify)",
+        "what": "add `panes={{ request: <RequestBar onSend={\u2026} /> }}` to the existing `<Shell tabs={<TabBar/>} />`; ToastProvider/Shell wiring otherwise unchanged",
+        "files": "src/renderer/src/App.tsx"
+      },
+      {
+        "layer": "governance / docs (modify)",
+        "what": "amend \u00a74 sole-subscriber wording to admit RequestBar as the spec-edit subscriber (doc-only; no TabBar behavior change)",
+        "files": "constitution.md"
+      },
+      {
+        "layer": "tests (new / extend)",
+        "what": "RequestBar unit + CT; tabsStore `updateActiveSpec` cases",
+        "files": "src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx, src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx, src/renderer/src/lib/__tests__/tabsStore.test.ts"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "`onSend` payload shape",
+        "chosen_approach": "`onSend?: (intent: { tabId: string; method: HttpMethod; url: string }) => void`, default no-op; `HttpMethod` from httpMethods, all other fields primitives",
+        "why": "Satisfies AC-13 (tab identity + method + url) WITHOUT importing `requestSpec` into a component \u2014 keeps \u00a75.2 intact. Single path for Send click and \u2318\u21b5.",
+        "alternatives_rejected": "Passing a `RequestSpec` object \u2014 forces a `requestSpec` import, violating \u00a75.2. Passing only `(method,url)` \u2014 drops tab identity AC-13 requires."
+      },
+      {
+        "decision": "URL input control model",
+        "chosen_approach": "Controlled `<input value={activeUrl} onChange={e \u21d2 updateActiveSpec({ url: e.target.value })}>`; no remount key",
+        "why": "Controlled binding swaps the displayed url on tab switch (AC-11) via the per-field selector; the url selector value is untouched on a method change, so React does not re-set the input value and caret/buffer are preserved (AC-18). Writes route through the store action (\u00a74).",
+        "alternatives_rejected": "Uncontrolled + `defaultValue` \u2014 would not update on tab switch (AC-11). `key={activeTabId}` remount \u2014 needless churn; controlled binding already isolates per tab."
+      },
+      {
+        "decision": "\u2318\u21b5 / \u2318S registration",
+        "chosen_approach": "One `document` keydown effect handling both chords; reads live state via `tabsStore.getState()`; `e.preventDefault()` on \u2318S; cleanup on unmount",
+        "why": "Mirrors Shell Effect 4 (document keydown + preventDefault + getState) \u2014 `getState()` avoids stale-closure capture so the handler acts on the current active tab regardless of focus (AC-16/AC-17).",
+        "alternatives_rejected": "React `onKeyDown` on a container \u2014 only fires when focus is inside RequestBar, failing \"regardless of focus.\" Two separate effects \u2014 duplicate setup/teardown."
+      },
+      {
+        "decision": "Send-enabled predicate",
+        "chosen_approach": "Single `canSend = url.trim() !== ''` derived once, consumed by the button `disabled`, the click handler, and the \u2318\u21b5 handler",
+        "why": "One predicate = one guard (DRY), so disabled state and the \u2318\u21b5 path cannot diverge (AC-12/AC-13/AC-16 share trim semantics).",
+        "alternatives_rejected": "Computing the trim guard independently per call site \u2014 risks keyboard path and button drifting apart."
+      },
+      {
+        "decision": "Method dropdown open-state",
+        "chosen_approach": "Local `useState` in RequestBar driving Dropdown's controlled `open`/`onOpenChange`",
+        "why": "Dropdown (001) is a controlled-only Radix wrapper; local open-state is the contract. Reuses the existing molecule \u2014 no second overlay library (AC-3, \u00a77).",
+        "alternatives_rejected": "Adding an uncontrolled/popover alternative \u2014 violates the reuse-Dropdown constraint and AC-3."
+      },
+      {
+        "decision": "Active-state subscription",
+        "chosen_approach": "Per-field tabsStore selectors: `activeTabId`, active tab's `method`, `url`, `dirty` selected individually (mirror TabBar)",
+        "why": "Selecting individual fields (not the whole `tabs` array) bounds re-renders to the values RequestBar shows, mitigating the \u00a79 over-render risk; mirrors TabBar (\u00a77).",
+        "alternatives_rejected": "Subscribing to the whole `tabs[]`/store object \u2014 re-renders on any unrelated tab mutation (\u00a79 risk realized)."
+      },
+      {
+        "decision": "Method-pill trigger accessible name (Q-1)",
+        "chosen_approach": "Trigger button carries one accessible name (visible method text serves as the name; no redundant `aria-label`), mirroring 005's pill aria approach",
+        "why": "Resolves Q-1: single announcement, not doubled, matching the 005 precedent.",
+        "alternatives_rejected": "A separate `aria-label` over visible text \u2014 double-announces the method (the 005 pitfall)."
+      },
+      {
+        "decision": "Constitution \u00a74 amendment scope",
+        "chosen_approach": "Reword \"TabBar.tsx is the sole subscriber\" \u2192 TabBar owns lifecycle wiring; RequestBar is the spec-edit subscriber. Doc-only.",
+        "why": "DEPARTURE: introduces a 2nd tabsStore subscriber where \u00a74 currently names TabBar the sole subscriber \u2014 sanctioned by AC-24, which mandates this exact amendment; TabBar runtime behavior is unchanged (AC-4).",
+        "alternatives_rejected": "Leaving \u00a74 as-is \u2014 leaves the constitution contradicting shipped code (AC-24 unmet)."
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "src/renderer/src/lib/httpMethods.ts",
+        "action": "Create",
+        "what_changes": "`METHODS` const (GET/POST/PUT/PATCH/DELETE/OPTIONS/HEAD, display order) + `HttpMethod = typeof METHODS[number]`; pure const+type module"
+      },
+      {
+        "file": "src/renderer/src/lib/requestSpec.ts",
+        "action": "Modify",
+        "what_changes": "re-point `method: string` \u2192 `method: HttpMethod` (import from httpMethods); makeBlankRequest GET seed unchanged"
+      },
+      {
+        "file": "src/renderer/src/lib/tabsStore.ts",
+        "action": "Modify",
+        "what_changes": "add `updateActiveSpec(patch: Partial<RequestSpec>)` (resolve active tab, shallow-merge, dirty only on actual change); extend `TabsState` interface; existing actions untouched"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/RequestBar.tsx",
+        "action": "Create",
+        "what_changes": "the organism \u2014 method Dropdown + URL input + Send/Save/Share + \u2318\u21b5/\u2318S effect + `onSend` prop; per-field selectors"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/RequestBar.css",
+        "action": "Create",
+        "what_changes": "token-bound semantic classes for [method \u25be][URL][Send/Save/Share] layout; horizontal URL scroll, no reflow"
+      },
+      {
+        "file": "src/renderer/src/App.tsx",
+        "action": "Modify",
+        "what_changes": "add `panes={{ request: <RequestBar onSend={\u2026} /> }}` to the existing `<Shell tabs={<TabBar/>} />`"
+      },
+      {
+        "file": "constitution.md",
+        "action": "Modify",
+        "what_changes": "reword \u00a74 sole-subscriber rule (AC-24)"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx",
+        "action": "Create",
+        "what_changes": "unit: trim guard, method-switch independence, Save dirty/no-op, per-tab render isolation"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx",
+        "action": "Create",
+        "what_changes": "CT: layout, disabled Send, \u2318\u21b5/\u2318S, method-dropdown dismiss (two-step gate), per-tab isolation; fixtures import tokens.css + set data-mstyle"
+      },
+      {
+        "file": "src/renderer/src/lib/__tests__/tabsStore.test.ts",
+        "action": "Modify",
+        "what_changes": "add `updateActiveSpec` cases: dirty-on-change, no-op-no-flip, per-tab isolation"
+      }
+    ],
+    "doc_impact": [
+      {
+        "doc_file": "docs/renderer/index.md",
+        "action": "Update",
+        "what_changes": "add RequestBar organism + httpMethods module to the renderer structure tree; note tabsStore gains updateActiveSpec"
+      },
+      {
+        "doc_file": "docs/architecture.md",
+        "action": "Update",
+        "what_changes": "refresh the working-tabs pattern note (RequestBar is the spec-edit subscriber; updateActiveSpec) and correct the stale propless `<Shell/>` App-mount snippet to `<Shell tabs={<TabBar/>} panes={{request:\u2026}} />`"
+      }
+    ],
+    "risks": [
+      {
+        "risk": "RequestBar imports `requestSpec` to name the `RequestSpec` type, breaking \u00a75.2 component-purity.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "`onSend` typed with `HttpMethod` + primitives only; `updateActiveSpec` called with object literals (typed `Partial<RequestSpec>` on the store side). Lint/typecheck + a grep guard catch a stray import."
+      },
+      {
+        "risk": "`httpMethods.ts` accidentally imports a store/component, breaking lib-leaf direction (\u00a72.2).",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Keep httpMethods a pure const+type module; `requestSpec`\u2192`httpMethods` is the only inbound edge (lib\u2192lib, downward)."
+      },
+      {
+        "risk": "`updateActiveSpec` over-dirties on a no-op patch, breaking the non-dirty Save no-op (AC-10/AC-15).",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Set `dirty` only when a merged value actually differs; unit-test no-op-no-flip, change-flips, and per-tab isolation before UI wiring."
+      },
+      {
+        "risk": "Narrowing `method` string\u2192`HttpMethod` surfaces a hidden non-listed assignment elsewhere.",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "CBM-confirmed sole writer is `makeBlankRequest` (GET); lift the type into httpMethods and re-point in one change; typecheck/build gate (AC-5/AC-25/AC-27) catches strays."
+      },
+      {
+        "risk": "CT flakiness from the Radix dismiss arm-race + missing `data-mstyle`/tokens context.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Apply the two-step dismiss gate (await animations + `setTimeout(0)` yield); CT fixtures import tokens.css and set `data-mstyle` on the host (005 CT lesson)."
+      },
+      {
+        "risk": "RequestBar over-renders as a 2nd tabsStore subscriber if it subscribes to the whole `tabs` array.",
+        "likelihood": "Med",
+        "impact": "Low",
+        "mitigation": "Per-field selectors for the active tab's method+url (mirror TabBar's memoized selector pattern)."
+      },
+      {
+        "risk": "Mount-point drift: docs/architecture.md shows a stale propless `<Shell/>` while App.tsx passes `tabs={<TabBar/>}`.",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Plan \u00a7File Impact wires onto the verified App.tsx element; Documentation Impact refreshes the stale snippet at /finalize."
+      }
+    ],
+    "specialist_consultation": [],
+    "dependencies": [
+      "None \u2014 no packages to install, no services or environment variables. Radix (`radix-ui`) and zustand are already in the project; the Dropdown molecule, Icon atom, `cx()`, and tokens.css all exist."
+    ]
+  }
+}

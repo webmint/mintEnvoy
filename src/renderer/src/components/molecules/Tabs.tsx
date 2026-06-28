@@ -100,28 +100,23 @@ import './Tabs.css'
 import { useLayoutEffect, useRef } from 'react'
 import { cx } from '@renderer/lib/cx'
 import { Icon } from '@renderer/components/atoms/Icon'
+import { METHODS } from '@renderer/lib/httpMethods'
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 /**
- * HTTP methods that receive a color-coded chip class.
- * Any method whose uppercased value appears here gets `cx('method', upperMethod)`;
- * all others get `cx('method')` (uncolored — inherits text color). AC-10.
- */
-const KNOWN_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'] as const
-
-/**
  * Returns the CSS class string for a method chip.
- * When the uppercased `method` is in KNOWN_METHODS the color modifier class is
- * appended; otherwise only the base `method` class is returned (AC-10).
+ * When the uppercased `method` is in METHODS (the SSOT from httpMethods.ts)
+ * the color modifier class is appended; otherwise only the base `method` class
+ * is returned (AC-10).
  *
  * @param method - The raw method string from the TabDescriptor.
  */
 function methodChipClassName(method: string): string {
   const upper = method.toUpperCase()
-  return (KNOWN_METHODS as readonly string[]).includes(upper) ? cx('method', upper) : cx('method')
+  return (METHODS as readonly string[]).includes(upper) ? cx('method', upper) : cx('method')
 }
 
 // ---------------------------------------------------------------------------
@@ -164,8 +159,9 @@ export interface TabDescriptor {
    * Optional HTTP method string displayed as a colored chip before the label.
    * When provided, a `<span class="method {METHOD}">` chip is rendered in both
    * the closable and non-closable branches. The method string is uppercased and
-   * matched against KNOWN_METHODS to assign a color modifier class; unknown
-   * methods render with the base `method` class only (uncolored — AC-10).
+   * matched against METHODS (the SSOT from httpMethods.ts) to assign a color
+   * modifier class; unknown methods render with the base `method` class only
+   * (uncolored — AC-10).
    * When absent, no chip is rendered (byte-identical to the pre-005 contract).
    *
    * **Accessibility tradeoff**: the rendered chip carries `aria-hidden="true"`

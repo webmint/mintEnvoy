@@ -1,0 +1,495 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/009-request-bar/spec.md",
+  "specify_completed_at": "2026-06-28T08:31:54Z",
+  "classification": {
+    "spec_number": "009",
+    "feature_name": "request-bar",
+    "feature_slug": "request-bar",
+    "spec_type": "feature_addition",
+    "spec_type_rationale": "RequestBar is one new organism bolted onto 5 accepted specs (001/002/003/004/005) + 006 placement rule; the real risk is integration correctness, not net-new scaffolding.",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "Add a RequestBar organism for the active request tab: a color-coded HTTP-method dropdown (GET/POST/PUT/PATCH/DELETE/OPTIONS/HEAD), a plain URL text input bound to the active tab's RequestSpec.url, and Send/Save/Share actions with \u2318\u21b5 (Send) and \u2318S (Save) shortcuts. The feature reuses the existing 001 Dropdown molecule + Icon atom, the 005 .method/[data-mstyle] color convention, and the 004 tabsStore/RequestSpec model \u2014 its only net-new primitive is a generic tabsStore spec-edit action (updateActiveSpec) and a single-source lib/httpMethods.ts. HTTP execution, the response, and {{variable}} highlighting (epic D) are explicitly out of scope.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide a RequestBar organism module with a sibling token-bound stylesheet under the organisms directory.",
+        "verification_command": "test -f src/renderer/src/components/organisms/RequestBar.tsx && test -f src/renderer/src/components/organisms/RequestBar.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide an httpMethods module under the lib directory exporting the HTTP-method list and the HttpMethod type.",
+        "verification_command": "test -f src/renderer/src/lib/httpMethods.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The build shall reuse the existing Radix and zustand dependencies without adding a new overlay or state-management library.",
+        "verification_command": "grep -q '\"radix-ui\"' package.json && grep -q '\"zustand\"' package.json",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the TabBar is rendered, the tabsStore shall expose its existing lifecycle actions (openFromCollection, newBlank, close, selectActive, markClean) with unchanged behavior.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "behavior_preservation",
+        "ears_variant": "event_driven",
+        "statement": "WHEN requestSpec.method is narrowed from string to the HttpMethod union, the makeBlankRequest GET seed and all existing spec assignments shall remain valid and continue to type-check.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall keep Shell as the sole writer of the document data-mstyle attribute.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user selects a method from the RequestBar method dropdown, the RequestBar shall write that method to the active tab's RequestSpec through updateActiveSpec.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user edits the RequestBar URL input, the RequestBar shall write the new value to the active tab's RequestSpec url through updateActiveSpec.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN updateActiveSpec receives a patch that changes at least one value, the tabsStore shall shallow-merge the patch into the active tab's spec and set that tab dirty.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF updateActiveSpec receives a patch whose values equal the active tab's current spec, THEN the tabsStore shall not set the dirty flag.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-11",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the active tab changes, the RequestBar shall render the newly active tab's method and url and shall not leak the previous tab's values.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-12",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the URL is empty after trimming, the RequestBar shall render Send disabled and shall not emit a send intent.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-13",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN Send is activated with a URL that is non-empty after trimming, the RequestBar shall invoke onSend with the active tab identity and the current method and url, and shall not perform any HTTP request.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-14",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the active tab is dirty and the user activates Save, the RequestBar shall call markClean for the active tab.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-15",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF Save is activated while the active tab is not dirty, THEN the RequestBar shall perform no write and no markClean.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-16",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user presses Cmd-Enter, the RequestBar shall route to the same Send path as the Send button under the same empty-url guard, acting on the active tab regardless of focus.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-17",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user presses Cmd-S, the RequestBar shall route to the Save path and shall call preventDefault so the native save action does not fire.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-18",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user changes the method, the RequestBar shall not modify the URL buffer or its caret position.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-19",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE Share is rendered, the RequestBar shall present it token-styled in its final action slot wired to a disabled no-op stub.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-20",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a URL exceeds the input width, the RequestBar shall scroll it horizontally within the field without reflowing the method pill or Send.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-21",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the application shell renders, the App shall mount the RequestBar into the Shell request-pane slot.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-22",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The RequestBar shall source its method list and HttpMethod type from the lib httpMethods module, which requestSpec also references as its method type.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-23",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The exported RequestBar props, the updateActiveSpec action, and the METHODS constant and HttpMethod type shall carry documentation comments.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-24",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The constitution section 4 sole-subscriber rule shall be updated to record RequestBar as the tabsStore spec-edit subscriber.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-25",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer source shall pass strict type-checking.",
+        "verification_command": "npm run typecheck:web",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-26",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The codebase shall pass ESLint without new errors.",
+        "verification_command": "npm run lint",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-27",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The project shall build cleanly.",
+        "verification_command": "npm run build",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-28",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The new RequestBar and lib source shall contain no inline style attributes.",
+        "verification_command": "! grep -REn 'style=[{][{]' src/renderer/src/components/organisms/RequestBar.tsx | grep -vqE ':[[:space:]]*(\\*|//|/[*])'",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-29",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The new renderer modules shall not import the electron or node built-in modules directly.",
+        "verification_command": "! grep -REn \"from '(electron|node:)\" src/renderer/src/components/organisms/RequestBar.tsx src/renderer/src/lib/httpMethods.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-30",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The RequestBar and tabsStore test suites shall pass.",
+        "verification_command": "npx vitest run src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx src/renderer/src/lib/__tests__/tabsStore.test.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "ci_pipeline": "No CI pipeline changes; tests run via existing npm scripts (vitest/playwright), not a new pipeline stage.",
+      "hooks_gates": "No new git hooks or commit gates; the project's existing forge gates apply unchanged."
+    },
+    "constraints": [
+      {
+        "kind": "constitution_anchor",
+        "content": "Renderer tier organization: RequestBar is a flat organism (downward-only imports, no sibling-organism import, @renderer alias, no barrel files); the organisms/<domain>/ subfolder is created only at >=2 single-domain components.",
+        "quantifier": null,
+        "constitution_ref": "2.2",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "requestSpec stays a pure data module \u2014 imported by tabsStore, never by components; RequestBar must reach the method list/type via lib/httpMethods, not via a requestSpec import.",
+        "quantifier": null,
+        "constitution_ref": "5.2",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Gate behavior with Vitest + Testing Library (jsdom) and Playwright CT for focus/keyboard fidelity, co-located under __tests__/ split .test.tsx/.ct.tsx.",
+        "quantifier": null,
+        "constitution_ref": "3.4",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Renderer modules import no Node/Electron APIs and resolve cross-module code via the @renderer alias.",
+        "quantifier": null,
+        "constitution_ref": "2.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Mutate tabsStore state only through store actions; RequestBar writes method+url exclusively via the new updateActiveSpec action and becomes the spec-edit subscriber of tabsStore alongside TabBar.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Reuse the existing Dropdown molecule, Icon atom, cx(), and tokens.css; introduce no new runtime dependency and no second overlay library.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "design/reference.html is a look/behavior reference only \u2014 never reproduce its markup or generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks-panel); rebuild with semantic class names from each element's role.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Verify RequestBar visual fidelity via tiered checks \u2014 computed-style exact equality on enumerated props plus a thresholded screenshot diff in Playwright CT \u2014 per the 005 precedent; CT fixtures must import tokens.css, set data-mstyle on the host, and apply the Radix two-step dismiss gate.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "The existing TabBar selection/close/new-blank behavior and the tabsStore lifecycle actions must remain unchanged; updateActiveSpec is additive.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "RequestBar organism",
+        "files": [
+          "src/renderer/src/components/organisms/RequestBar.tsx",
+          "src/renderer/src/components/organisms/RequestBar.css"
+        ],
+        "impact": "Create new \u2014 flat organism: method Dropdown trigger + URL input + Send/Save/Share; per-field tabsStore selectors; \u2318\u21b5/\u2318S document-keydown handlers; onSend prop; token-bound semantic classes, zero inline styles"
+      },
+      {
+        "area": "HTTP method single-source module",
+        "files": [
+          "src/renderer/src/lib/httpMethods.ts"
+        ],
+        "impact": "Create new \u2014 export const METHODS (7 methods, display order) + export type HttpMethod = typeof METHODS[number]; lib-only, no component/store imports"
+      },
+      {
+        "area": "RequestSpec model method type",
+        "files": [
+          "src/renderer/src/lib/requestSpec.ts"
+        ],
+        "impact": "Modify \u2014 re-point method from string to HttpMethod imported from httpMethods.ts (single source); makeBlankRequest GET seed stays valid"
+      },
+      {
+        "area": "tabsStore spec-edit action",
+        "files": [
+          "src/renderer/src/lib/tabsStore.ts"
+        ],
+        "impact": "Modify \u2014 add updateActiveSpec(patch: Partial<RequestSpec>) action: shallow-merge into active tab spec, set dirty=true only on actual change, resolve active tab internally; existing actions unchanged"
+      },
+      {
+        "area": "App root request-pane wiring",
+        "files": [
+          "src/renderer/src/App.tsx"
+        ],
+        "impact": "Modify \u2014 add panes={{ request: <RequestBar onSend={...} /> }} to the existing <Shell tabs={<TabBar/>} /> element; ToastProvider/Shell wiring otherwise unchanged"
+      },
+      {
+        "area": "Constitution sole-subscriber rule",
+        "files": [
+          "constitution.md"
+        ],
+        "impact": "Modify \u2014 update \u00a74 'TabBar.tsx is the sole subscriber' wording to admit RequestBar as the spec-edit subscriber of tabsStore (documentation-only; no behavior change to TabBar)"
+      },
+      {
+        "area": "Unit + component tests",
+        "files": [
+          "src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx",
+          "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx",
+          "src/renderer/src/lib/__tests__/tabsStore.test.ts"
+        ],
+        "impact": "Create new / extend \u2014 RequestBar unit (trim guard, method-switch independence, Save dirty/no-op) + CT (layout fidelity, disabled Send, \u2318\u21b5/\u2318S, method-dropdown dismiss two-step gate, per-tab isolation); tabsStore.test.ts gains updateActiveSpec cases (dirty-on-change, no-op no-flip, per-tab isolation)"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "HTTP execution and the response view \u2014 Send fires an in-renderer onSend intent only; the engine and response rendering are separate tasks.",
+        "finding_ref": "F-spec-2"
+      },
+      {
+        "content": "{{variable}} token highlighting, unknown-var flagging, and template interpolation \u2014 the URL is a plain bound string; this belongs to epic D (environment-model / variable-interpolation).",
+        "finding_ref": ""
+      },
+      {
+        "content": "Request-editing panels (params / headers / body / auth editors) and request sub-tabs \u2014 RequestBar edits only method+url; auth is untouched.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Durable persistence to disk / collections \u2014 Save acts on the in-memory spec via markClean only; the persistence port is its own task.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Real Share behavior (copy-as-cURL / link / export) and URL parsing / validation / autocomplete / history \u2014 Share is a disabled no-op stub and the URL is a plain string.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Creating organisms/request/ or relocating TabBar \u2014 placement stays flat this task; the domain folder is created later when a 2nd request-domain organism crosses the >=2 trigger.",
+        "finding_ref": "F-constitution-1"
+      }
+    ],
+    "open_questions": [
+      {
+        "question_id": "Q-1",
+        "content": "The method-pill trigger's accessible-name handling (mirror 005's aria approach so the method is announced once, not doubled) is a /plan detail; the exact design-reference geometry (heights/padding) is pulled from design/reference.html at /plan.",
+        "category_no_dp_reason": ""
+      }
+    ],
+    "risks": [
+      {
+        "risk": "updateActiveSpec over-dirties: flipping dirty on a no-op patch (same value) would break the non-dirty Save no-op contract.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Set dirty only when a value actually changes; unit-test both no-op-no-flip and change-flips, plus per-tab isolation, before wiring the UI."
+      },
+      {
+        "risk": "Narrowing requestSpec.method string->HttpMethod surfaces a hidden non-listed method assignment elsewhere, breaking the build.",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "CBM-confirmed the only writer is makeBlankRequest seeding GET; the typecheck/build gate catches any stray assignment; lift the type into httpMethods and re-point in one change."
+      },
+      {
+        "risk": "CT flakiness: the Radix dismiss arm-race and a missing data-mstyle/tokens context produce intermittent false pass/fail on the method-dropdown and fidelity tests.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Apply the two-step dismiss gate (await animations + yield setTimeout(0)); fixtures import tokens.css and set data-mstyle on the host per the 005 CT lesson."
+      },
+      {
+        "risk": "Mount-point drift: docs/architecture.md shows a stale propless <Shell/> while App.tsx actually passes tabs={<TabBar/>}, risking a wrong wiring assumption.",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Spec \u00a72 uses the verified App.tsx wiring (add panes onto the existing <Shell tabs={<TabBar/>} /> element); refresh the architecture doc at /finalize."
+      },
+      {
+        "risk": "RequestBar as a 2nd tabsStore subscriber over-renders if it subscribes to the whole tabs array instead of the active fields.",
+        "likelihood": "Med",
+        "impact": "Low",
+        "mitigation": "Use per-field selectors for the active tab's method+url (mirror TabBar's memoized selector pattern)."
+      }
+    ]
+  },
+  "provenance": {
+    "upstream_handoff_path": null,
+    "upstream_handoff_kind": null,
+    "upstream_completed_at": null
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}
