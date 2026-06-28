@@ -10,7 +10,7 @@ source_stamp: b44087ca58806208
 
 ## Purpose
 
-React 19 renderer process — the user-facing UI. Houses the reusable UI-primitive library (Icon atom; Dropdown, Modal, Toast, Tabs, and Divider molecules — Dropdown/Modal/Toast wrap Radix UI, Tabs hand-rolls its WAI-ARIA engine and also supports opt-in closable, per-tab method-chip (HTTP-method color chip, `aria-hidden`), and dirty-state affordances; Divider is a hand-rolled WAI-ARIA splitter), the single-window app shell (Shell, Titlebar, Statusbar, and PaneSplit — grouped under organisms/shell/ — plus Sidebar as a flat organism singleton, all in the organisms tier), the working-tabs strip organism (TabBar, composing Tabs and wired to tabsStore), three module-level zustand stores (toastStore for the toast queue; settingsStore as the SSOT for theme/accent/method-style/sidebarWidth/paneRatio/sidebarCollapsed; tabsStore as the working-tabs lifecycle state machine), the requestSpec domain model (RequestSpec, Row, Auth discriminated union, isBearerAuth type guard, makeBlankRequest factory), className-merge and safe icon-resolution helpers, design tokens as CSS variables, and a dev-only primitives gallery gated on import.meta.env.DEV. main.tsx mounts App into index.html; the layer carries no Node/Electron imports per the renderer-isolation rule.
+React 19 renderer process — the user-facing UI. Houses the reusable UI-primitive library (Icon atom; Dropdown, Modal, Toast, Tabs, and Divider molecules — Dropdown/Modal/Toast wrap Radix UI, Tabs hand-rolls its WAI-ARIA engine and also supports opt-in closable, per-tab method-chip (HTTP-method color chip, `aria-hidden`), and dirty-state affordances; Divider is a hand-rolled WAI-ARIA splitter), the single-window app shell (Shell, Titlebar, Statusbar, and PaneSplit — grouped under organisms/shell/ — plus Sidebar, TabBar, and RequestBar as flat organism singletons), the working-tabs strip organism (TabBar, composing Tabs and wired to tabsStore lifecycle actions), the request submission bar organism (RequestBar — method Dropdown + URL input + Send/Save/Share row, wired to the active tab's spec via tabsStore.updateActiveSpec and markClean), three module-level zustand stores (toastStore for the toast queue; settingsStore as the SSOT for theme/accent/method-style/sidebarWidth/paneRatio/sidebarCollapsed; tabsStore as the working-tabs lifecycle state machine including the new `updateActiveSpec(patch)` action that shallow-merges spec edits with a no-op guard), the requestSpec domain model (RequestSpec — where `method` is typed as `HttpMethod` from httpMethods.ts, not a plain string — plus Row, Auth discriminated union, isBearerAuth type guard, makeBlankRequest factory), `httpMethods` (exported `METHODS` ordered tuple + `HttpMethod` union — the single source of truth for the HTTP method list, consumed by requestSpec, RequestBar, and Tabs), className-merge and safe icon-resolution helpers, design tokens as CSS variables, and a dev-only primitives gallery gated on import.meta.env.DEV. main.tsx mounts App into index.html; App now renders `<Shell tabs={<TabBar />} panes={{ request: <RequestBar /> }} />` inside ToastProvider. The layer carries no Node/Electron imports per the renderer-isolation rule.
 
 ## Structure
 
@@ -63,7 +63,12 @@ src/renderer/
 │   │   │   └── Toast.tsx  # Toast queue UI; ToastProvider + ToastViewport
 │   │   ├── organisms
 │   │   │   ├── __tests__
+│   │   │   │   ├── RequestBar.ct.tsx  # Playwright CT: RequestBar keyboard shortcuts + method-chip fidelity
+│   │   │   │   ├── RequestBar.stories.tsx  # Storybook: RequestBar fixture components for CT
+│   │   │   │   ├── RequestBar.test.tsx  # Vitest: RequestBar store bindings + Send/Save guards
 │   │   │   │   └── TabBar.test.tsx  # Vitest: TabBar render/select/close + tabsStore integration
+│   │   │   ├── RequestBar.css  # RequestBar layout; method-chip color classes; action-button states
+│   │   │   ├── RequestBar.tsx  # Request submission bar; method Dropdown + URL input + Send/Save/Share; wired to tabsStore.updateActiveSpec/markClean
 │   │   │   ├── shell
 │   │   │   │   ├── __tests__
 │   │   │   │   │   ├── Shell.ct.tsx  # Playwright CT: Shell + sub-organism interaction
@@ -86,17 +91,18 @@ src/renderer/
 │   ├── lib
 │   │   ├── __tests__
 │   │   │   ├── icons-glue.test.ts  # Vitest: icon resolver fallback path
-│   │   │   ├── tabsStore.test.ts  # Vitest: tabsStore lifecycle actions + never-zero invariant
+│   │   │   ├── tabsStore.test.ts  # Vitest: tabsStore lifecycle actions + never-zero invariant + updateActiveSpec no-op guard
 │   │   │   └── toastStore.test.ts  # Vitest: toast store actions
 │   │   ├── cx.ts  # className merge util; drops falsy tokens
+│   │   ├── httpMethods.ts  # METHODS ordered tuple + HttpMethod union type; method SSOT for requestSpec, RequestBar, and Tabs
 │   │   ├── icons-glue.ts  # Safe icon-name resolver; never throws on unknown
-│   │   ├── requestSpec.ts  # RequestSpec domain model; Row/Auth types; isBearerAuth guard; makeBlankRequest factory
+│   │   ├── requestSpec.ts  # RequestSpec domain model; method typed as HttpMethod (not string); Row/Auth types; isBearerAuth guard; makeBlankRequest factory
 │   │   ├── settingsStore.ts  # Module-level zustand store: theme/accent/mstyle/sidebarWidth/paneRatio/sidebarCollapsed
-│   │   ├── tabsStore.ts  # Module-level zustand store: working-tabs lifecycle state machine (never-zero invariant)
+│   │   ├── tabsStore.ts  # Module-level zustand store: working-tabs lifecycle state machine (never-zero invariant); adds updateActiveSpec(patch) with no-op guard
 │   │   └── toastStore.ts  # Module-level zustand store for the toast queue
 │   ├── test-utils
 │   │   └── simulateDrag.ts  # Pointer-event drag helper for jsdom tests (works around jsdom's PointerEvent ctor gap)
-│   ├── App.tsx  # Root component; mounts Shell inside ToastProvider; dev-gated demo
+│   ├── App.tsx  # Root component; mounts Shell (tabs=TabBar, panes.request=RequestBar) inside ToastProvider
 │   ├── env.d.ts  # Vite/renderer ambient type declarations
 │   └── main.tsx  # React entry; mounts App into #root under StrictMode
 ├── styles

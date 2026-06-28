@@ -158,7 +158,7 @@ Keep changes minimal and reuse before building.
 - [extracted] Shared UI state lives in module-level zustand stores (toastStore, settingsStore, tabsStore) — one instance each
 - [extracted] Mutate state only through store actions
 - [extracted] Shell view state (theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed) lives exclusively in settingsStore — Shell.tsx is the sole writer of the matching document.documentElement attrs/vars
-- [extracted] Working-tabs lifecycle (open, dedupe, close, dirty) lives exclusively in tabsStore — TabBar.tsx is the sole subscriber wiring store actions to the Tabs molecule
+- [extracted] Working-tabs lifecycle (open, dedupe, close, dirty) lives exclusively in tabsStore — TabBar.tsx is the lifecycle subscriber (wiring open/dedupe/close/select actions to the Tabs molecule); RequestBar.tsx is the spec-edit subscriber (reading the active tab's spec and writing method+url via updateActiveSpec); TabBar's runtime behavior is unchanged
 - [extracted] Compose conditional class tokens with cx() (falsy-filtering merge)
 - [extracted] Resolve icon names through resolveIcon — total, never throws, returns a fallback entry
 

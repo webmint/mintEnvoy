@@ -460,6 +460,125 @@ describe('selectActive (AC-21)', () => {
 })
 
 // ---------------------------------------------------------------------------
+// updateActiveSpec (AC-9, AC-10, AC-23)
+// ---------------------------------------------------------------------------
+
+describe('updateActiveSpec (AC-9, AC-10)', () => {
+  it('dirty-on-change: merges patch into active spec and sets dirty=true when a value changes', () => {
+    tabsStore.setState({
+      tabs: [makeTab(INITIAL_ID, { url: 'https://old.example.com' })],
+      activeTabId: INITIAL_ID
+    })
+
+    tabsStore.getState().updateActiveSpec({ url: 'x' })
+
+    const { tabs } = tabsStore.getState()
+    const tab = tabs.find((t) => t.id === INITIAL_ID)!
+    expect(tab.spec.url).toBe('x')
+    expect(tab.dirty).toBe(true)
+  })
+
+  it('no-op-no-flip: does not set dirty when every patched key equals the current value', () => {
+    // makeTab defaults to method: 'GET' via makeBlankRequest
+    tabsStore.setState({
+      tabs: [makeTab(INITIAL_ID)],
+      activeTabId: INITIAL_ID
+    })
+
+    tabsStore.getState().updateActiveSpec({ method: 'GET' })
+
+    const { tabs } = tabsStore.getState()
+    const tab = tabs.find((t) => t.id === INITIAL_ID)!
+    expect(tab.dirty).toBe(false)
+  })
+
+  it('per-tab isolation: only the active tab is updated; non-active tab spec + dirty are untouched', () => {
+    const OTHER_ID = 'other-tab-id'
+    tabsStore.setState({
+      tabs: [
+        makeTab(INITIAL_ID, { url: '' }),
+        makeTab(OTHER_ID, { url: 'https://other.example.com' }, { dirty: false })
+      ],
+      activeTabId: INITIAL_ID
+    })
+
+    tabsStore.getState().updateActiveSpec({ url: 'changed' })
+
+    const { tabs } = tabsStore.getState()
+    const activeTab = tabs.find((t) => t.id === INITIAL_ID)!
+    const otherTab = tabs.find((t) => t.id === OTHER_ID)!
+
+    expect(activeTab.spec.url).toBe('changed')
+    expect(activeTab.dirty).toBe(true)
+    expect(otherTab.spec.url).toBe('https://other.example.com')
+    expect(otherTab.dirty).toBe(false)
+  })
+
+  it('mixed-key patch: one changed + one already-equal key → dirty=true (no-op guard uses .every(), not .some())', () => {
+    // method is 'GET' (default); url differs → patch is NOT all-equal → must set dirty
+    tabsStore.setState({
+      tabs: [makeTab(INITIAL_ID, { method: 'GET', url: 'old' })],
+      activeTabId: INITIAL_ID
+    })
+
+    tabsStore.getState().updateActiveSpec({ url: 'new', method: 'GET' })
+
+    const { tabs } = tabsStore.getState()
+    const tab = tabs.find((t) => t.id === INITIAL_ID)!
+    expect(tab.spec.url).toBe('new')
+    expect(tab.spec.method).toBe('GET')
+    expect(tab.dirty).toBe(true)
+  })
+
+  it('non-patched-field preservation: fields absent from the patch retain their prior value', () => {
+    // Seed with a distinctive method and name; patch only url
+    tabsStore.setState({
+      tabs: [makeTab(INITIAL_ID, { method: 'POST', url: '', name: 'my-request' })],
+      activeTabId: INITIAL_ID
+    })
+
+    tabsStore.getState().updateActiveSpec({ url: 'x' })
+
+    const { tabs } = tabsStore.getState()
+    const tab = tabs.find((t) => t.id === INITIAL_ID)!
+    // Patched field updated
+    expect(tab.spec.url).toBe('x')
+    // Non-patched fields must be unchanged (merge is {...spec, ...patch}, not reversed)
+    expect(tab.spec.method).toBe('POST')
+    expect(tab.spec.name).toBe('my-request')
+  })
+
+  it('unknown-active-tab no-op: does not throw and leaves tabs unchanged when activeTabId has no match', () => {
+    const tabs = [makeTab('tab-a'), makeTab('tab-b')]
+    tabsStore.setState({ tabs, activeTabId: 'ghost-id' })
+
+    expect(() => tabsStore.getState().updateActiveSpec({ url: 'x' })).not.toThrow()
+
+    const { tabs: afterTabs } = tabsStore.getState()
+    expect(afterTabs).toHaveLength(2)
+    expect(afterTabs.find((t) => t.id === 'tab-a')!.spec.url).toBe(
+      tabs.find((t) => t.id === 'tab-a')!.spec.url
+    )
+    expect(afterTabs.find((t) => t.id === 'tab-b')!.spec.url).toBe(
+      tabs.find((t) => t.id === 'tab-b')!.spec.url
+    )
+  })
+
+  it('empty patch: updateActiveSpec({}) on a clean tab leaves dirty===false', () => {
+    tabsStore.setState({
+      tabs: [makeTab(INITIAL_ID)],
+      activeTabId: INITIAL_ID
+    })
+
+    tabsStore.getState().updateActiveSpec({})
+
+    const { tabs } = tabsStore.getState()
+    const tab = tabs.find((t) => t.id === INITIAL_ID)!
+    expect(tab.dirty).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Serialization contract — Risk-3 (Q-2)
 // ---------------------------------------------------------------------------
 

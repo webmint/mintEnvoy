@@ -19,6 +19,8 @@
  *   }
  */
 
+import type { HttpMethod } from './httpMethods'
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -66,8 +68,8 @@ export type Auth = NoneAuth | BearerAuth
  * round-trip safe: `JSON.parse(JSON.stringify(spec))` deep-equals `spec`.
  */
 export interface RequestSpec {
-  /** HTTP method (e.g. `'GET'`, `'POST'`). */
-  method: string
+  /** HTTP method; one of the values in `METHODS` from `httpMethods.ts`. */
+  method: HttpMethod
   /** Request URL; stored verbatim (un-interpolated template). */
   url: string
   /** Display name shown in the tab strip; may be empty. */

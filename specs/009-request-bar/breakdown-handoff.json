@@ -1,0 +1,212 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/009-request-bar/tasks",
+  "breakdown_completed_at": "2026-06-28T09:26:12Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/009-request-bar/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/009-request-bar/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/009-request-bar/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "add-httpmethods-source-and-retype-method",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "002",
+        "004"
+      ],
+      "touched_files": [
+        "src/renderer/src/lib/httpMethods.ts",
+        "src/renderer/src/lib/requestSpec.ts"
+      ],
+      "expects": [
+        "`src/renderer/src/lib/requestSpec.ts` exports `interface RequestSpec` whose `method` field is typed `string`.",
+        "No `HttpMethod` type and no `METHODS` constant exist anywhere in `src/renderer/`."
+      ],
+      "produces": [
+        "`src/renderer/src/lib/httpMethods.ts` exports a `METHODS` const containing the 7 methods and a `HttpMethod` type.",
+        "`src/renderer/src/lib/requestSpec.ts` imports `HttpMethod` from httpMethods and `RequestSpec.method` is typed `HttpMethod`.",
+        "`makeBlankRequest` still returns a spec whose `method` is `'GET'`."
+      ],
+      "ac_addressed": [
+        "AC-2",
+        "AC-5",
+        "AC-22",
+        "AC-23",
+        "AC-29"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "002",
+      "title": "add-tabsstore-updateactivespec-action",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [
+        "004"
+      ],
+      "touched_files": [
+        "src/renderer/src/lib/tabsStore.ts",
+        "src/renderer/src/lib/__tests__/tabsStore.test.ts"
+      ],
+      "expects": [
+        "`tabsStore` exposes `tabs: Tab[]`, `activeTabId: string`, and `markClean(tabId)` (existing state \u2014 spec \u00a72).",
+        "`RequestSpec` type is importable from `./requestSpec`."
+      ],
+      "produces": [
+        "`TabsState` declares `updateActiveSpec(patch: Partial<RequestSpec>): void`.",
+        "`updateActiveSpec` sets the active tab `dirty=true` on a value-changing patch and leaves `dirty` unchanged on a no-op patch.",
+        "`tabsStore.test.ts` contains assertions for dirty-on-change, no-op-no-flip, and per-tab isolation."
+      ],
+      "ac_addressed": [
+        "AC-4",
+        "AC-9",
+        "AC-10",
+        "AC-23",
+        "AC-30"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "003",
+      "title": "amend-constitution-sole-subscriber-rule",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "004"
+      ],
+      "touched_files": [
+        "constitution.md"
+      ],
+      "expects": [
+        "`constitution.md` \u00a74 / \u00a75.2 contain the phrase naming `TabBar.tsx` as the sole subscriber of tabsStore."
+      ],
+      "produces": [
+        "`constitution.md` no longer asserts TabBar is the *sole* tabsStore subscriber; it records RequestBar as the spec-edit subscriber."
+      ],
+      "ac_addressed": [
+        "AC-24"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "004",
+      "title": "build-requestbar-organism",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001",
+        "002",
+        "003"
+      ],
+      "blocks": [
+        "005",
+        "006"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/RequestBar.tsx",
+        "src/renderer/src/components/organisms/RequestBar.css",
+        "src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx"
+      ],
+      "expects": [
+        "`METHODS` + `HttpMethod` exported from `lib/httpMethods` (task 001).",
+        "`tabsStore.updateActiveSpec(patch)` exists (task 002); `tabsStore.markClean(tabId)` exists (pre-existing state).",
+        "constitution \u00a74 admits a spec-edit subscriber (task 003).",
+        "`Dropdown` (controlled, `open`/`onOpenChange`/`trigger`/`items`) + `Icon` atom + `cx` + `tokens.css` exist."
+      ],
+      "produces": [
+        "`src/renderer/src/components/organisms/RequestBar.tsx` exports `RequestBar` with an `onSend?` prop typed against `HttpMethod` + primitives (no `requestSpec` import).",
+        "RequestBar writes method/url only through `updateActiveSpec` and Save only through `markClean`.",
+        "`RequestBar.css` exists with token-bound classes and no inline styles in the tsx.",
+        "`RequestBar.test.tsx` covers trim guard, method-switch independence, Save dirty/no-op, per-tab isolation."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-3",
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-11",
+        "AC-12",
+        "AC-13",
+        "AC-14",
+        "AC-15",
+        "AC-16",
+        "AC-17",
+        "AC-18",
+        "AC-19",
+        "AC-20",
+        "AC-23",
+        "AC-28",
+        "AC-29",
+        "AC-30"
+      ],
+      "doc_refs": [
+        "docs/architecture.md"
+      ],
+      "review_checkpoint": true
+    },
+    {
+      "number": "005",
+      "title": "add-requestbar-component-test",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "004"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx"
+      ],
+      "expects": [
+        "`RequestBar` is exported from `src/renderer/src/components/organisms/RequestBar.tsx` (task 004) with its `onSend` prop."
+      ],
+      "produces": [
+        "`RequestBar.ct.tsx` exists and exercises layout, disabled Send, \u2318\u21b5/\u2318S, method-dropdown dismiss (two-step gate), and per-tab isolation."
+      ],
+      "ac_addressed": [
+        "AC-30"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "006",
+      "title": "mount-requestbar-in-app-request-pane",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "004"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/App.tsx"
+      ],
+      "expects": [
+        "`RequestBar` is exported from `src/renderer/src/components/organisms/RequestBar.tsx` (task 004).",
+        "`App.tsx` renders `<Shell tabs={<TabBar />} />` and `Shell` accepts a `panes` prop with a `request` slot (existing \u2014 `ShellPanes`)."
+      ],
+      "produces": [
+        "`App.tsx` renders `<Shell ... panes={{ request: <RequestBar ... /> }} />`, mounting RequestBar into the request pane."
+      ],
+      "ac_addressed": [
+        "AC-21",
+        "AC-25",
+        "AC-26",
+        "AC-27"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    }
+  ],
+  "additions": [
+    "None \u2014 every task file traces to a plan File Impact row. The plan's Documentation Impact rows (docs/renderer/index.md, docs/architecture.md) are deliberately NOT breakdown tasks; they are `/finalize` tech-writer work."
+  ],
+  "dependency_graph": "001 (httpMethods source + retype method) \u2500\u2500\u2192 002 (tabsStore updateActiveSpec) \u2500\u2500\u2510\n003 (amend constitution \u00a74) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n001 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n                                                                                 \u251c\u2500\u2192 004 (RequestBar organism) \u2500\u2500\u2192 005 (RequestBar CT)\n                                                                                 \u2502                              \u2514\u2500\u2192 006 (mount in App)"
+}

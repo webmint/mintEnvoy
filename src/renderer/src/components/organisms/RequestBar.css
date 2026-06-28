@@ -1,0 +1,323 @@
+/*
+ * RequestBar.css — Semantic styles for the RequestBar organism component.
+ *
+ * All values are bound to design tokens from tokens.css (--bg, --bg-elev,
+ * --bg-hover, --bg-active, --bg-sunken, --border, --text, --text-muted,
+ * --text-inverse, --accent, --radius-sm, --radius, --fs-base, --fs-sm,
+ * --font-mono, --font-sans, --shadow-sm).
+ *
+ * No inline styles are permitted in RequestBar.tsx (AC-28, constitution §4).
+ *
+ * ## Layout
+ *
+ * `.request-bar` is a flex row: [method button][url input (flex:1)][actions].
+ * The method button and action group are flex-shrink:0 so they never reflow
+ * with URL input length (AC-20). The URL input has min-width:0 + flex:1 so it
+ * fills remaining space and scrolls horizontally on overflow (native browser
+ * behaviour for type="text").
+ *
+ * ## Method button
+ *
+ * The trigger button carries `.method` and the method-name class (e.g. `.GET`)
+ * so tokens.css [data-mstyle] rules apply the correct chip color. The structural
+ * overrides in `.request-bar__method.method` use specificity 0,2,0 which wins
+ * over `[data-mstyle] .method` (0,1,1) for layout properties, while the color
+ * rules from `[data-mstyle] .method.GET` (0,2,1) still win for background/color.
+ *
+ * ## Motion
+ *
+ * Transitions are gated behind `@media (prefers-reduced-motion: reduce)`
+ * following the same pattern used in Tabs.css, TabBar.css, and Dropdown.css.
+ *
+ * Token names referenced: --bg, --bg-sunken, --bg-hover, --bg-active, --bg-elev,
+ * --border, --text, --text-muted, --text-inverse, --accent, --radius-sm, --radius,
+ * --fs-base, --fs-sm, --font-mono, --font-sans, --shadow-sm.
+ */
+
+/* ---------------------------------------------------------------------------
+ * Root bar (.request-bar)
+ *
+ * Flex row containing the method selector, URL input, and action buttons.
+ * Bottom border separates the bar from the request body pane below.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Request bar wrapper.
+ * Flex row layout; method + actions are shrink:0 so only the URL input grows.
+ */
+.request-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--bg-sunken, #f4f3f1);
+  border-bottom: 1px solid var(--border, #e8e6e3);
+  /* Prevent the bar from growing taller than its content */
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Method selector button (.request-bar__method)
+ *
+ * The trigger button carries `.method` and the method-name class (from tokens.css).
+ * `.request-bar__method.method` (specificity 0,2,0) overrides chip sizing from
+ * `[data-mstyle] .method` (0,1,1) while the color rules from
+ * `[data-mstyle] .method.GET` etc. (0,2,1) still provide background + color.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Method selector trigger button.
+ * Overrides [data-mstyle] .method chip sizing to fit the request bar row.
+ * Does NOT set background or color — those come from [data-mstyle] .method.X rules.
+ */
+.request-bar__method.method {
+  /* Reset browser button defaults */
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--font-mono, monospace);
+
+  /* Override chip sizing from [data-mstyle] .method (specificity win: 0,2,0 > 0,1,1) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 7px;
+  height: 24px;
+  min-width: unset;
+  font-size: var(--fs-sm, 10.5px);
+  letter-spacing: 0.05em;
+  border-radius: var(--radius-sm, 5px);
+
+  /* Prevent method button from growing with URL length (AC-20) */
+  flex-shrink: 0;
+
+  transition: opacity 80ms ease;
+}
+
+/* Hover: subtle opacity reduction — method chip color handles the tint */
+.request-bar__method.method:hover {
+  opacity: 0.8;
+}
+
+/* Focus-visible ring — keyboard navigation signal */
+.request-bar__method.method:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: 2px;
+}
+
+/* Pressed state */
+.request-bar__method.method:active {
+  opacity: 0.65;
+}
+
+/* ---------------------------------------------------------------------------
+ * URL input (.request-bar__url)
+ *
+ * Fills all remaining horizontal space via flex:1. min-width:0 prevents the
+ * input from overflowing its flex container. The native browser handles
+ * horizontal scrolling when content exceeds the input width (no extra CSS).
+ * ------------------------------------------------------------------------- */
+
+/**
+ * URL text input.
+ * Flex:1 with min-width:0 ensures horizontal scroll on overflow (AC-20).
+ */
+.request-bar__url {
+  /* Reset input defaults */
+  appearance: none;
+  border: 1px solid var(--border, #e8e6e3);
+  border-radius: var(--radius-sm, 5px);
+  background: var(--bg-elev, #ffffff);
+  color: var(--text, #18181b);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: var(--fs-base, 12.5px);
+  line-height: 1;
+  margin: 0;
+  padding: 0 8px;
+  height: 24px;
+
+  /* Fill all remaining space; min-width:0 allows the input to shrink below its
+     natural width so the URL scrolls horizontally rather than reflowing the bar. */
+  flex: 1 1 0;
+  min-width: 0;
+
+  /* Single-line — overflow scrolls natively */
+  white-space: nowrap;
+  overflow: hidden;
+
+  transition: border-color 80ms ease;
+}
+
+.request-bar__url::placeholder {
+  color: var(--text-faint, #a1a1aa);
+}
+
+/* Focus ring on URL input */
+.request-bar__url:focus {
+  outline: none;
+  border-color: var(--accent, #10b981);
+}
+
+/* ---------------------------------------------------------------------------
+ * Action buttons group (.request-bar__actions)
+ *
+ * Houses Send, Save, and Share in a row. flex-shrink:0 prevents the group from
+ * being squeezed by URL input growth (AC-20).
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Action buttons row — flex-shrink:0 so URL input growth doesn't push buttons out.
+ */
+.request-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Shared action button base styles
+ *
+ * Common reset and layout for Send, Save, and Share buttons.
+ * Individual buttons use their own class for color/variant styling.
+ * ------------------------------------------------------------------------- */
+
+.request-bar__send,
+.request-bar__save,
+.request-bar__share {
+  /* Reset browser button defaults */
+  appearance: none;
+  border: none;
+  margin: 0;
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: var(--fs-base, 12.5px);
+  line-height: 1;
+
+  /* Grid-centered icon layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 8px;
+  height: 24px;
+  border-radius: var(--radius-sm, 5px);
+
+  transition:
+    background-color 80ms ease,
+    color 80ms ease,
+    opacity 80ms ease;
+}
+
+/* ---------------------------------------------------------------------------
+ * Send button (.request-bar__send)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Send button — accent fill; disabled when URL is empty.
+ */
+.request-bar__send {
+  background: var(--accent, #10b981);
+  color: var(--text-inverse, #ffffff);
+  font-weight: 500;
+}
+
+.request-bar__send:hover:not(:disabled) {
+  background: var(--accent-hover, color-mix(in oklab, var(--accent) 88%, black));
+}
+
+.request-bar__send:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: 2px;
+}
+
+.request-bar__send:active:not(:disabled) {
+  opacity: 0.85;
+}
+
+/* Disabled state — muted when no URL is present */
+.request-bar__send:disabled {
+  background: var(--bg-active, #e8e6e3);
+  color: var(--text-muted, #71717a);
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------------------
+ * Save button (.request-bar__save, .request-bar__save--dirty)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Save button — muted at rest, highlighted when dirty.
+ */
+.request-bar__save {
+  background: none;
+  color: var(--text-muted, #71717a);
+}
+
+.request-bar__save:hover {
+  background: var(--bg-hover, #f0efed);
+  color: var(--text, #18181b);
+}
+
+.request-bar__save:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: 2px;
+}
+
+.request-bar__save:active {
+  background: var(--bg-active, #e8e6e3);
+}
+
+/** Dirty variant — elevated color to signal unsaved changes. */
+.request-bar__save--dirty {
+  color: var(--accent, #10b981);
+}
+
+.request-bar__save--dirty:hover {
+  background: var(--accent-soft, color-mix(in oklab, var(--accent) 14%, transparent));
+  color: var(--accent, #10b981);
+}
+
+/* ---------------------------------------------------------------------------
+ * Share button (.request-bar__share)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Share button — disabled stub; muted and non-interactive.
+ */
+.request-bar__share {
+  background: none;
+  color: var(--text-faint, #a1a1aa);
+  cursor: not-allowed;
+}
+
+/* Disabled share button stays muted on hover */
+.request-bar__share:hover {
+  background: none;
+  color: var(--text-faint, #a1a1aa);
+}
+
+.request-bar__share:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Reduced-motion guard
+ *
+ * Suppresses all transitions for users who prefer reduced motion.
+ * Mirrors the pattern used in Tabs.css, TabBar.css, and Dropdown.css.
+ * ------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .request-bar__method.method,
+  .request-bar__url,
+  .request-bar__send,
+  .request-bar__save,
+  .request-bar__share {
+    transition: none;
+  }
+}
