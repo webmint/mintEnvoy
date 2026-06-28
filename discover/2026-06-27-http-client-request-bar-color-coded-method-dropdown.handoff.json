@@ -338,7 +338,10 @@
       "verify_cost": "Med"
     },
     "recommended_option_id": "A",
-    "recommended_option_rationale": "Extends the existing internal:src/renderer/src/lib/tabsStore.ts store \u2014 which currently covers active-tab read + markClean but NOT spec-edit/dirty-set \u2014 with one generic updateActiveSpec(patch) mutator. This is the minimal, KISS/DRY-aligned closure of the only real gap: it keeps all mutation behind a store action (\u00a74), centralizes the dirty-set, scales to later request fields without new actions, and lets RequestBar stay a thin reactive consumer mirroring the TabBar selector pattern. Tradeoff accepted: a small key-allow-list guard on the patch to preserve type safety at the boundary."
+    "recommended_option_rationale": "Extends the existing internal:src/renderer/src/lib/tabsStore.ts store \u2014 which currently covers active-tab read + markClean but NOT spec-edit/dirty-set \u2014 with one generic updateActiveSpec(patch) mutator. This is the minimal, KISS/DRY-aligned closure of the only real gap: it keeps all mutation behind a store action (\u00a74), centralizes the dirty-set, scales to later request fields without new actions, and lets RequestBar stay a thin reactive consumer mirroring the TabBar selector pattern. Tradeoff accepted: a small key-allow-list guard on the patch to preserve type safety at the boundary.",
+    "_effort_estimate": "Medium",
+    "_overall_fit": "Good",
+    "_derisk_count": 3
   },
   "discovery_block": {
     "overall_fit": "Good",
@@ -451,7 +454,7 @@
     ]
   },
   "downstream_links": {
-    "spec_path": null,
+    "spec_path": "specs/009-http-client-request-bar-color-coded-method-dropdown/spec.md",
     "plan_path": null,
     "execute_task_commit_shas": []
   },

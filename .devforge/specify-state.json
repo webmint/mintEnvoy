@@ -1,54 +1,99 @@
 {
   "topic": null,
   "topic_slug": null,
-  "date": "2026-06-27",
-  "spec_number": "008",
-  "feature_name": "dropdown-ct-dismiss",
-  "feature_slug": "dropdown-ct-dismiss",
-  "spec_type": "bug_fix",
-  "spec_type_rationale": "pre-seeded from research handoff at research/2026-06-27-003-dropdown-ct-click/handoff.json",
-  "spec_type_seeded_by_upstream": true,
+  "date": "2026-06-28",
+  "spec_number": "009",
+  "feature_name": "request-bar",
+  "feature_slug": "request-bar",
+  "spec_type": "feature_addition",
+  "spec_type_rationale": "RequestBar is one new organism bolted onto 5 accepted specs (001/002/003/004/005) + 006 placement rule; the real risk is integration correctness, not net-new scaffolding.",
+  "spec_type_seeded_by_upstream": false,
   "status": "Draft",
   "design_source": "none",
-  "current_branch": "main",
+  "current_branch": "spec/009-request-bar",
   "default_branch": "main",
-  "branch_decision": "create",
-  "branch_created": true,
+  "branch_decision": "keep",
+  "branch_created": false,
   "input_reads": [
     {
       "path": "constitution.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-27T17:23:57Z"
-    },
-    {
-      "path": "CLAUDE.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-27T17:23:57Z"
+      "read_timestamp": "2026-06-28T08:18:23Z"
     },
     {
       "path": ".claude/memory/MEMORY.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-27T17:23:57Z"
+      "read_timestamp": "2026-06-28T08:18:23Z"
+    },
+    {
+      "path": "CLAUDE.md",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-28T08:18:23Z"
     },
     {
       "path": "docs/architecture.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-27T17:23:57Z"
+      "read_timestamp": "2026-06-28T08:18:23Z"
     },
     {
       "path": "docs/renderer/index.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-27T17:23:57Z"
+      "read_timestamp": "2026-06-28T08:18:23Z"
     },
     {
-      "path": "docs/glossary.md",
+      "path": "discover/2026-06-27-http-client-request-bar-color-coded-method-dropdown.md",
+      "source_origin": "discover",
+      "read_timestamp": "2026-06-28T08:18:23Z"
+    },
+    {
+      "path": "specs/004-working-tabs-state-machine/spec.md",
+      "source_origin": "prior_spec",
+      "read_timestamp": "2026-06-28T08:18:23Z"
+    },
+    {
+      "path": "specs/001-ui-primitives/spec.md",
+      "source_origin": "prior_spec",
+      "read_timestamp": "2026-06-28T08:18:23Z"
+    },
+    {
+      "path": "specs/005-tab-bar-visual-fidelity/spec.md",
+      "source_origin": "prior_spec",
+      "read_timestamp": "2026-06-28T08:18:23Z"
+    },
+    {
+      "path": "src/renderer/src/lib/requestSpec.ts",
       "source_origin": "context",
-      "read_timestamp": "2026-06-27T17:23:57Z"
+      "read_timestamp": "2026-06-28T08:18:24Z"
     },
     {
-      "path": "research/2026-06-27-003-dropdown-ct-click.md",
-      "source_origin": "research",
-      "read_timestamp": "2026-06-27T17:23:57Z"
+      "path": "src/renderer/src/lib/tabsStore.ts",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-28T08:18:24Z"
+    },
+    {
+      "path": "src/renderer/src/components/molecules/Dropdown.tsx",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-28T08:18:24Z"
+    },
+    {
+      "path": "src/renderer/src/components/organisms/shell/Shell.tsx",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-28T08:18:24Z"
+    },
+    {
+      "path": "src/renderer/src/App.tsx",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-28T08:18:24Z"
+    },
+    {
+      "path": "src/renderer/src/components/organisms/TabBar.tsx",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-28T08:18:24Z"
+    },
+    {
+      "path": "src/renderer/src/components/organisms/__tests__/TabBar.test.tsx",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-28T08:18:24Z"
     }
   ],
   "phase1_finalized": true,
@@ -56,221 +101,425 @@
     {
       "finding_id": "F-constitution-1",
       "source_path": "constitution.md",
-      "source_section": "\u00a73.4 Testing",
-      "content": "Co-located tests under __tests__/: .test.tsx (Vitest) + .ct.tsx (Playwright CT). Tests must cover the acceptance criteria including edge/error paths.",
-      "landed_in": "AC",
-      "landed_ref": "AC-2"
+      "source_section": "\u00a72.2 placement",
+      "content": "Single-domain organisms live in organisms/<domain>/ but the subfolder is created ONLY at >=2 components; TabBar/Sidebar are flat singletons \u2014 RequestBar stays flat organisms/RequestBar.tsx. No barrel/index; downward-only imports; no sibling-organism import.",
+      "landed_in": "OOS",
+      "landed_ref": "OOS-6"
     },
     {
       "finding_id": "F-constitution-2",
       "source_path": "constitution.md",
-      "source_section": "\u00a73.6 / \u00a76.3 Search before building",
-      "content": "Reuse an existing utility/component before writing anything generic. The fix must reuse an existing CT convention, not invent new test machinery.",
+      "source_section": "\u00a72.2/\u00a75.2 requestSpec",
+      "content": "requestSpec is a pure data module with NO component imports \u2014 RequestBar must not import it; method list/type must reach RequestBar another way.",
       "landed_in": "Constraint",
-      "landed_ref": "Constraint-4"
+      "landed_ref": "Constraint-2"
     },
     {
       "finding_id": "F-constitution-3",
       "source_path": "constitution.md",
-      "source_section": "\u00a76.1 Minimal Changes",
-      "content": "Every change impacts as little code as possible; never 'fix' unrelated code. Confines the fix to the failing specs.",
+      "source_section": "\u00a74 state",
+      "content": "Mutate zustand state ONLY via store actions; tabsStore owns tab lifecycle and 'TabBar.tsx is the sole subscriber' \u2014 RequestBar's write goes through a NEW tabsStore action and RequestBar becomes a 2nd subscriber (rule wording updated).",
       "landed_in": "AC",
-      "landed_ref": "AC-7"
+      "landed_ref": "AC-24"
     },
     {
       "finding_id": "F-constitution-4",
       "source_path": "constitution.md",
-      "source_section": "\u00a74 Patterns / Prefer wrapping Radix",
-      "content": "Dropdown wraps Radix DropdownMenu; click-outside dismissal is Radix-owned. The fix stays at the test layer, not Radix internals.",
-      "landed_in": "OOS",
-      "landed_ref": ""
-    },
-    {
-      "finding_id": "F-claude-1",
-      "source_path": "CLAUDE.md",
-      "source_section": "Type Check Command",
-      "content": "Type-check: npm run typecheck:node && npm run typecheck:web \u2014 verification command for a hygiene AC.",
+      "source_section": "\u00a74/\u00a73.3/\u00a73.4/\u00a72.1/\u00a72.3",
+      "content": "Never inline styles (cx + tokens.css, reduced-motion gating); components PascalCase one-per-file + sibling .css; co-located __tests__ split .test.tsx/.ct.tsx; renderer-only no Node/Electron; @renderer alias.",
       "landed_in": "AC",
-      "landed_ref": "AC-6"
-    },
-    {
-      "finding_id": "F-claude-2",
-      "source_path": "CLAUDE.md",
-      "source_section": "Lint Command",
-      "content": "Lint: eslint --cache . \u2014 verification command for a hygiene AC; must pass on changed files before task completion.",
-      "landed_in": "AC",
-      "landed_ref": "AC-6"
-    },
-    {
-      "finding_id": "F-claude-3",
-      "source_path": "CLAUDE.md",
-      "source_section": "Verification (scope-aware)",
-      "content": "Verification runs at task boundaries (no per-edit hooks); CT/unit suites are the mechanical gate.",
-      "landed_in": "AC",
-      "landed_ref": "AC-8"
+      "landed_ref": "AC-28"
     },
     {
       "finding_id": "F-memory-1",
       "source_path": ".claude/memory/MEMORY.md",
-      "source_section": "ct-radix-dismiss-arm-race",
-      "content": "Radix overlay click-outside CT tests must wait for overlay readiness before page.mouse.click; DismissableLayer arms its pointerdown listener via setTimeout(0), so an immediate outside click races the arm. Avoid bare waitForTimeout magic numbers; open-at-mount (Modal CT) or await a real readiness signal.",
+      "source_section": "CT fidelity fixture scoping",
+      "content": "Playwright CT fidelity fixtures must reproduce the full styling context (import tokens.css, set data-mstyle on host, reproduce production className scope) or computed-style assertions diverge from production.",
       "landed_in": "AC",
-      "landed_ref": "AC-5"
+      "landed_ref": "AC-30"
     },
     {
       "finding_id": "F-memory-2",
       "source_path": ".claude/memory/MEMORY.md",
-      "source_section": "ct-fidelity-fixture-scoping",
-      "content": "Playwright CT tests must reproduce the full context (tokens.css import, production className scope) \u2014 keep fixtures faithful when editing CT specs.",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-5"
+      "source_section": "CT Radix dismiss arm-race",
+      "content": "Radix overlay click-outside CT must wait for overlay readiness before page.mouse.click (DismissableLayer arms pointerdown via setTimeout(0)); the method-Dropdown dismiss CT must apply the two-step gate (await animations + yield setTimeout(0)).",
+      "landed_in": "AC",
+      "landed_ref": "AC-30"
     },
     {
       "finding_id": "F-memory-3",
       "source_path": ".claude/memory/MEMORY.md",
-      "source_section": "scope confirmation",
-      "content": "Memory confirms bug 003 is test-only / not a production defect \u2014 fix scope is the spec layer, production Dropdown behavior unchanged.",
+      "source_section": "method-pill data-mstyle dependency",
+      "content": ".method/.{METHOD} colors resolve against [data-mstyle] on an ancestor; a CT mounting the method pill in isolation must set data-mstyle on the host or the pill renders uncolored (fidelity false-negative).",
       "landed_in": "AC",
-      "landed_ref": "AC-1"
+      "landed_ref": "AC-30"
+    },
+    {
+      "finding_id": "F-claude-1",
+      "source_path": "CLAUDE.md",
+      "source_section": "verification commands",
+      "content": "typecheck = npm run typecheck:node && npm run typecheck:web; lint = npm run lint (eslint --cache .); build = npm run build (typecheck && electron-vite build); unit = vitest; CT = playwright test.",
+      "landed_in": "AC",
+      "landed_ref": "AC-25"
+    },
+    {
+      "finding_id": "F-claude-2",
+      "source_path": "CLAUDE.md",
+      "source_section": "atomic structure",
+      "content": "Renderer atomic tiers atoms/molecules/organisms; UI state in zustand; React 19 renderer process; spec-driven gates.",
+      "landed_in": "AC",
+      "landed_ref": "AC-23"
+    },
+    {
+      "finding_id": "F-claude-3",
+      "source_path": "CLAUDE.md",
+      "source_section": "key rules",
+      "content": "Search before building (reuse existing utilities/components); minimal changes; document new code; lint passes on changed files; handle success+error paths.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-6"
     },
     {
       "finding_id": "F-architecture-1",
       "source_path": "docs/architecture.md",
-      "source_section": "Testing / Renderer Test Stack",
-      "content": "CT command: playwright test -c playwright.config.ts (@playwright/experimental-ct-react), real-browser focus/keyboard fidelity \u2014 the verification command for the CT ACs.",
-      "landed_in": "AC",
-      "landed_ref": "AC-3"
+      "source_section": "organisms flat",
+      "content": "organisms are FLAT (Sidebar, TabBar) with only shell/ nested; downward-only deps; @renderer alias; no sibling-tier imports.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-1"
     },
     {
       "finding_id": "F-architecture-2",
       "source_path": "docs/architecture.md",
-      "source_section": "Overlay substrate",
-      "content": "Radix unified package owns focus-trap, keyboard nav, and positioning (incl. dismissal) for Dropdown/Modal/Toast \u2014 dismissal is Radix-owned; the fix is test-layer.",
+      "source_section": "tabsStore pattern",
+      "content": "tabsStore owns tabs[]/activeTabId + lifecycle (openFromCollection/newBlank/close/selectActive/markClean); TabBar sole subscriber; requestSpec is a pure data module (types + makeBlankRequest).",
       "landed_in": "AC",
-      "landed_ref": "AC-1"
+      "landed_ref": "AC-9"
     },
     {
       "finding_id": "F-architecture-3",
       "source_path": "docs/architecture.md",
-      "source_section": "Molecules wrap Radix",
-      "content": "Dropdown wraps Radix DropdownMenu, Modal wraps Radix Dialog; Modal CT is the sibling overlay test on the same substrate (canonical readiness pattern to reuse).",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-4"
+      "source_section": "Radix CT hazard",
+      "content": "Radix DismissableLayer defers pointerdown via setTimeout(0); CT outside-click before that macrotask misses the listener \u2014 two-step gate required (await animations + yield setTimeout(0)).",
+      "landed_in": "AC",
+      "landed_ref": "AC-30"
+    },
+    {
+      "finding_id": "F-architecture-4",
+      "source_path": "docs/architecture.md",
+      "source_section": "Shell data-mstyle + mount",
+      "content": "Shell.tsx is the sole writer of data-mstyle on <html> (recolors .method at runtime); Shell exposes a panes.request slot forwarded to PaneSplit; global \u2318B shortcut uses document keydown + preventDefault + getState (Effect 4).",
+      "landed_in": "AC",
+      "landed_ref": "AC-6"
     },
     {
       "finding_id": "F-index-1",
       "source_path": "docs/renderer/index.md",
-      "source_section": "molecules/__tests__",
-      "content": "Dropdown.ct.tsx is the failing CT; Modal.ct.tsx and nested-overlays.ct.tsx are sibling overlay CTs that must not regress.",
+      "source_section": "mount chain",
+      "content": "main.tsx mounts App; App.tsx mounts Shell inside ToastProvider; organisms flat (TabBar.tsx/Sidebar.tsx) + shell/ subdir.",
       "landed_in": "AC",
-      "landed_ref": "AC-2"
+      "landed_ref": ""
     },
     {
       "finding_id": "F-index-2",
       "source_path": "docs/renderer/index.md",
-      "source_section": "molecules",
-      "content": "Dropdown.tsx = controlled dropdown over Radix DropdownMenu; Dropdown.stories.tsx holds the CT fixtures (DropdownFixture) \u2014 the fix touches test/fixture files only, no production component.",
-      "landed_in": "OOS",
-      "landed_ref": "OOS-1"
+      "source_section": "requestSpec model",
+      "content": "requestSpec.ts exports RequestSpec, Row, Auth union, isBearerAuth, makeBlankRequest \u2014 pure data module in lib/.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-2"
     },
     {
       "finding_id": "F-index-3",
       "source_path": "docs/renderer/index.md",
-      "source_section": "test split",
-      "content": "Tests split: .test.tsx (Vitest, jsdom) vs .ct.tsx (Playwright CT, Chromium) \u2014 the click-outside behavior is CT-only (needs a real browser).",
+      "source_section": "tokens",
+      "content": "styles/tokens.css holds design tokens as CSS vars; per-component sibling .css; no inline styles.",
       "landed_in": "AC",
-      "landed_ref": "AC-4"
+      "landed_ref": "AC-28"
     },
     {
-      "finding_id": "F-2026-06-27-003-dropdown-ct-click-1",
-      "source_path": "research/2026-06-27-003-dropdown-ct-click.md",
-      "source_section": "Root cause",
-      "content": "Setup-timing race: page.mouse.click(corner) fires before Radix DismissableLayer arms its document pointerdown listener (attached via setTimeout(0), index.mjs:265, during the 140ms entry animation). Proven: SETTLE=0 -> 0/5 dismiss, SETTLE=100ms -> 5/5.",
+      "finding_id": "F-2026-06-27-http-client-request-bar-color-coded-method-dropdown-1",
+      "source_path": "discover/2026-06-27-http-client-request-bar-color-coded-method-dropdown.md",
+      "source_section": "recommended option",
+      "content": "Recommended: generic updateActiveSpec(patch: Partial<RequestSpec>) on tabsStore \u2014 shallow-merge into active tab spec + dirty=true; no-op patch (unchanged value) must NOT flip dirty.",
       "landed_in": "AC",
-      "landed_ref": "AC-3"
+      "landed_ref": "AC-9"
     },
     {
-      "finding_id": "F-2026-06-27-003-dropdown-ct-click-2",
-      "source_path": "research/2026-06-27-003-dropdown-ct-click.md",
-      "source_section": "Symptom",
-      "content": "Two CT tests fail: Dropdown.ct.tsx:185 (AC-4 dismiss on outside click) and :236 (AC-3 focus-return after click-outside, downstream). CT suite 125/127, these the sole failures.",
+      "finding_id": "F-2026-06-27-http-client-request-bar-color-coded-method-dropdown-2",
+      "source_path": "discover/2026-06-27-http-client-request-bar-color-coded-method-dropdown.md",
+      "source_section": "store gap",
+      "content": "tabsStore has markClean (clear dirty) but NO spec-edit/dirty-set action \u2014 the write path is the one real build gap.",
       "landed_in": "AC",
-      "landed_ref": "AC-3"
+      "landed_ref": "AC-14"
     },
     {
-      "finding_id": "F-2026-06-27-003-dropdown-ct-click-3",
-      "source_path": "research/2026-06-27-003-dropdown-ct-click.md",
-      "source_section": "Recommended approach",
-      "content": "Test-only fix: in both specs, after the menu is visible, await a concrete overlay-readiness signal (entry-animation completion) before the corner click; mirrors Modal CT open-at-mount (Modal.ct.tsx:127). Zero shipped code; both strict not.toBeVisible assertions kept verbatim.",
+      "finding_id": "F-2026-06-27-http-client-request-bar-color-coded-method-dropdown-3",
+      "source_path": "discover/2026-06-27-http-client-request-bar-color-coded-method-dropdown.md",
+      "source_section": "method reachability",
+      "content": "RequestBar needs the method list + RequestSpec type WITHOUT a component->requestSpec import (\u00a75.2) \u2014 resolve via a new lib/httpMethods.ts single-source module.",
       "landed_in": "AC",
-      "landed_ref": "AC-5"
+      "landed_ref": "AC-2"
     },
     {
-      "finding_id": "F-2026-06-27-003-dropdown-ct-click-4",
-      "source_path": "research/2026-06-27-003-dropdown-ct-click.md",
-      "source_section": "Runner-up rejected",
-      "content": "NOT a production defect: Modal CT passes the identical page.mouse.click outside dispatch (armed early); a settle delay makes Dropdown deterministic. Production click-outside works for real users.",
+      "finding_id": "F-2026-06-27-http-client-request-bar-color-coded-method-dropdown-4",
+      "source_path": "discover/2026-06-27-http-client-request-bar-color-coded-method-dropdown.md",
+      "source_section": "derisk",
+      "content": "Derisk: spike store action + unit tests (dirty-flip-on-edit, per-tab isolation, markClean-on-Save) before UI; CT-verify \u2318S preventDefault stops native save and \u2318\u21b5/\u2318S act on active tab regardless of focus.",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-1"
+    },
+    {
+      "finding_id": "F-spec-1",
+      "source_path": "specs/004-working-tabs-state-machine/spec.md",
+      "source_section": "RequestSpec + store shape",
+      "content": "RequestSpec={method,url,name,params:Row[],headers:Row[],body,auth}; tabsStore {tabs:Tab[],activeTabId}, Tab={id,spec,dirty}; actions openFromCollection/newBlank/close/selectActive/markClean \u2014 NO spec-edit; dirty first-class.",
       "landed_in": "AC",
       "landed_ref": "AC-1"
     },
     {
-      "finding_id": "F-2026-06-27-003-dropdown-ct-click-5",
-      "source_path": "research/2026-06-27-003-dropdown-ct-click.md",
-      "source_section": "Constraint",
-      "content": "Keep expect(menu).not.toBeVisible() strict \u2014 remove the race, do not weaken/loosen the AC-4/AC-3 assertions. No production behavior change.",
+      "finding_id": "F-spec-2",
+      "source_path": "specs/004-working-tabs-state-machine/spec.md",
+      "source_section": "out of scope lineage",
+      "content": "004 put OUT: variable interpolation {{...}} (verbatim), request-editing panels, real send + persistence (markClean exposed for siblings) \u2014 RequestBar must respect these boundaries.",
+      "landed_in": "OOS",
+      "landed_ref": "OOS-1"
+    },
+    {
+      "finding_id": "F-spec-3",
+      "source_path": "specs/004-working-tabs-state-machine/spec.md",
+      "source_section": "reference look-only",
+      "content": "design/reference.html is look-only; never reproduce its markup/cruft (data-om-*, __OmT, inline styles, tweaks-panel); match via tokens-bound semantic classes.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-7"
+    },
+    {
+      "finding_id": "F-spec-4",
+      "source_path": "specs/001-ui-primitives/spec.md",
+      "source_section": "Dropdown contract",
+      "content": "Dropdown controlled via open + onOpenChange; Radix substrate; Icon atom + tokens.css established; no new overlay lib.",
+      "landed_in": "AC",
+      "landed_ref": "AC-3"
+    },
+    {
+      "finding_id": "F-spec-5",
+      "source_path": "specs/001-ui-primitives/spec.md",
+      "source_section": "test stack",
+      "content": "Test stack = Vitest + @testing-library/react + user-event (jsdom) + Playwright CT (real-browser focus/keyboard); co-located __tests__/.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-3"
+    },
+    {
+      "finding_id": "F-spec-6",
+      "source_path": "specs/001-ui-primitives/spec.md",
+      "source_section": "styling",
+      "content": "Style exclusively via semantic classes bound to tokens.css; no inline styles; animations gated behind prefers-reduced-motion.",
+      "landed_in": "AC",
+      "landed_ref": "AC-28"
+    },
+    {
+      "finding_id": "F-spec-7",
+      "source_path": "specs/005-tab-bar-visual-fidelity/spec.md",
+      "source_section": "method chip convention",
+      "content": "Method chip = global .method + .{METHOD} classes (.GET/.POST/...); HEAD colored via --m-head/.method.HEAD; unknown method = uncolored .method chip. RequestBar method pill consumes this.",
       "landed_in": "AC",
       "landed_ref": "AC-7"
     },
     {
-      "finding_id": "F-2026-06-27-003-dropdown-ct-click-6",
-      "source_path": "research/2026-06-27-003-dropdown-ct-click.md",
-      "source_section": "Rejected alternative",
-      "content": "Bare waitForTimeout(~150ms) works (matches experiment) but is a brittle magic-number that rots under slower CI \u2014 rejected in favor of a real readiness signal.",
-      "landed_in": "OOS",
-      "landed_ref": "OOS-2"
+      "finding_id": "F-spec-8",
+      "source_path": "specs/005-tab-bar-visual-fidelity/spec.md",
+      "source_section": "data-mstyle runtime",
+      "content": "Shell sets data-mstyle on <html> (default 'soft') recoloring .method at runtime; global .method classes apply project-wide.",
+      "landed_in": "AC",
+      "landed_ref": "AC-6"
+    },
+    {
+      "finding_id": "F-spec-9",
+      "source_path": "specs/005-tab-bar-visual-fidelity/spec.md",
+      "source_section": "tiered fidelity precedent",
+      "content": "005 declared Design source html:design/reference.html and used tiered fidelity (computed-style EXACT equality + thresholded screenshot diff via Playwright CT) \u2014 precedent for RequestBar visual ACs.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-8"
+    },
+    {
+      "finding_id": "F-requestspec-1",
+      "source_path": "src/renderer/src/lib/requestSpec.ts",
+      "source_section": "method is string",
+      "content": "RequestSpec.method is typed plain string (NOT a union); no HttpMethod type and no HTTP_METHODS constant exist \u2014 the 7-method enumeration must be introduced (lib/httpMethods.ts) and requestSpec.method re-pointed string->HttpMethod.",
+      "landed_in": "AC",
+      "landed_ref": "AC-2"
+    },
+    {
+      "finding_id": "F-requestspec-2",
+      "source_path": "src/renderer/src/lib/requestSpec.ts",
+      "source_section": "module contract",
+      "content": "requestSpec.ts is renderer-only, JSON-serializable, strict (no any/casts); comment states 'actions live on the store, never here' \u2014 confirms the write action belongs on tabsStore.",
+      "landed_in": "AC",
+      "landed_ref": "AC-22"
+    },
+    {
+      "finding_id": "F-requestspec-3",
+      "source_path": "src/renderer/src/lib/requestSpec.ts",
+      "source_section": "seed default",
+      "content": "makeBlankRequest seeds method='GET', url='' \u2014 the only current method writer, a valid HttpMethod member (narrowing is safe).",
+      "landed_in": "AC",
+      "landed_ref": "AC-5"
+    },
+    {
+      "finding_id": "F-tabsstore-1",
+      "source_path": "src/renderer/src/lib/tabsStore.ts",
+      "source_section": "actions surface",
+      "content": "tabsStore actions = openFromCollection/newBlank/close/selectActive/markClean; markClean only flips dirty=false; NO setMethod/setUrl/updateSpec/markDirty \u2014 write path absent, must be added.",
+      "landed_in": "AC",
+      "landed_ref": "AC-4"
+    },
+    {
+      "finding_id": "F-tabsstore-2",
+      "source_path": "src/renderer/src/lib/tabsStore.ts",
+      "source_section": "selector pattern",
+      "content": "TabBar reads via per-field selectors with stable action refs + memoized descriptors; RequestBar mirrors this and derives the active spec via tabs.find(t=>t.id===activeTabId).",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-5"
+    },
+    {
+      "finding_id": "F-tabsstore-3",
+      "source_path": "src/renderer/src/lib/tabsStore.ts",
+      "source_section": "active invariant",
+      "content": "activeTabId always references an open tab (never-zero); updateActiveSpec resolves active identity internally so callers don't pass a tab id.",
+      "landed_in": "AC",
+      "landed_ref": "AC-11"
+    },
+    {
+      "finding_id": "F-dropdown-1",
+      "source_path": "src/renderer/src/components/molecules/Dropdown.tsx",
+      "source_section": "props",
+      "content": "Dropdown props = {open,onOpenChange,trigger,items?,children?,side,align,sideOffset,collisionPadding,className}; items={id,label,icon?,disabled?,onSelect}; trigger rendered asChild \u2014 method selector = controlled Dropdown, method button as trigger, 7 method items with onSelect.",
+      "landed_in": "AC",
+      "landed_ref": "AC-7"
+    },
+    {
+      "finding_id": "F-dropdown-2",
+      "source_path": "src/renderer/src/components/molecules/Dropdown.tsx",
+      "source_section": "escaping + portal",
+      "content": "item.label is an escaped React text node (XSS-safe); Content portals to document.body with avoidCollisions+collisionPadding \u2014 method menu anchors below the trigger without z-index conflicts.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-dropdown-3",
+      "source_path": "src/renderer/src/components/molecules/Dropdown.tsx",
+      "source_section": "items keying",
+      "content": "Each Dropdown item needs a stable id; method items keyed by the method string; METHODS array order = menu display order.",
+      "landed_in": "AC",
+      "landed_ref": "AC-7"
+    },
+    {
+      "finding_id": "F-shell-1",
+      "source_path": "src/renderer/src/components/organisms/shell/Shell.tsx",
+      "source_section": "panes.request mount",
+      "content": "Shell renders <PaneSplit request={panes?.request} response={panes?.response}/>; RequestBar mounts via panes.request.",
+      "landed_in": "AC",
+      "landed_ref": "AC-21"
+    },
+    {
+      "finding_id": "F-shell-2",
+      "source_path": "src/renderer/src/components/organisms/shell/Shell.tsx",
+      "source_section": "global shortcut template",
+      "content": "Shell Effect 4 = document keydown for \u2318B with e.preventDefault() + getState() (empty deps, cleanup on unmount) \u2014 exact template for \u2318\u21b5 Send / \u2318S Save; \u2318S preventDefault stops native save.",
+      "landed_in": "AC",
+      "landed_ref": "AC-16"
+    },
+    {
+      "finding_id": "F-shell-3",
+      "source_path": "src/renderer/src/components/organisms/shell/Shell.tsx",
+      "source_section": "sole data-mstyle writer",
+      "content": "Shell Effect 1 writes document.documentElement.dataset.mstyle from settingsStore (sole writer) \u2014 RequestBar must not write data-mstyle; the pill color resolves against it.",
+      "landed_in": "AC",
+      "landed_ref": "AC-6"
+    },
+    {
+      "finding_id": "F-app-1",
+      "source_path": "src/renderer/src/App.tsx",
+      "source_section": "current mount",
+      "content": "App.tsx mounts <ToastProvider><Shell tabs={<TabBar />} /><ToastViewport/></ToastProvider> \u2014 Shell receives tabs but NO panes prop; RequestBar wires by adding panes={{request:<RequestBar/>}} to the existing Shell element.",
+      "landed_in": "AC",
+      "landed_ref": "AC-21"
+    },
+    {
+      "finding_id": "F-app-2",
+      "source_path": "src/renderer/src/App.tsx",
+      "source_section": "doc drift",
+      "content": "docs/architecture.md shows '<Shell />' with no props (stale); actual App.tsx passes tabs={<TabBar/>} \u2014 spec \u00a72 uses the real wiring.",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-4"
+    },
+    {
+      "finding_id": "F-app-3",
+      "source_path": "src/renderer/src/App.tsx",
+      "source_section": "single ToastProvider",
+      "content": "ToastProvider/ToastViewport mounted once at App root; RequestBar adds no provider \u2014 purely a panes.request child.",
+      "landed_in": "AC",
+      "landed_ref": "AC-21"
+    },
+    {
+      "finding_id": "F-tabbar-1",
+      "source_path": "src/renderer/src/components/organisms/TabBar.tsx",
+      "source_section": "similar-feature template",
+      "content": "TabBar is the closest organism: prop-injected into Shell, consumes Tabs molecule + Icon atom, flat domain singleton, per-field tabsStore selectors + stable actions + memoized descriptors \u2014 the shape RequestBar mirrors.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-9"
+    },
+    {
+      "finding_id": "F-tabbar-2",
+      "source_path": "src/renderer/src/components/organisms/TabBar.tsx",
+      "source_section": "no spec write today",
+      "content": "TabBar only wires selectActive/close/newBlank; it never edits a spec \u2014 confirming no existing spec-edit path to reuse.",
+      "landed_in": "AC",
+      "landed_ref": "AC-4"
+    },
+    {
+      "finding_id": "F-tabbar-3",
+      "source_path": "src/renderer/src/components/organisms/TabBar.tsx",
+      "source_section": "JSX.Element return",
+      "content": "TabBar is export function TabBar(): JSX.Element with no props (store-driven); RequestBar instead takes onSend?:(spec)=>void since send-intent needs a host-provided consumer.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-tabbar-test-1",
+      "source_path": "src/renderer/src/components/organisms/__tests__/TabBar.test.tsx",
+      "source_section": "store reset pattern",
+      "content": "Tests reset the singleton via tabsStore.setState({tabs,activeTabId}) in beforeEach (actions persist); RequestBar.test.tsx reuses this.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-tabbar-test-2",
+      "source_path": "src/renderer/src/components/organisms/__tests__/TabBar.test.tsx",
+      "source_section": "makeTab fixture",
+      "content": "Fixtures from @renderer/__tests__/fixtures/requestSpec (makeTab/makeSpec) build tabs with method/url/name \u2014 reuse for RequestBar tests.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-tabbar-test-3",
+      "source_path": "src/renderer/src/components/organisms/__tests__/TabBar.test.tsx",
+      "source_section": "accessible-name regex",
+      "content": "Method chip renders inside the control so accessible name includes the method prefix; tests query by regex to match the label portion \u2014 same approach for RequestBar method button.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
     }
   ],
-  "source_no_items_relevant": {
-    "docs/glossary.md": true
-  },
+  "source_no_items_relevant": {},
   "findings_finalized": true,
   "decision_points": [
     {
-      "dp_id": "DP-scope_boundaries-1",
-      "category": "scope_boundaries",
-      "description": "Which CT specs does this fix cover \u2014 only the two failing Dropdown specs, or also proactively harden the sibling overlay CTs that share the same arm-race risk (Modal.ct.tsx, nested-overlays.ct.tsx)?",
-      "valid_implementations": [
-        "only the two failing Dropdown specs",
-        "Dropdown specs + proactively harden sibling overlay CTs (Modal, nested-overlays)"
-      ],
-      "status": "answered",
-      "user_answer": "Only the two failing Dropdown specs (Dropdown.ct.tsx:185 + :236). Sibling overlay CTs (Modal, nested-overlays) currently pass and stay untouched \u2014 smallest blast radius.",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
-    },
-    {
-      "dp_id": "DP-tooling_configuration-1",
-      "category": "tooling_configuration",
-      "description": "Readiness-signal mechanism for the pre-corner-click wait (the research recommends awaiting entry-animation completion; a bare fixed timeout is the rejected runner-up).",
-      "valid_implementations": [
-        "await a concrete overlay-readiness signal (entry-animation completion) \u2014 recommended",
-        "bare fixed waitForTimeout",
-        "leave exact mechanism to /plan; spec asserts deterministic outcome only"
-      ],
-      "status": "answered",
-      "user_answer": "Spec mandates awaiting a concrete overlay-readiness signal (entry-animation completion) before the corner click \u2014 deterministic, no bare magic-number timeout.",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
-    },
-    {
       "dp_id": "DP-existing_behavior-1",
       "category": "existing_behavior",
-      "description": "no relevant decision point for existing_behavior",
-      "valid_implementations": [],
-      "status": "no_DP_in_category",
-      "user_answer": "",
+      "description": "Shape of the new tabsStore spec-edit/dirty-set action",
+      "valid_implementations": [
+        "generic updateActiveSpec(patch: Partial<RequestSpec>) \u2014 shallow-merge + dirty=true",
+        "field-specific setActiveMethod + setActiveUrl"
+      ],
+      "status": "answered",
+      "user_answer": "Generic updateActiveSpec(patch: Partial<RequestSpec>): shallow-merge into the active tab spec + set dirty=true. Shallow-merge only (callers pass leaf fields method/url); dirty set ONLY when the patch actually changes a value (no-op patch must not flip dirty); writes target the active tab only (resolves active-tab identity internally); patch typed against the real RequestSpec (method=HttpMethod). This task uses it for {method,url} only; not touching auth is caller discipline.",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
@@ -278,10 +527,58 @@
     {
       "dp_id": "DP-data_flow_state-1",
       "category": "data_flow_state",
-      "description": "no relevant decision point for data_flow_state",
-      "valid_implementations": [],
-      "status": "no_DP_in_category",
-      "user_answer": "",
+      "description": "How RequestBar gets the method list + RequestSpec type without a component->requestSpec import (\u00a75.2)",
+      "valid_implementations": [
+        "new lib/httpMethods.ts constants module",
+        "re-export via tabsStore",
+        "type-only import + inline list"
+      ],
+      "status": "answered",
+      "user_answer": "New lib/httpMethods.ts: export const METHODS (single source; order=Dropdown display order) + export type HttpMethod=typeof METHODS[number]. requestSpec model imports HttpMethod from here (re-point requestSpec.method string->HttpMethod); one source, zero drift. lib-only, no component/store imports \u2014 both RequestBar and tabsStore depend inward. CBM confirmed no existing method list/type.",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-scope_boundaries-1",
+      "category": "scope_boundaries",
+      "description": "RequestBar organism placement (\u00a72.2 >=2-component trigger)",
+      "valid_implementations": [
+        "flat organisms/RequestBar.tsx now",
+        "create organisms/request/ + relocate TabBar",
+        "defer to /plan"
+      ],
+      "status": "answered",
+      "user_answer": "Flat organisms/RequestBar.tsx (like TabBar/Sidebar singletons). Do NOT create organisms/request/ this task: per 006 the domain folder is created only at >=2 single-domain organisms; on completion the request domain has exactly one (RequestBar) and TabBar is a nav-domain singleton not relocated here. A later 2nd request-domain organism creates organisms/request/ and moves both.",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-data_flow_state-2",
+      "category": "data_flow_state",
+      "description": "Send-intent mechanism (consumer out of scope)",
+      "valid_implementations": [
+        "onSend callback prop, default no-op",
+        "store/event action stub",
+        "no intent emitted yet"
+      ],
+      "status": "answered",
+      "user_answer": "RequestBar takes onSend?:(spec)=>void, default no-op; fires ONLY when url non-empty-after-trim (same guard as disabled state + \u2318Enter). onSend is the sole send-intent surface (Send click + \u2318Enter both route through it). Payload = active tab identity + current method+url only. Optional with no-op default so RequestBar mounts/tests standalone. onSend does NOT mutate spec or touch dirty/Save.",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-breaking_changes-1",
+      "category": "breaking_changes",
+      "description": "Narrow RequestSpec.method string->HttpMethod + RequestBar as 2nd tabsStore subscriber",
+      "valid_implementations": [
+        "narrow to HttpMethod union (single source lib/httpMethods.ts)",
+        "keep string + separate UI-only type"
+      ],
+      "status": "answered",
+      "user_answer": "Narrow requestSpec.method string->HttpMethod (from lib/httpMethods.ts). Safe: only current writer is makeBlankRequest seeding 'GET' (valid member); tabsStore copies specs verbatim; no code assigns a non-listed method, so no runtime break, only stricter typing. RequestBar becomes a 2nd tabsStore subscriber (read active spec + call updateActiveSpec); constitution \u00a74 'TabBar.tsx is the sole subscriber' wording updated for the spec-edit subscriber \u2014 TabBar behavior unchanged.",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
@@ -309,9 +606,9 @@
       "turns": 0
     },
     {
-      "dp_id": "DP-breaking_changes-1",
-      "category": "breaking_changes",
-      "description": "no relevant decision point for breaking_changes",
+      "dp_id": "DP-tooling_configuration-1",
+      "category": "tooling_configuration",
+      "description": "no relevant decision point for tooling_configuration",
       "valid_implementations": [],
       "status": "no_DP_in_category",
       "user_answer": "",
@@ -324,216 +621,493 @@
   "mode": "interactive",
   "mandatory_reads": [
     {
-      "spec_type": "bug_fix",
-      "read_path": "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx",
-      "slot_pattern": "__buggy_files__",
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/App.tsx",
+      "slot_pattern": "__entry__",
       "n_a_reason": ""
     },
     {
-      "spec_type": "bug_fix",
-      "read_path": "src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx",
-      "slot_pattern": "__direct_deps__",
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/components/organisms/TabBar.tsx",
+      "slot_pattern": "__similar_feature__",
       "n_a_reason": ""
     },
     {
-      "spec_type": "bug_fix",
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/lib/requestSpec.ts",
+      "slot_pattern": "__type_defs__",
+      "n_a_reason": ""
+    },
+    {
+      "spec_type": "feature_addition",
       "read_path": "",
-      "slot_pattern": "__direct_callers__",
-      "n_a_reason": "A Playwright CT spec is a test entry point \u2014 no project module imports it, so there are no callers to read."
+      "slot_pattern": "__api_ops__",
+      "n_a_reason": "Renderer-only; no REST/GraphQL endpoint \u2014 Send fires an in-renderer onSend callback, HTTP engine out of scope."
     },
     {
-      "spec_type": "bug_fix",
-      "read_path": "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx",
-      "slot_pattern": "__recent_git_log__",
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/components/organisms/__tests__/TabBar.test.tsx",
+      "slot_pattern": "__test_files__",
       "n_a_reason": ""
     }
   ],
   "discretionary_reads": [],
   "phase3_finalized": true,
-  "overview": "Two Playwright component tests for the Dropdown primitive's click-outside dismissal are flaky-to-failing because each fires its outside click before Radix's DismissableLayer has armed its outside-click detection. This spec makes both tests deterministic by gating the outside click on a concrete overlay-readiness signal \u2014 a test-only change that touches no production code and keeps the existing strict assertions verbatim.",
-  "current_state": "Dropdown (src/renderer/src/components/molecules/Dropdown.tsx:204) wraps Radix DropdownMenu (modal by default); click-outside dismissal is owned by Radix's DismissableLayer. Two CT tests exercise it: 'AC-4 \u2014 clicking outside the menu closes it' (src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx:185) and 'AC-3 \u2014 focus return after click-outside' (Dropdown.ct.tsx:236). Both open the menu via trigger.click(), assert the menu visible, then immediately fire page.mouse.click at a viewport coordinate (Dropdown.ct.tsx:198 and :253) and assert expect(menu).not.toBeVisible(). They fail: research (research/2026-06-27-003-dropdown-ct-click.md) proved a setup-timing race \u2014 Radix DismissableLayer attaches its document pointerdown listener via setTimeout(0) (node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265) while the 140ms entry animation runs, so a click in the same tick the menu becomes visible is never classified as outside and onDismiss never fires (measured: zero of five runs dismissed with no settle, all five with a 100ms settle). The sibling Modal CT (src/renderer/src/components/molecules/__tests__/Modal.ct.tsx:127) passes the identical page.mouse.click outside dispatch because it mounts the overlay open, arming the layer long before its click \u2014 confirming this is a test-timing defect, not a production defect. Per docs/architecture.md the CT suite runs via 'playwright test -c playwright.config.ts'; these two are the sole failures (125 of 127 passing). The CT spec has been unchanged since it was added in 001-ui-primitives, so it has been racy since inception.",
-  "desired_behavior": "Both CT tests pass deterministically. Each test, after asserting the menu is visible and before firing the outside corner click, waits for a concrete overlay-readiness signal (the menu's entry animation having completed) so Radix's DismissableLayer is guaranteed armed. The existing strict assertions are preserved exactly \u2014 expect(menu).not.toBeVisible() for dismissal (Dropdown.ct.tsx:200) and the dismissal + expect(trigger).toBeFocused() for focus-return (Dropdown.ct.tsx:256, :259). No production code changes: only the two test cases (and, if needed, their fixture in Dropdown.stories.tsx) are edited. No bare fixed-delay timeout is introduced. The rest of the CT suite stays green.",
+  "overview": "Add a RequestBar organism for the active request tab: a color-coded HTTP-method dropdown (GET/POST/PUT/PATCH/DELETE/OPTIONS/HEAD), a plain URL text input bound to the active tab's RequestSpec.url, and Send/Save/Share actions with \u2318\u21b5 (Send) and \u2318S (Save) shortcuts. The feature reuses the existing 001 Dropdown molecule + Icon atom, the 005 .method/[data-mstyle] color convention, and the 004 tabsStore/RequestSpec model \u2014 its only net-new primitive is a generic tabsStore spec-edit action (updateActiveSpec) and a single-source lib/httpMethods.ts. HTTP execution, the response, and {{variable}} highlighting (epic D) are explicitly out of scope.",
+  "current_state": "The renderer is an atomic-design system (docs/architecture.md). The active request tab and its RequestSpec already exist but there is no editor for them. tabsStore (src/renderer/src/lib/tabsStore.ts:208-273) holds { tabs: Tab[]; activeTabId } with Tab={id,spec,dirty} and exposes openFromCollection/newBlank/close/selectActive/markClean \u2014 markClean(tabId) clears dirty but NO action edits a tab's spec.method/spec.url or sets dirty=true (the write path is absent). RequestSpec (src/renderer/src/lib/requestSpec.ts:68-83) types method as a plain string; no HttpMethod union or method-list constant exists anywhere (CBM-confirmed). The Dropdown molecule (src/renderer/src/components/molecules/Dropdown.tsx:204-282) is a controlled Radix wrapper ({open,onOpenChange,trigger,items,...}, trigger asChild). Per-method color classes (.method/.{METHOD}, plus --m-head/.method.HEAD) live in src/renderer/styles/tokens.css and resolve at runtime against [data-mstyle], which Shell sets on <html> (src/renderer/src/components/organisms/shell/Shell.tsx Effect 1, sole writer). Shell exposes a request-pane slot \u2014 <PaneSplit request={panes?.request} response={panes?.response}/> \u2014 and App.tsx currently mounts <Shell tabs={<TabBar />} /> with no panes prop (src/renderer/src/App.tsx:22; docs/architecture.md shows a stale no-prop <Shell/>). Organisms are flat (organisms/TabBar.tsx, organisms/Sidebar.tsx; only shell/ nested). The 005 method-pill, 002 Tabs, and Shell global \u2318B shortcut (Shell Effect 4: document keydown + e.preventDefault() + getState()) are the established patterns RequestBar mirrors. Test stack = Vitest + Testing Library (jsdom) + Playwright CT, co-located under __tests__/ split .test.tsx/.ct.tsx.",
+  "desired_behavior": "Deliver a flat organisms/RequestBar.tsx (+ sibling RequestBar.css) mounted into the Shell request pane by editing App.tsx to pass panes={{ request: <RequestBar onSend={...} /> }} on the existing <Shell tabs={<TabBar/>} /> element. Layout is [method \u25be][URL][Send] (Postman/Insomnia pattern) plus Save and Share, matched visually to design/reference.html via semantic classes bound to tokens.css with zero inline styles. (1) Method selector: a controlled 001 Dropdown whose trigger is a button styled with the .method/.{METHOD} classes (no second overlay library); items are the 7 methods from a new single-source lib/httpMethods.ts (export const METHODS + export type HttpMethod = typeof METHODS[number]); requestSpec.method is re-pointed from string to HttpMethod (imported from httpMethods). Selecting a method writes it to the active tab. (2) URL field: a single-line plain text <input> bound reactively to the active tab's RequestSpec.url; long URLs scroll horizontally without reflowing the method pill or Send; no var-highlight editor (epic D). (3) Writes go through a NEW generic tabsStore action updateActiveSpec(patch: Partial<RequestSpec>) that shallow-merges the patch into the active tab's spec and sets dirty=true ONLY when a value actually changes (a no-op patch does not flip dirty); it resolves the active tab internally. (4) Send is disabled when the URL is empty-after-trim; otherwise it fires onSend (default no-op) with the active tab identity + current method+url \u2014 no HTTP. Save calls markClean(activeTabId) when the tab is dirty and is a no-op when not dirty. Share renders token-styled in its final slot but is wired to a disabled/no-op stub. (5) Keyboard: \u2318\u21b5 routes to the same Send path (subject to the same trim guard) and \u2318S to the same Save path, both acting on the active tab globally regardless of focus, registered via a document keydown listener with e.preventDefault() (\u2318S must not trigger native save) and cleaned up on unmount, mirroring Shell Effect 4. RequestBar subscribes to the active tab via per-field tabsStore selectors (mirroring TabBar); switching tabs swaps method+url with no cross-tab bleed. All code is renderer-only (@renderer alias, no Node/Electron). Behavior is gated by Vitest unit tests (updateActiveSpec dirty/no-op/per-tab isolation, trim guard, method-switch independence, markClean-on-Save) and Playwright CT (layout fidelity, disabled Send, \u2318\u21b5/\u2318S behavior, method-dropdown dismiss with the Radix two-step gate, per-tab isolation); typecheck + lint + build pass.",
   "affected_areas": [
     {
-      "area": "node_modules/@radix-ui",
+      "area": "RequestBar organism",
       "files": [
-        "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265"
+        "src/renderer/src/components/organisms/RequestBar.tsx",
+        "src/renderer/src/components/organisms/RequestBar.css"
       ],
-      "impact": "see findings"
+      "impact": "Create new \u2014 flat organism: method Dropdown trigger + URL input + Send/Save/Share; per-field tabsStore selectors; \u2318\u21b5/\u2318S document-keydown handlers; onSend prop; token-bound semantic classes, zero inline styles"
     },
     {
-      "area": "Dropdown click-outside CT tests",
+      "area": "HTTP method single-source module",
       "files": [
-        "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx"
+        "src/renderer/src/lib/httpMethods.ts"
       ],
-      "impact": "Edit the two failing test cases (the outside clicks at :198 and :253): insert an overlay-readiness wait before each corner click. Strict assertions unchanged."
+      "impact": "Create new \u2014 export const METHODS (7 methods, display order) + export type HttpMethod = typeof METHODS[number]; lib-only, no component/store imports"
     },
     {
-      "area": "Dropdown CT fixture (conditional)",
+      "area": "RequestSpec model method type",
       "files": [
-        "src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx"
+        "src/renderer/src/lib/requestSpec.ts"
       ],
-      "impact": "Only if the readiness wait needs a fixture affordance (e.g. a stable test hook). Preferred approach needs no fixture change; listed so /plan can confirm."
+      "impact": "Modify \u2014 re-point method from string to HttpMethod imported from httpMethods.ts (single source); makeBlankRequest GET seed stays valid"
+    },
+    {
+      "area": "tabsStore spec-edit action",
+      "files": [
+        "src/renderer/src/lib/tabsStore.ts"
+      ],
+      "impact": "Modify \u2014 add updateActiveSpec(patch: Partial<RequestSpec>) action: shallow-merge into active tab spec, set dirty=true only on actual change, resolve active tab internally; existing actions unchanged"
+    },
+    {
+      "area": "App root request-pane wiring",
+      "files": [
+        "src/renderer/src/App.tsx"
+      ],
+      "impact": "Modify \u2014 add panes={{ request: <RequestBar onSend={...} /> }} to the existing <Shell tabs={<TabBar/>} /> element; ToastProvider/Shell wiring otherwise unchanged"
+    },
+    {
+      "area": "Constitution sole-subscriber rule",
+      "files": [
+        "constitution.md"
+      ],
+      "impact": "Modify \u2014 update \u00a74 'TabBar.tsx is the sole subscriber' wording to admit RequestBar as the spec-edit subscriber of tabsStore (documentation-only; no behavior change to TabBar)"
+    },
+    {
+      "area": "Unit + component tests",
+      "files": [
+        "src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx",
+        "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx",
+        "src/renderer/src/lib/__tests__/tabsStore.test.ts"
+      ],
+      "impact": "Create new / extend \u2014 RequestBar unit (trim guard, method-switch independence, Save dirty/no-op) + CT (layout fidelity, disabled Send, \u2318\u21b5/\u2318S, method-dropdown dismiss two-step gate, per-tab isolation); tabsStore.test.ts gains updateActiveSpec cases (dirty-on-change, no-op no-flip, per-tab isolation)"
     }
   ],
   "acceptance_criteria": [
     {
       "ac_id": "AC-1",
-      "subsection": "behavior_preservation",
-      "ears_variant": "event_driven",
-      "statement": "WHEN a user clicks outside an open Dropdown menu, the Dropdown shall close the menu.",
-      "verification_command": "",
+      "subsection": "tooling_artifact_presence",
+      "ears_variant": "ubiquitous",
+      "statement": "The renderer shall provide a RequestBar organism module with a sibling token-bound stylesheet under the organisms directory.",
+      "verification_command": "test -f src/renderer/src/components/organisms/RequestBar.tsx && test -f src/renderer/src/components/organisms/RequestBar.css",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-2",
-      "subsection": "behavior_preservation",
+      "subsection": "tooling_artifact_presence",
       "ears_variant": "ubiquitous",
-      "statement": "The Dropdown component-test suite shall keep all of its currently-passing tests passing.",
-      "verification_command": "",
+      "statement": "The renderer shall provide an httpMethods module under the lib directory exporting the HTTP-method list and the HttpMethod type.",
+      "verification_command": "test -f src/renderer/src/lib/httpMethods.ts",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-3",
-      "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the CT test 'clicking outside the menu closes it' (Dropdown.ct.tsx:185) runs, the Dropdown menu shall become not visible so the dismissal assertion passes.",
-      "verification_command": "npx playwright test -c playwright.config.ts --grep 'clicking outside the menu closes it'",
+      "subsection": "tooling_artifact_presence",
+      "ears_variant": "ubiquitous",
+      "statement": "The build shall reuse the existing Radix and zustand dependencies without adding a new overlay or state-management library.",
+      "verification_command": "grep -q '\"radix-ui\"' package.json && grep -q '\"zustand\"' package.json",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-4",
-      "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the CT test 'focus return after click-outside' (Dropdown.ct.tsx:236) runs, the Dropdown menu shall close and focus shall return to the trigger button.",
+      "subsection": "behavior_preservation",
+      "ears_variant": "state_driven",
+      "statement": "WHILE the TabBar is rendered, the tabsStore shall expose its existing lifecycle actions (openFromCollection, newBlank, close, selectActive, markClean) with unchanged behavior.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-5",
-      "subsection": "behavior_change",
-      "ears_variant": "ubiquitous",
-      "statement": "The two click-outside Dropdown component tests shall pass deterministically across repeated runs.",
+      "subsection": "behavior_preservation",
+      "ears_variant": "event_driven",
+      "statement": "WHEN requestSpec.method is narrowed from string to the HttpMethod union, the makeBlankRequest GET seed and all existing spec assignments shall remain valid and continue to type-check.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-6",
-      "subsection": "hygiene",
+      "subsection": "behavior_preservation",
       "ears_variant": "ubiquitous",
-      "statement": "The changed test files shall pass type-check and lint.",
-      "verification_command": "npm run typecheck:web && eslint --cache src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx",
+      "statement": "The renderer shall keep Shell as the sole writer of the document data-mstyle attribute.",
+      "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-7",
-      "subsection": "behavior_preservation",
-      "ears_variant": "state_driven",
-      "statement": "WHILE applying the fix, the system shall keep the existing strict dismissal and focus-return assertions unchanged and unweakened.",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the user selects a method from the RequestBar method dropdown, the RequestBar shall write that method to the active tab's RequestSpec through updateActiveSpec.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-8",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the user edits the RequestBar URL input, the RequestBar shall write the new value to the active tab's RequestSpec url through updateActiveSpec.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-9",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN updateActiveSpec receives a patch that changes at least one value, the tabsStore shall shallow-merge the patch into the active tab's spec and set that tab dirty.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-10",
+      "subsection": "behavior_change",
+      "ears_variant": "unwanted",
+      "statement": "IF updateActiveSpec receives a patch whose values equal the active tab's current spec, THEN the tabsStore shall not set the dirty flag.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-11",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the active tab changes, the RequestBar shall render the newly active tab's method and url and shall not leak the previous tab's values.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-12",
+      "subsection": "behavior_change",
+      "ears_variant": "state_driven",
+      "statement": "WHILE the URL is empty after trimming, the RequestBar shall render Send disabled and shall not emit a send intent.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-13",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN Send is activated with a URL that is non-empty after trimming, the RequestBar shall invoke onSend with the active tab identity and the current method and url, and shall not perform any HTTP request.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-14",
+      "subsection": "behavior_change",
+      "ears_variant": "state_driven",
+      "statement": "WHILE the active tab is dirty and the user activates Save, the RequestBar shall call markClean for the active tab.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-15",
+      "subsection": "behavior_change",
+      "ears_variant": "unwanted",
+      "statement": "IF Save is activated while the active tab is not dirty, THEN the RequestBar shall perform no write and no markClean.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-16",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the user presses Cmd-Enter, the RequestBar shall route to the same Send path as the Send button under the same empty-url guard, acting on the active tab regardless of focus.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-17",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the user presses Cmd-S, the RequestBar shall route to the Save path and shall call preventDefault so the native save action does not fire.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-18",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the user changes the method, the RequestBar shall not modify the URL buffer or its caret position.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-19",
+      "subsection": "behavior_change",
+      "ears_variant": "state_driven",
+      "statement": "WHILE Share is rendered, the RequestBar shall present it token-styled in its final action slot wired to a disabled no-op stub.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-20",
+      "subsection": "behavior_change",
+      "ears_variant": "state_driven",
+      "statement": "WHILE a URL exceeds the input width, the RequestBar shall scroll it horizontally within the field without reflowing the method pill or Send.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-21",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the application shell renders, the App shall mount the RequestBar into the Shell request-pane slot.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-22",
+      "subsection": "behavior_change",
+      "ears_variant": "ubiquitous",
+      "statement": "The RequestBar shall source its method list and HttpMethod type from the lib httpMethods module, which requestSpec also references as its method type.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-23",
+      "subsection": "documentation",
+      "ears_variant": "ubiquitous",
+      "statement": "The exported RequestBar props, the updateActiveSpec action, and the METHODS constant and HttpMethod type shall carry documentation comments.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-24",
+      "subsection": "documentation",
+      "ears_variant": "ubiquitous",
+      "statement": "The constitution section 4 sole-subscriber rule shall be updated to record RequestBar as the tabsStore spec-edit subscriber.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-25",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
-      "statement": "The changed test files shall contain no leftover debug artifacts such as console statements, debugger statements, or focused or skipped tests.",
-      "verification_command": "! grep -nE 'console\\.log|debugger|\\.only\\(|\\.skip\\(' src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx",
+      "statement": "The renderer source shall pass strict type-checking.",
+      "verification_command": "npm run typecheck:web",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-26",
+      "subsection": "hygiene",
+      "ears_variant": "ubiquitous",
+      "statement": "The codebase shall pass ESLint without new errors.",
+      "verification_command": "npm run lint",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-27",
+      "subsection": "hygiene",
+      "ears_variant": "ubiquitous",
+      "statement": "The project shall build cleanly.",
+      "verification_command": "npm run build",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-28",
+      "subsection": "hygiene",
+      "ears_variant": "ubiquitous",
+      "statement": "The new RequestBar and lib source shall contain no inline style attributes.",
+      "verification_command": "! grep -REn 'style=[{][{]' src/renderer/src/components/organisms/RequestBar.tsx | grep -vqE ':[[:space:]]*(\\*|//|/[*])'",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-29",
+      "subsection": "hygiene",
+      "ears_variant": "ubiquitous",
+      "statement": "The new renderer modules shall not import the electron or node built-in modules directly.",
+      "verification_command": "! grep -REn \"from '(electron|node:)\" src/renderer/src/components/organisms/RequestBar.tsx src/renderer/src/lib/httpMethods.ts",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-30",
+      "subsection": "hygiene",
+      "ears_variant": "ubiquitous",
+      "statement": "The RequestBar and tabsStore test suites shall pass.",
+      "verification_command": "npx vitest run src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx src/renderer/src/lib/__tests__/tabsStore.test.ts",
       "test_anchor": "",
       "n_a_reason": ""
     }
   ],
   "ac_subsection_na": {
-    "tooling_artifact_presence": "No tooling artifact is added or removed; this is a behavior fix to two existing test cases.",
-    "ci_pipeline": "No CI/pipeline config change; deterministic passing is asserted by the CT acceptance criteria in \u00a75.3.",
-    "hooks_gates": "No hook or commit-gate change.",
-    "documentation": "No docs/ change required; the bugs/003 record lifecycle is handled by /verify, not this spec."
+    "ci_pipeline": "No CI pipeline changes; tests run via existing npm scripts (vitest/playwright), not a new pipeline stage.",
+    "hooks_gates": "No new git hooks or commit gates; the project's existing forge gates apply unchanged."
   },
   "out_of_scope": [
     {
-      "content": "Modifying Radix or the production Dropdown component (src/renderer/src/components/molecules/Dropdown.tsx) \u2014 click-outside dismissal is Radix-owned and works correctly in production.",
-      "finding_ref": "F-index-2"
+      "content": "HTTP execution and the response view \u2014 Send fires an in-renderer onSend intent only; the engine and response rendering are separate tasks.",
+      "finding_ref": "F-spec-2"
     },
     {
-      "content": "Introducing a bare fixed-delay waitForTimeout as the fix mechanism (brittle magic-number; rejected by the research).",
-      "finding_ref": "F-2026-06-27-003-dropdown-ct-click-6"
-    },
-    {
-      "content": "Hardening the sibling overlay CT specs (Modal.ct.tsx, nested-overlays.ct.tsx) that share the same arm-race risk \u2014 they pass today and are excluded per the scope decision.",
+      "content": "{{variable}} token highlighting, unknown-var flagging, and template interpolation \u2014 the URL is a plain bound string; this belongs to epic D (environment-model / variable-interpolation).",
       "finding_ref": ""
+    },
+    {
+      "content": "Request-editing panels (params / headers / body / auth editors) and request sub-tabs \u2014 RequestBar edits only method+url; auth is untouched.",
+      "finding_ref": ""
+    },
+    {
+      "content": "Durable persistence to disk / collections \u2014 Save acts on the in-memory spec via markClean only; the persistence port is its own task.",
+      "finding_ref": ""
+    },
+    {
+      "content": "Real Share behavior (copy-as-cURL / link / export) and URL parsing / validation / autocomplete / history \u2014 Share is a disabled no-op stub and the URL is a plain string.",
+      "finding_ref": ""
+    },
+    {
+      "content": "Creating organisms/request/ or relocating TabBar \u2014 placement stays flat this task; the domain folder is created later when a 2nd request-domain organism crosses the >=2 trigger.",
+      "finding_ref": "F-constitution-1"
     }
   ],
   "constraints": [
     {
-      "kind": "follow",
-      "content": "Search before building"
-    },
-    {
-      "kind": "follow",
-      "content": "Minimal changes (Key Rules #3)"
-    },
-    {
-      "kind": "follow",
-      "content": "Specs are contracts / strict assertions"
+      "kind": "constitution_anchor",
+      "content": "Renderer tier organization: RequestBar is a flat organism (downward-only imports, no sibling-organism import, @renderer alias, no barrel files); the organisms/<domain>/ subfolder is created only at >=2 single-domain components.",
+      "constitution_ref": "2.2"
     },
     {
       "kind": "constitution_anchor",
-      "content": "Search the codebase for an existing utility/helper/component before writing anything generic or reusable \u2014 reuse the Modal CT overlay-readiness pattern (Modal.ct.tsx:127) rather than inventing new test machinery.",
-      "constitution_ref": "6.3"
+      "content": "requestSpec stays a pure data module \u2014 imported by tabsStore, never by components; RequestBar must reach the method list/type via lib/httpMethods, not via a requestSpec import.",
+      "constitution_ref": "5.2"
     },
     {
       "kind": "constitution_anchor",
-      "content": "Co-located tests under __tests__/ next to the code, split .test.tsx (Vitest) and .ct.tsx (Playwright CT); the click-outside behavior is CT-only and the fix stays in the .ct.tsx spec (and fixture, if needed).",
+      "content": "Gate behavior with Vitest + Testing Library (jsdom) and Playwright CT for focus/keyboard fidelity, co-located under __tests__/ split .test.tsx/.ct.tsx.",
       "constitution_ref": "3.4"
     },
     {
+      "kind": "constitution_anchor",
+      "content": "Renderer modules import no Node/Electron APIs and resolve cross-module code via the @renderer alias.",
+      "constitution_ref": "2.3"
+    },
+    {
+      "kind": "follow",
+      "content": "Mutate tabsStore state only through store actions; RequestBar writes method+url exclusively via the new updateActiveSpec action and becomes the spec-edit subscriber of tabsStore alongside TabBar."
+    },
+    {
+      "kind": "follow",
+      "content": "Reuse the existing Dropdown molecule, Icon atom, cx(), and tokens.css; introduce no new runtime dependency and no second overlay library."
+    },
+    {
+      "kind": "follow",
+      "content": "design/reference.html is a look/behavior reference only \u2014 never reproduce its markup or generated cruft (data-om-*, __OmT wrappers, inline styles, tweaks-panel); rebuild with semantic class names from each element's role."
+    },
+    {
+      "kind": "follow",
+      "content": "Verify RequestBar visual fidelity via tiered checks \u2014 computed-style exact equality on enumerated props plus a thresholded screenshot diff in Playwright CT \u2014 per the 005 precedent; CT fixtures must import tokens.css, set data-mstyle on the host, and apply the Radix two-step dismiss gate."
+    },
+    {
       "kind": "not_break",
-      "content": "Production Dropdown click-outside dismissal behavior must not change \u2014 it works for real users; only the test's timing is corrected."
+      "content": "The existing TabBar selection/close/new-blank behavior and the tabsStore lifecycle actions must remain unchanged; updateActiveSpec is additive."
     }
   ],
   "open_questions": [
     {
       "question_id": "Q-1",
-      "content": "Exact readiness API for the pre-click wait (e.g. awaiting element.getAnimations() completion vs a waitForFunction on the menu's computed opacity) \u2014 deferred to /plan; spec mandates a concrete readiness signal, not a fixed delay.",
+      "content": "The method-pill trigger's accessible-name handling (mirror 005's aria approach so the method is announced once, not doubled) is a /plan detail; the exact design-reference geometry (heights/padding) is pulled from design/reference.html at /plan.",
       "category_no_dp_reason": ""
     }
   ],
   "risks": [
     {
-      "risk": "Under prefers-reduced-motion (or any zero-animation config), the entry animation is disabled, so an animation-completion readiness signal could resolve immediately and let the arm-race resurface.",
-      "likelihood": "Low",
+      "risk": "updateActiveSpec over-dirties: flipping dirty on a no-op patch (same value) would break the non-dirty Save no-op contract.",
+      "likelihood": "Med",
       "impact": "Med",
-      "mitigation": "Readiness signal must not rely solely on animation presence; /plan picks a signal that holds when animations are off (e.g. a microtask/rAF settle or polling the armed state), or the test enables motion."
+      "mitigation": "Set dirty only when a value actually changes; unit-test both no-op-no-flip and change-flips, plus per-tab isolation, before wiring the UI."
     },
     {
-      "risk": "The readiness wait could mask a genuine future production dismissal regression (test waits, then still asserts).",
+      "risk": "Narrowing requestSpec.method string->HttpMethod surfaces a hidden non-listed method assignment elsewhere, breaking the build.",
+      "likelihood": "Low",
+      "impact": "Med",
+      "mitigation": "CBM-confirmed the only writer is makeBlankRequest seeding GET; the typecheck/build gate catches any stray assignment; lift the type into httpMethods and re-point in one change."
+    },
+    {
+      "risk": "CT flakiness: the Radix dismiss arm-race and a missing data-mstyle/tokens context produce intermittent false pass/fail on the method-dropdown and fidelity tests.",
+      "likelihood": "Med",
+      "impact": "Med",
+      "mitigation": "Apply the two-step dismiss gate (await animations + yield setTimeout(0)); fixtures import tokens.css and set data-mstyle on the host per the 005 CT lesson."
+    },
+    {
+      "risk": "Mount-point drift: docs/architecture.md shows a stale propless <Shell/> while App.tsx actually passes tabs={<TabBar/>}, risking a wrong wiring assumption.",
       "likelihood": "Low",
       "impact": "Low",
-      "mitigation": "Assertions stay strict (not.toBeVisible / toBeFocused), so a real dismissal break still fails the test after the wait."
+      "mitigation": "Spec \u00a72 uses the verified App.tsx wiring (add panes onto the existing <Shell tabs={<TabBar/>} /> element); refresh the architecture doc at /finalize."
+    },
+    {
+      "risk": "RequestBar as a 2nd tabsStore subscriber over-renders if it subscribes to the whole tabs array instead of the active fields.",
+      "likelihood": "Med",
+      "impact": "Low",
+      "mitigation": "Use per-field selectors for the active tab's method+url (mirror TabBar's memoized selector pattern)."
     }
   ],
-  "approval_summary": "I've created the specification at `specs/008-dropdown-ct-dismiss/spec.md`. Key points:\n- **What changes**: Two Playwright component tests for the Dropdown primitive's click-outside dismissal are flaky-to-failing because each fires its outside click before Radix's DismissableLayer has armed its outside-click detection. This spec makes both tes...\n- **Files affected**: 3 files across 3 areas\n- **Acceptance criteria**: 8 testable criteria across 3 AC categories\n- **Out of scope**: Modifying Radix or the production Dropdown component (src/renderer/src/component; Introducing a bare fixed-delay waitForTimeout as the fix mechanism (brittle magi; Hardening the sibling overlay CT specs (Modal.ct.tsx, nested-overlays.ct.tsx) th\n\nPlease review and either approve or request changes. Once approved, run `/plan` to create the technical implementation plan.",
-  "plan_handoff_block": "## Manual next step \u2014 run /plan\n\nA structured handoff (specs/008-dropdown-ct-dismiss/handoff.json) is written for /plan. /plan auto-discovers it on its first run and reads the upstream plan-seeds \u2014 but you still launch /plan manually (there is no auto-dispatch from /specify). Restart Claude Code (exit and relaunch the CLI/app so the newly installed command is picked up), then run the command below in this repo. The spec path is explicit so /plan does not need most-recent-spec discovery:\n\n~~~\n/plan specs/008-dropdown-ct-dismiss/spec.md\n~~~\n\nMinimum handoff data:\n- Spec status: Draft\n- Spec type: bug_fix\n- AC count: 8 across 3 subsections (5.1: 0, 5.2: 3, 5.3: 3, 5.4: 0, 5.5: 0, 5.6: 0, 5.7: 2)\n- Decision-point coverage: 2 answered, 0 default-applied, 0 deferred-OOS, 0 deferred-open-question\n- Affected areas: 3 across node_modules, src\n- Out-of-scope items: 3\n- Open questions: 1\n- Constraints: 6\n- Risks: 2\n- Phase 1.5 finding coverage: 100% (all findings landed)\n\nReference: specs/008-dropdown-ct-dismiss/spec.md",
+  "approval_summary": "I've created the specification at `specs/009-request-bar/spec.md`. Key points:\n- **What changes**: Add a RequestBar organism for the active request tab: a color-coded HTTP-method dropdown (GET/POST/PUT/PATCH/DELETE/OPTIONS/HEAD), a plain URL text input bound to the active tab's RequestSpec.url, and Send/Save/Share actions with \u2318\u21b5 (Sen...\n- **Files affected**: 10 files across 7 areas\n- **Acceptance criteria**: 30 testable criteria across 5 AC categories\n- **Out of scope**: HTTP execution and the response view \u2014 Send fires an in-renderer onSend intent o; {{variable}} token highlighting, unknown-var flagging, and template interpolatio; Request-editing panels (params / headers / body / auth editors) and request sub-; \u2026\n\nPlease review and either approve or request changes. Once approved, run `/plan` to create the technical implementation plan.",
+  "plan_handoff_block": "## Manual next step \u2014 run /plan\n\nA structured handoff (specs/009-request-bar/handoff.json) is written for /plan. /plan auto-discovers it on its first run and reads the upstream plan-seeds \u2014 but you still launch /plan manually (there is no auto-dispatch from /specify). Restart Claude Code (exit and relaunch the CLI/app so the newly installed command is picked up), then run the command below in this repo. The spec path is explicit so /plan does not need most-recent-spec discovery:\n\n~~~\n/plan specs/009-request-bar/spec.md\n~~~\n\nMinimum handoff data:\n- Spec status: Draft\n- Spec type: feature_addition\n- AC count: 30 across 5 subsections (5.1: 3, 5.2: 3, 5.3: 16, 5.4: 0, 5.5: 0, 5.6: 2, 5.7: 6)\n- Decision-point coverage: 5 answered, 0 default-applied, 0 deferred-OOS, 0 deferred-open-question\n- Affected areas: 7 across src\n- Out-of-scope items: 6\n- Open questions: 1\n- Constraints: 9\n- Risks: 5\n- Phase 1.5 finding coverage: 100% (all findings landed)\n\nReference: specs/009-request-bar/spec.md",
   "open_question_resolutions": [
     {
       "question_id": "Q-1",
-      "resolution_text": "Readiness API = await menu.evaluate(getAnimations().finished) + one in-page setTimeout(0) macrotask-boundary yield; deterministic and motion-independent, not a fixed-delay timeout.",
+      "resolution_text": "Plan Key Design Decision sets the method-pill trigger aria approach (mirror 005: method announced once via the trigger's accessible name, not doubled); exact design-reference geometry carries forward to /breakdown as task detail.",
       "resolution_phase": "plan",
-      "resolution_timestamp": "2026-06-27T18:20:09Z"
+      "resolution_timestamp": "2026-06-28T08:35:16Z"
     }
   ],
   "conflicts": [],
   "source": {
-    "handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/research/2026-06-27-003-dropdown-ct-click/handoff.json",
-    "handoff_kind": "research",
-    "research_completed_at": "2026-06-27T17:06:34+00:00",
+    "handoff_path": null,
+    "handoff_kind": null,
+    "research_completed_at": null,
     "discover_completed_at": null,
     "discover_recommended_summary": null
   }

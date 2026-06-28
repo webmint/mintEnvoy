@@ -1,180 +1,229 @@
 {
-  "topic": "Working-tabs state machine + request data model (RequestSpec) for an HTTP client, built as a zustand tabs slice with a TabBar strip UI",
-  "date": "2026-06-24",
-  "topic_slug": "working-tabs-state-machine-request-data-model-requestspec",
-  "summary": "T4 builds the working-tabs state machine + RequestSpec request data model for the HTTP client as a renderer zustand slice (tabsStore) plus a TabBar strip. Prior-art is decisive: the slice convention (settingsStore/toastStore), the tab a11y primitive (molecules/Tabs.tsx), and the Shell 'tabs' mount slot all already exist internally, and Bruno's .bru/OpenCollection schema validates the RequestSpec shape (method/url/params/headers/body/auth with an extensible auth discriminated union seeded at none+bearer). Overall fit is Good and effort Low \u2014 the only net-new work is the GAP capabilities with no internal prior art (the RequestSpec domain model and the lifecycle/dirty state machine), and the one belief-vs-reality correction is favorable: the '+' new-tab control fits the Tabs primitive's existing actions? slot with no contract change, leaving only a per-tab close \u2715 as a genuine (and narrow) primitive extension. Recommended direction: build a flat tab-array slice that composes the existing primitive and mirrors the existing store convention. Primary risk: the Tabs-primitive close-\u2715 extension must not break its roving-tabindex a11y, and the RequestSpec serialization shape must be pinned against the out-of-scope persistence task to avoid rework.",
+  "topic": "HTTP client request bar: color-coded method dropdown, variable-highlighting URL input with unknown-var flagging against active env, and Send/Save/Share actions with keyboard shortcuts; reads/writes active tab RequestSpec",
+  "date": "2026-06-27",
+  "topic_slug": "http-client-request-bar-color-coded-method-dropdown",
+  "summary": "A RequestBar organism for the active request tab: a color-coded method dropdown (reusing the 001 Dropdown molecule + 005 .method/data-mstyle color tokens), a plain URL input bound to RequestSpec.url, and Send/Save/Share actions with \u2318\u21b5/\u2318S shortcuts. The feature is almost pure assembly of existing primitives \u2014 Dropdown, RequestSpec model, method-color tokens, and the Shell global-shortcut + per-field-selector patterns are all present and directly reusable, so overall fit is Good. The one real integration gap: the tab store exposes markClean (clear dirty) but NO action to edit the active tab's method/url and set dirty \u2014 that write mutator must be added, making effort Medium. Variable-token highlighting is explicitly out of scope (epic D); the URL field is a plain bound string. Recommended direction: add a single generic tabsStore spec-patch action and build RequestBar against it; primary risk is the store-write-path design and the \u00a74 'TabBar is the sole subscriber' / \u00a75.2 'requestSpec never imported by components' rules that constrain how RequestBar reads method/url.",
   "prior_art": [
     {
-      "reference": "Tabs primitive (TabDescriptor/TabsProps)",
+      "reference": "tabsStore (active-tab state + markClean)",
       "kind": "pattern",
-      "relevance": "internal \u2014 existing tab a11y/roving-tabindex + selection primitive (002); TabBar composes & extends it (close \u2715, '+', dirty), does NOT re-roll",
-      "source": "internal:src/renderer/src/components/molecules/Tabs.tsx"
+      "relevance": "internal \u2014 holds active tab + RequestSpec; exposes read (tabs/activeTabId) + markClean, BUT no spec-edit/dirty-set action (gap)",
+      "source": "internal:src/renderer/src/lib/tabsStore.ts"
     },
     {
-      "reference": "zustand store convention (settingsStore/toastStore)",
+      "reference": "RequestSpec model (makeBlankRequest, method/url fields)",
       "kind": "pattern",
-      "relevance": "internal \u2014 module-level create<State>((set)=>...), Store suffix (\u00a73.3), renderer-only, selectors; tabsStore mirrors this exactly",
-      "source": "internal:src/renderer/src/lib/settingsStore.ts"
+      "relevance": "internal \u2014 RequestSpec type {method,url,name,params,headers,body,auth}; method+url are the fields this feature edits",
+      "source": "internal:src/renderer/src/lib/requestSpec.ts"
     },
     {
-      "reference": "Shell organism 'tabs' slot",
+      "reference": "Dropdown molecule (Radix, open/onOpenChange)",
       "kind": "pattern",
-      "relevance": "internal \u2014 existing mount point above PaneSplit where TabBar renders; no new layout plumbing needed",
-      "source": "internal:src/renderer/src/components/organisms/Shell.tsx"
+      "relevance": "internal \u2014 reuse for the method selector; no second overlay lib needed",
+      "source": "internal:src/renderer/src/components/molecules/Dropdown.tsx"
     },
     {
-      "reference": "Bruno .bru / OpenCollection request schema",
-      "kind": "product",
-      "relevance": "GAP: RequestSpec shape \u2014 validates {method,url,headers,params(typed array),body{type,data},auth{type,...}}; auth types none/inherit/basic/bearer/apikey/digest/oauth2/awsv4/ntlm confirm the extensible discriminated-union with none+bearer as the minimal seed",
-      "source": "https://docs.usebruno.com/bru-lang/tag-reference"
+      "reference": "method-pill color tokens (.method.* via data-mstyle)",
+      "kind": "pattern",
+      "relevance": "internal \u2014 per-method color classes already exist; consume via .method {METHOD} class, data-mstyle set on <html> by Shell",
+      "source": "internal:src/renderer/styles/tokens.css"
     },
     {
-      "reference": "Zustand slices pattern (official)",
+      "reference": "TabBar organism (per-field selectors + stable actions template)",
       "kind": "pattern",
-      "relevance": "GAP: tab state machine \u2014 canonical single-slice shape (tabs[] + activeTab + actions); matches the project's existing module-level store convention",
-      "source": "https://zustand.docs.pmnd.rs/learn/guides/slices-pattern"
+      "relevance": "internal \u2014 sibling organism showing the exact zustand subscribe/memoize pattern RequestBar should mirror; lives flat at organisms/",
+      "source": "internal:src/renderer/src/components/organisms/TabBar.tsx"
     },
     {
-      "reference": "Redux\u2192Zustand multi-tab editor case study",
+      "reference": "Shell global-shortcut pattern (Effect 4: document keydown + preventDefault + getState)",
       "kind": "pattern",
-      "relevance": "GAP: per-tab dirty/unsaved tracking \u2014 validates a tabs slice holding per-tab document state + dirty flag, markClean on save/send",
-      "source": "https://engineering.synaptic.com/managing-state-in-a-multi-tabbed-application-our-journey-from-redux-to-zustand-6d3932544300"
+      "relevance": "internal \u2014 established global \u2318B shortcut pattern; reuse shape for \u2318\u21b5 Send / \u2318S Save (preventDefault stops native save)",
+      "source": "internal:src/renderer/src/components/organisms/shell/Shell.tsx"
+    },
+    {
+      "reference": "HTTP method color convention (GET green/POST orange/DELETE red)",
+      "kind": "pattern",
+      "relevance": "industry-standard request-bar UX (Postman/Insomnia); already encoded in project tokens.css .method.* \u2014 no new work",
+      "source": "https://github.com/postmanlabs/postman-app-support/issues/1337"
+    },
+    {
+      "reference": "React global keyboard-shortcut pattern (useEffect+document keydown+preventDefault+metaKey+cleanup)",
+      "kind": "pattern",
+      "relevance": "canonical \u2318Enter/\u2318S handling; matches project Shell Effect 4; preventDefault stops native save",
+      "source": "https://devtrium.com/posts/how-keyboard-shortcut"
     }
   ],
   "integration_touchpoints": [
     {
-      "name": "Tabs primitive (molecules/Tabs.tsx)",
-      "module_path": "src/renderer/src/components/molecules/Tabs.tsx",
-      "reason": "existing capability \u2014 candidate for reuse over fresh build; TabBar composes it; its {id,label,badge?,disabled?} selection-only contract is EXTENDED (close \u2715 sibling button, '+' control, dirty marker) \u2014 record extension in /specify"
+      "name": "tabsStore active-tab spec write/read",
+      "module_path": "src/renderer/src/lib/tabsStore.ts",
+      "reason": "read active tab method+url; REQUIRES a new store action to mutate spec.method/spec.url + set dirty (none exists; markClean clears only) \u2014 candidate for reuse-by-extension"
     },
     {
-      "name": "zustand store convention (lib/)",
-      "module_path": "src/renderer/src/lib/settingsStore.ts",
-      "reason": "existing capability \u2014 new tabsStore.ts mirrors this slice convention; reuse over inventing a new state pattern"
+      "name": "RequestSpec model",
+      "module_path": "src/renderer/src/lib/requestSpec.ts",
+      "reason": "method+url field types this feature binds to"
     },
     {
-      "name": "Shell 'tabs' slot",
-      "module_path": "src/renderer/src/components/organisms/Shell.tsx",
-      "reason": "existing capability \u2014 TabBar mounts into the existing 'tabs' slot above PaneSplit; no new layout plumbing"
+      "name": "Dropdown molecule",
+      "module_path": "src/renderer/src/components/molecules/Dropdown.tsx",
+      "reason": "reuse for method selector"
+    },
+    {
+      "name": "method-pill tokens",
+      "module_path": "src/renderer/styles/tokens.css",
+      "reason": "consume existing .method.* color classes via data-mstyle"
+    },
+    {
+      "name": "organism placement (flat) + request-pane mount",
+      "module_path": "src/renderer/src/components/organisms",
+      "reason": "organisms are FLAT (TabBar.tsx/Sidebar.tsx, only shell/ nested) \u2014 RequestBar lands flat organisms/RequestBar.tsx, NOT organisms/request/; mounts into Shell panes.request slot, composed at App root"
     }
   ],
   "fit_assessments": [
     {
-      "touchpoint": "Tabs primitive (molecules/Tabs.tsx)",
-      "user_expected": "Extend the primitive contract with per-tab close \u2715, a '+' new-tab control, and a dirty marker",
-      "reality": "Primitive is controlled/selection-only (tabs[], activeId, onChange) and ALREADY exposes an actions? slot rendered OUTSIDE role=tablist (AC-8) \u2014 the '+' new-tab control fits there with NO contract change. Only per-tab close \u2715 needs a real extension: a close button rendered as a SIBLING to the role=tab label (never nested) + an APG Delete-key path. Dirty marker can ride the existing badge? slot. Net: extension is narrower than the user assumed.",
-      "effort": "Low",
+      "touchpoint": "tabsStore active-tab spec write/read",
+      "user_expected": "writes go through the existing dirty-flag + markClean path already in the store",
+      "reality": "store exposes read (tabs/activeTabId) + markClean (clear dirty) ONLY; NO action mutates spec.method/spec.url and NO action sets dirty=true \u2014 the edit/dirty-set write path does not exist and must be added",
+      "effort": "Medium",
       "blockers": [
-        "per-tab close button must not nest inside role=tab (would break roving tabindex)",
-        "needs APG Delete-key handler on the focused tab"
+        "TabsState has no spec-edit/dirty-set mutator; a new store action (e.g. updateActiveSpec/setMethod+setUrl that patches the active tab spec and flips dirty=true) is required"
       ]
     },
     {
-      "touchpoint": "zustand store convention (lib/)",
-      "user_expected": "New tabsStore.ts mirrors settingsStore.ts / toastStore.ts",
-      "reality": "Exact match: module-level create<State>((set)=>...), Store suffix (\u00a73.3), renderer-only (no node/electron imports), selector usage. No new state pattern invented; tabsStore drops straight into the convention.",
+      "touchpoint": "organism placement (flat) + request-pane mount",
+      "user_expected": "RequestBar nested under organisms/request/ (domain home), same as TabBar; follow TabBar if it moved",
+      "reality": "organisms are FLAT (organisms/TabBar.tsx, organisms/Sidebar.tsx); only organisms/shell/ is nested; no organisms/request/ folder exists and TabBar never moved. RequestBar lands flat organisms/RequestBar.tsx matching siblings; mounts into the Shell panes.request slot composed at the App root",
       "effort": "Low",
       "blockers": []
     },
     {
-      "touchpoint": "Shell 'tabs' slot",
-      "user_expected": "TabBar mounts into Shell's existing tabs slot",
-      "reality": "Confirmed: Shell renders a 'tabs' slot above PaneSplit, currently fed only by a test fixture (ShellWithTabsFixture). Wiring the real TabBar is a slot fill \u2014 no new layout plumbing.",
+      "touchpoint": "Dropdown molecule",
+      "user_expected": "reuse existing 001 Radix Dropdown for method selector",
+      "reality": "molecules/Dropdown.tsx exports Dropdown/DropdownItem/DropdownLabel/DropdownSeparator, Radix-backed, controlled via open/onOpenChange \u2014 directly reusable",
       "effort": "Low",
       "blockers": []
+    },
+    {
+      "touchpoint": "method-pill tokens",
+      "user_expected": "consume 005 [data-mstyle] method-color convention",
+      "reality": ".method.* per-method classes live in tokens.css; data-mstyle is set on <html> by Shell Effect 1 from settingsStore \u2014 already wired, RequestBar just applies .method {METHOD}",
+      "effort": "Low",
+      "blockers": []
+    },
+    {
+      "touchpoint": "RequestSpec model",
+      "user_expected": "method+url are RequestSpec fields",
+      "reality": "RequestSpec = {method,url,name,params,headers,body,auth}; method+url top-level, confirmed via makeBlankRequest",
+      "effort": "Low",
+      "blockers": []
+    },
+    {
+      "touchpoint": "organism placement (flat) + request-pane mount",
+      "user_expected": "RequestBar nested under organisms/request/ (domain home), same as TabBar; follow TabBar if it moved",
+      "reality": "Constitution \u00a72.2: single-domain components live in organisms/<domain>/ but the subfolder is created ONLY at >=2 components (TabBar/Sidebar are currently flat domain singletons, no organisms/request/ exists). So the belief is a DEFERRED decision, not wrong: if RequestBar makes a 'request' domain reach >=2 with TabBar, create organisms/request/ and move TabBar in; otherwise RequestBar lands flat as another singleton. The /plan stage owns this call. Either way it mounts into the Shell panes.request slot (composed at App root).",
+      "effort": "Low",
+      "blockers": [
+        "placement is a /plan decision (flat singleton vs organisms/request/ at >=2-component trigger, which would relocate TabBar)"
+      ]
     }
   ],
   "overall_fit": "Good",
-  "effort_estimate": "Low",
-  "fit_rationale": "Fit is Good and effort Low. All three touchpoints already exist and match: the zustand slice drops straight into the settingsStore/toastStore convention, the TabBar mounts into Shell's existing 'tabs' slot, and the Tabs primitive is reused rather than re-rolled. The only real net-new work is the GAP capabilities with no internal prior art \u2014 the RequestSpec domain model and the tab state machine (lifecycle + dirty/markClean). The one belief-vs-reality correction is favorable: the user expected to extend the Tabs primitive with both a '+' control and per-tab close \u2715, but the '+' fits the primitive's existing actions? slot (no contract change) \u2014 only the per-tab close \u2715 (sibling-to-role=tab + APG Delete) is a genuine contract extension, which /specify must record explicitly.",
+  "effort_estimate": "Medium",
+  "fit_rationale": "Almost pure assembly of existing primitives \u2014 Dropdown molecule, RequestSpec model, method-color tokens (data-mstyle), and the Shell global-shortcut + per-field-selector patterns all exist and are directly reusable. One real integration gap: the tab store has a clean-side API (markClean) but NO action to edit the active tab's spec.method/url and set dirty \u2014 that write mutator must be added (Medium). The user's placement belief (organisms/request/ domain nesting) is slightly off: organisms are flat, so RequestBar lands flat alongside TabBar and mounts into the Shell panes.request slot. No new runtime deps, no second overlay lib.",
   "design_options": [
     {
-      "name": "Flat tab array with embedded spec",
-      "shape": "state = { tabs: Tab[]; activeTabId: string } where Tab = { id; spec: RequestSpec; dirty }. Tab order IS the array order. Actions find-by-id over a small N; serialization = tabs.map(t => t.spec).",
+      "name": "Generic spec-patch store action",
+      "shape": "Add updateActiveSpec(patch: Partial<RequestSpec>) to tabsStore: shallow-merge the patch into the active tab's spec and set dirty=true in one action. RequestBar subscribes to active method+url via per-field selectors and calls updateActiveSpec({method}) / updateActiveSpec({url}); Save calls markClean; Send fires a send-intent callback.",
       "pros": [
-        "Simplest shape \u2014 mirrors settingsStore/toastStore minimalism (KISS)",
-        "Array order naturally encodes tab order; no separate order list to sync",
-        "Trivial (de)serialization to the persistence JSON shape",
-        "Close-neighbor selection is a simple index walk"
+        "single new mutator, minimal store surface",
+        "extensible to future fields (headers/body/params) with zero new actions",
+        "one dirty-set site keeps the dirty invariant centralized",
+        "matches the existing zustand action-only mutation pattern (\u00a74)"
       ],
       "cons": [
-        "O(n) find-by-id on markClean/updateActive (irrelevant for small N tab counts)",
-        "Index/id bookkeeping needed for close\u2192select-neighbor"
+        "patch is untyped-ish (Partial) \u2014 needs a guard to reject unknown keys",
+        "slightly less explicit than named field actions at call sites"
       ],
       "complexity": "Low"
     },
     {
-      "name": "Normalized id-keyed map plus order list",
-      "shape": "state = { tabsById: Record<string,Tab>; order: string[]; activeTabId }. Lookups and updates are by id; order[] holds tab sequence separately.",
+      "name": "Field-specific store actions",
+      "shape": "Add setActiveMethod(method) and setActiveUrl(url) to tabsStore; each writes its field into the active tab spec and sets dirty=true. RequestBar calls the matching action per control.",
       "pros": [
-        "O(1) lookup/update by id for markClean, updateActive, dedupe-by-id",
-        "Cleaner immutable per-tab updates"
+        "explicit, self-documenting call sites",
+        "each action is independently typed"
       ],
       "cons": [
-        "Two structures (order vs tabsById) must be kept in sync on every open/close",
-        "More boilerplate than the array for no real gain at small N",
-        "dedupe-by-url is still an O(n) scan"
+        "store surface grows one action per editable field \u2014 does not scale to headers/body later",
+        "two dirty-set sites to keep consistent",
+        "more boilerplate for the same effect"
       ],
-      "complexity": "Med"
+      "complexity": "Low"
     },
     {
-      "name": "Spec registry with tab refs (decoupled)",
-      "shape": "RequestSpecs live in their own registry map; tabs hold only spec-id refs, so one spec could back multiple tabs/views.",
+      "name": "Local draft + commit-on-action",
+      "shape": "RequestBar holds local method/url state and only writes to the store on blur/Send/Save (deferred commit), rather than writing on every keystroke.",
       "pros": [
-        "Decouples spec lifetime from tab lifetime",
-        "Enables future multi-view of a single spec"
+        "fewer store writes per keystroke"
       ],
       "cons": [
-        "Over-engineered for an in-memory single-window scope (YAGNI)",
-        "Extra indirection on every read/edit",
-        "No requirement in scope motivates the decoupling"
+        "breaks reactive dirty-on-edit \u2014 tab would not show dirty while typing",
+        "loses live per-tab sync; external/tab-switch changes can clobber the draft",
+        "contradicts the stated edge-case + success criteria (edit marks dirty immediately)",
+        "diverges from the established per-field-selector store pattern"
       ],
       "complexity": "High"
     }
   ],
   "recommended_option": {
-    "name": "Flat tab array with embedded spec",
-    "rationale": "Extend the existing store convention rather than invent a new one: tabsStore mirrors internal:src/renderer/src/lib/settingsStore.ts (module-level create<State>, Store suffix, renderer-only) and the TabBar composes internal:src/renderer/src/components/molecules/Tabs.tsx instead of re-rolling tab a11y. The flat array is the KISS choice \u2014 at realistic tab counts the O(n) find-by-id is a non-issue, array order encodes tab order for free, and serialization to the persistence JSON shape is a trivial map. The normalized id-keyed map buys O(1) updates the scope does not need while adding an order/tabsById sync burden; the spec-registry option solves a multi-view problem no requirement raises (YAGNI). Acknowledged tradeoff: close\u2192select-neighbor needs explicit index bookkeeping, and updateActive/markClean do an array find \u2014 both cheap and well-contained."
+    "name": "Generic spec-patch store action",
+    "rationale": "Extends the existing internal:src/renderer/src/lib/tabsStore.ts store \u2014 which currently covers active-tab read + markClean but NOT spec-edit/dirty-set \u2014 with one generic updateActiveSpec(patch) mutator. This is the minimal, KISS/DRY-aligned closure of the only real gap: it keeps all mutation behind a store action (\u00a74), centralizes the dirty-set, scales to later request fields without new actions, and lets RequestBar stay a thin reactive consumer mirroring the TabBar selector pattern. Tradeoff accepted: a small key-allow-list guard on the patch to preserve type safety at the boundary."
   },
   "build_vs_buy": {
-    "build": "Build the tabsStore slice + the RequestSpec domain model fresh, composing the existing internal Tabs primitive and the zustand dependency the project already ships. No new runtime dependency.",
-    "buy": "Adopt an external request-collection model/SDK (e.g. postman-collection, or Bruno's bru parser) to supply the RequestSpec shape and (de)serialization.",
+    "build": "Assemble RequestBar from existing internal primitives (Dropdown molecule, RequestSpec model, method-color tokens, Shell shortcut/selector patterns) plus one new tabsStore spec-patch action. No new runtime dependency.",
+    "buy": "Adopt an external request-bar / form component library or a generic dropdown+input kit.",
     "recommendation": "Build",
-    "reasoning": "The buy path drags a heavyweight collection SDK in to model a handful of in-memory fields \u2014 a poor trade for an extensible discriminated-union we fully control, and it would couple the domain entity to a third-party schema. zustand is already a dependency and the Tabs primitive already exists, so the build path is mostly composition of internal assets; only the domain model + state machine are genuinely net-new. Bruno/OpenCollection inform the shape as a reference, not as a runtime dependency."
+    "reasoning": "Every building block already exists in-repo and the only missing piece is a ~10-line store action; an external lib would duplicate the Dropdown molecule, fight the zustand store pattern and tokens.css, and violate the no-second-overlay-lib constraint. Build is strictly cheaper and lower-risk."
   },
   "derisk_plan": [
-    "Spike the Tabs-primitive close-\u2715 extension (close button as sibling to role=tab + APG Delete key) against the primitives existing roving-tabindex tests, confirming the contract extension is non-breaking BEFORE building the TabBar",
-    "Pin the RequestSpec serialization JSON shape as a shared contract test with the out-of-scope persistence task before implementing, to avoid rework when persistence lands",
-    "Establish the renderer test stack (Vitest + Testing Library per constitution \u00a73.4 \u2014 no test infra exists yet) as part of this feature, since the success bar requires slice unit tests",
-    "Decide and fixture the url-dedupe normalization rule (trailing slash, case) and the dirty-tab-close behavior (warn/confirm vs silent-drop) during /specify"
+    "Spike the tabsStore write action (updateActiveSpec patch + dirty=true) with unit tests for dirty-flip-on-edit, per-tab isolation, and markClean-on-Save BEFORE building the UI",
+    "Confirm the App-root composition passes panes.request into Shell and how the active-tab context reaches RequestBar (mount point grounding)",
+    "Resolve placement at /plan: flat organisms/RequestBar.tsx vs organisms/request/ (>=2-component trigger that would relocate TabBar)",
+    "Resolve how RequestBar gets the method list + RequestSpec type WITHOUT a component->requestSpec import (re-export via tabsStore / type-only / constants module) per \u00a75.2",
+    "CT-verify \u2318S preventDefault suppresses native save and \u2318\u21b5/\u2318S act on the active tab regardless of focus in the Electron renderer"
   ],
   "constitution_constraints": [
     {
-      "rule": "\u00a73.3 Naming Conventions",
-      "impact": "zustand store is camelCase + Store suffix \u2192 name it tabsStore (not TabsStore/TabSlice); aligns with settingsStore/toastStore for clean discovery"
+      "rule": "\u00a72.2 Domain placement (>=2-component trigger)",
+      "impact": "Governs where RequestBar lives: organisms/request/ only if the request domain reaches >=2 components (would also relocate TabBar); else flat organisms/RequestBar.tsx. No barrel/index files. @renderer alias, downward-only imports, no sibling-organism import."
     },
     {
-      "rule": "\u00a72.1 / \u00a72.3 Process Boundaries & Imports",
-      "impact": "tabsStore is renderer-only \u2014 no node/electron imports, resolve via @renderer alias, no cross-process imports; reinforces the scope rule that lib/ must not import components/ and the collection store must not be imported"
+      "rule": "\u00a72.2 / \u00a75.2 requestSpec is a pure data module \u2014 no component imports",
+      "impact": "RequestBar (a component) must NOT import requestSpec at runtime; the GET/POST/... method list + RequestSpec type must reach it another way (re-export via tabsStore, a type-only import, or a separate constants module). A naive import of method literals from requestSpec.ts violates this rule."
     },
     {
-      "rule": "\u00a73.1 Type Safety",
-      "impact": "strict mode, no any \u2192 the auth discriminated union must be exhaustively typed and narrowed via type guards on ; RequestSpec is fully typed, enabling the extensible-union design without escape hatches"
+      "rule": "\u00a74 Mutate state only through store actions; tabsStore owns tab lifecycle",
+      "impact": "RequestBar must write method/url ONLY via a tabsStore action \u2014 reinforcing the gap that no spec-edit/dirty-set action exists yet (one must be added). RequestBar also becomes a SECOND tabsStore subscriber, so the extracted rule 'TabBar.tsx is the sole subscriber' needs updating to reflect the spec-edit subscriber."
     },
     {
-      "rule": "\u00a73.4 Testing Requirements",
-      "impact": "no renderer test infra exists yet; the success bar (slice unit tests) makes this feature the one that must stand up Vitest + Testing Library \u2014 added setup scope to budget in /plan"
+      "rule": "\u00a74 Never use inline styles; prefer design tokens",
+      "impact": "All RequestBar styling via semantic classes in a sibling .css against tokens.css custom properties; zero inline styles; compose conditional classes with cx(); method color via .method {METHOD} (data-mstyle)."
     },
     {
-      "rule": "\u00a74 Patterns (Always Do, project-specific)",
-      "impact": "'Shared renderer state lives in a zustand store' directly validates the slice approach over component-local state"
+      "rule": "\u00a73.4 Co-located tests + \u00a73.3 PascalCase one-per-file",
+      "impact": "RequestBar.tsx + sibling RequestBar.css; tests under __tests__/ split .test.tsx (Vitest) and .ct.tsx (Playwright CT)."
+    },
+    {
+      "rule": "\u00a72.1/\u00a72.3 Renderer boundary",
+      "impact": "Renderer-only feature; no Node/Electron imports; cross-module via @renderer alias. Send fires an in-renderer intent callback only (no IPC/HTTP here)."
     }
   ],
   "verdict": "Worth pursuing",
   "recommendation": {
-    "action": "Run /specify for T4 \u2014 author the spec, explicitly recording the Tabs-primitive contract extension (per-tab close \u2715 sibling button + APG Delete; '+' via the existing actions? slot) and the in-scope RequestSpec serialization shape as acceptance criteria",
-    "next": "Proceed to /specify with the flat-tab-array slice + composed-primitive direction"
+    "action": "Proceed to /specify for the RequestBar feature, making the new tabsStore spec-edit/dirty-set action a first-class acceptance criterion (not an afterthought).",
+    "next": "Run /specify with the distilled topic below; spec the write-path action + placement + method-type reachability explicitly."
   },
-  "next_step_text": "/specify \"T4 working-tabs state machine + RequestSpec model: a renderer zustand tabsStore (flat tab array, lifecycle + dirty/markClean, seed defaults) and a TabBar composing the existing Tabs primitive.\"\n\nDiscovery reference: discover/2026-06-24-working-tabs-state-machine-request-data-model-requestspec.md\nKey facts:\n- Functional scope: A zustand tabs slice owning the open-request tabs + the lifecycle state machine (open-from-collection with dedupe id-then-url, new-blank, close never-zero, select-active), a per-tab dirty flag + markClean(tabId) action, and new-tab seed defaults. The RequestSpec domain model: { method, url, name, params[], headers[], body:{lang,type,text}, auth } where each param/header row is { enabled, key, value, description } and auth is a discriminated union on type ({none}+{bearer,token} in scope). A TabBar strip UI composing the existing Tabs primitive (extended with close \u2715, '+' new-tab, dirty marker) and wiring it to the slice. Out of scope: request-editing panels, real send/save, variable interpolation, other auth types, auth\u2192wire-header derivation.\n- Users: Two consumer classes. (1) End user: operates the TabBar \u2014 open/close/switch request tabs. (2) Sibling tasks consuming the zustand slice programmatically: collection-list opens tabs (open-from-collection), http-engine reads active RequestSpec + calls markClean on successful send, persistence calls markClean on save, request-editing panels bind to the active tab's RequestSpec. T4 owns only the slice + TabBar + the markClean action; the trigger sites live in those sibling tasks (out of scope).\n- Success criteria: Slice unit-tested: every lifecycle action (open-from-collection dedupe id-then-url, new-blank, close never-zero, select-active) + dirty flag + markClean(tabId) covered; invariants asserted (never-zero tabs, dedupe, seed defaults = auth bearer {{apiKey}} verbatim + default Accept header, auth NOT mirrored into headers[]). TabBar renders/selects/closes AND visually matches design/reference.html (look/spacing/states) against design/tokens.json. typecheck + lint + build clean.\n- Recommended option: Flat tab array with embedded spec\n- Open uncertainties: 1 (see discovery doc \u00a7Open uncertainties)",
+  "next_step_text": "/specify \"RequestBar organism: color-coded method dropdown (reuse 001 Dropdown + 005 data-mstyle), plain URL input bound to RequestSpec.url, Send/Save/Share with \u2318\u21b5/\u2318S; add a tabsStore spec-edit+dirty action. No var-highlighting (epic D), no HTTP.\"\n\nDiscovery reference: discover/2026-06-27-http-client-request-bar-color-coded-method-dropdown.md\nKey facts:\n- Functional scope: RequestBar UI for the active request tab. (1) Method selector: dropdown over GET/POST/PUT/PATCH/DELETE/OPTIONS/HEAD, each method color-coded via the 005 method-pill [data-mstyle] convention; reuses the 001 Dropdown molecule. (2) URL field: plain text input bound to RequestSpec.url (no var-highlight editor \u2014 that is epic D). (3) Actions: Send (disabled when url empty; fires a send-intent callback, NO HTTP here), Save (writes via the 004 dirty-flag + markClean path), Share (rendered token-styled in final layout position but wired to disabled/no-op stub \u2014 real share deferred). (4) Keyboard: \u2318\u21b5 = Send, \u2318S = Save. Reads/writes only method+url of the active tab RequestSpec; does not touch auth.\n- Users: Single local developer/API-tester operating the mintEnvoy desktop renderer. Keyboard-driven (\u2318\u21b5 Send, \u2318S Save), mouse for method selection + Share. No multi-user, no auth/identity, no remote/collab surface.\n- Success criteria: Layout [method \u25be][URL][Send] matches Postman/Insomnia pattern + design reference visually; semantic classes bound to tokens.css, zero inline styles; Share button in final slot disabled/no-op. RequestSpec read: bar renders active tab method+url; tab switch swaps values with no cross-tab bleed. RequestSpec write: url edit + method change write back to active tab only; method pill uses 005 [data-mstyle]. Dirty integration: any method/url edit marks tab dirty via 004; Save (when dirty) persists + markClean clears flag; Save on non-dirty = no-op. Send: disabled when url empty-after-trim, else fires send-intent callback (no HTTP). Shortcuts: \u2318\u21b5 Send + \u2318S Save act on active tab globally; Save respects dirty; trim guard applies to \u2318\u21b5. Overflow: long url scrolls horizontally, method pill+Send do not reflow. Method selector reuses 001 Dropdown (no second overlay lib); icons use existing Icon atom. Tests green: unit (RequestSpec read/write, trim guard, dirty/markClean, method-switch independence) + CT (layout, disabled Send, shortcut behavior, per-tab isolation); typecheck+lint+build pass.\n- Recommended option: Generic spec-patch store action\n- Open uncertainties: 1 (see discovery doc \u00a7Open uncertainties)",
   "open_uncertainties": []
 }
