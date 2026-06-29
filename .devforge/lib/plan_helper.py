@@ -1107,6 +1107,18 @@ def _render_research_plan_seeds(upstream_path: str, d: Dict[str, Any]) -> str:
     layer_just = ps.get("layer_justification", "(unset)")
     call_shape = ps.get("proposed_call_shape") or "(none)"
 
+    # Provenance caveat: rendered when the recommendation was shape-checked only
+    # (token-overlap/enum validity), not correctness-vetted. Back-compat: old
+    # handoffs lacking the field default to False (shape-checked only).
+    correctness_vetted = ps.get("correctness_vetted", False)
+    if correctness_vetted is not True:
+        caveat_line = (
+            "  ⚠ provenance: shape-checked (token-overlap), "
+            "NOT correctness-vetted — verify before treating as authoritative\n"
+        )
+    else:
+        caveat_line = ""
+
     # Complexity.
     complexity = ps.get("complexity") or {}
     if isinstance(complexity, dict):
@@ -1156,6 +1168,7 @@ def _render_research_plan_seeds(upstream_path: str, d: Dict[str, Any]) -> str:
         "## Upstream plan-seeds (research handoff: {upstream_path})\n"
         "\n"
         "**Recommended approach**: {rec_id} — {rec_summary}\n"
+        "{caveat_line}"
         "**Layer**: {layer_dest} — {layer_just}\n"
         "**Complexity**: {complexity_str}\n"
         "**Proposed call shape**: {call_shape}\n"
@@ -1169,6 +1182,7 @@ def _render_research_plan_seeds(upstream_path: str, d: Dict[str, Any]) -> str:
         upstream_path=upstream_path,
         rec_id=rec_id,
         rec_summary=rec_summary,
+        caveat_line=caveat_line,
         layer_dest=layer_dest,
         layer_just=layer_just,
         complexity_str=complexity_str,

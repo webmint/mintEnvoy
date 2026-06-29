@@ -114,6 +114,119 @@ _RE_EVIDENCE_BLOCK = re.compile(
 
 
 # ---------------------------------------------------------------------------
+# Label-tolerance normalisation helpers (plan 46)
+# ---------------------------------------------------------------------------
+
+# Single-line field labels whose values should have surrounding backticks
+# stripped (Severity, File, Line, Pattern, Confidence, Category).  NOT applied
+# to Evidence / Why it's wrong / Remediation — those may contain legitimate
+# backticks in prose or fenced code.
+_SINGLE_LINE_LABEL_FIELDS = frozenset([
+    'Severity', 'File', 'Line', 'Pattern', 'Confidence', 'Category',
+])
+
+# All known label names sorted longest-first so the alternation regex prefers
+# the longest match and avoids ambiguous prefix matches.
+_ALL_KNOWN_LABELS = sorted(
+    [
+        "Why it's wrong", 'Remediation', 'Evidence',
+        'Severity', 'File', 'Line', 'Pattern', 'Confidence', 'Category',
+    ],
+    key=len,
+    reverse=True,
+)
+
+# Matches a decorated known-label line OUTSIDE a fenced code block.
+# Decoration tolerated:
+#   - optional leading indent (spaces/tabs)
+#   - ONE optional list bullet (-/*/+) followed by whitespace
+#   - optional bold (**) around the label and/or the colon
+# Groups: (1) the matched label, (2) the value after the colon (possibly "").
+# A literal ':' is required immediately after the (optionally-bolded) label,
+# so prose like "Severity is high" (no colon) does NOT match.
+# The "## Finding N" header (starts with '#') also cannot match.
+_RE_DECORATED_LABEL_LINE = re.compile(
+    r'^'
+    r'[ \t]*'                                                              # optional indent
+    r'(?:[-*+][ \t]+)?'                                                    # optional bullet
+    r'(?:\*\*)?'                                                           # optional opening **
+    r'(' + '|'.join(re.escape(lbl) for lbl in _ALL_KNOWN_LABELS) + r')'   # label (captured)
+    r'(?:\*\*)?'                                                           # optional closing ** (**Label**:)
+    r':'                                                                   # required colon
+    r'(?:\*\*)?'                                                           # optional closing ** (**Label:**)
+    r'[ \t]*(.*)'                                                          # optional whitespace + value
+    r'$'
+)
+
+
+def _strip_inline_code(value):
+    # type: (str) -> str
+    """Strip a matched surrounding backtick run from a single-line value.
+
+    Examples::
+
+        _strip_inline_code('`x`')    -> 'x'
+        _strip_inline_code('``x``')  -> 'x'
+        _strip_inline_code('x')      -> 'x'   (no backticks — unchanged)
+        _strip_inline_code('`a`b`')  -> 'a`b' (interior backtick preserved)
+
+    Only the outermost matched pair (equal run length at start and end) is
+    stripped.  A value that does not end with a backtick is returned unchanged.
+    """
+    m = re.match(r'^(`+)(.*?)(`+)$', value)
+    if m and m.group(1) == m.group(3):
+        return m.group(2)
+    return value
+
+
+def _normalize_label_lines(block_text):
+    # type: (str) -> str
+    """Fence-aware pass: rewrite decorated label lines to bare 'Label: value' form.
+
+    Walk the block line-by-line.  Toggle *in_fence* whenever a line's lstripped
+    form starts with '```'.  Lines inside a fence pass through verbatim — so
+    evidence code bodies that begin with '-'/'*' or contain '**' are never
+    rewritten.  Outside-fence lines that match a decorated known-label pattern
+    (leading indent / list bullet / bold **) are rewritten to the canonical bare
+    form ``Label: value``.
+
+    For the six single-line fields (Severity, File, Line, Pattern, Confidence,
+    Category) the extracted value is also passed through ``_strip_inline_code``
+    so that backtick-wrapped values like ``Line: `12``` become ``Line: 12``
+    before the existing field regexes run.  The value for Evidence / Why it's
+    wrong / Remediation is emitted as-is (those fields carry prose or fenced
+    code that may contain legitimate backticks).
+
+    Called once at the top of ``_parse_finding_block`` before any existing
+    regex or startswith parsing runs — so all downstream logic is unchanged.
+    """
+    lines = block_text.splitlines()
+    result = []
+    in_fence = False
+    for line in lines:
+        if line.lstrip().startswith('```'):
+            in_fence = not in_fence
+            result.append(line)
+            continue
+        if in_fence:
+            result.append(line)
+            continue
+        m = _RE_DECORATED_LABEL_LINE.match(line)
+        if m:
+            label = m.group(1)
+            value = m.group(2)
+            if label in _SINGLE_LINE_LABEL_FIELDS:
+                value = _strip_inline_code(value)
+            if value:
+                result.append('{0}: {1}'.format(label, value))
+            else:
+                result.append('{0}:'.format(label))
+        else:
+            result.append(line)
+    return '\n'.join(result)
+
+
+# ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
 
@@ -160,6 +273,10 @@ def _parse_finding_block(block_text, agent_name):
     remediation are tolerated with empty strings (they fail the later
     anti-hallucination checks only if evidence is also absent).
     """
+    # Normalise label decoration (dash-bullets, bold **, backtick-wrapped
+    # values) before any existing regex or startswith parsing runs.
+    block_text = _normalize_label_lines(block_text)
+
     # Severity
     m = _RE_SEVERITY.search(block_text)
     if not m:
@@ -230,11 +347,21 @@ def _parse_finding_block(block_text, agent_name):
                 ev_lines.append(ln)
         evidence = '\n'.join(ev_lines).strip()
 
+    # Scope Why/Remediation extraction to the post-evidence tail when the
+    # evidence regex matched.  A stray ``` inside an evidence code body toggles
+    # _normalize_label_lines back to "outside fence", so a decorated label like
+    # **Why it's wrong**: INSIDE CODE BODY would be normalised and then picked
+    # up by _extract_section before the real post-evidence field.  Restricting
+    # the search region to block_text[m_ev.end():] excludes everything inside
+    # the evidence block regardless of stray ``` lines.  When the evidence
+    # regex did not match (fallback path), use the full block as before.
+    why_rem_text = block_text[m_ev.end():] if m_ev else block_text
+
     # Why it's wrong
-    why = _extract_section(block_text, "Why it's wrong:")
+    why = _extract_section(why_rem_text, "Why it's wrong:")
 
     # Remediation
-    remediation = _extract_section(block_text, "Remediation:")
+    remediation = _extract_section(why_rem_text, "Remediation:")
 
     # Lift the [CONSTITUTION-VIOLATION] marker into the structured tags list.
     # Agents have no structured Tags field in the output contract (§3.2), so
