@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/010-request-bar-fidelity/tasks",
+  "breakdown_completed_at": "2026-06-28T20:15:47Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/010-request-bar-fidelity/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/010-request-bar-fidelity/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/010-request-bar-fidelity/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "restyle-requestbar-markup-labels-keycap",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "002",
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/RequestBar.tsx",
+        "src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx"
+      ],
+      "expects": [
+        "`RequestBar.tsx` defines `const canSend = url.trim() !== ''` and renders a Send button with `disabled={!canSend}`.",
+        "`RequestBar.tsx` renders Save (`request-bar__save`) and Share (`request-bar__share`) buttons that are currently icon-only with `aria-label`.",
+        "The method trigger renders `cx('request-bar__method', 'method', method)` and is not modified by this task."
+      ],
+      "produces": [
+        "`RequestBar.tsx` renders visible `Save` and `Share` text inside their buttons, and neither button carries an `aria-label` attribute.",
+        "`RequestBar.tsx` renders a `request-bar__kbd` element with `aria-hidden=\"true\"` inside the Send button, gated on `canSend` (present when enabled, absent when disabled).",
+        "The Send button's accessible name is `Send`; Save/Share accessible names are `Save`/`Share`.",
+        "`RequestBar.test.tsx` contains asserts covering keycap presence/absence, Save/Share accessible-name preservation, and aria-label removal.",
+        "No change to `onSend`, `handleSend`, `handleSave`, the keydown effect, `updateActiveSpec`, the `tabsStore` selectors, or any `data-mstyle` write (there is none)."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-2",
+        "AC-4",
+        "AC-7",
+        "AC-9",
+        "AC-10",
+        "AC-11",
+        "AC-14",
+        "AC-15",
+        "AC-16",
+        "AC-17",
+        "AC-18",
+        "AC-19"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "002",
+      "title": "rewrite-requestbar-css-fidelity",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/RequestBar.css"
+      ],
+      "expects": [
+        "Task 001 landed: `RequestBar.tsx` renders a `request-bar__kbd` element inside Send and visible Save/Share labels.",
+        "The method trigger still carries `cx('request-bar__method', 'method', method)`; `tokens.css` defines `--radius`, `--accent`, `--accent-soft`, `--bg-elev`, `--text-faint`, `--text-muted`, `--text-inverse`, `--border`, `--font-mono`.",
+        "`tokens.css` defines `[data-mstyle='soft'] .method.{METHOD}` colour rules."
+      ],
+      "produces": [
+        "`.request-bar` uses `padding: 12px 16px` and `gap: 8px`; URL input, Send, method-select and ghost actions bind `border-radius: var(--radius)` at a `32px` control height.",
+        "`.request-bar__url:focus` declares both `border-color: var(--accent)` and `box-shadow: 0 0 0 3px var(--accent-soft)`.",
+        "`.request-bar__send` declares `font-weight: 600` and an inset-highlight `box-shadow`.",
+        "`.request-bar__kbd` is styled per the reference keycap (border, `--bg-elev`, `border-radius: 3px`).",
+        "A `.request-bar .request-bar__method.method` rule sets `background`/`border`/`border-radius` and declares NO `color`.",
+        "No `data-mstyle` write anywhere in RequestBar; every new rule selector begins with `.request-bar`."
+      ],
+      "ac_addressed": [
+        "AC-3",
+        "AC-5",
+        "AC-6",
+        "AC-8",
+        "AC-9",
+        "AC-11",
+        "AC-12",
+        "AC-14",
+        "AC-15",
+        "AC-16",
+        "AC-17"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "003",
+      "title": "add-ct-fidelity-suite",
+      "agent": "qa-engineer",
+      "depends_on": [
+        "001",
+        "002"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx",
+        "src/renderer/src/components/organisms/__tests__/RequestBar.stories.tsx"
+      ],
+      "expects": [
+        "Task 001 landed: `RequestBar.tsx` renders the `request-bar__kbd` (aria-hidden, canSend-gated) and visible Save/Share labels.",
+        "Task 002 landed: `.request-bar` carries the reference geometry, `--radius` binding, URL focus ring, Send weight-600 + shadow, and the `.request-bar .request-bar__method.method` background/border override (no color).",
+        "The existing CT fixtures import `tokens.css` and set `data-mstyle='soft'` on the host; the two-step Radix dismiss gate is present in `RequestBar.ct.tsx`."
+      ],
+      "produces": [
+        "`RequestBar.ct.tsx` contains computed-style EXACT-equality assertions on the enumerated `.request-bar` props (height, radius, focus ring, method-select background/border + per-method colour, Send weight/shadow, keycap presence/absence, labelled actions).",
+        "`RequestBar.ct.tsx` contains a `toHaveScreenshot` assertion with `maxDiffPixelRatio` set.",
+        "`RequestBar.stories.tsx` provides a fixture that renders the filled/enabled state (non-empty URL).",
+        "The existing behaviour/layout CT tests and the unit suite still pass."
+      ],
+      "ac_addressed": [
+        "AC-13",
+        "AC-15",
+        "AC-16",
+        "AC-17",
+        "AC-19"
+      ],
+      "doc_refs": [
+        "docs/architecture.md"
+      ],
+      "review_checkpoint": true
+    }
+  ],
+  "additions": [
+    "None \u2014 all five touched files (RequestBar.tsx, RequestBar.css, RequestBar.ct.tsx, RequestBar.stories.tsx, RequestBar.test.tsx) were already in the plan's File Impact / spec's \u00a74 Affected Areas."
+  ],
+  "dependency_graph": "001 (markup: labels + \u2318\u21b5 keycap) \u2500\u2500\u2192 002 (CSS fidelity rewrite) \u2500\u2500\u2192 003 (CT fidelity suite)\n                                  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2192 003"
+}

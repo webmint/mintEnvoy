@@ -612,3 +612,95 @@ describe('(i) Share button is disabled (AC-19)', () => {
     expect(screen.getByRole('button', { name: /share/i })).toBeDisabled()
   })
 })
+
+// ---------------------------------------------------------------------------
+// (j) Markup fidelity — keycap presence/absence, visible labels, aria-label
+//     removal (AC-9, AC-10, AC-11)
+// ---------------------------------------------------------------------------
+
+describe('(j) keycap and visible labels (AC-9, AC-10, AC-11)', () => {
+  it('request-bar__kbd is absent from the DOM when URL is empty (AC-10)', () => {
+    tabsStore.setState({
+      tabs: [makeTab(TAB_A_ID, { method: 'GET', url: '' })],
+      activeTabId: TAB_A_ID
+    })
+
+    const { container } = render(<RequestBar />)
+
+    expect(container.querySelector('.request-bar__kbd')).toBeNull()
+  })
+
+  it('request-bar__kbd is absent from the DOM when URL is whitespace only (AC-10)', () => {
+    tabsStore.setState({
+      tabs: [makeTab(TAB_A_ID, { method: 'GET', url: '   ' })],
+      activeTabId: TAB_A_ID
+    })
+
+    const { container } = render(<RequestBar />)
+
+    expect(container.querySelector('.request-bar__kbd')).toBeNull()
+  })
+
+  it('request-bar__kbd is present in the DOM when URL is non-empty (AC-9)', () => {
+    tabsStore.setState({
+      tabs: [makeTab(TAB_A_ID, { method: 'GET', url: 'https://api.example.com' })],
+      activeTabId: TAB_A_ID
+    })
+
+    const { container } = render(<RequestBar />)
+
+    expect(container.querySelector('.request-bar__kbd')).not.toBeNull()
+  })
+
+  it('request-bar__kbd is absent after URL is cleared (AC-10)', async () => {
+    const user = userEvent.setup()
+
+    tabsStore.setState({
+      tabs: [makeTab(TAB_A_ID, { method: 'GET', url: 'https://api.example.com' })],
+      activeTabId: TAB_A_ID
+    })
+
+    const { container } = render(<RequestBar />)
+
+    // Keycap is present initially
+    expect(container.querySelector('.request-bar__kbd')).not.toBeNull()
+
+    // Clear the URL field
+    const urlInput = screen.getByRole('textbox', { name: 'Request URL' })
+    await user.clear(urlInput)
+
+    // Keycap must now be absent
+    expect(container.querySelector('.request-bar__kbd')).toBeNull()
+  })
+
+  it('Send button accessible name is exactly "Send" even when keycap is rendered (AC-9)', () => {
+    // Seed a non-empty URL so the kbd is rendered
+    tabsStore.setState({
+      tabs: [makeTab(TAB_A_ID, { method: 'GET', url: 'https://api.example.com' })],
+      activeTabId: TAB_A_ID
+    })
+
+    render(<RequestBar />)
+
+    // getByRole resolves by accessible name — the aria-hidden kbd must not pollute it
+    expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+  })
+
+  it('Save button resolves by visible label and carries no aria-label (AC-11)', () => {
+    render(<RequestBar />)
+
+    const saveBtn = screen.getByRole('button', { name: 'Save' })
+    expect(saveBtn).toBeInTheDocument()
+    // aria-label was removed; accessible name is supplied by the visible text
+    expect(saveBtn).not.toHaveAttribute('aria-label')
+  })
+
+  it('Share button resolves by visible label and carries no aria-label (AC-11)', () => {
+    render(<RequestBar />)
+
+    const shareBtn = screen.getByRole('button', { name: 'Share' })
+    expect(shareBtn).toBeInTheDocument()
+    // aria-label was removed; accessible name is supplied by the visible text
+    expect(shareBtn).not.toHaveAttribute('aria-label')
+  })
+})

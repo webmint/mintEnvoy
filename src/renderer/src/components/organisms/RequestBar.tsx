@@ -115,7 +115,9 @@ export function RequestBar({ onSend = () => {} }: RequestBarProps): JSX.Element 
    * Re-renders only when the active tab's method actually changes;
    * background-tab mutations produce identical primitive values and are skipped.
    */
-  const method = tabsStore((s): HttpMethod => s.tabs.find((t) => t.id === s.activeTabId)?.spec.method ?? 'GET')
+  const method = tabsStore(
+    (s): HttpMethod => s.tabs.find((t) => t.id === s.activeTabId)?.spec.method ?? 'GET'
+  )
 
   /**
    * Active tab's URL — per-field primitive selector.
@@ -127,7 +129,9 @@ export function RequestBar({ onSend = () => {} }: RequestBarProps): JSX.Element 
    * Active tab's dirty flag — per-field primitive selector.
    * Re-renders only when the active tab's dirty flag actually changes.
    */
-  const dirty = tabsStore((s): boolean => s.tabs.find((t) => t.id === s.activeTabId)?.dirty ?? false)
+  const dirty = tabsStore(
+    (s): boolean => s.tabs.find((t) => t.id === s.activeTabId)?.dirty ?? false
+  )
 
   /**
    * Shallow-merges a partial spec patch into the active tab's spec.
@@ -290,6 +294,12 @@ export function RequestBar({ onSend = () => {} }: RequestBarProps): JSX.Element 
       {/* ---- Action buttons ---- */}
       <div className="request-bar__actions">
         {/* Send — disabled when !canSend (AC-12, AC-13) */}
+        {/*
+         * The <kbd> keycap is aria-hidden so it is purely decorative — the
+         * Send button's accessible name remains exactly "Send" (AC-9, AC-10).
+         * It is only mounted when canSend is true, so it is absent from the
+         * DOM when the URL field is empty or whitespace-only.
+         */}
         <button
           type="button"
           className="request-bar__send"
@@ -299,27 +309,36 @@ export function RequestBar({ onSend = () => {} }: RequestBarProps): JSX.Element 
         >
           <Icon name="send" size={13} />
           Send
+          {canSend && (
+            <kbd aria-hidden="true" className="request-bar__kbd">
+              ⌘↵
+            </kbd>
+          )}
         </button>
 
         {/* Save — calls markClean when dirty, no-op when clean (AC-14, AC-15) */}
+        {/*
+         * Visible text "Save" supplies the accessible name — aria-label is not
+         * needed and has been removed to avoid the redundancy (AC-11).
+         */}
         <button
           type="button"
           className={cx('request-bar__save', dirty ? 'request-bar__save--dirty' : undefined)}
           onClick={handleSave}
-          aria-label="Save"
         >
           <Icon name="save" size={13} />
+          Save
         </button>
 
         {/* Share — disabled stub, rendered in its final slot (AC-19) */}
-        <button
-          type="button"
-          className="request-bar__share"
-          disabled
-          aria-disabled="true"
-          aria-label="Share"
-        >
+        {/*
+         * Visible text "Share" supplies the accessible name — aria-label is not
+         * needed and has been removed to avoid the redundancy (AC-11).
+         * Remains disabled (009 AC-19 stub — still a no-op).
+         */}
+        <button type="button" className="request-bar__share" disabled aria-disabled="true">
           <Icon name="share" size={13} />
+          Share
         </button>
       </div>
     </div>

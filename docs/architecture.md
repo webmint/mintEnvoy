@@ -237,6 +237,43 @@ The Tabs primitive does NOT wrap Radix Tabs, departing from the Dropdown/Modal/T
 
 **Hazard: `aria-hidden="true"` on the method chip (a11y tradeoff).** The chip is `aria-hidden` to prevent double-announcement on URL-only tabs, where `deriveLabel` in `TabBar.tsx` already embeds the method in the label text (e.g. `"GET https://api.example.com"`). For **named tabs** — where `label` is a human-readable request name that does not include the method string — the chip is entirely invisible to assistive technology. Callers who need AT users to hear the method for named tabs must embed it in `label`.
 
+### RequestBar — method-select CSS cascade (specificity tie, source-order resolved)
+
+**Applies in**: `src/renderer/src/components/organisms/RequestBar.css`
+
+The method-selector button uses an ancestor-scoped rule `.request-bar .request-bar__method.method` (specificity 0,3,0) to apply the bordered elevated treatment — `background`, `border`, `border-radius`, sizing, and mono typography — while deliberately omitting `color`. This selector ties `[data-mstyle='soft'] .method.GET` etc. (also 0,3,0) in specificity; `RequestBar.css` wins the tie only because it is imported after `tokens.css` (source-order decides equal-specificity ties). Omitting `color` lets the per-method text colour from the `[data-mstyle]` cascade (e.g. `--m-get`) fall through unchallenged.
+
+**Hazard: adding `color` to `.request-bar .request-bar__method.method` kills per-method text colouring.** Any `color` declaration in that rule — or in any ancestor-scoped rule at equal or higher specificity — overrides all seven per-method colours simultaneously with no compile-time error and no visual regression signal unless the computed-style CT suite is run.
+
+**Hazard: chip-mode counter-rules must stay in lockstep with `METHODS` in `httpMethods.ts`.** The (0,3,0) override's `background: var(--bg-elev)` wins source-order over `[data-mstyle='chip'] .method.GET` (also 0,3,0), producing white text on a white surface in chip mode. `RequestBar.css` restores chip colours via seven (0,5,0) counter-rules — one per `HttpMethod`. Adding a method to the `METHODS` tuple without a matching counter-rule reintroduces the white-on-white chip regression for that method.
+
+<!-- src/renderer/src/components/organisms/RequestBar.css:61-65 -->
+
+```css
+ * Ancestor-scoped to `.request-bar` so the combined selector reaches (0,3,0),
+ * matching `[data-mstyle='soft'] .method.GET` (also 0,3,0). Because
+ * RequestBar.css is imported after tokens.css, source-order breaks the tie in
+ * favour of this rule for background + border — while the absence of `color`
+ * here lets the per-method chip colour fall through unchallenged.
+```
+
+<!-- src/renderer/src/components/organisms/RequestBar.css:364-375 -->
+
+```css
+/* IMPORTANT: one rule per HTTP method — must stay in lockstep with METHODS in
+ * src/renderer/src/lib/httpMethods.ts. Adding a method there without a matching
+ * rule here reintroduces the white-on-white chip regression for that method. */
+/* stylelint-disable no-descending-specificity */
+[data-mstyle='chip'] .request-bar .request-bar__method.method.GET     { background: var(--m-get);     border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.POST    { background: var(--m-post);    border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.PUT     { background: var(--m-put);     border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.PATCH   { background: var(--m-patch);   border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.DELETE  { background: var(--m-delete);  border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.OPTIONS { background: var(--m-options); border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.HEAD    { background: var(--m-head);    border: none; }
+/* stylelint-enable no-descending-specificity */
+```
+
 ## Conventions
 
 **Naming**

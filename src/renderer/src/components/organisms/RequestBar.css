@@ -1,37 +1,36 @@
 /*
- * RequestBar.css — Semantic styles for the RequestBar organism component.
+ * RequestBar.css — Request-bar fidelity: reference-matched layout and styles.
  *
- * All values are bound to design tokens from tokens.css (--bg, --bg-elev,
- * --bg-hover, --bg-active, --bg-sunken, --border, --text, --text-muted,
- * --text-inverse, --accent, --radius-sm, --radius, --fs-base, --fs-sm,
- * --font-mono, --font-sans, --shadow-sm).
+ * All values are bound to design tokens from tokens.css (--bg-sunken, --bg-elev,
+ * --bg-hover, --bg-active, --border, --border-faint, --border-strong, --text,
+ * --text-muted, --text-faint, --text-inverse, --accent, --accent-soft,
+ * --accent-hover, --radius, --radius-sm, --fs-base, --fs-sm, --font-mono,
+ * --font-sans).
  *
  * No inline styles are permitted in RequestBar.tsx (AC-28, constitution §4).
  *
  * ## Layout
  *
  * `.request-bar` is a flex row: [method button][url input (flex:1)][actions].
- * The method button and action group are flex-shrink:0 so they never reflow
- * with URL input length (AC-20). The URL input has min-width:0 + flex:1 so it
- * fills remaining space and scrolls horizontally on overflow (native browser
- * behaviour for type="text").
+ * Method + actions are flex-shrink:0 so only the URL input grows/shrinks.
  *
- * ## Method button
+ * ## Method button — specificity (0,3,0) ancestor-scoped override
  *
- * The trigger button carries `.method` and the method-name class (e.g. `.GET`)
- * so tokens.css [data-mstyle] rules apply the correct chip color. The structural
- * overrides in `.request-bar__method.method` use specificity 0,2,0 which wins
- * over `[data-mstyle] .method` (0,1,1) for layout properties, while the color
- * rules from `[data-mstyle] .method.GET` (0,2,1) still win for background/color.
+ * The `.request-bar .request-bar__method.method` selector carries an ancestor
+ * scope to reach specificity (0,3,0) — matching `[data-mstyle='soft'] .method.GET`
+ * etc. (also 0,3,0) — so that this file wins the source-order tie for background
+ * and border while declaring NO `color`, allowing the per-method chip colour
+ * (`--m-get`, `--m-post`, …) from the `[data-mstyle]` cascade to fall through.
  *
- * ## Motion
+ * ## Keycap (.request-bar__kbd)
  *
- * Transitions are gated behind `@media (prefers-reduced-motion: reduce)`
- * following the same pattern used in Tabs.css, TabBar.css, and Dropdown.css.
+ * Inline keyboard hint inside the Send button label (aria-hidden). Matches the
+ * `.kbd` treatment from design/styles.css: small font, ghost border on bg-elev.
  *
- * Token names referenced: --bg, --bg-sunken, --bg-hover, --bg-active, --bg-elev,
- * --border, --text, --text-muted, --text-inverse, --accent, --radius-sm, --radius,
- * --fs-base, --fs-sm, --font-mono, --font-sans, --shadow-sm.
+ * Token names referenced: --bg-sunken, --bg-elev, --bg-hover, --bg-active,
+ * --border, --border-faint, --border-strong, --text, --text-muted, --text-faint,
+ * --text-inverse, --accent, --accent-soft, --accent-hover, --radius, --radius-sm,
+ * --fs-base, --fs-sm, --font-mono, --font-sans.
  */
 
 /* ---------------------------------------------------------------------------
@@ -48,10 +47,10 @@
 .request-bar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 8px;
-  background: var(--bg-sunken, #f4f3f1);
-  border-bottom: 1px solid var(--border, #e8e6e3);
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-faint);
   /* Prevent the bar from growing taller than its content */
   flex-shrink: 0;
 }
@@ -59,36 +58,45 @@
 /* ---------------------------------------------------------------------------
  * Method selector button (.request-bar__method)
  *
- * The trigger button carries `.method` and the method-name class (from tokens.css).
- * `.request-bar__method.method` (specificity 0,2,0) overrides chip sizing from
- * `[data-mstyle] .method` (0,1,1) while the color rules from
- * `[data-mstyle] .method.GET` etc. (0,2,1) still provide background + color.
+ * Ancestor-scoped to `.request-bar` so the combined selector reaches (0,3,0),
+ * matching `[data-mstyle='soft'] .method.GET` (also 0,3,0). Because
+ * RequestBar.css is imported after tokens.css, source-order breaks the tie in
+ * favour of this rule for background + border — while the absence of `color`
+ * here lets the per-method chip colour fall through unchallenged.
  * ------------------------------------------------------------------------- */
 
 /**
  * Method selector trigger button.
- * Overrides [data-mstyle] .method chip sizing to fit the request bar row.
- * Does NOT set background or color — those come from [data-mstyle] .method.X rules.
+ * Ghost-bordered treatment matching the reference .method-select.
+ * Does NOT set `color` — per-method text colour from [data-mstyle] applies.
  */
-.request-bar__method.method {
+.request-bar .request-bar__method.method {
   /* Reset browser button defaults */
   appearance: none;
-  border: none;
   cursor: pointer;
   user-select: none;
-  font-family: var(--font-mono, monospace);
 
-  /* Override chip sizing from [data-mstyle] .method (specificity win: 0,2,0 > 0,1,1) */
+  /* Ghost-bordered surface (reference .method-select) */
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  border-radius: var(--radius);
+
+  /* Layout */
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 0 7px;
-  height: 24px;
-  min-width: unset;
-  font-size: var(--fs-sm, 10.5px);
-  letter-spacing: 0.05em;
-  border-radius: var(--radius-sm, 5px);
+  gap: 6px;
+
+  /* Sizing — height: auto overrides the soft-chip's height: 17px at (0,2,0) */
+  min-width: 88px;
+  padding: 7px 10px 7px 12px;
+  height: auto;
+
+  /* Typography — NO color (per-method colour from [data-mstyle] cascade) */
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
 
   /* Prevent method button from growing with URL length (AC-20) */
   flex-shrink: 0;
@@ -96,19 +104,19 @@
   transition: opacity 80ms ease;
 }
 
-/* Hover: subtle opacity reduction — method chip color handles the tint */
-.request-bar__method.method:hover {
-  opacity: 0.8;
+/* Hover: border strengthens to --border-strong on pointer entry */
+.request-bar .request-bar__method.method:hover {
+  border-color: var(--border-strong);
 }
 
 /* Focus-visible ring — keyboard navigation signal */
-.request-bar__method.method:focus-visible {
-  outline: 2px solid var(--accent, #10b981);
+.request-bar .request-bar__method.method:focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 /* Pressed state */
-.request-bar__method.method:active {
+.request-bar .request-bar__method.method:active {
   opacity: 0.65;
 }
 
@@ -127,16 +135,16 @@
 .request-bar__url {
   /* Reset input defaults */
   appearance: none;
-  border: 1px solid var(--border, #e8e6e3);
-  border-radius: var(--radius-sm, 5px);
-  background: var(--bg-elev, #ffffff);
-  color: var(--text, #18181b);
-  font-family: var(--font-sans, system-ui, sans-serif);
-  font-size: var(--fs-base, 12.5px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
   line-height: 1;
   margin: 0;
-  padding: 0 8px;
-  height: 24px;
+  padding: 0 12px;
+  height: 32px;
 
   /* Fill all remaining space; min-width:0 allows the input to shrink below its
      natural width so the URL scrolls horizontally rather than reflowing the bar. */
@@ -151,13 +159,14 @@
 }
 
 .request-bar__url::placeholder {
-  color: var(--text-faint, #a1a1aa);
+  color: var(--text-faint);
 }
 
 /* Focus ring on URL input */
 .request-bar__url:focus {
   outline: none;
-  border-color: var(--accent, #10b981);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* ---------------------------------------------------------------------------
@@ -173,7 +182,7 @@
 .request-bar__actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -193,18 +202,19 @@
   margin: 0;
   cursor: pointer;
   user-select: none;
-  font-family: var(--font-sans, system-ui, sans-serif);
-  font-size: var(--fs-base, 12.5px);
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  font-weight: 500;
   line-height: 1;
 
   /* Grid-centered icon layout */
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 0 8px;
-  height: 24px;
-  border-radius: var(--radius-sm, 5px);
+  gap: 6px;
+  padding: 0 14px;
+  height: 32px;
+  border-radius: var(--radius);
 
   transition:
     background-color 80ms ease,
@@ -217,20 +227,23 @@
  * ------------------------------------------------------------------------- */
 
 /**
- * Send button — accent fill; disabled when URL is empty.
+ * Send button — accent fill; disabled when URL is empty (009 preserved).
  */
 .request-bar__send {
-  background: var(--accent, #10b981);
-  color: var(--text-inverse, #ffffff);
-  font-weight: 500;
+  background: var(--accent);
+  color: var(--text-inverse);
+  font-weight: 600;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .request-bar__send:hover:not(:disabled) {
-  background: var(--accent-hover, color-mix(in oklab, var(--accent) 88%, black));
+  background: var(--accent-hover);
 }
 
 .request-bar__send:focus-visible {
-  outline: 2px solid var(--accent, #10b981);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -238,11 +251,33 @@
   opacity: 0.85;
 }
 
-/* Disabled state — muted when no URL is present */
+/* Disabled state — muted when no URL is present (009 empty-URL greying preserved) */
 .request-bar__send:disabled {
-  background: var(--bg-active, #e8e6e3);
-  color: var(--text-muted, #71717a);
+  background: var(--bg-active);
+  color: var(--text-muted);
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Keycap (.request-bar__kbd)
+ *
+ * Inline keyboard hint displayed inside the Send button when canSend is true.
+ * aria-hidden in the DOM — purely decorative, does not affect the Send button's
+ * accessible name. Matches design/styles.css .kbd treatment.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Keyboard shortcut keycap — ghost border on bg-elev surface.
+ */
+.request-bar__kbd {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--text-faint);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -250,35 +285,36 @@
  * ------------------------------------------------------------------------- */
 
 /**
- * Save button — muted at rest, highlighted when dirty.
+ * Save button — ghost-bordered at rest; highlighted when dirty.
  */
 .request-bar__save {
-  background: none;
-  color: var(--text-muted, #71717a);
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text-muted);
 }
 
 .request-bar__save:hover {
-  background: var(--bg-hover, #f0efed);
-  color: var(--text, #18181b);
+  border-color: var(--border-strong);
+  color: var(--text);
 }
 
 .request-bar__save:focus-visible {
-  outline: 2px solid var(--accent, #10b981);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 .request-bar__save:active {
-  background: var(--bg-active, #e8e6e3);
+  background: var(--bg-active);
 }
 
 /** Dirty variant — elevated color to signal unsaved changes. */
 .request-bar__save--dirty {
-  color: var(--accent, #10b981);
+  color: var(--accent);
 }
 
 .request-bar__save--dirty:hover {
-  background: var(--accent-soft, color-mix(in oklab, var(--accent) 14%, transparent));
-  color: var(--accent, #10b981);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* ---------------------------------------------------------------------------
@@ -286,24 +322,57 @@
  * ------------------------------------------------------------------------- */
 
 /**
- * Share button — disabled stub; muted and non-interactive.
+ * Share button — ghost-bordered stub; muted and non-interactive.
  */
 .request-bar__share {
-  background: none;
-  color: var(--text-faint, #a1a1aa);
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
 /* Disabled share button stays muted on hover */
 .request-bar__share:hover {
-  background: none;
-  color: var(--text-faint, #a1a1aa);
+  background: var(--bg-elev);
+  color: var(--text-muted);
 }
 
 .request-bar__share:focus-visible {
-  outline: 2px solid var(--accent, #10b981);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* ---------------------------------------------------------------------------
+ * Chip-mode background restoration
+ *
+ * The (0,3,0) ancestor-scoped rule above unconditionally sets
+ * background:var(--bg-elev), which via source-order wins the specificity tie
+ * over [data-mstyle='chip'] .method.GET (also 0,3,0) from tokens.css.
+ * Result in chip mode: white surface + white text (#fff) = unreadable.
+ *
+ * These (0,5,0) rules ([data-mstyle='chip'] + .request-bar +
+ * .request-bar__method + .method + .METHOD) beat both the (0,3,0) override
+ * and the (0,3,0) chip tokens, restoring the 009 chip appearance:
+ *   - per-method colored background
+ *   - border:none (chip uses inset box-shadow from tokens.css, not a border)
+ *   - color:#fff falls through from [data-mstyle='chip'] .method (0,2,0)
+ *
+ * Soft/outline/dot/bar are unaffected — their [data-mstyle] selector never
+ * matches 'chip', so these rules are never applied for those variants.
+ * ------------------------------------------------------------------------- */
+
+/* IMPORTANT: one rule per HTTP method — must stay in lockstep with METHODS in
+ * src/renderer/src/lib/httpMethods.ts. Adding a method there without a matching
+ * rule here reintroduces the white-on-white chip regression for that method. */
+/* stylelint-disable no-descending-specificity */
+[data-mstyle='chip'] .request-bar .request-bar__method.method.GET     { background: var(--m-get);     border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.POST    { background: var(--m-post);    border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.PUT     { background: var(--m-put);     border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.PATCH   { background: var(--m-patch);   border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.DELETE  { background: var(--m-delete);  border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.OPTIONS { background: var(--m-options); border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.HEAD    { background: var(--m-head);    border: none; }
+/* stylelint-enable no-descending-specificity */
 
 /* ---------------------------------------------------------------------------
  * Reduced-motion guard
@@ -313,7 +382,7 @@
  * ------------------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .request-bar__method.method,
+  .request-bar .request-bar__method.method,
   .request-bar__url,
   .request-bar__send,
   .request-bar__save,
