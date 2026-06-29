@@ -1,7 +1,7 @@
 {
-  "topic": "003-dropdown-ct-click-outside-dismiss bug",
-  "date": "2026-06-27",
-  "mode": "bug",
+  "topic": "RequestBar (009) visual drift from design/reference.html filled state \u2014 pure styling pass, zero behaviour change",
+  "date": "2026-06-28",
+  "mode": "enhancement",
   "symptom_snapshot": {
     "symptom": null,
     "affected_area": null,
@@ -10,201 +10,194 @@
     "scope": null,
     "unchanged_behavior": null
   },
-  "summary": "Two Playwright CT tests (Dropdown.ct.tsx:185 dismiss-on-outside-click and :236 focus-return-after-click-outside) fail because the spec dispatches page.mouse.click at a viewport corner in the same tick the menu becomes visible, before Radix DismissableLayer has armed its document pointerdown listener (attached via setTimeout(0) at index.mjs:265, while the 140ms entry animation is still running). Proven empirically: with no settle the corner click is never classified as outside (0/5 dismiss); with a 100ms settle it is deterministic (5/5). The same Radix mechanism dismisses reliably in the Modal CT suite (Modal.ct.tsx:139), which opens its overlay at mount and is therefore armed long before its corner click \u2014 confirming this is a test-timing race, not a production defect. Recommended fix is test-only: gate the two specs on a concrete overlay-readiness signal before the corner click, keeping the strict assertions; confidence is high, residual uncertainty is only the choice of readiness signal (entry-animation completion vs a fixed delay).",
+  "summary": "RequestBar's visual drift from design/reference.html's filled state is token-APPLICATION local to RequestBar.css, NOT a token gap or a logic defect. The component was built to a uniform 24px / --radius-sm geometry with no focus ring, no primary-button shadow, a soft-chip method treatment and icon-only actions; the reference is 32px / --radius (7px) with an accent focus ring, a weight-600 inset-shadow primary Send, a bordered .method-select with bold plain-coloured method text, labelled ghost actions and a \u2318\u21b5 kbd keycap. Every value the reference needs already exists as a token in tokens.css \u2014 so the fix is a localised RequestBar.css rewrite plus small presentational markup edits (\u2318\u21b5 keycap, optional action labels), with the per-method colour kept on the existing .method/{METHOD} class path (never a data-mstyle write, AC-6). The suspected token-gap (the migration dropped the un-gated .method.GET..OPTIONS{color} defaults that styles.css has) is real but secondary: Shell writes data-mstyle='soft' by default so the in-app pill IS coloured; the gap only bites in no-data-mstyle isolation (CT/stories) and is an optional design-system follow-up.",
   "findings": [
     {
-      "surface": "Test outside-click site (race trigger): page.mouse.click at viewport corner fired in the same tick the menu became visible, before Radix's dismiss layer is armed",
-      "file_line": "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx:198",
-      "relevance": "Primary symptom site for AC-4 dismiss; clicking here immediately after toBeVisible races Radix DismissableLayer setTimeout(0) arm",
+      "surface": "Root bar geometry \u2014 cramped",
+      "file_line": "src/renderer/src/components/organisms/RequestBar.css:52",
+      "relevance": "padding 5px 8px / gap 6px vs reference .reqbar padding 12px 16px / gap 8px (design/styles.css:773-774). Wrong literal values; no token missing \u2014 --space scale not used, but --radius/--fs tokens exist. Pure application.",
       "framing": "primary"
     },
     {
-      "surface": "Failing assertion: expect(menu).not.toBeVisible() times out at 5s",
-      "file_line": "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx:200",
-      "relevance": "The assertion that times out because the outside click was not classified as outside (dismiss never fired)",
+      "surface": "URL input radius + focus ring",
+      "file_line": "src/renderer/src/components/organisms/RequestBar.css:131",
+      "relevance": "border-radius var(--radius-sm) (5px) + height 24px; focus (:158) sets border-color only. Reference .url-bar uses --radius (7px), height 32px, focus ring box-shadow 0 0 0 3px accent14% (design/styles.css:801-816). Both tokens exist; wrong binding + missing ring rule. Application.",
       "framing": "primary"
     },
     {
-      "surface": "Second affected test (AC-3 focus-return after click-outside): same immediate outside click",
-      "file_line": "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx:253",
-      "relevance": "Downstream symptom :236 \u2014 same race; focus-return cannot fire because dismissal never happens",
+      "surface": "Send button treatment + missing \u2318\u21b5 kbd",
+      "file_line": "src/renderer/src/components/organisms/RequestBar.css:222",
+      "relevance": "Send uses base 24px height / --radius-sm / weight 500 / no shadow; reference .btn-primary is 32px / --radius / weight 600 / inset highlight shadow (design/styles.css:851-860) inside .send-split with a .kbd \u2318\u21b5 keycap (design/styles.css:245,861-868). Component never renders a \u2318\u21b5 element. Geometry = application; kbd = presentational markup add (RequestBar.tsx).",
       "framing": "primary"
     },
     {
-      "surface": "Radix DismissableLayer defers the document pointerdown listener attach via setTimeout(0)",
-      "file_line": "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265",
-      "relevance": "Root mechanism: the outside-click detection listener is attached on a macrotask AFTER content mount; an outside click before this fires is not classified as outside",
+      "surface": "Action buttons base undersized / icon-only",
+      "file_line": "src/renderer/src/components/organisms/RequestBar.css:206",
+      "relevance": "Shared base height 24px / padding 0 8px; Save+Share render icon-only. Reference action buttons are .btn-ghost bordered, 32px, padding 0 14px, laid-out (design/styles.css:838-849). Geometry = application; any visible label = presentational markup add.",
       "framing": "primary"
     },
     {
-      "surface": "Radix onPointerDownCapture sets isPointerInsideReactTreeRef; reset only inside the document handler",
-      "file_line": "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:286",
-      "relevance": "Secondary mechanism in the same arm/reset cycle that gates whether a pointerdown is treated as outside",
+      "surface": "Method pill renders soft data-mstyle chip not method-select",
+      "file_line": "src/renderer/src/components/organisms/RequestBar.tsx:256",
+      "relevance": "Trigger uses cx('request-bar__method','method',method) \u2192 inherits [data-mstyle='soft'] .method chip (faint 16% tint, 9.5px, 42px min). Reference request-bar method is .method-select: bordered 88px box (border/bg-elev/--radius) with plain bold 11.5px coloured method text via un-gated .method.GET{color} (design/styles.css:490-516,785-799). Treatment mismatch \u2014 fix is a local RequestBar.css override of the soft chip, NO data-mstyle write (AC-6 safe). Application.",
       "framing": "primary"
     },
     {
-      "surface": "Canonical reuse: Modal CT opens the overlay at mount (initialOpen=true), so DismissableLayer is armed well before the outside click",
-      "file_line": "src/renderer/src/components/molecules/__tests__/Modal.ct.tsx:127",
-      "relevance": "canonical pattern \u2014 reusable: same Radix DismissableLayer dismisses reliably in CT when the layer is armed before page.mouse.click; disproves the production-defect framing",
+      "surface": "tokens.css un-gated method-colour default GAP",
+      "file_line": "src/renderer/styles/tokens.css:109",
+      "relevance": "tokens.css keeps only bare .method{font-family} + un-gated .method.HEAD{color}; the un-gated .method.GET..OPTIONS{color:var(--m-*)} rules present in design/styles.css:500-516 were dropped in migration (005 restored only font-family+HEAD). Per-method colour therefore absent in any no-data-mstyle context. Design-system-wide if restored. RUNNER-UP token-gap evidence.",
       "framing": "runner-up"
     },
     {
-      "surface": "Modal CT outside-click via page.mouse.click(5,5) passes",
-      "file_line": "src/renderer/src/components/molecules/__tests__/Modal.ct.tsx:139",
-      "relevance": "Same dispatch mechanism as the failing Dropdown test, but passes \u2014 the only difference is open timing (armed vs racing), confirming primary framing",
-      "framing": "runner-up"
+      "surface": "Canonical per-method colour convention (reusable)",
+      "file_line": "src/renderer/src/components/molecules/Tabs.tsx:117",
+      "relevance": "canonical pattern \u2014 reusable: methodChipClassName = cx('method', method) is the 005 .method/{METHOD} convention, consumed by TabBar and already by RequestBar.tsx:256. RequestBar's class path is already canonical-correct; reuse it, do not invent a new method-colour mechanism.",
+      "framing": "primary"
+    },
+    {
+      "surface": "Canonical input focus-ring \u2014 NONE in components",
+      "file_line": "(none)",
+      "relevance": "no canonical pattern found project-wide for an input focus-ring box-shadow; design/styles.css:814 .url-bar:focus-within ring (box-shadow 0 0 0 3px accent14%) was never migrated to any renderer component CSS (only tokens.css:241 dot-decoration uses 0 0 0). New rule in RequestBar.css is justified \u2014 but it is a localised rule, not a token addition (--accent already exists).",
+      "framing": "primary"
+    },
+    {
+      "surface": "Shell sole-writer of data-mstyle (unchanged-behaviour anchor)",
+      "file_line": "src/renderer/src/components/organisms/shell/Shell.tsx:237",
+      "relevance": "Effect 1 unconditionally writes documentElement.dataset.mstyle = mstyle (default 'soft', settingsStore.ts:65). Confirms AC-6: RequestBar must NOT write data-mstyle; the method-pill fix must stay class-based, never attribute-writing.",
+      "framing": "primary"
     }
   ],
   "hypotheses": [
     {
       "label": "A",
-      "cause": "CT test-timing race: page.mouse.click(outside) is dispatched in the same tick the menu became visible (toBeVisible resolves while the entry animation is still in flight), BEFORE Radix DismissableLayer arms its document pointerdown listener (attached via setTimeout(0) at index.mjs:265). The outside pointerdown is therefore not classified as 'outside', so onDismiss never fires.",
-      "falsifier": "If true, inserting a settle delay between open and the outside click should make dismissal deterministic. Observed: SETTLE=0 -> 0/5 dismiss; SETTLE=100ms -> 5/5 dismiss. Confirmed.",
+      "cause": "PRIMARY: drift is token-APPLICATION local to RequestBar.css \u2014 classes set undersized geometry (uniform 24px vs reference 32px), bind --radius-sm where reference uses --radius (7px), omit the focus-ring box-shadow and the primary-button inset shadow/weight-600, inherit the soft data-mstyle chip instead of presenting the bordered .method-select treatment, and render icon-only actions; plus a missing \u2318\u21b5 kbd element. Every needed token already exists in tokens.css.",
+      "falsifier": "Find a reference target value (radius/spacing/colour/shadow) that maps to NO existing custom-property in tokens.css \u2014 that would push the fix into a token addition (runner-up), not pure application.",
       "runtime_probe_needed": false
     },
     {
       "label": "B",
-      "cause": "Genuine production defect: Radix modal DismissableLayer (body pointer-events:none, outside pointerdown lands on HTML element) cannot reliably dispatch click-outside dismissal, so real users also see the menu stay open.",
-      "falsifier": "If true, the same mechanism would also fail when armed, and a settle delay would not help. Observed: Modal CT uses the identical page.mouse.click outside dispatch and passes (Modal.ct.tsx:139, opened at mount so armed early); and a settle delay makes Dropdown deterministic. Refuted.",
+      "cause": "RUNNER-UP: drift is a tokens.css/global-CSS GAP \u2014 the migration dropped the un-gated .method.GET..OPTIONS{color:var(--m-*)} defaults (design/styles.css:500-516; only .method.HEAD survived at tokens.css:109), so per-method colour is absent wherever Shell has not written data-mstyle; restoring it is design-system-wide and re-incurs 005 load-order fragility.",
+      "falsifier": "If the running app (Shell mounted, default data-mstyle='soft') already colours the pill, the colour is NOT absent at runtime \u2192 gap is not the in-app cause. CONFIRMED disproved for in-app: Shell Effect 1 writes dataset.mstyle='soft' unconditionally (settingsStore.ts:65 default), soft variant tints the pill. Gap only bites in no-data-mstyle isolation (CT/stories).",
+      "runtime_probe_needed": false
+    },
+    {
+      "label": "C",
+      "cause": "METHOD-PILL TREATMENT: the pill shows the soft chip (faint 9.5px tint) where the reference request bar uses a bordered .method-select box with plain bold 11.5px coloured method text; fidelity needs a LOCAL RequestBar.css override of the soft chip \u2014 never a data-mstyle write (AC-6).",
+      "falsifier": "If the reference's request-bar method selector is actually a soft chip (not the .method-select box), this treatment mismatch is moot. design/styles.css:785-799 .method-select shows it is a bordered box \u2192 mismatch is real.",
       "runtime_probe_needed": false
     }
   ],
-  "root_cause_hypothesis": "Test-timing race between Playwright's immediate page.mouse.click(outside) and Radix DismissableLayer's asynchronously-armed (setTimeout(0)) outside-pointerdown detection. 'Menu visible' (toBeVisible) does not imply 'menu dismissable' \u2014 there is a window after open where the menu is rendered but the dismiss layer is not yet listening. Not a production defect.",
+  "root_cause_hypothesis": "Drift is token-APPLICATION local to RequestBar.css: undersized 24px geometry vs reference 32px, --radius-sm vs --radius binding, omitted focus-ring + primary-button shadow, soft-chip method treatment instead of the bordered .method-select, icon-only actions, and a missing \u2318\u21b5 kbd. Every needed token already exists in tokens.css, so the core fix is localised to RequestBar.css plus small presentational markup edits in RequestBar.tsx (\u2318\u21b5 keycap, optional action labels). The tokens.css un-gated .method default-colour gap is real but secondary \u2014 it only affects no-data-mstyle contexts (CT/stories) and is an OPTIONAL design-system patch, not required for the in-app drift.",
   "confidence": "Confirmed",
-  "structured_root_cause": {
-    "trigger": "page.mouse.click(vp.width-10, vp.height-10) at Dropdown.ct.tsx:198 fired immediately after expect(menu).toBeVisible() resolved, before Radix's setTimeout(0)-deferred document pointerdown listener was attached.",
-    "root_cause_systemic": "The CT tests equate 'menu visible' (toBeVisible) with 'menu interactive/dismissable', but Radix DismissableLayer arms outside-click detection asynchronously (setTimeout(0) listener attach at index.mjs:265) after content mount and during the 140ms entry animation. This leaves a race window where an immediate outside click is not classified as outside, so onDismiss never runs.",
-    "contributing_factors": [
-      "Radix defers the document pointerdown listener attach via setTimeout(0) (index.mjs:265-266), so detection is not live the instant the menu renders.",
-      "The Dropdown CT tests open via trigger.click() immediately before the outside click, with no settle \u2014 unlike Modal CT which opens at mount (initialOpen=true) and is armed well before its outside click.",
-      "The entry animation (dropdown-content-in, 140ms) is still in flight when toBeVisible resolves (Playwright ignores opacity), reinforcing the false 'ready' signal."
-    ]
-  },
+  "structured_root_cause": null,
   "verify_step": null,
   "approaches": [
     {
-      "name": "Gate the two outside-dismissal specs on overlay readiness (test-only)",
-      "description": "In Dropdown.ct.tsx:185 and :236, after the overlay is asserted visible, await its entry-animation completion as a concrete readiness signal prior to the corner click (e.g. await menu.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)))). Mirrors the overlay-readiness convention already proven by the Modal suite at Modal.ct.tsx:127, which mounts the overlay open so its dismiss layer is armed well ahead of its corner click. Zero shipped-code changes; both strict not.toBeVisible assertions kept verbatim.",
+      "name": "Localised RequestBar.css fidelity pass",
+      "description": "Rewrite RequestBar.css geometry + treatment to the reference values using existing tokens (32px heights, --radius, accent focus ring, weight-600 + inset-shadow Send, bordered .method-select override of the soft chip, labelled ghost actions), and add the \u2318\u21b5 kbd keycap + any visible action label as presentational markup/className edits in RequestBar.tsx. No tokens.css change, no data-mstyle write.",
       "addresses_hypotheses": [
-        "A"
+        "A",
+        "C"
       ],
       "does_not_cover": [
         "B"
       ],
       "pros": [
-        "Deterministic \u2014 keys on a real readiness signal, not a fixed delay",
-        "Zero shipped-code change; both strict assertions kept verbatim",
-        "Smallest blast radius: only the two failing specs",
-        "Reuses the existing Modal-suite overlay-readiness convention (Modal.ct.tsx:127), honoring the reuse-first rule"
+        "Localised \u2014 no design-system ripple, no 005 load-order fragility re-incurred",
+        "Zero AC-6 risk: method colour stays on the .method/{METHOD} class path, RequestBar never writes data-mstyle",
+        "All needed tokens already exist; no generated-file (tokens.css) hand-edit",
+        "Behaviour untouched (RequestSpec r/w, onSend, \u2318Enter/\u2318S, canSend, dirty/markClean, per-tab isolation) \u2014 unit+CT stay green"
       ],
       "cons": [
-        "Relies on the entry animation existing as the readiness proxy; a future zero-animation config would need a different ready signal",
-        "Slightly more verbose than a bare wait"
+        "Per-method pill colour stays absent in no-data-mstyle isolation (CT/stories) \u2014 hypothesis B unaddressed",
+        "CT fidelity tests must reproduce the data-mstyle=soft context (known 005 CT-fixture-scoping constraint)",
+        "Adds presentational JSX (kbd/labels) \u2014 slightly more than pure className edits"
       ],
-      "complexity": "Low"
+      "complexity": "Med"
     },
     {
-      "name": "Fixed settle delay before the corner click",
-      "description": "Insert a fixed wait (~150ms) before the corner click in both specs. Matches the validated experiment (0ms gives 0/5 dismiss, 100ms gives 5/5).",
+      "name": "Localised pass + restore un-gated tokens.css .method defaults",
+      "description": "Approach 1 PLUS restore the un-gated .method.GET..OPTIONS{color:var(--m-*)} default rules in tokens.css (and tokens.json source) so the pill colours even when data-mstyle is absent.",
       "addresses_hypotheses": [
-        "A"
+        "A",
+        "B",
+        "C"
       ],
-      "does_not_cover": [
-        "B"
-      ],
+      "does_not_cover": [],
       "pros": [
-        "Trivial one-line change",
-        "Directly matches the validated settle experiment"
+        "Per-method colour present in ALL contexts incl. CT/stories isolation",
+        "Closes the styles.css\u2192tokens.css migration gap design-system-wide",
+        "Simpler CT fidelity \u2014 no data-mstyle fixture scaffolding needed"
       ],
       "cons": [
-        "Magic-number \u2014 brittle under slower CI/hardware, a classic flake-bandage",
-        "No principled link to an actual readiness signal"
+        "Design-system ripple: changes every .method consumer (TabBar chips) \u2014 broader regression surface",
+        "Re-incurs the known 005 CSS load-order fragility",
+        "tokens.css is generated-from-tokens.json (header: do not hand-edit) \u2014 must add the default at the source layer, more moving parts",
+        "Larger blast radius for a feature scoped to RequestBar fidelity"
       ],
-      "complexity": "Low"
+      "complexity": "High"
     }
   ],
   "recommended_approach": {
-    "name": "Gate the two outside-dismissal specs on overlay readiness (test-only)",
-    "rationale": "This option has the smallest blast radius: it edits only the two failing specs, ships no change to any shipped component, and keeps both strict negative assertions exactly as written, so coverage strength is preserved. It reuses an existing convention already established elsewhere in the suite (cited in the approach description) instead of adding new helpers, honoring the reuse-first constitution principle. The alternative \u2014 a fixed numeric delay \u2014 is rejected as a brittle magic-number that degrades under slower hardware and reads as a flake-bandage; the chosen option keys on a concrete readiness signal and is deterministic.",
+    "name": "Localised RequestBar.css fidelity pass",
+    "rationale": "Recommended because the target values each map to a custom-property the project exposes today; the running app therefore avoids any shared-stylesheet edit \u2014 the work fits inside this one component's stylesheet plus a few presentational markup additions. Reuse the shared verb-class helper methodChipClassName (src/renderer/src/components/molecules/Tabs.tsx:117), which this component consumes at RequestBar.tsx:256, rather than building a new path \u2014 this REUSES the canonical pattern instead of reinventing it. The document-level marker attribute stays managed by its sole owner alone upstream; this approach leaves it to the owning organism and touches it from nowhere here, honouring the spec invariant. The wider question is split into an Open Uncertainty to keep scope small. Respects unchanged_behaviour: stylesheet and presentational markup additions, with RequestSpec read/write, onSend, the \u2318Enter/\u2318S handlers, canSend, dirty/markClean and per-tab isolation all untouched.",
     "hypotheses_addressed": [
-      "A"
+      "A",
+      "C"
     ],
     "hypotheses_not_covered": [
       "B"
-    ],
-    "single_layer_justification": "The fix is genuinely spec-layer-local: the production dismissal path works correctly once armed (proven by the Modal CT suite using the identical Radix mechanism, and by the settle experiment making the Dropdown specs deterministic). No shipped/helper-layer change is warranted \u2014 the defect is the spec exercising the outside click before the overlay is ready, which is fixed in the spec.",
-    "cites": [
-      "DropdownFixture.setOpen"
-    ],
-    "proposed_call_shape": "page.mouse.click(1270, 710)"
+    ]
   },
   "constitution_constraints": [
     {
+      "rule": "Only Shell.tsx writes documentElement data-mstyle (AC-6 / \u00a74 Never)",
+      "impact": "Method-pill colour fix MUST stay class-based on .method/{METHOD}; RequestBar must never write document.documentElement.dataset.mstyle. Enforces the local-CSS-override approach over any attribute write."
+    },
+    {
+      "rule": "Never use inline styles \u2014 class-based styling via cx() (\u00a74 Never)",
+      "impact": "All geometry/treatment changes land in RequestBar.css + className edits; no inline style additions in RequestBar.tsx."
+    },
+    {
+      "rule": "Prefer design tokens over literal style values (\u00a74 Prefer)",
+      "impact": "Bind radius/colour/shadow to existing tokens (--radius, --accent, --border, --bg-elev, --fs-*); raw px is acceptable only for spacing where no --space token exists (reference 12px/16px/8px), matching the existing RequestBar.css pattern."
+    },
+    {
       "rule": "Search before building",
-      "impact": "A canonical overlay-readiness pattern already exists at Modal.ct.tsx:127 (open-at-mount so the dismiss layer is armed before the corner click); reuse it rather than inventing new test machinery."
-    },
-    {
-      "rule": "Minimal changes (Key Rules #3)",
-      "impact": "Fix is confined to the two failing specs; no shipped/runtime code is touched, so impact is as small as possible."
-    },
-    {
-      "rule": "Specs are contracts / strict assertions",
-      "impact": "The fix must keep expect(menu).not.toBeVisible() strict \u2014 it removes a race, it does not weaken the AC-4/AC-3 assertions."
+      "impact": "Reuse the canonical .method/{METHOD} per-method colour convention at src/renderer/src/components/molecules/Tabs.tsx:117 (already used by RequestBar.tsx:256); do not invent a new method-colour mechanism."
     }
   ],
   "complexity": {
-    "codebase_changes": "Low",
-    "codebase_notes": "Two test files edited (Dropdown.ct.tsx:185 and :236); a few lines each.",
+    "codebase_changes": "Med",
+    "codebase_notes": "One CSS file fully rewritten (RequestBar.css ~323 lines) + a handful of className/markup edits in RequestBar.tsx (\u2318\u21b5 kbd, optional labels). No token/store/logic files touched.",
     "risk": "Low",
-    "risk_notes": "Test-only; no shipped code changes. Risk limited to the readiness-signal choice.",
-    "verify_cost": "Low",
-    "verify_notes": "Re-run the CT suite; already empirically validated (settle 0 -> 0/5, 100ms -> 5/5)."
+    "risk_notes": "Behaviour paths untouched (onSend, \u2318Enter/\u2318S, canSend, dirty/markClean, per-tab isolation, data-mstyle invariant). Main risk is CT fidelity tests needing the data-mstyle=soft context (005 fixture-scoping) and visual-snapshot churn.",
+    "verify_cost": "Med",
+    "verify_notes": "Runtime fidelity check via design-auditor (Chrome DevTools MCP) computed-style + screenshot diff vs design/reference.html filled state; plus existing unit+CT suites must stay green."
   },
   "open_uncertainties": [],
-  "verdict": "Root cause confirmed",
-  "next_step_text": "## Next step\n\nCopy the block below into a new `/specify` session manually. No automation \u2014 user controls when (or if) `/specify` runs.\n\n~~~\n/specify \"Playwright CT test 'Dropdown \u2014 AC-4 dismiss \u203a clicking outside the menu closes it' (Dropdown.ct.tsx:185) fails: after opening the menu and clicking the viewport corner, the menu stays visible; expect(menu).not.toBeVisible() times out (line 200). Downstream, :236 (AC-3 focus-return after click-outside) also fails because the dismissal never fires. CT suite 125/127, these 2 the sole failures. \u2014 Both CT tests pass (Dropdown.ct.tsx:185 dismiss + :236 focus-return) via a correct fix at whatever layer the root cause lives; production click-outside dismissal behavior confirmed intact (not a loosened/weakened test).\"\n\nResearch reference: research/2026-06-27-003-dropdown-ct-click.md\nKey facts:\n- Mode: Bug\n- Symptom: Playwright CT test 'Dropdown \u2014 AC-4 dismiss \u203a clicking outside the menu closes it' (Dropdown.ct.tsx:185) fails: after opening the menu and clicking the viewport corner, the menu stays visible; expect(menu).not.toBeVisible() times out (line 200). Downstream, :236 (AC-3 focus-return after click-outside) also fails because the dismissal never fires. CT suite 125/127, these 2 the sole failures.\n- Desired: Both CT tests pass (Dropdown.ct.tsx:185 dismiss + :236 focus-return) via a correct fix at whatever layer the root cause lives; production click-outside dismissal behavior confirmed intact (not a loosened/weakened test).\n- Recommended approach: Gate the two outside-dismissal specs on overlay readiness (test-only)\n- Hypothesis addressed: A\n- Hypotheses NOT covered: B\n- Open uncertainties: 0 (see research doc \u00a7Open Uncertainties)\n~~~\n",
+  "verdict": "Feasible",
+  "next_step_text": "## Next step\n\nCopy the block below into a new `/specify` session manually. No automation \u2014 user controls when (or if) `/specify` runs.\n\n~~~\n/specify \"Against design/reference.html's FILLED state, RequestBar drifts visually: bar too cramped (height/padding/internal spacing undersized); URL input border-radius + focus border wrong; method pill missing per-method colour; Send active (non-empty URL) not solid-primary + \u2318\u21b5 affordance; Save/Share are bare undersized icons not laid-out labelled actions. Empty-state Send greying is EXCLUDED (correct canSend guard). \u2014 RequestBar visually matches design/reference.html in BOTH states (empty/not-filled AND filled): correct bar height/padding/internal spacing, matching URL-input border-radius + focus border, per-method coloured pill via the 005 .method/.{METHOD} class convention (NOT a data-mstyle write), Send active = solid-primary + \u2318\u21b5 affordance, Save/Share laid-out + labelled. The ONE exclusion: Send greyed-disabled on an empty URL is correct canSend-guard behaviour, not a drift to fix. Fidelity rebuilt with semantic classes bound to tokens.css (values from design/tokens.json) \u2014 NOT by importing design-export markup/cruft (data-om-*, __OmT, tweaks-panel). Zero behaviour change; all unit + CT tests green.\"\n\nResearch reference: research/2026-06-28-requestbar-009-visual-drift.md\nKey facts:\n- Mode: Enhancement\n- Symptom: Against design/reference.html's FILLED state, RequestBar drifts visually: bar too cramped (height/padding/internal spacing undersized); URL input border-radius + focus border wrong; method pill missing per-method colour; Send active (non-empty URL) not solid-primary + \u2318\u21b5 affordance; Save/Share are bare undersized icons not laid-out labelled actions. Empty-state Send greying is EXCLUDED (correct canSend guard).\n- Desired: RequestBar visually matches design/reference.html in BOTH states (empty/not-filled AND filled): correct bar height/padding/internal spacing, matching URL-input border-radius + focus border, per-method coloured pill via the 005 .method/.{METHOD} class convention (NOT a data-mstyle write), Send active = solid-primary + \u2318\u21b5 affordance, Save/Share laid-out + labelled. The ONE exclusion: Send greyed-disabled on an empty URL is correct canSend-guard behaviour, not a drift to fix. Fidelity rebuilt with semantic classes bound to tokens.css (values from design/tokens.json) \u2014 NOT by importing design-export markup/cruft (data-om-*, __OmT, tweaks-panel). Zero behaviour change; all unit + CT tests green.\n- Recommended approach: Localised RequestBar.css fidelity pass\n- Hypothesis addressed: A, C\n- Hypotheses NOT covered: B\n- Open uncertainties: 0 (see research doc \u00a7Open Uncertainties)\n~~~\n",
   "runner_up_framing": {
-    "frame": "Genuine production defect: Radix DismissableLayer in modal mode (body pointer-events:none, outside pointerdown lands on the HTML element) fails to reliably detect/dispatch click-outside dismissal, so real users would also see the menu stay open.",
-    "falsifier": "If a settle delay before the outside click makes dismissal deterministic, the detection works once armed \u2014 so the failure is a test-timing race, not a production detection defect. (Observed: SETTLE=0 -> 0/5 dismiss; SETTLE=100ms -> 5/5 dismiss, refuting the production-defect frame.)",
+    "frame": "Drift is a tokens.css / global-CSS token GAP, not RequestBar.css application: the styles.css\u2192tokens.css migration dropped the un-gated default .method.GET..OPTIONS {color: var(--m-*)} rules (design/styles.css:500-516); only .method.HEAD survived (tokens.css:109). So per-method colour is absent in any context where Shell has NOT written data-mstyle, and restoring it ripples design-system-wide (TabBar + every .method consumer) and re-incurs the 005 CSS load-order fragility.",
+    "falsifier": "If the running app (Shell mounted, default data-mstyle='soft') renders a genuinely COLOURLESS method pill, the cause is the missing tokens.css default, not local RequestBar.css application. Counter-evidence found: Shell Effect 1 unconditionally writes dataset.mstyle='soft' (default in settingsStore.ts:65), so [data-mstyle='soft'] .method.GET tints the pill at runtime \u2014 per-method colour IS present in-app, just as a faint 9.5px soft chip vs the reference's bold 11.5px method-select. The in-app drift is geometry/treatment APPLICATION, not absent colour \u2192 runner-up falsified for the in-app case; the token gap only bites in no-data-mstyle isolation (CT/stories).",
     "confidence_vs_primary": "lower"
   },
-  "fix_path_helpers": [
-    {
-      "qn": "@radix-ui/react-dismissable-layer.usePointerDownOutside",
-      "file_line": "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265"
-    }
-  ],
-  "inbound_callers": [
-    {
-      "helper_qn": "@radix-ui/react-dismissable-layer.usePointerDownOutside",
-      "caller_qn": "@radix-ui/react-dismissable-layer.DismissableLayer",
-      "file_line": "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:51"
-    }
-  ],
+  "fix_path_helpers": [],
+  "inbound_callers": [],
   "dead_siblings": [],
-  "consumer_chain": [
-    {
-      "value": "menu open state (dismissal signal)",
-      "consumer_qn": "DropdownFixture.setOpen",
-      "file_line": "src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx:43",
-      "role": "Controlled-state consumer: receives Radix onOpenChange(false) on dismissal and flips open->false to close the menu; the value the dismissal must reach."
-    }
-  ],
+  "consumer_chain": [],
   "value_semantics": [],
   "helper_rejection_log": [],
-  "data_flow_chain": {
-    "handler_qn": "Dropdown.ct.tsx::AC-4-dismiss::clicking-outside-the-menu-closes-it::page.mouse.click",
-    "write_boundary_qn": "@radix-ui/react-menu.MenuRootContentModal.onDismiss->onOpenChange(false)",
-    "intermediate_qns": []
-  },
+  "data_flow_chain": null,
   "value_production_sites": [],
   "literal_archaeology": [],
   "probe_feasibility": {
-    "data_shape_only": false,
+    "data_shape_only": true,
     "auth_required": false,
     "network_dependent": false,
-    "timing_dependent": true,
-    "is_test_code": true
+    "timing_dependent": false,
+    "is_test_code": false
   },
   "probe_scripts": []
 }
