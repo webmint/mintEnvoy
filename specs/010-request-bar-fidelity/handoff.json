@@ -1,0 +1,379 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/010-request-bar-fidelity/spec.md",
+  "specify_completed_at": "2026-06-28T19:11:42Z",
+  "classification": {
+    "spec_number": "010",
+    "feature_name": "request-bar-fidelity",
+    "feature_slug": "request-bar-fidelity",
+    "spec_type": "refactor",
+    "spec_type_rationale": "Zero-behaviour-change visual-fidelity pass: behaviour preserved (onSend/\u2318\u21b5/\u2318S/canSend/dirty/per-tab/data-mstyle untouched), CSS+presentational markup restructured. Save/Share labels + <kbd> \u2318\u21b5 are presentational edits to the existing RequestBar organism, not new type-defs/api-ops/components. Mirrors 005 fidelity refactor.",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "Close the visual-fidelity gap between the RequestBar organism (feature 009) and design/reference.html's request bar, in BOTH the empty and filled states, with ZERO behaviour change. 009 shipped functionally correct but visually drifted: the bar is too cramped (uniform 24px geometry vs the reference's 32px), the URL input's radius + focus treatment are wrong, the method pill reads as a faint soft chip rather than the reference's bordered method-select with bold coloured text, the active Send lacks the solid-primary weight + \u2318\u21b5 keycap, and Save/Share are bare undersized icons rather than laid-out labelled actions. 010 is a localised RequestBar.css restyle plus small presentational markup edits (visible Save/Share labels, an aria-hidden \u2318\u21b5 keycap), binding to existing tokens.css custom-properties \u2014 no token additions, no logic change.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide the RequestBar organism module and its sibling stylesheet under the organisms directory.",
+        "verification_command": "test -f src/renderer/src/components/organisms/RequestBar.tsx && test -f src/renderer/src/components/organisms/RequestBar.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The RequestBar source shall contain no design-export cruft markers such as data-om attributes, __OmT wrappers, or a tweaks-panel.",
+        "verification_command": "! grep -REn 'data-om-|__OmT|tweaks-panel' src/renderer/src/components/organisms/RequestBar.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall keep Shell as the sole writer of the document data-mstyle attribute, with the RequestBar never writing it.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the active tab changes, the RequestBar shall render the newly active tab's method and url without leaking the previous tab's values.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the URL input is rendered it shall bind its border-radius to the var(--radius) token, and WHILE it is focused it shall present the reference accent focus treatment of an accent border plus an accent ring shadow.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the method pill is rendered, the RequestBar shall present the reference bordered method-select treatment of a border, an elevated background, the var(--radius) token, and bold coloured method text via a local request-bar method override, keeping per-method colour on the global method classes.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "behavior_preservation",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user operates any RequestBar control or keyboard shortcut, the RequestBar shall preserve the feature-009 behaviour unchanged including the updateActiveSpec write path, the onSend intent, markClean on Save, and the canSend empty-after-trim guard.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the RequestBar is rendered, the RequestBar shall apply the reference bar padding and gap and an approximately 32px control height from the design reference, asserted by computed-style equality in Playwright component tests.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE Send is enabled the RequestBar shall render Send as a solid-primary fill at the reference font weight with the reference inset-highlight shadow and a visible aria-hidden Cmd-Enter keycap.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE Send is disabled the RequestBar shall not render the Cmd-Enter keycap.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-11",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE Save and Share are rendered the RequestBar shall present them as laid-out bordered actions with visible text labels beside their icons and shall keep Share a disabled no-op stub in its final slot.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-12",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The RequestBar fidelity styling shall be scoped under the request-bar selector so no other component is restyled.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-13",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the fidelity suite runs the enumerated computed-style properties shall be asserted by exact equality in a real browser via Playwright component tests backed by a thresholded screenshot diff within an explicit anti-aliasing pixel-threshold.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-14",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The touched RequestBar source shall document the request-bar-scoped fidelity treatment, the local method-select override, and the aria-hidden Cmd-Enter keycap rationale in comments.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-15",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer source shall pass strict type-checking.",
+        "verification_command": "npm run typecheck:web",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-16",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The codebase shall pass ESLint without new errors.",
+        "verification_command": "npm run lint",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-17",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The project shall build cleanly.",
+        "verification_command": "npm run build",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-18",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The touched RequestBar source shall contain no inline style attributes outside comments.",
+        "verification_command": "! grep -REn 'style=[{][{]' src/renderer/src/components/organisms/RequestBar.tsx | grep -vqE ':[[:space:]]*(\\*|//|/[*])'",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-19",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The RequestBar unit and component test suites shall pass.",
+        "verification_command": "npx vitest run src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "ci_pipeline": "No CI pipeline changes; tests run via existing npm scripts (vitest/playwright), not a new pipeline stage.",
+      "hooks_gates": "No new git hooks or commit gates; the project's existing forge gates apply unchanged."
+    },
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Only Shell.tsx writes documentElement data-mstyle (AC-6 / \u00a74 Never)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Never use inline styles \u2014 class-based styling via cx() (\u00a74 Never)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Prefer design tokens over literal style values (\u00a74 Prefer)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Search before building",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Style exclusively via tokens-bound semantic class names from tokens.css; no inline styles; bind radius/colour/shadow/font to existing custom-properties (--radius, --accent, --border, --bg-elev, --fs-*); raw px only where no token exists (spacing). Never reproduce design-export markup (data-om-*, __OmT, tweaks-panel).",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "The fix is localised to RequestBar.css plus presentational RequestBar.tsx className/label edits; every reference value maps to an existing token, so no tokens.css/tokens.json change is required. Reuse the canonical .method/.{METHOD} convention (methodChipClassName, src/renderer/src/components/molecules/Tabs.tsx:117); introduce no new method-colour mechanism and no new runtime dependency.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Scope all new fidelity CSS under the .request-bar selector (mirror the 005 .tabbar-scoping precedent) so the method pill and other .method consumers (TabBar) are not regressed; the method-pill treatment is a local override, never a data-mstyle write.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Verify fidelity via tiered checks per the 005 precedent \u2014 computed-style EXACT equality on the enumerated props in Playwright CT (a real browser; jsdom cannot resolve these) plus a thresholded screenshot diff with an explicit anti-aliasing pixel-threshold (no eyeballing). CT fixtures must import tokens.css, set data-mstyle on the host, and apply the Radix two-step dismiss gate.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Where a visible text label supplies a control's accessible name (Save/Share), drop the now-redundant aria-label to avoid double-labelling; the \u2318\u21b5 keycap is decorative and aria-hidden so the Send button's accessible name stays 'Send'. Existing CT/unit accessible-name queries (Send/Save/Share/GET) must still resolve.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "All feature-009 behaviour must not regress \u2014 RequestSpec read/write, updateActiveSpec, the onSend intent, the Cmd-Enter/Cmd-S shortcut paths, dirty/markClean, the canSend empty-after-trim guard, per-tab render isolation, and Shell as the sole writer of data-mstyle (009 AC-6). The empty-state greyed-disabled Send is correct and preserved, not restyled away.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "RequestBar styles (geometry + treatment)",
+        "files": [
+          "src/renderer/src/components/organisms/RequestBar.css"
+        ],
+        "impact": "Modify \u2014 restyle to reference fidelity using existing tokens: reference padding/gap + ~32px control height; bind --radius (7px) where reference uses it; add URL-input accent focus-ring box-shadow; Send solid-primary weight 600 + inset shadow + .kbd keycap styling; local .request-bar__method override presenting the bordered method-select treatment (no data-mstyle); .btn-ghost-style labelled Save/Share. All rules scoped under .request-bar."
+      },
+      {
+        "area": "RequestBar markup (presentational classNames + labels)",
+        "files": [
+          "src/renderer/src/components/organisms/RequestBar.tsx"
+        ],
+        "impact": "Modify \u2014 presentational only: add visible Save/Share text labels beside icons (drop now-redundant aria-label where visible text supplies the accessible name); add an aria-hidden kbd keycap inside Send rendered only in the enabled state; className/structure edits to match the reference. NO logic change \u2014 onSend, Cmd-Enter/Cmd-S, canSend, dirty/markClean, updateActiveSpec, per-tab selectors, data-mstyle invariant untouched."
+      },
+      {
+        "area": "RequestBar fidelity + regression tests",
+        "files": [
+          "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx",
+          "src/renderer/src/components/organisms/__tests__/RequestBar.stories.tsx",
+          "src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx"
+        ],
+        "impact": "Create/extend \u2014 add Playwright CT computed-style EXACT-equality fidelity assertions on enumerated .request-bar props (heights, radius, focus ring, method-select treatment, Send weight/shadow, labelled actions) + a thresholded screenshot diff; reuse the existing tokens.css + data-mstyle=soft fixture scope and Radix two-step dismiss gate; existing behaviour/layout CT + unit tests must stay green (accessible names Send/Save/Share/GET preserved)."
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Restoring the un-gated tokens.css .method.GET..OPTIONS{color} default rules (Approach 2 / hypothesis B from the research) is NOT done in 010 \u2014 it is a design-system-wide change deferred to a separate follow-up; the in-app pill is already coloured via Shell's default data-mstyle='soft', so 010 needs no tokens.css change.",
+        "finding_ref": "F-2026-06-28-requestbar-009-visual-drift-4"
+      },
+      {
+        "content": "Any behaviour change whatsoever \u2014 HTTP execution, the response view, RequestSpec read/write semantics, the onSend intent, the Cmd-Enter/Cmd-S shortcuts, dirty/markClean, the canSend guard, per-tab isolation \u2014 is excluded; 010 is presentational/CSS only.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Chrome outside the 009 RequestBar scope \u2014 Params/Auth/Headers/Body/Tests/Code sub-tabs, {{variable}} highlighting, the environment selector, the command palette, and the app header bar \u2014 is not touched.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Reproducing design/reference.html markup or its generated export cruft (data-om-* attributes, __OmT wrappers, inline styles, tweaks-panel) \u2014 fidelity is rebuilt from semantic classes bound to tokens.css, never by copying the reference DOM.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Separate dark-theme fidelity work \u2014 dark rendering is driven by the existing light/dark token pairs in tokens.css; no theme-specific geometry or layout work is in scope.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Repo-wide reformatting or unrelated housekeeping on this feature branch \u2014 it pollutes the /verify hygiene scope vs the breakdown baseline (lesson carried from features 001/002/005).",
+        "finding_ref": ""
+      }
+    ],
+    "open_questions": [
+      {
+        "question_id": "Q-1",
+        "content": "Exact reference geometry values (control height ~32px, --radius 7px binding, bar padding/gap, focus-ring spread, Send weight/shadow) are pulled from design/styles.css and runtime-confirmed via design-auditor at /plan before the fidelity ACs lock to concrete numbers.",
+        "category_no_dp_reason": ""
+      },
+      {
+        "question_id": "Q-2",
+        "content": "The exact screenshot-diff anti-aliasing pixel-threshold is deferred to /plan; the spec mandates an explicit threshold MUST be set (verification = computed-style equality + thresholded diff, not eyeballing), /plan fixes the concrete number (e.g. Playwright toHaveScreenshot threshold + maxDiffPixelRatio), mirroring 005 Q-2.",
+        "category_no_dp_reason": ""
+      },
+      {
+        "question_id": "Q-3",
+        "content": "The deferred design-system follow-up \u2014 restoring the un-gated tokens.css .method.GET..OPTIONS{color} defaults so the pill colours in no-data-mstyle isolation (CT/stories) \u2014 is tracked separately (scope decision: localised-now, file-tokens-follow-up); it is NOT part of 010 and may be filed as its own /research or bug.",
+        "category_no_dp_reason": ""
+      }
+    ],
+    "risks": [
+      {
+        "risk": "CT fidelity flakiness: the Radix method-dropdown dismiss arm-race plus a missing data-mstyle/tokens.css context produce intermittent false pass/fail; and jsdom cannot resolve computed/pseudo styles, so a stale CT build cache can mask a clean source as broken.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Author fidelity asserts in Playwright CT (real browser); reuse the established fixture scope (import tokens.css + set data-mstyle='soft' on host) and the two-step dismiss gate; when a build/test error names a clean file, clear playwright/.cache, node_modules/.vite, dist and re-run before editing source (cache-clearing lesson logged 2026-06-24)."
+      },
+      {
+        "risk": "Locking RequestBar.css to assumed reference values without a runtime check could enshrine a wrong geometry/treatment value \u2014 the diagnosis is code-confirmed against design/styles.css but not yet runtime-verified against the rendered reference.",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Confirm the exact reference geometry/treatment via a runtime design-auditor screenshot + computed-style diff against design/reference.html (filled state) during /plan or /implement before locking the values; fidelity ACs assert against the confirmed values."
+      },
+      {
+        "risk": "Dropping a control's aria-label while adding a visible text label could break existing CT/unit getByRole name queries (Send/Save/Share/GET) if the visible text does not supply an equivalent accessible name.",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Ensure the visible label text equals the prior accessible name before removing aria-label; keep the \u2318\u21b5 keycap aria-hidden; run the existing RequestBar CT + unit suites as a regression gate."
+      },
+      {
+        "risk": "The local .request-bar__method override must out-specify the tokens.css [data-mstyle='soft'] .method.GET colour rules; a specificity miss could drop the per-method colour or the method-select treatment.",
+        "likelihood": "Med",
+        "impact": "Low",
+        "mitigation": "Follow the 009 .request-bar__method.method (0,2,0) specificity precedent; colour stays from the .method.{METHOD} path; assert the computed method-text colour + border treatment in CT."
+      }
+    ]
+  },
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/research/2026-06-28-requestbar-009-visual-drift/handoff.json",
+    "upstream_handoff_kind": "research",
+    "upstream_completed_at": "2026-06-28T18:19:41+00:00"
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}

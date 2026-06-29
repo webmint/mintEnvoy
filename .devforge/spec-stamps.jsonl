@@ -4,3 +4,4 @@
 {"git_sha": "64c97d4601932ec742e12263b0f01a15161af28b", "spec_path": "specs/007-remove-ping-handler/spec.md", "stamped_at": "2026-06-27T14:54:06Z"}
 {"git_sha": "a8dadf636d0ab39a9a81db89f3dc27f8cc38666d", "spec_path": "specs/008-dropdown-ct-dismiss/spec.md", "stamped_at": "2026-06-27T17:38:39Z"}
 {"git_sha": "48b333be54b343936f43fe257ef83d105646aaef", "spec_path": "specs/009-request-bar/spec.md", "stamped_at": "2026-06-28T08:30:29Z"}
+{"git_sha": "11bbde2ee33c17291fb821cc72aff8076dffd28a", "spec_path": "specs/010-request-bar-fidelity/spec.md", "stamped_at": "2026-06-28T19:10:46Z"}

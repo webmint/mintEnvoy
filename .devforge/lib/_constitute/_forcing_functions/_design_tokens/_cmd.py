@@ -53,6 +53,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import List, Optional, Set
 
@@ -134,6 +135,167 @@ def _collect_match_refs(root, explicit_manifest_path):
     for mp in manifest_paths:
         combined.update(_load_manifest_match_refs_from_json(str(mp)))
     return combined
+
+
+# ---------------------------------------------------------------------------
+# Step 3 — circular spacing fix: reference-html-anchored spacing scope
+# ---------------------------------------------------------------------------
+
+
+class _DataRefFinder(HTMLParser):
+    """Minimal HTML parser that collects data-ref attribute values.
+
+    Walks the HTML token stream and records the value of every ``data-ref``
+    attribute encountered.  No CSS is parsed; we only need the presence of
+    ``data-ref`` anchors in the HTML file, not their visual values.
+    """
+
+    def __init__(self):
+        # type: () -> None
+        super(_DataRefFinder, self).__init__()
+        self.refs = set()  # type: Set[str]
+
+    def handle_starttag(self, tag, attrs):
+        # type: (str, list) -> None
+        for name, value in attrs:
+            if name.lower() == "data-ref" and value:
+                self.refs.add(value)
+
+
+def _extract_reference_html_refs(html_path):
+    # type: (str) -> Set[str]
+    """Return the set of all data-ref anchor values present in an HTML file.
+
+    Uses stdlib ``html.parser`` — no model call, no CSS parsing.  This is the
+    ground-truth source for the spacing scope: the LLM authors the manifest
+    disposition, NOT the HTML file, so an element's presence in reference.html
+    is not LLM-mistaggable for this purpose.
+
+    Returns an empty set on any read or parse error; never raises.
+    """
+    try:
+        with open(html_path, "r", encoding="utf-8", errors="replace") as fh:
+            html_text = fh.read()
+    except OSError:
+        return set()
+
+    finder = _DataRefFinder()
+    try:
+        finder.feed(html_text)
+        finder.close()
+    except Exception:  # noqa: BLE001
+        return set()
+
+    return finder.refs
+
+
+def _load_manifest_deviate_reason_refs_from_json(manifest_path):
+    # type: (str) -> Set[str]
+    """Return DEVIATE data-ref values that have a non-empty deviate_reason.
+
+    Reads the raw manifest JSON (same approach as
+    ``_load_manifest_match_refs_from_json``).  Only elements with BOTH
+    ``disposition == "DEVIATE"`` (case-insensitive) AND a non-whitespace
+    ``deviate_reason`` are collected.
+
+    A DEVIATE element with an empty or absent ``deviate_reason`` is NOT
+    collected — it cannot claim "intentional deviation" without recording why,
+    and an LLM mistag typically produces ``deviate_reason = ""``.
+
+    Returns empty set on any error; never raises.
+    """
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        refs = set()  # type: Set[str]
+        for elem in data.get("elements", []):
+            if isinstance(elem, dict):
+                disposition = str(elem.get("disposition", "")).upper()
+                if disposition == "DEVIATE":
+                    reason = str(elem.get("deviate_reason", "")).strip()
+                    if reason:  # non-empty stripped reason = verifiable exemption
+                        ref = elem.get("data_ref")
+                        if ref:
+                            refs.add(str(ref))
+        return refs
+    except Exception:  # noqa: BLE001
+        return set()
+
+
+def _collect_deviate_reason_refs(root, explicit_manifest_path):
+    # type: (Path, Optional[str]) -> Set[str]
+    """Union DEVIATE-with-reason data-refs from all relevant manifests.
+
+    Resolution order mirrors ``_collect_match_refs``:
+    1. If ``explicit_manifest_path`` is non-None, load only that single file.
+    2. Otherwise glob ``specs/*/design-manifest.json`` under ``root``.
+
+    Returns an empty set when no manifests are found or all fail to parse.
+    """
+    if explicit_manifest_path is not None:
+        return _load_manifest_deviate_reason_refs_from_json(
+            str(root / explicit_manifest_path)
+        )
+
+    manifest_paths = _glob_manifests(root)
+    if not manifest_paths:
+        return set()
+
+    combined = set()  # type: Set[str]
+    for mp in manifest_paths:
+        combined.update(_load_manifest_deviate_reason_refs_from_json(str(mp)))
+    return combined
+
+
+def _build_spacing_scope_refs(root, explicit_manifest_path):
+    # type: (Path, Optional[str]) -> Optional[Set[str]]
+    """Compute the reference-html-anchored spacing scope for Check 5.
+
+    Returns ``None`` when ``design/reference.html`` is absent — the caller
+    (``cmd_verify_design_tokens``) passes ``None`` to
+    ``scan_for_design_token_violations``, which preserves the pre-fix behaviour
+    (spacing scope = match_refs).
+
+    When ``design/reference.html`` exists:
+    - Parses it for all data-ref anchor values (the ground truth).
+    - If the HTML contains no data-ref anchors, returns ``None`` (same as
+      absent reference.html) so the caller falls back to match_refs.  Returning
+      an empty set would silently disable spacing checks for all elements.
+    - Subtracts elements that have ``disposition == "DEVIATE"`` AND a non-empty
+      ``deviate_reason`` in any loaded manifest — those represent intentional,
+      verifiable deviations and are exempt.
+    - Returns the resulting set.
+
+    This breaks the circular scoping bug: a DEVIATE-mistagged element that is
+    present in reference.html IS in the returned set (because ``deviate_reason``
+    is empty → not exempt), so its spacing literal WILL be caught.
+
+    Parameters
+    ----------
+    root:
+        Consumer project root.  ``design/reference.html`` is resolved relative
+        to this.
+    explicit_manifest_path:
+        Legacy single-manifest path from config (passed through to
+        ``_collect_deviate_reason_refs``).  ``None`` → glob-based discovery.
+    """
+    reference_html = root / "design" / "reference.html"
+    if not reference_html.exists():
+        # No reference.html → no new behaviour; caller uses match_refs fallback.
+        return None
+
+    ref_html_refs = _extract_reference_html_refs(str(reference_html))
+    # Empty HTML (no data-ref elements) → fall back to match_refs, same as absent
+    # reference.html.  Returning set() would silently disable spacing checks for
+    # ALL elements (including correctly-MATCH-dispositioned ones), because the
+    # scanner's _spacing_refs would be an empty set and no element would match.
+    if not ref_html_refs:
+        return None
+
+    deviate_reason_refs = _collect_deviate_reason_refs(root, explicit_manifest_path)
+
+    # spacing_scope = all ref-html elements minus those with a verifiable reason
+    return ref_html_refs - deviate_reason_refs
 
 
 def _load_token_source(token_source_css):
@@ -278,6 +440,14 @@ def cmd_verify_design_tokens(args):
     explicit_manifest = rule_cfg.get("manifest_path") or None  # None if absent/empty
     match_refs = _collect_match_refs(root, explicit_manifest)
 
+    # --- 10.5 Build reference-anchored spacing scope (Step 3 — circular fix) ---
+    # When design/reference.html exists, the spacing sub-check of Check 5 uses
+    # a scope derived from the HTML file (LLM-unmistaggable) rather than solely
+    # from the manifest MATCH disposition.  When reference.html is absent,
+    # spacing_scope_refs is None and the scanner falls back to match_refs,
+    # preserving the pre-fix behaviour unchanged.
+    spacing_scope_refs = _build_spacing_scope_refs(root, explicit_manifest)
+
     # --- 11. Scan ---
     findings = scan_for_design_token_violations(
         root=root,
@@ -285,6 +455,7 @@ def cmd_verify_design_tokens(args):
         defined_tokens=defined_tokens,
         match_refs=match_refs,
         spacing_scale_available=spacing_scale_available,
+        spacing_scope_refs=spacing_scope_refs,
     )
 
     # --- 12. Emit findings ---

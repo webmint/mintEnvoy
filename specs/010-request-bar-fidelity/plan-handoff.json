@@ -1,0 +1,150 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/010-request-bar-fidelity/plan.md",
+  "plan_completed_at": "2026-06-28T19:48:04Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/010-request-bar-fidelity/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/010-request-bar-fidelity/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "Renderer \u00b7 organisms (styles)",
+        "what": "Rewrite bar geometry + treatment to reference values using existing tokens; add ancestor-scoped method-select background override",
+        "files": "`src/renderer/src/components/organisms/RequestBar.css`"
+      },
+      {
+        "layer": "Renderer \u00b7 organisms (markup)",
+        "what": "Presentational-only edits: visible Save/Share labels (+ aria-label drop), canSend-gated aria-hidden `<kbd>` \u2318\u21b5 keycap, className/structure",
+        "files": "`src/renderer/src/components/organisms/RequestBar.tsx`"
+      },
+      {
+        "layer": "Renderer \u00b7 design tokens (consumed, NOT modified)",
+        "what": "Bind to existing `--radius`, `--accent`, `--accent-soft`, `--bg-elev`, `--text-faint`, `--border`, `--font-mono`, `--fs-*`; per-method colour stays on the `[data-mstyle='soft'] .method.{METHOD}` cascade",
+        "files": "`src/renderer/styles/tokens.css` (read-only)"
+      },
+      {
+        "layer": "Renderer \u00b7 molecules (consumed, NOT modified)",
+        "what": "Canonical `.method/.{METHOD}` class path (`methodChipClassName`) reused unchanged",
+        "files": "`src/renderer/src/components/molecules/Tabs.tsx:117` (read-only)"
+      },
+      {
+        "layer": "Renderer \u00b7 tests",
+        "what": "Add Playwright CT computed-style EXACT-equality fidelity asserts + thresholded screenshot diff; keep existing behaviour/unit suites green",
+        "files": "`.../organisms/__tests__/RequestBar.ct.tsx`, `RequestBar.stories.tsx`, `RequestBar.test.tsx`"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "**Method-select background override** (the genuine tension)",
+        "chosen_approach": "A single ancestor-scoped rule `.request-bar .request-bar__method.method` (specificity 0,3,0) sets the flat elevated treatment \u2014 `background: var(--bg-elev)`, `border: 1px solid var(--border)`, `border-radius: var(--radius)`, sizing, mono 11.5px/700 \u2014 and declares **no `color`**, so per-method text colour falls through to `[data-mstyle='soft'] .method.{METHOD}` (0,3,0).",
+        "why": "The per-method **background tint AND colour** both live in `[data-mstyle='soft'] .method.{METHOD}` at standard specificity **(0,3,0)** (attribute + 2 classes). The existing 009 override `.request-bar__method.method` is only **(0,2,0)** \u2014 it wins sizing but **cannot** override that background. Adding the `.request-bar` ancestor reaches (0,3,0) parity, then **source order decides** \u2014 RequestBar.css imports after tokens.css, so the override wins. Flat bg is method-invariant so one rule suffices; colour is left silent so the per-method path still paints it. (Corrects the non-standard specificity notation in the existing 009 CSS comments. Overriding the per-method **background** is a NEW concern \u2014 009 kept the tint \u2014 so not a flagged departure.)",
+        "alternatives_rejected": "Per-method `(0,4,0)` enumeration `.request-bar .request-bar__method.method.{METHOD}` \u00d7 7 \u2014 DRY violation, bg is method-invariant. `!important` \u2014 brittle, fights the cascade. Reading/writing `data-mstyle` to neutralise \u2014 AC-3 forbids any non-Shell write."
+      },
+      {
+        "decision": "**Send \u2318\u21b5 keycap render condition**",
+        "chosen_approach": "Render the `<kbd>` element **only when `canSend`** (JSX conditional on the existing predicate); element absent from the DOM when disabled.",
+        "why": "AC-10 requires the keycap to **not render** when Send is disabled \u2014 a DOM-presence contract, not a visibility one. Markup conditional makes presence the single source of truth, directly assertable. Present \u2192 AC-9; absent \u2192 AC-10; binary on the existing `canSend`, no new state.",
+        "alternatives_rejected": "Always-render + CSS `:disabled`-hide \u2014 element stays in the DOM, fails AC-10's \"not render\" and leaks to the a11y tree."
+      },
+      {
+        "decision": "**Save/Share accessible name**",
+        "chosen_approach": "Visible `Save`/`Share` text supplies the accessible name; drop the now-redundant `aria-label`. Keep `<kbd>` `aria-hidden` so Send's accessible name stays `Send`.",
+        "why": "AC-11 + \u00a77 a11y constraint: avoid double-labelling; existing `getByRole(name)` queries (Send/Save/Share/GET) must still resolve, which the visible text guarantees.",
+        "alternatives_rejected": "Keep both visible text + aria-label \u2014 double-labelling, redundant accessible name."
+      },
+      {
+        "decision": "**URL focus treatment**",
+        "chosen_approach": "`:focus` sets `border-color: var(--accent)` + `box-shadow: 0 0 0 3px var(--accent-soft)`, `outline: none`.",
+        "why": "AC-5 mandates an accent border **plus** an accent ring; `--accent-soft` already equals the reference's accent-14% mix \u2014 reuse over re-deriving.",
+        "alternatives_rejected": "`outline`-based ring \u2014 reference renders a soft shadow ring; outline can't reproduce the 3px soft spread and clips differently."
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "`src/renderer/src/components/organisms/RequestBar.css`",
+        "action": "Modify",
+        "what_changes": "Rewrite geometry/treatment to reference values (padding 12px 16px, gap 8px, 32px control height, `--radius` binding); URL focus accent border + `0 0 0 3px var(--accent-soft)` ring; Send `--accent` fill weight 600 + inset-highlight shadow; `.kbd` keycap styling; bordered ghost Save/Share; ancestor-scoped `(0,3,0)` method-select background override (no `color`). All rules under `.request-bar`."
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/RequestBar.tsx`",
+        "action": "Modify",
+        "what_changes": "Presentational only: visible `Save`/`Share` text labels beside icons (drop redundant `aria-label`); `canSend`-gated aria-hidden `<kbd>` \u2318\u21b5 inside Send; className/structure edits. No logic change."
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx`",
+        "action": "Modify",
+        "what_changes": "Add computed-style EXACT-equality fidelity assertions on enumerated `.request-bar` props (control height, radius, focus ring, method-select bg/border/colour, Send weight/shadow, keycap presence, labelled actions) + a thresholded screenshot diff (`toHaveScreenshot` maxDiffPixelRatio 0.01). Reuse the existing tokens.css + `data-mstyle='soft'` fixture scope + two-step dismiss gate."
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/__tests__/RequestBar.stories.tsx`",
+        "action": "Modify",
+        "what_changes": "Add a filled-state fixture (non-empty URL \u2192 enabled Send + keycap) for the new fidelity/keycap assertions if the existing fixtures don't cover it."
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx`",
+        "action": "Modify",
+        "what_changes": "Keep green; add jsdom unit asserts for keycap DOM presence/absence (canSend), Save/Share accessible-name preservation, and aria-label removal."
+      }
+    ],
+    "doc_impact": [
+      {
+        "doc_file": "docs/architecture.md",
+        "action": "Update (at /finalize)",
+        "what_changes": "Optional one-line note that RequestBar matches the design reference; the existing RequestBar entry otherwise stands."
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Specificity miss \u2014 override loses to per-method `(0,3,0)` background (soft tint bleeds through) OR per-method colour wrongly dropped",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Override declares background/border/radius **only**, never colour; `(0,3,0)` ancestor scope + source order; CT EXACT computed-style assertion on **both** method-text colour and bg/border as the loud safety net."
+      },
+      {
+        "risk": "Source-order fragility \u2014 if the Vite bundle ever emits component CSS before tokens.css, the `(0,3,0)` tie flips and the override silently loses",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Ordering confirmed (tokens.css imported first; component CSS after); CT computed-style assert fails loudly on any cascade regression \u2014 no eyeballing."
+      },
+      {
+        "risk": "Scope leak \u2014 a new rule not anchored under `.request-bar` regresses other `.method` consumers (TabBar)",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Every new rule ancestor-scoped under `.request-bar`; AC-12 grep gate + 005 `.tabbar`-scoping precedent."
+      },
+      {
+        "risk": "Dropping `aria-label` breaks existing `getByRole` name queries (Send/Save/Share/GET)",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Ensure visible label text === prior accessible name before removal; keep `<kbd>` aria-hidden; run existing CT + unit suites as a regression gate."
+      },
+      {
+        "risk": "CT fidelity flakiness \u2014 Radix dropdown dismiss arm-race + missing data-mstyle/tokens context + jsdom can't resolve computed/pseudo styles",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Real-browser Playwright CT only; reuse fixture scope (import tokens.css + set `data-mstyle='soft'` on host) + two-step dismiss gate; clear `playwright/.cache`+`.vite`+`dist` when a build error names a clean file."
+      },
+      {
+        "risk": "Q-1 reference values not yet runtime-confirmed",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "`design-auditor` runtime screenshot + computed-style diff against `design/reference.html` (filled state) at `/implement` before the fidelity ACs lock to the concrete numbers."
+      }
+    ],
+    "specialist_consultation": [
+      {
+        "specialist": "architect",
+        "sub_question": "Layer map, key design decisions, risks, constitution flags, minimal change, \u00a76-respect for the localised RequestBar.css fidelity refactor",
+        "input_summary": "Authored all tables; identified the method-select specificity tension and the (0,3,0) ancestor-scoped override that declares background/border/radius only so per-method colour falls through; no specialist relay needed",
+        "verdict": "accepted",
+        "cites": "specs/010-request-bar-fidelity/spec.md; src/renderer/styles/tokens.css; src/renderer/src/components/organisms/RequestBar.css"
+      }
+    ],
+    "dependencies": [
+      "None \u2014 no packages to install, no services to configure, no environment variables. Playwright CT, Vitest, zustand, Radix, and the Icon atom are all already in the project."
+    ]
+  }
+}

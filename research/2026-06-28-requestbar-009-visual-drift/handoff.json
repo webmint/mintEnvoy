@@ -1,0 +1,103 @@
+{
+  "schema_version": "1.1",
+  "research_path": "research/2026-06-28-requestbar-009-visual-drift.md",
+  "research_completed_at": "2026-06-28T18:19:41+00:00",
+  "mode": "feature_addition",
+  "intent": {
+    "symptom_summary": "Against design/reference.html's FILLED state, RequestBar drifts visually: bar too cramped (height/padding/internal spacing undersized); URL input border-radius + focus border wrong; method pill missing per-method colour; Send active (non-empty URL) not solid-primary + \u2318\u21b5 affordance; Save/Share are bare undersized icons not laid-out labelled actions. Empty-state Send greying is EXCLUDED (correct canSend guard).",
+    "desired_summary": "RequestBar visually matches design/reference.html in BOTH states (empty/not-filled AND filled): correct bar height/padding/internal spacing, matching URL-input border-radius + focus border, per-method coloured pill via the 005 .method/.{METHOD} class convention (NOT a data-mstyle write), Send active = solid-primary + \u2318\u21b5 affordance, Save/Share laid-out + labelled. The ONE exclusion: Send greyed-disabled on an empty URL is correct canSend-guard behaviour, not a drift to fix. Fidelity rebuilt with semantic classes bound to tokens.css (values from design/tokens.json) \u2014 NOT by importing design-export markup/cruft (data-om-*, __OmT, tweaks-panel). Zero behaviour change; all unit + CT tests green.",
+    "scope": "feature-wide",
+    "verbatim_prompt": "The RequestBar organism built in 009-request-bar (components/organisms/RequestBar.tsx + RequestBar.css) renders functionally correct but visually drifts from design/reference.html. Against the reference's FILLED state the bar is too cramped (height/padding/internal spacing undersized), the URL input's border-radius and focus border don't match, the method pill does not show the per-method colour, the Send button's active (non-empty-url) state is not the solid-primary + \u2318\u21b5 affordance the reference shows, and Save/Share read as bare undersized icons rather than the reference's laid-out, labelled actions. Desired: RequestBar matches design/reference.html as a VISUAL reference with ZERO behaviour change \u2014 a pure styling pass (RequestBar.css + className edits in RequestBar.tsx) that leaves RequestSpec read/write, the onSend intent, the \u2318Enter/\u2318S shortcuts, dirty/markClean, the empty-after-trim canSend guard, and per-tab isolation untouched, with all existing unit + CT tests staying green. design/reference.html is a VISUAL reference ONLY \u2014 do NOT pattern after, transcribe, or import any design-export markup/JSX or cruft (data-om-*, __OmT, tweaks-panel); rebuild fidelity with semantic classes bound to tokens.css and token values from design/tokens.json. Suspected cause: the drift is token-APPLICATION in RequestBar.css (classes bind missing or wrong token custom-properties, and the method pill is not consuming the 005 .method/.{METHOD} colour convention), NOT a logic defect. Treat that as a CLAIM TO DISPROVE: verify against the real component + token graph whether the cause is (a) token APPLICATION local to RequestBar.css; (b) a token GAP where tokens.css itself lacks the needed spacing/radius/method-colour custom-properties; or (c) a method-pill wiring issue where per-method colour depends on data-mstyle which per 009 AC-6 ONLY Shell writes. EXCLUDE from the drift: the empty-state appearance where Send is greyed because canSend is false on an empty URL, and any chrome from epics outside 009's scope. Scope: localised to RequestBar if the cause is pure application; feature-wide if it is a token gap. unchanged_behaviour: no change to RequestSpec read/write, the onSend intent, \u2318Enter/\u2318S shortcut behaviour, dirty + markClean, the empty-after-trim Send guard, per-tab render isolation, and the Shell-as-sole-writer-of-data-mstyle invariant (009 AC-6) \u2014 RequestBar must still NOT write document.documentElement.dataset.mstyle."
+  },
+  "spec_seeds": {
+    "spec_type_hint": "feature_addition",
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Only Shell.tsx writes documentElement data-mstyle (AC-6 / \u00a74 Never)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Never use inline styles \u2014 class-based styling via cx() (\u00a74 Never)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Prefer design tokens over literal style values (\u00a74 Prefer)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Search before building",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [],
+    "risks": [],
+    "open_questions": [],
+    "value_semantics": [],
+    "value_production_sites": [],
+    "literal_archaeology": [],
+    "data_flow_chain": null
+  },
+  "plan_seeds": {
+    "recommended_approach_id": "localised_requestbar_css_fidelity_pass",
+    "recommended_approach_summary": "Recommended because the target values each map to a custom-property the project exposes today; the running app therefore avoids any shared-stylesheet edit \u2014 the work fits inside this one component's stylesheet plus a few presentational markup additions. Reuse the shared verb-class helper methodChipClassName (src/renderer/src/components/molecules/Tabs.tsx:117), which this component consumes at RequestBar.tsx:256, rather than building a new path \u2014 this REUSES the canonical pattern instead of reinventing it. The document-level marker attribute stays managed by its sole owner alone upstream; this approach leaves it to the owning organism and touches it from nowhere here, honouring the spec invariant. The wider question is split into an Open Uncertainty to keep scope small. Respects unchanged_behaviour: stylesheet and presentational markup additions, with RequestSpec read/write, onSend, the \u2318Enter/\u2318S handlers, canSend, dirty/markClean and per-tab isolation all untouched.",
+    "layer_destination": "tbd",
+    "layer_justification": "multi-layer",
+    "complexity": {
+      "changes": "Med",
+      "risk": "Low",
+      "verify_cost": "Med"
+    },
+    "cited_canonical_patterns": [],
+    "alternatives_considered": [
+      {
+        "id": "localised_pass_restore_un_gated_tokens_css_method_defaults",
+        "summary": "Approach 1 PLUS restore the un-gated .method.GET..OPTIONS{color:var(--m-*)} default rules in tokens.css (and tokens.json source) so the pill colours even when data-mstyle is absent.",
+        "rejected_reason": "not recommended; see /plan if needed"
+      }
+    ],
+    "proposed_call_shape": null
+  },
+  "probe": {
+    "tier": "1.5",
+    "actor": "llm",
+    "discriminator": {
+      "primary_confirms_if": "tbd \u2014 populated by Step 4 probe-tier classifier",
+      "runner_up_confirms_if": "if test FAILS but with different assertion outcome \u2192 runner-up applies; LLM evaluates output diff",
+      "both_disproved_if": "if test PASSES with current code \u2192 both hypotheses are wrong; widen investigation",
+      "production_site_check": null
+    },
+    "feasibility_check": {
+      "data_shape_only": true,
+      "auth_required": false,
+      "network_dependent": false,
+      "timing_dependent": false,
+      "is_test_code": false
+    },
+    "test_framework": null,
+    "test_path": null,
+    "script_path": "research/2026-06-28-requestbar-009-visual-drift/probe-script.mjs",
+    "is_first_test_for_file": false
+  },
+  "downstream_links": {
+    "spec_path": "specs/010-requestbar-009-visual-drift/spec.md",
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}

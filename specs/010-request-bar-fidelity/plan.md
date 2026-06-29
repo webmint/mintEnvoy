@@ -1,0 +1,106 @@
+# Plan: request-bar-fidelity
+
+**Date**: 2026-06-28
+**Spec**: specs/010-request-bar-fidelity/spec.md
+**Status**: Approved
+
+## Specialist Consultation
+
+**Invocations**:
+- Phase 0 alternatives: no — N/A (the localised-vs-tokens-restore alternative was already settled upstream in the research handoff plan-seeds, which rejected the tokens-restore option; no fresh 2+-alternative comparison was needed).
+- Phase 1.3 architecture decisions: yes (mandatory).
+- Specialists consulted (orchestrator-relayed on the architect's request, or directly): none — the architect returned zero consultation requests (the decisions are CSS-cascade/specificity + React conditional-render/a11y, within generalist scope; all reference values are code-confirmed against design/styles.css and all needed tokens already exist).
+
+**Architect-authored sections** (transcribed verbatim from architect return):
+- Layer Map: rows 1-5
+- Key Design Decisions: rows 1-4
+- Risk Assessment seeds: rows 1-5
+- Constitution Compliance flags: no-inline-styles, Shell-sole-writer-of-data-mstyle, prefer-tokens, search-before-building, scoped-CSS
+
+| Specialist | Sub-question | Input summary | Verdict | Cites |
+| --- | --- | --- | --- | --- |
+| architect | Layer map, key design decisions, risks, constitution flags, minimal change, §6-respect for the localised RequestBar.css fidelity refactor | Authored all tables; identified the method-select specificity tension and the (0,3,0) ancestor-scoped override that declares background/border/radius only so per-method colour falls through; no specialist relay needed | accepted | specs/010-request-bar-fidelity/spec.md; src/renderer/styles/tokens.css; src/renderer/src/components/organisms/RequestBar.css |
+
+> Forward pointer (not a planning consult): a `design-auditor` runtime pass is scheduled for `/implement` to runtime-confirm the rendered reference geometry/treatment (filled state) via screenshot + computed-style diff against `design/reference.html` before the fidelity ACs lock to the concrete numbers (satisfies spec Q-1 + §9 Risk-2).
+
+## Summary
+
+Localised visual-fidelity refactor of the existing RequestBar organism (feature 009) to match `design/reference.html`'s request bar in both empty and filled states, with ZERO behaviour change. The work is confined to `RequestBar.css` (geometry + treatment rewrite, all scoped under `.request-bar`) plus presentational `RequestBar.tsx` edits (visible Save/Share labels, a `canSend`-gated aria-hidden `⌘↵` `<kbd>` keycap), binding to design-token custom-properties that already exist in `tokens.css` — no token additions, no logic change. Per-method pill colour stays on the canonical `.method/.{METHOD}` cascade; the bordered method-select treatment is achieved with an ancestor-scoped `(0,3,0)` override that never writes `data-mstyle`. Fidelity is verified tiered per the 005 precedent (Playwright CT computed-style EXACT equality + thresholded screenshot diff).
+
+**Why no new research**: the upstream research handoff (`research/2026-06-28-requestbar-009-visual-drift.md`) already settled the approach and the reference target values; signal scan found nothing outside the current stack (Playwright/Vitest/zustand/Radix all installed). No research.md generated.
+
+## Technical Context
+
+**Architecture**: Renderer · organisms tier only (Presentation). `RequestBar.css` + `RequestBar.tsx` + co-located tests. Consumes `tokens.css` (read-only) and the `.method/.{METHOD}` class path from `Tabs.tsx:117` (read-only).
+**Error Handling**: N/A — pure styling/markup; no fallible paths added.
+**State Management**: Unchanged — RequestBar keeps its per-field `tabsStore` selectors; no new state. The `<kbd>` render gates on the existing `canSend` predicate.
+
+## Constitution Compliance
+
+- **No inline styles (§4 Never)**: compliant — all changes are class-based via `cx()` + `RequestBar.css`; no `style={{…}}`. Guarded by AC-18.
+- **Shell sole writer of data-mstyle (§2 / AC-3)**: compliant — the method-select override reads the `.method` cascade only; RequestBar never writes `documentElement.dataset.mstyle`.
+- **Prefer design tokens (§4 Prefer)**: compliant — binds to `--radius`, `--accent`, `--accent-soft`, `--bg-elev`, `--text-faint`, `--border`, `--font-mono`, `--fs-*`; raw px only for spacing where no token exists.
+- **Search before building (§4)**: compliant — reuses the canonical `.method/.{METHOD}` path and the existing `--accent-soft` token (= reference accent-14% mix); no new mechanism, no new dependency.
+- **Scoped CSS (AC-12 / 005 .tabbar precedent)**: compliant — every new rule anchored under `.request-bar`.
+
+## Implementation Approach
+
+### Layer Map
+
+| Layer | What | Files (existing or new) |
+|-------|------|------------------------|
+| Renderer · organisms (styles) | Rewrite bar geometry + treatment to reference values using existing tokens; add ancestor-scoped method-select background override | `src/renderer/src/components/organisms/RequestBar.css` |
+| Renderer · organisms (markup) | Presentational-only edits: visible Save/Share labels (+ aria-label drop), canSend-gated aria-hidden `<kbd>` ⌘↵ keycap, className/structure | `src/renderer/src/components/organisms/RequestBar.tsx` |
+| Renderer · design tokens (consumed, NOT modified) | Bind to existing `--radius`, `--accent`, `--accent-soft`, `--bg-elev`, `--text-faint`, `--border`, `--font-mono`, `--fs-*`; per-method colour stays on the `[data-mstyle='soft'] .method.{METHOD}` cascade | `src/renderer/styles/tokens.css` (read-only) |
+| Renderer · molecules (consumed, NOT modified) | Canonical `.method/.{METHOD}` class path (`methodChipClassName`) reused unchanged | `src/renderer/src/components/molecules/Tabs.tsx:117` (read-only) |
+| Renderer · tests | Add Playwright CT computed-style EXACT-equality fidelity asserts + thresholded screenshot diff; keep existing behaviour/unit suites green | `.../organisms/__tests__/RequestBar.ct.tsx`, `RequestBar.stories.tsx`, `RequestBar.test.tsx` |
+
+### Key Design Decisions
+
+| Decision | Chosen Approach | Why | Alternatives Rejected |
+|----------|----------------|-----|----------------------|
+| **Method-select background override** (the genuine tension) | A single ancestor-scoped rule `.request-bar .request-bar__method.method` (specificity 0,3,0) sets the flat elevated treatment — `background: var(--bg-elev)`, `border: 1px solid var(--border)`, `border-radius: var(--radius)`, sizing, mono 11.5px/700 — and declares **no `color`**, so per-method text colour falls through to `[data-mstyle='soft'] .method.{METHOD}` (0,3,0). | The per-method **background tint AND colour** both live in `[data-mstyle='soft'] .method.{METHOD}` at standard specificity **(0,3,0)** (attribute + 2 classes). The existing 009 override `.request-bar__method.method` is only **(0,2,0)** — it wins sizing but **cannot** override that background. Adding the `.request-bar` ancestor reaches (0,3,0) parity, then **source order decides** — RequestBar.css imports after tokens.css, so the override wins. Flat bg is method-invariant so one rule suffices; colour is left silent so the per-method path still paints it. (Corrects the non-standard specificity notation in the existing 009 CSS comments. Overriding the per-method **background** is a NEW concern — 009 kept the tint — so not a flagged departure.) | Per-method `(0,4,0)` enumeration `.request-bar .request-bar__method.method.{METHOD}` × 7 — DRY violation, bg is method-invariant. `!important` — brittle, fights the cascade. Reading/writing `data-mstyle` to neutralise — AC-3 forbids any non-Shell write. |
+| **Send ⌘↵ keycap render condition** | Render the `<kbd>` element **only when `canSend`** (JSX conditional on the existing predicate); element absent from the DOM when disabled. | AC-10 requires the keycap to **not render** when Send is disabled — a DOM-presence contract, not a visibility one. Markup conditional makes presence the single source of truth, directly assertable. Present → AC-9; absent → AC-10; binary on the existing `canSend`, no new state. | Always-render + CSS `:disabled`-hide — element stays in the DOM, fails AC-10's "not render" and leaks to the a11y tree. |
+| **Save/Share accessible name** | Visible `Save`/`Share` text supplies the accessible name; drop the now-redundant `aria-label`. Keep `<kbd>` `aria-hidden` so Send's accessible name stays `Send`. | AC-11 + §7 a11y constraint: avoid double-labelling; existing `getByRole(name)` queries (Send/Save/Share/GET) must still resolve, which the visible text guarantees. | Keep both visible text + aria-label — double-labelling, redundant accessible name. |
+| **URL focus treatment** | `:focus` sets `border-color: var(--accent)` + `box-shadow: 0 0 0 3px var(--accent-soft)`, `outline: none`. | AC-5 mandates an accent border **plus** an accent ring; `--accent-soft` already equals the reference's accent-14% mix — reuse over re-deriving. | `outline`-based ring — reference renders a soft shadow ring; outline can't reproduce the 3px soft spread and clips differently. |
+
+### File Impact
+
+| File | Action | What Changes |
+|------|--------|-------------|
+| `src/renderer/src/components/organisms/RequestBar.css` | Modify | Rewrite geometry/treatment to reference values (padding 12px 16px, gap 8px, 32px control height, `--radius` binding); URL focus accent border + `0 0 0 3px var(--accent-soft)` ring; Send `--accent` fill weight 600 + inset-highlight shadow; `.kbd` keycap styling; bordered ghost Save/Share; ancestor-scoped `(0,3,0)` method-select background override (no `color`). All rules under `.request-bar`. |
+| `src/renderer/src/components/organisms/RequestBar.tsx` | Modify | Presentational only: visible `Save`/`Share` text labels beside icons (drop redundant `aria-label`); `canSend`-gated aria-hidden `<kbd>` ⌘↵ inside Send; className/structure edits. No logic change. |
+| `src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx` | Modify | Add computed-style EXACT-equality fidelity assertions on enumerated `.request-bar` props (control height, radius, focus ring, method-select bg/border/colour, Send weight/shadow, keycap presence, labelled actions) + a thresholded screenshot diff (`toHaveScreenshot` maxDiffPixelRatio 0.01). Reuse the existing tokens.css + `data-mstyle='soft'` fixture scope + two-step dismiss gate. |
+| `src/renderer/src/components/organisms/__tests__/RequestBar.stories.tsx` | Modify | Add a filled-state fixture (non-empty URL → enabled Send + keycap) for the new fidelity/keycap assertions if the existing fixtures don't cover it. |
+| `src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx` | Modify | Keep green; add jsdom unit asserts for keycap DOM presence/absence (canSend), Save/Share accessible-name preservation, and aria-label removal. |
+
+**Discovered during planning**: all five files are already in the spec's §4 Affected Areas — no additions.
+
+### Documentation Impact
+
+| Doc File | Action | What Changes |
+|----------|--------|-------------|
+| docs/architecture.md | Update (at /finalize) | Optional one-line note that RequestBar matches the design reference; the existing RequestBar entry otherwise stands. |
+
+No package-level or concern-level doc changes — internal styling/markup only. The surgical doc touch is deferred to `/finalize`'s tech-writer pass.
+
+## Risk Assessment
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| Specificity miss — override loses to per-method `(0,3,0)` background (soft tint bleeds through) OR per-method colour wrongly dropped | Med | Med | Override declares background/border/radius **only**, never colour; `(0,3,0)` ancestor scope + source order; CT EXACT computed-style assertion on **both** method-text colour and bg/border as the loud safety net. |
+| Source-order fragility — if the Vite bundle ever emits component CSS before tokens.css, the `(0,3,0)` tie flips and the override silently loses | Low | Med | Ordering confirmed (tokens.css imported first; component CSS after); CT computed-style assert fails loudly on any cascade regression — no eyeballing. |
+| Scope leak — a new rule not anchored under `.request-bar` regresses other `.method` consumers (TabBar) | Low | Med | Every new rule ancestor-scoped under `.request-bar`; AC-12 grep gate + 005 `.tabbar`-scoping precedent. |
+| Dropping `aria-label` breaks existing `getByRole` name queries (Send/Save/Share/GET) | Low | Med | Ensure visible label text === prior accessible name before removal; keep `<kbd>` aria-hidden; run existing CT + unit suites as a regression gate. |
+| CT fidelity flakiness — Radix dropdown dismiss arm-race + missing data-mstyle/tokens context + jsdom can't resolve computed/pseudo styles | Med | Med | Real-browser Playwright CT only; reuse fixture scope (import tokens.css + set `data-mstyle='soft'` on host) + two-step dismiss gate; clear `playwright/.cache`+`.vite`+`dist` when a build error names a clean file. |
+| Q-1 reference values not yet runtime-confirmed | Low | Med | `design-auditor` runtime screenshot + computed-style diff against `design/reference.html` (filled state) at `/implement` before the fidelity ACs lock to the concrete numbers. |
+
+## Dependencies
+
+None — no packages to install, no services to configure, no environment variables. Playwright CT, Vitest, zustand, Radix, and the Icon atom are all already in the project.
+
+## Supporting Documents
+
+- Research: none generated — see Summary (no signals; upstream research handoff already settled the approach + values).
+- Data Model: N/A — no entities.
+- Contracts: N/A — no API changes.

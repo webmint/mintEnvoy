@@ -673,6 +673,7 @@ def _check5_match_token_binding(
     rule,  # type: str
     match_refs,  # type: Set[str]
     spacing_scale_available,  # type: bool
+    spacing_scope_refs=None,  # type: Optional[Set[str]]
 ):
     # type: (...) -> List[Finding]
     """Scan for MATCH elements whose bound visual values are literal, not tokens.
@@ -682,22 +683,47 @@ def _check5_match_token_binding(
     spacing_scale_available is False, spacing-literal violations are skipped
     (OQ-6 relaxation).
 
+    spacing_scope_refs (Step 3 — circular spacing fix)
+    ---------------------------------------------------
+    When provided (non-None), the spacing sub-check uses this set instead of
+    match_refs to determine which data-ref elements are in scope for spacing.
+    This set is derived from design/reference.html (LLM-unmistaggable) rather
+    than the LLM-authored manifest disposition field, breaking the circular
+    scoping bug where a DEVIATE-mistagged element silently escaped spacing checks.
+
+    Behaviour:
+    - spacing_scope_refs is None  → spacing uses match_refs (old behaviour;
+      preserved when no design/reference.html exists in the project).
+    - spacing_scope_refs is a set → spacing uses that set instead (may include
+      elements that are not MATCH in the manifest, e.g. mistagged DEVIATE).
+
+    Color sub-check in Check 5 is UNCHANGED — it remains MATCH-only (match_refs).
+    Color is already independently covered by the manifest-independent Check 1.
+
     This check uses a heuristic: it looks for 'data-ref="<id>"' or
     '[data-ref=<id>]' patterns in the selector to identify bound elements,
     then scans the block body for literal values.
     """
-    if not match_refs:
+    # Determine effective spacing refs:
+    # - None  → fall back to match_refs (no reference.html; old behaviour)
+    # - set() → use as-is (reference.html anchored scope; empty = no spacing check)
+    _spacing_refs = spacing_scope_refs if spacing_scope_refs is not None else match_refs  # type: Set[str]
+
+    # Combined set of all refs we need to scan any block for at all.
+    # A block is entered if it is in match_refs (color check) OR _spacing_refs (spacing).
+    _all_active_refs = match_refs | _spacing_refs
+
+    if not _all_active_refs:
         return []
 
     findings = []  # type: List[Finding]
     blocks = _extract_css_blocks(source)
     lines = source.splitlines()
 
-    # Color-like literal patterns (shared with Check 1 but applied per-block)
     for sel, body in blocks:
-        # Find which data-ref this selector targets (if any)
+        # Find which data-ref this selector targets (if any of the active refs)
         matched_ref = None  # type: Optional[str]
-        for ref in match_refs:
+        for ref in _all_active_refs:
             # Match [data-ref="ref"] or [data-ref='ref'] or [data-ref=ref]
             pat = r'\[data-ref\s*=\s*["\']?' + re.escape(ref) + r'["\']?\]'
             if re.search(pat, sel):
@@ -715,7 +741,7 @@ def _check5_match_token_binding(
                 line_num = idx
                 break
 
-        # Scan the block body for literal color values
+        # Scan the block body for literal values
         for body_line_offset, body_line in enumerate(body.splitlines()):
             body_line_stripped = _strip_comments(body_line).strip()
             # Skip token definitions and var() references
@@ -731,53 +757,61 @@ def _check5_match_token_binding(
             # body.splitlines()[1] is line_num+1, etc.
             body_line_num = line_num + body_line_offset
 
-            # Check hex color in the body
-            for m in _HEX_RE.finditer(body_line_stripped):
-                hex_val = m.group(1)
-                if len(hex_val) not in (3, 4, 6, 8):
-                    continue
-                findings.append(Finding(
-                    rule=rule,
-                    path=rel_path,
-                    line=body_line_num,
-                    kind="VIOLATION",
-                    summary=(
-                        "MATCH element [data-ref={ref}] uses hardcoded color "
-                        "{val!r} — must bind to a token".format(
-                            ref=matched_ref, val=m.group(0)
-                        )
-                    ),
-                    fix_hint=(
-                        "Replace {val!r} with var(--color-token) in the "
-                        "[data-ref={ref}] rule".format(
-                            val=m.group(0), ref=matched_ref
-                        )
-                    ),
-                ))
+            # Color sub-check: MATCH elements only (match_refs).
+            # Color is independently covered by Check 1 (manifest-independent),
+            # so keeping this MATCH-only does not create a coverage gap.
+            if matched_ref in match_refs:
+                # Check hex color in the body
+                for m in _HEX_RE.finditer(body_line_stripped):
+                    hex_val = m.group(1)
+                    if len(hex_val) not in (3, 4, 6, 8):
+                        continue
+                    findings.append(Finding(
+                        rule=rule,
+                        path=rel_path,
+                        line=body_line_num,
+                        kind="VIOLATION",
+                        summary=(
+                            "MATCH element [data-ref={ref}] uses hardcoded color "
+                            "{val!r} — must bind to a token".format(
+                                ref=matched_ref, val=m.group(0)
+                            )
+                        ),
+                        fix_hint=(
+                            "Replace {val!r} with var(--color-token) in the "
+                            "[data-ref={ref}] rule".format(
+                                val=m.group(0), ref=matched_ref
+                            )
+                        ),
+                    ))
 
-            # Check functional color in the body
-            for m in _FUNC_COLOR_RE.finditer(body_line_stripped):
-                findings.append(Finding(
-                    rule=rule,
-                    path=rel_path,
-                    line=body_line_num,
-                    kind="VIOLATION",
-                    summary=(
-                        "MATCH element [data-ref={ref}] uses hardcoded "
-                        "{fn}() color — must bind to a token".format(
-                            ref=matched_ref, fn=m.group(1)
-                        )
-                    ),
-                    fix_hint=(
-                        "Replace {fn}() with var(--color-token) in the "
-                        "[data-ref={ref}] rule".format(
-                            fn=m.group(1), ref=matched_ref
-                        )
-                    ),
-                ))
+                # Check functional color in the body
+                for m in _FUNC_COLOR_RE.finditer(body_line_stripped):
+                    findings.append(Finding(
+                        rule=rule,
+                        path=rel_path,
+                        line=body_line_num,
+                        kind="VIOLATION",
+                        summary=(
+                            "MATCH element [data-ref={ref}] uses hardcoded "
+                            "{fn}() color — must bind to a token".format(
+                                ref=matched_ref, fn=m.group(1)
+                            )
+                        ),
+                        fix_hint=(
+                            "Replace {fn}() with var(--color-token) in the "
+                            "[data-ref={ref}] rule".format(
+                                fn=m.group(1), ref=matched_ref
+                            )
+                        ),
+                    ))
 
-            # Check spacing literals (only when spacing_scale_available)
-            if spacing_scale_available:
+            # Spacing sub-check: reference-anchored scope (_spacing_refs).
+            # Uses spacing_scope_refs when provided (reference.html anchored),
+            # otherwise falls back to match_refs.  This is the circular fix:
+            # a DEVIATE-mistagged element that is in reference.html IS in
+            # _spacing_refs even though it is not in match_refs.
+            if spacing_scale_available and matched_ref in _spacing_refs:
                 # Match px/rem/em values in property positions that are
                 # spacing-related (margin/padding/gap)
                 spacing_prop_match = re.match(
@@ -796,10 +830,9 @@ def _check5_match_token_binding(
                             line=body_line_num,
                             kind="VIOLATION",
                             summary=(
-                                "MATCH element [data-ref={ref}] uses hardcoded "
-                                "spacing value — must bind to a spacing token".format(
-                                    ref=matched_ref
-                                )
+                                "design-referenced element [data-ref={ref}] uses "
+                                "hardcoded spacing value — must bind to a "
+                                "spacing token".format(ref=matched_ref)
                             ),
                             fix_hint=(
                                 "Replace the spacing literal with "
@@ -822,6 +855,7 @@ def scan_for_design_token_violations(
     match_refs=None,           # type: Optional[Set[str]]
     spacing_scale_available=False,  # type: bool
     file_paths=None,           # type: Optional[List[Path]]
+    spacing_scope_refs=None,   # type: Optional[Set[str]]
 ):
     # type: (...) -> List[Finding]
     """Walk root (or the given file_paths) for style sources and scan for violations.
@@ -839,13 +873,22 @@ def scan_for_design_token_violations(
         check).
     match_refs:
         Set of data-ref anchor strings for MATCH elements from the
-        disposition manifest.  When empty/None, Check 5 is skipped.
+        disposition manifest.  When empty/None, Check 5 color sub-check
+        and the fallback spacing sub-check are skipped.
     spacing_scale_available:
         True when a spacing scale was extracted from design/styles.css
         (OQ-6: when False, spacing token-binding sub-check is relaxed).
     file_paths:
         If provided, scan only these files instead of walking root.
         Used for targeted scanning from --files argument.
+    spacing_scope_refs:
+        Reference-anchored spacing scope (Step 3 — circular spacing fix).
+        When non-None, Check 5's spacing sub-check uses this set instead of
+        match_refs to determine in-scope elements.  Derived from
+        design/reference.html (LLM-unmistaggable) so a DEVIATE-mistagged
+        element present in the reference is NOT silently excluded from
+        the spacing check.  When None (no design/reference.html), the old
+        match_refs-based spacing scope is used unchanged.
 
     Returns
     -------
@@ -909,7 +952,8 @@ def scan_for_design_token_violations(
             findings.extend(_check4_interactive_states(source, rel_str, rule))
             findings.extend(
                 _check5_match_token_binding(
-                    source, rel_str, rule, _match_refs, spacing_scale_available
+                    source, rel_str, rule, _match_refs, spacing_scale_available,
+                    spacing_scope_refs,
                 )
             )
 

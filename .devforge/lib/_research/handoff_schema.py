@@ -671,6 +671,13 @@ class PlanSeeds:
     alternatives_considered: List[Alternative] = field(default_factory=list)
     proposed_call_shape: Optional[str] = None
 
+    # Provenance marker: True only when an explicit correctness-vetting step has
+    # verified this recommendation bundle beyond token/enum shape-checks.
+    # Default False because the current pipeline validates shape only (enum
+    # membership and token-overlap); no step currently vets correctness.
+    # A future correctness-vetting step would set this True.
+    correctness_vetted: bool = False
+
     # Internal flag set by parser when proposed_call_shape fails first-gate regex.
     # Exposed for tests to assert fail-soft behavior.
     _proposed_call_shape_parse_failed: bool = field(default=False, init=False, repr=False, compare=False)
@@ -682,12 +689,20 @@ class PlanSeeds:
         _require_nonempty(self.layer_justification, "PlanSeeds.layer_justification")
         if not isinstance(self.complexity, Complexity):
             raise ValueError(
-                f"PlanSeeds.complexity must be a Complexity, got {type(self.complexity).__name__}"
+                "PlanSeeds.complexity must be a Complexity, got {0}".format(
+                    type(self.complexity).__name__
+                )
             )
         if not isinstance(self.cited_canonical_patterns, list):
             raise ValueError("PlanSeeds.cited_canonical_patterns must be a list")
         if not isinstance(self.alternatives_considered, list):
             raise ValueError("PlanSeeds.alternatives_considered must be a list")
+        if not isinstance(self.correctness_vetted, bool):
+            raise ValueError(
+                "PlanSeeds.correctness_vetted must be a bool, got {0}".format(
+                    type(self.correctness_vetted).__name__
+                )
+            )
 
         # Validate and parse proposed_call_shape when non-None.
         if self.proposed_call_shape is not None:

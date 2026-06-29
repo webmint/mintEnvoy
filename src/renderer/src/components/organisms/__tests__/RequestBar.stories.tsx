@@ -13,7 +13,7 @@ import { useState, useEffect, useRef } from 'react'
 import { tabsStore } from '@renderer/lib/tabsStore'
 import { makeTab } from '@renderer/__tests__/fixtures/requestSpec'
 import { RequestBar, type SendIntent } from '@renderer/components/organisms/RequestBar'
-import type { HttpMethod } from '@renderer/lib/httpMethods'
+import { METHODS, type HttpMethod } from '@renderer/lib/httpMethods'
 
 // ---------------------------------------------------------------------------
 // Stable constants — shared with RequestBar.ct.tsx for cross-file assertions
@@ -28,6 +28,12 @@ const CT_TAB_B_ID = 'ct-rb-tab-b'
 export const CT_TAB_A_URL = 'https://tab-a.ct.example.com/api'
 /** URL seeded into Tab B; asserted in the CT per-tab isolation test. */
 export const CT_TAB_B_URL = 'https://tab-b.ct.example.com/data'
+
+/**
+ * URL seeded into the filled fixture; asserted in CT fidelity tests that
+ * require a non-empty URL (enables Send, mounts the ⌘↵ keycap hint).
+ */
+export const CT_FILLED_URL = 'https://example.com/api/v1'
 
 // ---------------------------------------------------------------------------
 // Internal factory
@@ -159,6 +165,87 @@ export function RequestBarTwoTabFixture(): React.JSX.Element {
       <button type="button" data-testid="ct-rb-select-tab-b" onClick={handleSelectTabB}>
         Switch to Tab B
       </button>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// RequestBarFilledFixture
+// ---------------------------------------------------------------------------
+
+/**
+ * Fixture: seeds the zustand `tabsStore` (via `useEffect`) with a single GET
+ * tab whose URL is `CT_FILLED_URL`, then renders `RequestBar`.
+ *
+ * Used in CT fidelity tests that require a non-empty URL so that:
+ *   - `canSend` is true → the Send button is enabled with its inset shadow
+ *   - the `request-bar__kbd` keycap hint is mounted (aria-hidden ⌘↵ badge)
+ *
+ * The store update fires in `useEffect` (after first render).  Tests must wait
+ * for the URL input to show `CT_FILLED_URL` before asserting enabled-state
+ * styles or taking screenshots:
+ *   ```ts
+ *   await expect(page.getByRole('textbox', { name: 'Request URL' })).toHaveValue(CT_FILLED_URL)
+ *   ```
+ */
+export function RequestBarFilledFixture(): React.JSX.Element {
+  useEffect(() => {
+    tabsStore.setState({
+      tabs: [makeTab('ct-filled', { method: 'GET', url: CT_FILLED_URL })],
+      activeTabId: 'ct-filled'
+    })
+  }, [])
+
+  return <RequestBar />
+}
+
+// ---------------------------------------------------------------------------
+// RequestBarMethodSwitchFixture
+// ---------------------------------------------------------------------------
+
+/**
+ * Fixture: seeds the zustand `tabsStore` with a single GET tab, then renders
+ * `RequestBar` alongside one switch button per HTTP method.
+ *
+ * Each button calls `tabsStore.getState().updateActiveSpec({ method })` from the
+ * React context, avoiding the Radix method-dropdown click-outside arm-race
+ * (memory: ct-radix-dismiss-arm-race).
+ *
+ * METHODS is imported from httpMethods.ts (the single source of truth), so
+ * adding a new method there automatically adds its button here — the CT loop
+ * will catch any missing chip counter-rule on the first run after the METHODS
+ * extension.
+ *
+ * data-testids:
+ *   ct-rb-set-method-GET     — switches the active tab's method to GET
+ *   ct-rb-set-method-POST    — switches the active tab's method to POST
+ *   ct-rb-set-method-PUT     — switches the active tab's method to PUT
+ *   ct-rb-set-method-PATCH   — switches the active tab's method to PATCH
+ *   ct-rb-set-method-DELETE  — switches the active tab's method to DELETE
+ *   ct-rb-set-method-OPTIONS — switches the active tab's method to OPTIONS
+ *   ct-rb-set-method-HEAD    — switches the active tab's method to HEAD
+ */
+export function RequestBarMethodSwitchFixture(): React.JSX.Element {
+  useEffect(() => {
+    tabsStore.setState({
+      tabs: [makeTab('ct-method-switch', { method: 'GET', url: '' })],
+      activeTabId: 'ct-method-switch'
+    })
+  }, [])
+
+  return (
+    <div>
+      <RequestBar />
+      {METHODS.map((method) => (
+        <button
+          key={method}
+          type="button"
+          data-testid={`ct-rb-set-method-${method}`}
+          onClick={() => tabsStore.getState().updateActiveSpec({ method })}
+        >
+          {method}
+        </button>
+      ))}
     </div>
   )
 }
