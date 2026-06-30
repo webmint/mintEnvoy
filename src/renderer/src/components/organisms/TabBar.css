@@ -19,11 +19,12 @@
  * The `.tabbar__new` (+) button lives in the `actions` slot which is rendered
  * outside `role="tablist"` by the Tabs molecule (AC-8 / §AC-24).
  *
- * ## Label truncation
+ * ## Tab width cap
  *
- * `.tabs__tab-label` (a Tabs molecule class) is targeted from within `.tabbar`
- * to apply a `max-width` cap, ensuring long request URLs are clipped with an
- * ellipsis rather than expanding the tab indefinitely.
+ * The tab cell width cap (max-width: 220px) lives on `.tabbar .tabs__tab-wrapper`
+ * in `Tabs.css`. Label ellipsis truncation is provided by the base
+ * `.tabs__tab-label` rule in `Tabs.css`. This file carries no label-scoped
+ * truncation override.
  *
  * ## Dirty marker
  *
@@ -66,31 +67,6 @@
      Declaring it here was a redundant duplicate (same specificity, same value). */
   padding-right: 8px;
 }
-
-/* ---------------------------------------------------------------------------
- * Tab label truncation (.tabbar .tabs__tab-label)
- *
- * Scoped inside `.tabbar` so this override only applies to the organism's
- * tabs — it does not affect other Tabs consumers (e.g. the request-pane
- * section tabs).
- * ------------------------------------------------------------------------- */
-
-/**
- * Constrain label width to prevent individual tabs from consuming excessive
- * horizontal space when a URL is long. CSS ellipsis truncation takes effect
- * when the label overflows the capped width.
- *
- * The `max-width` is sized generously (200 px) to accommodate typical
- * request names and method+URL strings without premature clipping, while
- * still capping truly long URLs.
- */
-.tabbar .tabs__tab-label {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 
 /* ---------------------------------------------------------------------------
  * New-tab button (.tabbar__new)

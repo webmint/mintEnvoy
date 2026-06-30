@@ -1,16 +1,14 @@
 # Session State — /implement
 
-**Feature**: 010-request-bar-fidelity
-**Progress**: 3/3 tasks complete
-**Updated**: 2026-06-29T08:48:06Z
+**Feature**: 011-tab-width-cap
+**Progress**: 2/2 tasks complete
+**Updated**: 2026-06-30T16:00:01Z
 
 ## Recent Task Modifications
 
-- [001] restyle-requestbar-markup-labels-keycap (Complete)
-- [002] rewrite-requestbar-css-fidelity (Complete)
-- [003] add-ct-fidelity-suite (Complete)
+- [002] ct-cap-assertion-and-no-growth-test (?)
+- [001] relocate-width-cap-to-tab-cell (?)
 
 ## Recent Decisions
 
-- {'decision': 'Approved Task 003; AC-20 CT regression surfaced', 'rationale': '001/002 RequestBar.css/.tsx reflow ~30px on long URL; Task 003 cannot fix; needs /fix before /verify'}
-- {'decision': 'Repair leg closed 5 qa assertion gaps', 'rationale': 'padding/gap, Share disabled, POST color fall-through, exact box-shadow, tighter height bands'}
+- {'task': '002', 'decision': 'box-sizing reproduced via fixture-scoped <style> (global base.css harness import reverted — broke 2 screenshot baselines); AC-8 made diagnostic via tablist-width bound 662px'}

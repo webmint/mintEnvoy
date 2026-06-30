@@ -1,6 +1,6 @@
 {
-  "topic": "RequestBar (009) visual drift from design/reference.html filled state \u2014 pure styling pass, zero behaviour change",
-  "date": "2026-06-28",
+  "topic": "TabBar tab grows with title instead of fixed max-width; long titles must truncate with ellipsis (nowrap+text-overflow), tab width stays stable, + button stays put \u2014 pure CSS/layout constraint, zero behaviour change, pixel-fidelity to design reference",
+  "date": "2026-06-29",
   "mode": "enhancement",
   "symptom_snapshot": {
     "symptom": null,
@@ -10,114 +10,79 @@
     "scope": null,
     "unchanged_behavior": null
   },
-  "summary": "RequestBar's visual drift from design/reference.html's filled state is token-APPLICATION local to RequestBar.css, NOT a token gap or a logic defect. The component was built to a uniform 24px / --radius-sm geometry with no focus ring, no primary-button shadow, a soft-chip method treatment and icon-only actions; the reference is 32px / --radius (7px) with an accent focus ring, a weight-600 inset-shadow primary Send, a bordered .method-select with bold plain-coloured method text, labelled ghost actions and a \u2318\u21b5 kbd keycap. Every value the reference needs already exists as a token in tokens.css \u2014 so the fix is a localised RequestBar.css rewrite plus small presentational markup edits (\u2318\u21b5 keycap, optional action labels), with the per-method colour kept on the existing .method/{METHOD} class path (never a data-mstyle write, AC-6). The suspected token-gap (the migration dropped the un-gated .method.GET..OPTIONS{color} defaults that styles.css has) is real but secondary: Shell writes data-mstyle='soft' by default so the in-app pill IS coloured; the gap only bites in no-data-mstyle isolation (CT/stories) and is an optional design-system follow-up.",
+  "summary": "The tab strip already has truncation machinery, but the width cap is bound to the wrong element. TabBar.css:88 caps the LABEL (.tabbar .tabs__tab-label) at max-width:200px, while the design's .tab cell \u2014 our .tabbar .tabs__tab-wrapper (Tabs.css:421) \u2014 carries no max-width and the design-fidelity-contract section 5 requires .tab max-width:220px. So each cell sizes to its content (method-chip + gap + label up to 200px + padding), grows with the title, varies with chip width, and exceeds the 220px target, pushing the + actions. The fix is pure CSS and .tabbar-scoped: add max-width:220px to the cell wrapper and remove the divergent label cap, reusing the base label ellipsis rule (Tabs.css:196) that already matches contract B1. deriveLabel returns a plain string, so no JS/markup/behaviour change is needed and existing tests stay green (the CT fidelity assertion that pins the old 200px label cap will need re-pointing to the 220px cell cap).",
   "findings": [
     {
-      "surface": "Root bar geometry \u2014 cramped",
-      "file_line": "src/renderer/src/components/organisms/RequestBar.css:52",
-      "relevance": "padding 5px 8px / gap 6px vs reference .reqbar padding 12px 16px / gap 8px (design/styles.css:773-774). Wrong literal values; no token missing \u2014 --space scale not used, but --radius/--fs tokens exist. Pure application.",
+      "surface": "Tab cell / design .tab equivalent (.tabbar .tabs__tab-wrapper)",
+      "file_line": "src/renderer/src/components/molecules/Tabs.css:421",
+      "relevance": "The padded cell that the design contract calls .tab; has gap:8px/padding:0 10px 0 12px/border-right but NO max-width. Per contract section 5 it should carry max-width:220px \u2014 this is the fix site for the cell-level cap.",
       "framing": "primary"
     },
     {
-      "surface": "URL input radius + focus ring",
-      "file_line": "src/renderer/src/components/organisms/RequestBar.css:131",
-      "relevance": "border-radius var(--radius-sm) (5px) + height 24px; focus (:158) sets border-color only. Reference .url-bar uses --radius (7px), height 32px, focus ring box-shadow 0 0 0 3px accent14% (design/styles.css:801-816). Both tokens exist; wrong binding + missing ring rule. Application.",
+      "surface": "Divergent label cap (.tabbar .tabs__tab-label)",
+      "file_line": "src/renderer/src/components/organisms/TabBar.css:88",
+      "relevance": "Caps the LABEL at max-width:200px instead of the cell at 220px; contract B1 specifies NO label max-width (only nowrap/overflow/ellipsis/flex). This mis-placed cap leaves the cell uncapped (varies with chip) and diverges in value (200 vs 220). Remove to align.",
       "framing": "primary"
     },
     {
-      "surface": "Send button treatment + missing \u2318\u21b5 kbd",
-      "file_line": "src/renderer/src/components/organisms/RequestBar.css:222",
-      "relevance": "Send uses base 24px height / --radius-sm / weight 500 / no shadow; reference .btn-primary is 32px / --radius / weight 600 / inset highlight shadow (design/styles.css:851-860) inside .send-split with a .kbd \u2318\u21b5 keycap (design/styles.css:245,861-868). Component never renders a \u2318\u21b5 element. Geometry = application; kbd = presentational markup add (RequestBar.tsx).",
+      "surface": "Base label ellipsis rule (.tabs__tab-label) \u2014 canonical pattern",
+      "file_line": "src/renderer/src/components/molecules/Tabs.css:196",
+      "relevance": "canonical pattern \u2014 reusable: flex:1/overflow:hidden/text-overflow:ellipsis/white-space:nowrap matches contract B1 exactly. Already present; fires once the cell is capped. No new truncation code needed.",
       "framing": "primary"
     },
     {
-      "surface": "Action buttons base undersized / icon-only",
-      "file_line": "src/renderer/src/components/organisms/RequestBar.css:206",
-      "relevance": "Shared base height 24px / padding 0 8px; Save+Share render icon-only. Reference action buttons are .btn-ghost bordered, 32px, padding 0 14px, laid-out (design/styles.css:838-849). Geometry = application; any visible label = presentational markup add.",
+      "surface": "Tab button truncation enablers (.tabbar .tabs__tab)",
+      "file_line": "src/renderer/src/components/molecules/Tabs.css:493",
+      "relevance": "flex:1 1 auto + min-width:0 on the button lets the label ellipsis fire once the wrapper width is capped. Already correct; supports the cell-cap fix with no further change.",
       "framing": "primary"
     },
     {
-      "surface": "Method pill renders soft data-mstyle chip not method-select",
-      "file_line": "src/renderer/src/components/organisms/RequestBar.tsx:256",
-      "relevance": "Trigger uses cx('request-bar__method','method',method) \u2192 inherits [data-mstyle='soft'] .method chip (faint 16% tint, 9.5px, 42px min). Reference request-bar method is .method-select: bordered 88px box (border/bg-elev/--radius) with plain bold 11.5px coloured method text via un-gated .method.GET{color} (design/styles.css:490-516,785-799). Treatment mismatch \u2014 fix is a local RequestBar.css override of the soft chip, NO data-mstyle write (AC-6 safe). Application.",
-      "framing": "primary"
-    },
-    {
-      "surface": "tokens.css un-gated method-colour default GAP",
-      "file_line": "src/renderer/styles/tokens.css:109",
-      "relevance": "tokens.css keeps only bare .method{font-family} + un-gated .method.HEAD{color}; the un-gated .method.GET..OPTIONS{color:var(--m-*)} rules present in design/styles.css:500-516 were dropped in migration (005 restored only font-family+HEAD). Per-method colour therefore absent in any no-data-mstyle context. Design-system-wide if restored. RUNNER-UP token-gap evidence.",
+      "surface": "Content-width tablist (.tabbar .tabs__list)",
+      "file_line": "src/renderer/src/components/molecules/Tabs.css:504",
+      "relevance": "flex:0 0 auto makes the tablist content-width; combined with wrapper flex-shrink:0 this is the runner-up framing's basis (flex-layer fix). Evidence shows the flex layer is intentional design (Fix C) and not the defect \u2014 the missing cell cap is.",
       "framing": "runner-up"
     },
     {
-      "surface": "Canonical per-method colour convention (reusable)",
-      "file_line": "src/renderer/src/components/molecules/Tabs.tsx:117",
-      "relevance": "canonical pattern \u2014 reusable: methodChipClassName = cx('method', method) is the 005 .method/{METHOD} convention, consumed by TabBar and already by RequestBar.tsx:256. RequestBar's class path is already canonical-correct; reuse it, do not invent a new method-colour mechanism.",
+      "surface": "deriveLabel (plain-string label source)",
+      "file_line": "src/renderer/src/components/organisms/TabBar.tsx:53",
+      "relevance": "Returns a plain string (name | method+url | Untitled); CSS owns truncation, no JS length cap. Confirms the fix is pure CSS with zero behaviour/markup change.",
       "framing": "primary"
     },
     {
-      "surface": "Canonical input focus-ring \u2014 NONE in components",
-      "file_line": "(none)",
-      "relevance": "no canonical pattern found project-wide for an input focus-ring box-shadow; design/styles.css:814 .url-bar:focus-within ring (box-shadow 0 0 0 3px accent14%) was never migrated to any renderer component CSS (only tokens.css:241 dot-decoration uses 0 0 0). New rule in RequestBar.css is justified \u2014 but it is a localised rule, not a token addition (--accent already exists).",
-      "framing": "primary"
-    },
-    {
-      "surface": "Shell sole-writer of data-mstyle (unchanged-behaviour anchor)",
-      "file_line": "src/renderer/src/components/organisms/shell/Shell.tsx:237",
-      "relevance": "Effect 1 unconditionally writes documentElement.dataset.mstyle = mstyle (default 'soft', settingsStore.ts:65). Confirms AC-6: RequestBar must NOT write data-mstyle; the method-pill fix must stay class-based, never attribute-writing.",
+      "surface": "Canonical max-width+ellipsis idiom (Dropdown.css)",
+      "file_line": "src/renderer/src/components/molecules/Dropdown.css:166",
+      "relevance": "canonical pattern \u2014 reusable: project's existing max-width (Dropdown.css:39, 280px) + text-overflow:ellipsis truncation idiom; same pattern the cell cap reuses.",
       "framing": "primary"
     }
   ],
   "hypotheses": [
     {
       "label": "A",
-      "cause": "PRIMARY: drift is token-APPLICATION local to RequestBar.css \u2014 classes set undersized geometry (uniform 24px vs reference 32px), bind --radius-sm where reference uses --radius (7px), omit the focus-ring box-shadow and the primary-button inset shadow/weight-600, inherit the soft data-mstyle chip instead of presenting the bordered .method-select treatment, and render icon-only actions; plus a missing \u2318\u21b5 kbd element. Every needed token already exists in tokens.css.",
-      "falsifier": "Find a reference target value (radius/spacing/colour/shadow) that maps to NO existing custom-property in tokens.css \u2014 that would push the fix into a token addition (runner-up), not pure application.",
+      "cause": "Width cap is on the wrong element: .tabbar .tabs__tab-label caps the LABEL at 200px (TabBar.css:88), but the design's .tab cell (.tabbar .tabs__tab-wrapper, Tabs.css:421) has no max-width. So the cell sizes to content (chip+gap+label<=200+padding), grows with the title, varies with chip width, and exceeds the 220px contract target.",
+      "falsifier": "If halting cell growth required a JS or flex change rather than a cell-level max-width, hypothesis A is wrong.",
       "runtime_probe_needed": false
     },
     {
       "label": "B",
-      "cause": "RUNNER-UP: drift is a tokens.css/global-CSS GAP \u2014 the migration dropped the un-gated .method.GET..OPTIONS{color:var(--m-*)} defaults (design/styles.css:500-516; only .method.HEAD survived at tokens.css:109), so per-method colour is absent wherever Shell has not written data-mstyle; restoring it is design-system-wide and re-incurs 005 load-order fragility.",
-      "falsifier": "If the running app (Shell mounted, default data-mstyle='soft') already colours the pill, the colour is NOT absent at runtime \u2192 gap is not the in-app cause. CONFIRMED disproved for in-app: Shell Effect 1 writes dataset.mstyle='soft' unconditionally (settingsStore.ts:65 default), soft variant tints the pill. Gap only bites in no-data-mstyle isolation (CT/stories).",
+      "cause": "Growth is a flex-distribution artifact: the content-width tablist (.tabbar .tabs__list flex:0 0 auto, Tabs.css:504) plus flex-shrink:0 wrappers, fixable at the flex layer (flex-basis/allow-shrink) rather than a max-width cap.",
+      "falsifier": "Adding max-width:220px to .tabbar .tabs__tab-wrapper alone halts growth and fires the ellipsis, making a flex-layer change unnecessary and non-contract-faithful.",
       "runtime_probe_needed": false
     },
     {
       "label": "C",
-      "cause": "METHOD-PILL TREATMENT: the pill shows the soft chip (faint 9.5px tint) where the reference request bar uses a bordered .method-select box with plain bold 11.5px coloured method text; fidelity needs a LOCAL RequestBar.css override of the soft chip \u2014 never a data-mstyle write (AC-6).",
-      "falsifier": "If the reference's request-bar method selector is actually a soft chip (not the .method-select box), this treatment mismatch is moot. design/styles.css:785-799 .method-select shows it is a bordered box \u2192 mismatch is real.",
+      "cause": "Only the value is wrong: bump the existing label cap from 200px to 220px on .tabbar .tabs__tab-label, leaving it on the label.",
+      "falsifier": "Contract section 5 places max-width on the .tab cell, not the label; capping the label still leaves cell width = chip+label+padding, which varies with chip and exceeds 220px, failing the cell-level computed-style fidelity AC.",
       "runtime_probe_needed": false
     }
   ],
-  "root_cause_hypothesis": "Drift is token-APPLICATION local to RequestBar.css: undersized 24px geometry vs reference 32px, --radius-sm vs --radius binding, omitted focus-ring + primary-button shadow, soft-chip method treatment instead of the bordered .method-select, icon-only actions, and a missing \u2318\u21b5 kbd. Every needed token already exists in tokens.css, so the core fix is localised to RequestBar.css plus small presentational markup edits in RequestBar.tsx (\u2318\u21b5 keycap, optional action labels). The tokens.css un-gated .method default-colour gap is real but secondary \u2014 it only affects no-data-mstyle contexts (CT/stories) and is an OPTIONAL design-system patch, not required for the in-app drift.",
+  "root_cause_hypothesis": "The tab width cap is bound to the wrong element. The label is capped at 200px (TabBar.css:88) while the design's .tab cell (.tabbar .tabs__tab-wrapper, Tabs.css:421) carries no max-width, so the cell grows with content and diverges from the contract's .tab max-width:220px. Relocating the cap to the cell (and removing the divergent label cap) fixes growth and aligns to fidelity; the base label ellipsis rule (Tabs.css:196) already truncates.",
   "confidence": "Confirmed",
   "structured_root_cause": null,
   "verify_step": null,
   "approaches": [
     {
-      "name": "Localised RequestBar.css fidelity pass",
-      "description": "Rewrite RequestBar.css geometry + treatment to the reference values using existing tokens (32px heights, --radius, accent focus ring, weight-600 + inset-shadow Send, bordered .method-select override of the soft chip, labelled ghost actions), and add the \u2318\u21b5 kbd keycap + any visible action label as presentational markup/className edits in RequestBar.tsx. No tokens.css change, no data-mstyle write.",
-      "addresses_hypotheses": [
-        "A",
-        "C"
-      ],
-      "does_not_cover": [
-        "B"
-      ],
-      "pros": [
-        "Localised \u2014 no design-system ripple, no 005 load-order fragility re-incurred",
-        "Zero AC-6 risk: method colour stays on the .method/{METHOD} class path, RequestBar never writes data-mstyle",
-        "All needed tokens already exist; no generated-file (tokens.css) hand-edit",
-        "Behaviour untouched (RequestSpec r/w, onSend, \u2318Enter/\u2318S, canSend, dirty/markClean, per-tab isolation) \u2014 unit+CT stay green"
-      ],
-      "cons": [
-        "Per-method pill colour stays absent in no-data-mstyle isolation (CT/stories) \u2014 hypothesis B unaddressed",
-        "CT fidelity tests must reproduce the data-mstyle=soft context (known 005 CT-fixture-scoping constraint)",
-        "Adds presentational JSX (kbd/labels) \u2014 slightly more than pure className edits"
-      ],
-      "complexity": "Med"
-    },
-    {
-      "name": "Localised pass + restore un-gated tokens.css .method defaults",
-      "description": "Approach 1 PLUS restore the un-gated .method.GET..OPTIONS{color:var(--m-*)} default rules in tokens.css (and tokens.json source) so the pill colours even when data-mstyle is absent.",
+      "name": "Relocate the cap to the cell (contract-faithful)",
+      "description": "Add max-width:220px to .tabbar .tabs__tab-wrapper (Tabs.css:421 \u2014 the design's .tab cell) and remove the divergent max-width:200px from .tabbar .tabs__tab-label (TabBar.css:88), keeping the base .tabs__tab-label ellipsis rule. Pure CSS, .tabbar-scoped.",
       "addresses_hypotheses": [
         "A",
         "B",
@@ -125,62 +90,79 @@
       ],
       "does_not_cover": [],
       "pros": [
-        "Per-method colour present in ALL contexts incl. CT/stories isolation",
-        "Closes the styles.css\u2192tokens.css migration gap design-system-wide",
-        "Simpler CT fidelity \u2014 no data-mstyle fixture scaffolding needed"
+        "Contract-faithful: caps the .tab cell at exactly 220px (design section 5)",
+        "Reuses the existing base ellipsis rule (Tabs.css:196) \u2014 no new truncation code",
+        "Tab width is stable, independent of method-chip width",
+        "Scoped to .tabbar \u2014 bare .tabs consumers (section tabs, PrimitivesDemo) untouched",
+        "Pure CSS, zero behaviour/markup change; unit tests stay green",
+        "Resolves the growth under every framing \u2014 no flex-layer change needed"
       ],
       "cons": [
-        "Design-system ripple: changes every .method consumer (TabBar chips) \u2014 broader regression surface",
-        "Re-incurs the known 005 CSS load-order fragility",
-        "tokens.css is generated-from-tokens.json (header: do not hand-edit) \u2014 must add the default at the source layer, more moving parts",
-        "Larger blast radius for a feature scoped to RequestBar fidelity"
+        "Touches two files (Tabs.css add + TabBar.css removal)",
+        "An existing CT fidelity assertion pinning the 200px label cap must be re-pointed to the 220px wrapper cap"
       ],
-      "complexity": "High"
+      "complexity": "Low"
+    },
+    {
+      "name": "Bump the label cap value (200 to 220 on the label)",
+      "description": "Change .tabbar .tabs__tab-label max-width from 200px to 220px in place (TabBar.css:88); leave the cap on the label.",
+      "addresses_hypotheses": [
+        "C"
+      ],
+      "does_not_cover": [
+        "A",
+        "B"
+      ],
+      "pros": [
+        "Single-line change, smallest possible diff",
+        "No new rule added to the wrapper"
+      ],
+      "cons": [
+        "Diverges from contract section 5 \u2014 max-width belongs on the .tab cell, not the label",
+        "Cell width stays = chip+label+padding, varies with chip and can still exceed 220px",
+        "A cell-level computed-style fidelity AC on the wrapper would still fail"
+      ],
+      "complexity": "Low"
     }
   ],
   "recommended_approach": {
-    "name": "Localised RequestBar.css fidelity pass",
-    "rationale": "Recommended because the target values each map to a custom-property the project exposes today; the running app therefore avoids any shared-stylesheet edit \u2014 the work fits inside this one component's stylesheet plus a few presentational markup additions. Reuse the shared verb-class helper methodChipClassName (src/renderer/src/components/molecules/Tabs.tsx:117), which this component consumes at RequestBar.tsx:256, rather than building a new path \u2014 this REUSES the canonical pattern instead of reinventing it. The document-level marker attribute stays managed by its sole owner alone upstream; this approach leaves it to the owning organism and touches it from nowhere here, honouring the spec invariant. The wider question is split into an Open Uncertainty to keep scope small. Respects unchanged_behaviour: stylesheet and presentational markup additions, with RequestSpec read/write, onSend, the \u2318Enter/\u2318S handlers, canSend, dirty/markClean and per-tab isolation all untouched.",
+    "name": "Relocate the cap to the cell (contract-faithful)",
+    "rationale": "Reuses the canonical truncation rule already present at src/renderer/src/components/molecules/Tabs.css:196 (it matches design-fidelity-contract B1) instead of writing any new styling, and derives its authority from design-fidelity-contract section 5. The single cell-level cap resolves the tab-growth symptom under every enumerated framing, so no flex-layer change is needed. It satisfies unchanged_behavior: the change is .tabbar-scoped and CSS-only, so select/close/reorder, the dirty dot, the method chip, active styling, and the rendered text stay byte-identical; the sole visible difference is how an overlong title is clipped. Bare .tabs consumers are untouched. Runtime behaviour is deferred to the computed-style probe captured under Open Uncertainties before finalizing.",
     "hypotheses_addressed": [
       "A",
+      "B",
       "C"
     ],
-    "hypotheses_not_covered": [
-      "B"
-    ]
+    "hypotheses_not_covered": []
   },
   "constitution_constraints": [
     {
-      "rule": "Only Shell.tsx writes documentElement data-mstyle (AC-6 / \u00a74 Never)",
-      "impact": "Method-pill colour fix MUST stay class-based on .method/{METHOD}; RequestBar must never write document.documentElement.dataset.mstyle. Enforces the local-CSS-override approach over any attribute write."
+      "rule": "Search before building (Key Rules / Always #12)",
+      "impact": "Reuse the canonical base ellipsis rule at src/renderer/src/components/molecules/Tabs.css:196 (contract B1) instead of writing new truncation CSS; the fix only adds the missing cell max-width. Reuse beats reinvention."
     },
     {
-      "rule": "Never use inline styles \u2014 class-based styling via cx() (\u00a74 Never)",
-      "impact": "All geometry/treatment changes land in RequestBar.css + className edits; no inline style additions in RequestBar.tsx."
+      "rule": "Design Fidelity principle (design-fidelity-contract section 5)",
+      "impact": "Constrains the target: .tab (= .tabbar .tabs__tab-wrapper) max-width:220px, label nowrap/overflow/ellipsis, no label max-width. Computed-style AC asserts var(--token) as resolves-to-token; the 220px is the contract's resolved literal."
     },
     {
-      "rule": "Prefer design tokens over literal style values (\u00a74 Prefer)",
-      "impact": "Bind radius/colour/shadow to existing tokens (--radius, --accent, --border, --bg-elev, --fs-*); raw px is acceptable only for spacing where no --space token exists (reference 12px/16px/8px), matching the existing RequestBar.css pattern."
-    },
-    {
-      "rule": "Search before building",
-      "impact": "Reuse the canonical .method/{METHOD} per-method colour convention at src/renderer/src/components/molecules/Tabs.tsx:117 (already used by RequestBar.tsx:256); do not invent a new method-colour mechanism."
+      "rule": "Minimal changes (Key Rules / Always #3) + .tabbar scoping",
+      "impact": "Keep the change CSS-only and .tabbar-scoped so bare .tabs consumers are untouched and select/close/reorder/dirty/chip/active behaviour is byte-identical."
     }
   ],
   "complexity": {
-    "codebase_changes": "Med",
-    "codebase_notes": "One CSS file fully rewritten (RequestBar.css ~323 lines) + a handful of className/markup edits in RequestBar.tsx (\u2318\u21b5 kbd, optional labels). No token/store/logic files touched.",
+    "codebase_changes": "Low",
+    "codebase_notes": "~2 CSS edits across 2 files: add max-width:220px to Tabs.css:421 wrapper rule; remove max-width:200px from TabBar.css:88 label rule (keep ellipsis).",
     "risk": "Low",
-    "risk_notes": "Behaviour paths untouched (onSend, \u2318Enter/\u2318S, canSend, dirty/markClean, per-tab isolation, data-mstyle invariant). Main risk is CT fidelity tests needing the data-mstyle=soft context (005 fixture-scoping) and visual-snapshot churn.",
-    "verify_cost": "Med",
-    "verify_notes": "Runtime fidelity check via design-auditor (Chrome DevTools MCP) computed-style + screenshot diff vs design/reference.html filled state; plus existing unit+CT suites must stay green."
+    "risk_notes": "Scoped to .tabbar, CSS-only, no JS/markup change. Only regression surface: a CT fidelity assertion pinning the old 200px label cap.",
+    "verify_cost": "Low",
+    "verify_notes": "Computed-style read (CT / Chrome DevTools MCP): assert .tabbar .tabs__tab-wrapper max-width=220px, label ellipsis triple, no cell growth with a long title, + button anchored."
   },
   "open_uncertainties": [],
   "verdict": "Feasible",
-  "next_step_text": "## Next step\n\nCopy the block below into a new `/specify` session manually. No automation \u2014 user controls when (or if) `/specify` runs.\n\n~~~\n/specify \"Against design/reference.html's FILLED state, RequestBar drifts visually: bar too cramped (height/padding/internal spacing undersized); URL input border-radius + focus border wrong; method pill missing per-method colour; Send active (non-empty URL) not solid-primary + \u2318\u21b5 affordance; Save/Share are bare undersized icons not laid-out labelled actions. Empty-state Send greying is EXCLUDED (correct canSend guard). \u2014 RequestBar visually matches design/reference.html in BOTH states (empty/not-filled AND filled): correct bar height/padding/internal spacing, matching URL-input border-radius + focus border, per-method coloured pill via the 005 .method/.{METHOD} class convention (NOT a data-mstyle write), Send active = solid-primary + \u2318\u21b5 affordance, Save/Share laid-out + labelled. The ONE exclusion: Send greyed-disabled on an empty URL is correct canSend-guard behaviour, not a drift to fix. Fidelity rebuilt with semantic classes bound to tokens.css (values from design/tokens.json) \u2014 NOT by importing design-export markup/cruft (data-om-*, __OmT, tweaks-panel). Zero behaviour change; all unit + CT tests green.\"\n\nResearch reference: research/2026-06-28-requestbar-009-visual-drift.md\nKey facts:\n- Mode: Enhancement\n- Symptom: Against design/reference.html's FILLED state, RequestBar drifts visually: bar too cramped (height/padding/internal spacing undersized); URL input border-radius + focus border wrong; method pill missing per-method colour; Send active (non-empty URL) not solid-primary + \u2318\u21b5 affordance; Save/Share are bare undersized icons not laid-out labelled actions. Empty-state Send greying is EXCLUDED (correct canSend guard).\n- Desired: RequestBar visually matches design/reference.html in BOTH states (empty/not-filled AND filled): correct bar height/padding/internal spacing, matching URL-input border-radius + focus border, per-method coloured pill via the 005 .method/.{METHOD} class convention (NOT a data-mstyle write), Send active = solid-primary + \u2318\u21b5 affordance, Save/Share laid-out + labelled. The ONE exclusion: Send greyed-disabled on an empty URL is correct canSend-guard behaviour, not a drift to fix. Fidelity rebuilt with semantic classes bound to tokens.css (values from design/tokens.json) \u2014 NOT by importing design-export markup/cruft (data-om-*, __OmT, tweaks-panel). Zero behaviour change; all unit + CT tests green.\n- Recommended approach: Localised RequestBar.css fidelity pass\n- Hypothesis addressed: A, C\n- Hypotheses NOT covered: B\n- Open uncertainties: 0 (see research doc \u00a7Open Uncertainties)\n~~~\n",
+  "next_step_text": "## Next step\n\nCopy the block below into a new `/specify` session manually. No automation \u2014 user controls when (or if) `/specify` runs.\n\n~~~\n/specify \"TabBar tabs flex-grow with their title text: a long title stretches the tab across the strip and pushes the new-tab (+) button. Tabs should hold a fixed max-width and ellipsis-truncate; tab width must stay stable and the + button stay anchored. \u2014 Cap the tab cell so it never grows with title length and long titles truncate with an ellipsis. Concretely: add max-width:220px to .tabbar .tabs__tab-wrapper (the design's .tab equivalent), matching design-fidelity-contract section 5. The .tabs__tab-label ellipsis machinery (white-space:nowrap + overflow:hidden + text-overflow:ellipsis + flex:1) is already present and fires once the cap exists; the button already has min-width:0 + flex:1 1 auto. Tab width stays stable; +/spacer/overflow-chevron actions stay anchored. Computed-style fidelity AC targets per contract: wrapper max-width resolves 220px, padding 0 10px 0 12px, gap 8px, tab bar height 36px; var(--token) asserted as resolves-to-token (not literal hex).\"\n\nResearch reference: research/YYYY-MM-DD-tabbar-tab-grows-with.md\nKey facts:\n- Mode: Enhancement\n- Symptom: TabBar tabs flex-grow with their title text: a long title stretches the tab across the strip and pushes the new-tab (+) button. Tabs should hold a fixed max-width and ellipsis-truncate; tab width must stay stable and the + button stay anchored.\n- Desired: Cap the tab cell so it never grows with title length and long titles truncate with an ellipsis. Concretely: add max-width:220px to .tabbar .tabs__tab-wrapper (the design's .tab equivalent), matching design-fidelity-contract section 5. The .tabs__tab-label ellipsis machinery (white-space:nowrap + overflow:hidden + text-overflow:ellipsis + flex:1) is already present and fires once the cap exists; the button already has min-width:0 + flex:1 1 auto. Tab width stays stable; +/spacer/overflow-chevron actions stay anchored. Computed-style fidelity AC targets per contract: wrapper max-width resolves 220px, padding 0 10px 0 12px, gap 8px, tab bar height 36px; var(--token) asserted as resolves-to-token (not literal hex).\n- Recommended approach: Relocate the cap to the cell (contract-faithful)\n- Hypothesis addressed: A, B, C\n- Hypotheses NOT covered: (none)\n- Open uncertainties: 2 (see research doc \u00a7Open Uncertainties)\n~~~\n",
   "runner_up_framing": {
-    "frame": "Drift is a tokens.css / global-CSS token GAP, not RequestBar.css application: the styles.css\u2192tokens.css migration dropped the un-gated default .method.GET..OPTIONS {color: var(--m-*)} rules (design/styles.css:500-516); only .method.HEAD survived (tokens.css:109). So per-method colour is absent in any context where Shell has NOT written data-mstyle, and restoring it ripples design-system-wide (TabBar + every .method consumer) and re-incurs the 005 CSS load-order fragility.",
-    "falsifier": "If the running app (Shell mounted, default data-mstyle='soft') renders a genuinely COLOURLESS method pill, the cause is the missing tokens.css default, not local RequestBar.css application. Counter-evidence found: Shell Effect 1 unconditionally writes dataset.mstyle='soft' (default in settingsStore.ts:65), so [data-mstyle='soft'] .method.GET tints the pill at runtime \u2014 per-method colour IS present in-app, just as a faint 9.5px soft chip vs the reference's bold 11.5px method-select. The in-app drift is geometry/treatment APPLICATION, not absent colour \u2192 runner-up falsified for the in-app case; the token gap only bites in no-data-mstyle isolation (CT/stories).",
+    "frame": "Growth is a flex-distribution artifact, not a missing cell cap: the tablist is content-width (.tabbar .tabs__list flex:0 0 auto) and wrappers inherit flex-shrink:0, so the correct fix is at the flex layer (give tabs a flex-basis / allow shrink) rather than adding a hard max-width:220px to the wrapper.",
+    "falsifier": "Design-fidelity-contract section 5 puts max-width on .tab (the cell), and once max-width:220px is added to .tabbar .tabs__tab-wrapper the tab stops growing and the label ellipsis fires \u2014 a flex-basis change would be neither necessary nor contract-faithful.",
     "confidence_vs_primary": "lower"
   },
   "fix_path_helpers": [],

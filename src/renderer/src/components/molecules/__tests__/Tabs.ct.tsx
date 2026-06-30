@@ -46,7 +46,8 @@ import {
   TabsNonCloseReRenderFixture,
   TabsClosableRemoveTwoPhase,
   TabbarFidelityFixture,
-  TabbarInShellTabsFixture
+  TabbarInShellTabsFixture,
+  TabbarLongTitleFidelityFixture
 } from './Tabs.stories'
 
 // ---------------------------------------------------------------------------
@@ -826,6 +827,22 @@ test.describe('Tabs — Feature-005 .tabbar fidelity: computed-style (primary ga
     expect(brColor).toBe('rgb(232, 230, 227)')
   })
 
+  test('AC-6/AC-9 — .tabbar .tabs__tab-wrapper: max-width computed value is exactly 220px', async ({
+    mount,
+    page
+  }) => {
+    // The cap was relocated from .tabbar .tabs__tab-label (TabBar.css) to
+    // .tabbar .tabs__tab-wrapper (Tabs.css) in Task 001. This assertion proves
+    // the property resolves in a real browser — jsdom cannot compute layout.
+    // Exact string equality ('220px') rather than numeric comparison so a unit
+    // drift (e.g. 'none', 'auto', 'em') is caught rather than silently passing.
+    await mount(<TabbarFidelityFixture />)
+    const wrapper = page.locator('.tabbar .tabs__tab-wrapper').first()
+
+    const maxWidth = await wrapper.evaluate((el) => window.getComputedStyle(el).maxWidth)
+    expect(maxWidth).toBe('220px')
+  })
+
   test('AC-15 — .tabbar .tabs__tab: font-size resolves to 12.5px (--fs-base token)', async ({
     mount,
     page
@@ -1098,6 +1115,113 @@ test.describe('Tabs — Feature-005 .tabbar fidelity: computed-style (primary ga
 })
 
 // ---------------------------------------------------------------------------
+// [011] Feature-011 — tab width cap: no cell growth + ellipsis truncation
+//
+// Proves the .tabbar .tabs__tab-wrapper { max-width: 220px } rule from Tabs.css
+// holds in a real browser with real layout (jsdom cannot resolve computed geometry).
+// TabbarLongTitleFidelityFixture provides TWO long-titled tabs that overflow if
+// uncapped (exercising the "multiple long-titled tabs open" condition from spec AC-8),
+// plus one short tab for contrast.
+//
+// NOTE: The existing AC-7/AC-8/AC-6/AC-9 numbered tests earlier in this file
+// cover FEATURE-002 concerns (a11y roles, actions slot, arrow-nav, disabled tab).
+// The [011]-prefixed tests below are for FEATURE-011 (tab width cap) and share
+// those AC numbers only because the same spec AC entries cover both features in
+// different contexts. The [011] prefix disambiguates them.
+// ---------------------------------------------------------------------------
+
+test.describe('[011] Tabs — tab width cap: long titles held to 220px border-box cap', () => {
+  test.beforeEach(async ({ page }) => {
+    // Match the Feature-005 fidelity suite's beforeEach: [data-mstyle="soft"] so
+    // the cascade is consistent. The cap is mstyle-independent, but setting this
+    // keeps the fixture rendering identical to TabbarFidelityFixture's environment.
+    await page.evaluate(() => {
+      document.documentElement.dataset.mstyle = 'soft'
+    })
+  })
+
+  test('[011] AC-7 — long-title tab cell: width cap ≤ 221px and label text-overflow ellipsis under cap (border-box 220px cap via fixture scoped <style>)', async ({
+    mount,
+    page
+  }) => {
+    // TabbarLongTitleFidelityFixture mounts two tabs with ~65-char labels that
+    // overflow the 220px cell if uncapped. getBoundingClientRect().width reflects
+    // the actual rendered layout (unlike getComputedStyle(el).maxWidth which only
+    // confirms the CSS constraint is present — proven separately in the AC-6/AC-9 test).
+    //
+    // The border-box context for this assertion comes from TabbarLongTitleFidelityFixture's
+    // own scoped <style> (`.ct-borderbox-scope`), which reproduces production base.css's
+    // `* { box-sizing: border-box }` reset locally — a global base.css harness import was
+    // deliberately avoided because it shifts unrelated screenshot baselines (playwright/
+    // index.tsx imports only tokens.css). Under border-box, max-width:220px caps the WHOLE
+    // border box (content + padding + border), so the total rendered wrapper width must be
+    // ≤220px. The +1 tolerance accounts for fractional pixel rounding in the browser layout
+    // engine.
+    //
+    // Without the cap the label (~65 chars at 12.5px) would render at ~450px+.
+    await mount(<TabbarLongTitleFidelityFixture />)
+    const wrapper = page.locator('.tabbar .tabs__tab-wrapper').first()
+
+    const width = await wrapper.evaluate((el) => el.getBoundingClientRect().width)
+    expect(width).toBeLessThanOrEqual(221) // 220px border-box cap + 1px sub-pixel tolerance
+
+    // Assert that the label computes text-overflow: ellipsis in the long-title-under-cap
+    // scenario — proves the base .tabs__tab-label rule in Tabs.css resolves text-overflow:
+    // ellipsis on the label when the cell is genuinely capped and the label overflows (the
+    // computed property, not the rendered glyph). Combined with the ≤221px width assertion
+    // above (cap proven active) and the fixture's ~65-char overflowing labels, this exercises
+    // the truncation contract under the cap. This is distinct from AC-16, which uses
+    // normal-length titles well under the 220px cap; that test cannot prove the property
+    // resolves under cap pressure via the base rule.
+    const label = page.locator('.tabbar .tabs__tab-label').first()
+    const textOverflow = await label.evaluate((el) => window.getComputedStyle(el).textOverflow)
+    expect(textOverflow).toBe('ellipsis')
+  })
+
+  test('[011] AC-8 — tablist total width stays within cap-derived bound; fails if any long tab grows beyond 220px', async ({
+    mount,
+    page
+  }) => {
+    // This test is genuinely diagnostic: it measures the tablist (.tabs__list)
+    // total rendered width and asserts it stays within a cap-derived bound.
+    //
+    // The bound derivation (border-box: border absorbed inside cap, not additive):
+    //   N_TABS × CAP_PX + TOLERANCE
+    //   = 3 × 220 + 2 = 662px
+    //
+    // If the cap fails (max-width removed), the 2 long tabs grow to ~450px each
+    // (~980px+ for those 2 alone), causing the tablist to far exceed 662px.
+    // This assertion is independent of [011] AC-7: removing AC-7 does not neuter it.
+    //
+    // Why tablist width (not the new-tab button gap):
+    //   .tabbar .tabs__list { flex: 0 0 auto } (Fix C) makes the tablist content-width
+    //   so the new-tab button always hugs it regardless of cap. A "gap ≤ 1px" assertion
+    //   is trivially true even when tabs have grown to 450px — it provides no diagnostic
+    //   signal for cap failure. Measuring the tablist width directly is what catches it.
+    await mount(<TabbarLongTitleFidelityFixture />)
+
+    const tablistWidth = await page.evaluate(() => {
+      // Null guard: if the selector misses, return Infinity so the assertion fails
+      // with a clear numeric failure rather than a cryptic null dereference.
+      const tablist = document.querySelector('.tabbar .tabs__list') as HTMLElement | null
+      if (tablist == null) return Infinity
+      return tablist.getBoundingClientRect().width
+    })
+
+    // Under border-box (fixture's scoped .ct-borderbox-scope <style>), each capped
+    // wrapper's border-right:1px is ABSORBED inside the 220px cap — it is NOT additive.
+    // Each wrapper is ≤220px total (border included), so 3 tabs → ≤660px.
+    // +2px sub-pixel tolerance → 662px bound.
+    // Uncapped: 2 × ~450px + ~80px ≈ ~980px — far exceeds this bound.
+    const N_TABS = 3
+    const CAP_PX = 220
+    const TOLERANCE_PX = 2
+    const bound = N_TABS * CAP_PX + TOLERANCE_PX // 662px
+    expect(tablistWidth).toBeLessThanOrEqual(bound)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // AC-17 — single strip bottom border (standalone mount context)
 //
 // Full AC-17 requires: .shell__tabs border-bottom-width = 0px (Shell wrapper
@@ -1200,5 +1324,23 @@ test.describe('Tabs — [feat-005] AC-22 bare-consumer non-regression (.tabbar s
 
     const overflow = await tabsEl.evaluate((el) => window.getComputedStyle(el).overflow)
     expect(overflow).toBe('hidden')
+  })
+
+  test('[011] bare .tabs__tab-wrapper: max-width computes to none (cap rule scoped to .tabbar only)', async ({
+    mount,
+    page
+  }) => {
+    // .tabbar .tabs__tab-wrapper { max-width: 220px } uses a compound selector
+    // that requires .tabbar on the outer container. A bare <Tabs> (no .tabbar
+    // className) must NOT be capped — max-width must compute to 'none'.
+    //
+    // Guards against future selector simplification: if .tabbar were dropped
+    // and the rule changed to just .tabs__tab-wrapper, this test would fail
+    // and surface the unintended cap on bare consumers.
+    await mount(<TabsClosableFixture initialActiveId="params" />)
+    const wrapper = page.locator('.tabs__tab-wrapper').first()
+
+    const maxWidth = await wrapper.evaluate((el) => window.getComputedStyle(el).maxWidth)
+    expect(maxWidth).toBe('none')
   })
 })

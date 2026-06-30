@@ -1,13 +1,13 @@
 {
   "topic": null,
   "topic_slug": null,
-  "date": "2026-06-28",
-  "spec_number": "010",
-  "feature_name": "request-bar-fidelity",
-  "feature_slug": "request-bar-fidelity",
-  "spec_type": "refactor",
-  "spec_type_rationale": "Zero-behaviour-change visual-fidelity pass: behaviour preserved (onSend/\u2318\u21b5/\u2318S/canSend/dirty/per-tab/data-mstyle untouched), CSS+presentational markup restructured. Save/Share labels + <kbd> \u2318\u21b5 are presentational edits to the existing RequestBar organism, not new type-defs/api-ops/components. Mirrors 005 fidelity refactor.",
-  "spec_type_seeded_by_upstream": false,
+  "date": "2026-06-29",
+  "spec_number": "011",
+  "feature_name": "tab-width-cap",
+  "feature_slug": "tab-width-cap",
+  "spec_type": "feature_addition",
+  "spec_type_rationale": "pre-seeded from research handoff; additive fidelity cap extending the Complete tab-bar work with the missing cell max-width",
+  "spec_type_seeded_by_upstream": true,
   "status": "Draft",
   "design_source": "html:design/reference.html",
   "current_branch": null,
@@ -18,77 +18,42 @@
     {
       "path": "constitution.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-28T19:00:46Z"
-    },
-    {
-      "path": ".claude/memory/MEMORY.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-28T19:00:47Z"
+      "read_timestamp": "2026-06-29T22:06:20Z"
     },
     {
       "path": "CLAUDE.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-28T19:00:47Z"
+      "read_timestamp": "2026-06-29T22:06:20Z"
     },
     {
       "path": "docs/architecture.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-28T19:00:47Z"
+      "read_timestamp": "2026-06-29T22:06:20Z"
     },
     {
-      "path": "research/2026-06-28-requestbar-009-visual-drift.md",
-      "source_origin": "research",
-      "read_timestamp": "2026-06-28T19:00:47Z"
-    },
-    {
-      "path": "specs/009-request-bar/spec.md",
-      "source_origin": "prior_spec",
-      "read_timestamp": "2026-06-28T19:00:47Z"
+      "path": "docs/glossary.md",
+      "source_origin": "context",
+      "read_timestamp": "2026-06-29T22:06:20Z"
     },
     {
       "path": "specs/005-tab-bar-visual-fidelity/spec.md",
       "source_origin": "prior_spec",
-      "read_timestamp": "2026-06-28T19:00:47Z"
+      "read_timestamp": "2026-06-29T22:06:20Z"
     },
     {
-      "path": "src/renderer/src/components/organisms/RequestBar.tsx",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-28T19:00:52Z"
+      "path": "research/2026-06-29-tabbar-tab-grows-with.md",
+      "source_origin": "research",
+      "read_timestamp": "2026-06-29T22:06:20Z"
     },
     {
-      "path": "src/renderer/src/components/organisms/RequestBar.css",
+      "path": "design/design-fidelity-contract.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-28T19:00:52Z"
+      "read_timestamp": "2026-06-29T22:06:20Z"
     },
     {
-      "path": "src/renderer/src/App.tsx",
+      "path": ".claude/memory/MEMORY.md",
       "source_origin": "context",
-      "read_timestamp": "2026-06-28T19:00:53Z"
-    },
-    {
-      "path": "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-28T19:00:53Z"
-    },
-    {
-      "path": "src/renderer/src/components/organisms/__tests__/RequestBar.stories.tsx",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-28T19:00:53Z"
-    },
-    {
-      "path": "src/renderer/styles/tokens.css",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-28T19:00:53Z"
-    },
-    {
-      "path": "design/tokens.json",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-28T19:00:53Z"
-    },
-    {
-      "path": "design/styles.css",
-      "source_origin": "context",
-      "read_timestamp": "2026-06-28T19:00:53Z"
+      "read_timestamp": "2026-06-29T22:06:20Z"
     }
   ],
   "phase1_finalized": true,
@@ -96,226 +61,265 @@
     {
       "finding_id": "F-constitution-1",
       "source_path": "constitution.md",
-      "source_section": "\u00a74 Never",
-      "content": "Only Shell.tsx writes documentElement data-mstyle/data-theme/data-accent; RequestBar must NEVER write data-mstyle \u2014 the method-pill colour fix stays class-based.",
-      "landed_in": "AC",
-      "landed_ref": "AC-3"
+      "source_section": "s1",
+      "content": "Search before building and reuse; reuse the base ellipsis rule rather than new truncation CSS.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
     },
     {
       "finding_id": "F-constitution-2",
       "source_path": "constitution.md",
-      "source_section": "\u00a74 Never",
-      "content": "Never use inline styles \u2014 class-based styling composed with cx(); all fidelity changes land in RequestBar.css + className edits.",
-      "landed_in": "AC",
-      "landed_ref": "AC-18"
+      "source_section": "s2",
+      "content": "Prefer design tokens over literals; no inline styles; compose with cx.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
     },
     {
       "finding_id": "F-constitution-3",
       "source_path": "constitution.md",
-      "source_section": "\u00a74 Prefer",
-      "content": "Prefer design tokens (CSS custom properties in tokens.css) over literal style values; bind radius/colour/shadow to existing tokens.",
+      "source_section": "s3",
+      "content": "Tests split vitest and playwright CT; computed-style fidelity needs CT.",
       "landed_in": "Constraint",
-      "landed_ref": "Constraint-5"
+      "landed_ref": ""
     },
     {
       "finding_id": "F-constitution-4",
       "source_path": "constitution.md",
-      "source_section": "Key Rules / Search before building",
-      "content": "Search before building \u2014 reuse the canonical .method/{METHOD} convention (Tabs.tsx:117 methodChipClassName) rather than inventing a new method-colour mechanism.",
-      "landed_in": "AC",
-      "landed_ref": "AC-6"
+      "source_section": "s4",
+      "content": "Minimal changes; constrain to the tabbar tab-cell width cap only.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
     },
     {
-      "finding_id": "F-memory-1",
-      "source_path": ".claude/memory/MEMORY.md",
-      "source_section": "CT fidelity fixture scoping",
-      "content": "Playwright CT fidelity tests must reproduce the full styling context: import tokens.css, set data-mstyle on the host, and apply the production className scope (e.g. .request-bar) \u2014 else computed-style assertions read wrong values.",
-      "landed_in": "AC",
-      "landed_ref": "AC-13"
-    },
-    {
-      "finding_id": "F-memory-2",
-      "source_path": ".claude/memory/MEMORY.md",
-      "source_section": "CT Radix dismiss arm-race",
-      "content": "Radix overlay (method Dropdown) CT dismiss tests must await overlay readiness + yield setTimeout(0) before page.mouse.click \u2014 the DismissableLayer pointerdown listener arms via setTimeout(0).",
-      "landed_in": "AC",
-      "landed_ref": "AC-19"
-    },
-    {
-      "finding_id": "F-memory-3",
-      "source_path": ".claude/memory/MEMORY.md",
-      "source_section": "general",
-      "content": "Fidelity work is CT-verified in a real browser (jsdom can't resolve pseudo-element/computed styles); a stale CT build cache can mask a clean source as broken \u2014 clear caches before editing source.",
-      "landed_in": "Risk",
-      "landed_ref": "Risk-1"
+      "finding_id": "F-constitution-5",
+      "source_path": "constitution.md",
+      "source_section": "s5",
+      "content": "Tabs is a shared molecule; base changes hit all consumers, so cap CSS is tabbar-scoped.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
     },
     {
       "finding_id": "F-claude-1",
       "source_path": "CLAUDE.md",
-      "source_section": "Architecture",
-      "content": "Renderer is React 19 atomic-design; RequestBar is a flat organism under organisms/; styling = semantic classes bound to tokens.css, per-component sibling CSS file, no inline styles.",
-      "landed_in": "AC",
-      "landed_ref": "AC-14"
+      "source_section": "s1",
+      "content": "design reference present means breakdown emits a manifest and implement runs token-provenance plus auditor checks.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
     },
     {
       "finding_id": "F-claude-2",
       "source_path": "CLAUDE.md",
-      "source_section": "Build/verify commands",
-      "content": "Type-check: npm run typecheck:web; lint: eslint --cache .; build: npm run build; unit: vitest; CT: playwright. Tests must stay green.",
+      "source_section": "s2",
+      "content": "Lint, type-check, build must pass on changed files.",
       "landed_in": "AC",
-      "landed_ref": "AC-15"
+      "landed_ref": ""
     },
     {
       "finding_id": "F-claude-3",
       "source_path": "CLAUDE.md",
-      "source_section": "Design Fidelity principle",
-      "content": "design_token_provenance forcing-function: a static design-token provenance check runs when a design manifest exists; UI values should trace to tokens.",
+      "source_section": "s3",
+      "content": "Read before write; constitution is law; minimal changes; search before building.",
       "landed_in": "Constraint",
-      "landed_ref": "Constraint-5"
+      "landed_ref": ""
     },
     {
       "finding_id": "F-architecture-1",
       "source_path": "docs/architecture.md",
-      "source_section": "Shell store\u2192<html> contract",
-      "content": "Shell Effect 1 is sole writer of data-mstyle (default 'soft'); per-method .method colour resolves at runtime via [data-mstyle] ancestor \u2014 RequestBar inherits it but cannot write it.",
-      "landed_in": "Risk",
-      "landed_ref": "Risk-3"
+      "source_section": "s1",
+      "content": "tabbar visual contract spans Tabs.css scoped block and TabBar.css strip chrome; read both.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
     },
     {
       "finding_id": "F-architecture-2",
       "source_path": "docs/architecture.md",
-      "source_section": "Hazard: global .method classes",
-      "content": "Method chip uses unprefixed global .method/.{METHOD} classes so tokens.css colour rules apply project-wide; adding a .method rule affects ALL chip instances (TabBar too).",
+      "source_section": "s2",
+      "content": "Tabs hand-rolls roving tabindex; non-closable path byte-identical; cap must not touch a11y or descriptor.",
       "landed_in": "AC",
-      "landed_ref": "AC-12"
+      "landed_ref": ""
     },
     {
       "finding_id": "F-architecture-3",
       "source_path": "docs/architecture.md",
-      "source_section": "Hazard: HEAD under chip mstyle / tokens.css:109",
-      "content": "tokens.css has un-gated .method.HEAD{color} but the GET..OPTIONS un-gated defaults are absent; HEAD rendering degrades under some mstyle variants \u2014 known fragility.",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-7"
-    },
-    {
-      "finding_id": "F-architecture-4",
-      "source_path": "docs/architecture.md",
-      "source_section": "Testing / Radix overlay hazard",
-      "content": "Renderer test stack: Vitest+TL (jsdom) for interaction; Playwright CT (Chromium) for real-browser focus/keyboard + computed-style fidelity; Radix overlay CT needs the two-step dismiss gate.",
+      "source_section": "s3",
+      "content": "Computed-style asserted in CT; jsdom cannot resolve; stale CT cache can mask a clean source.",
       "landed_in": "AC",
-      "landed_ref": "AC-13"
-    },
-    {
-      "finding_id": "F-2026-06-28-requestbar-009-visual-drift-1",
-      "source_path": "research/2026-06-28-requestbar-009-visual-drift.md",
-      "source_section": "Codebase Findings",
-      "content": "Reference geometry (design/styles.css): .reqbar gap 8px/padding 12px 16px; .url-bar + .btn height 32px, radius --radius(7px), focus ring box-shadow 0 0 0 3px accent14%; .btn-primary weight 600 + inset shadow; .method-select bordered 88px box w/ bold 11.5px plain-coloured method text; .kbd \u2318\u21b5 keycap; .btn-ghost bordered actions.",
-      "landed_in": "AC",
-      "landed_ref": "AC-8"
-    },
-    {
-      "finding_id": "F-2026-06-28-requestbar-009-visual-drift-2",
-      "source_path": "research/2026-06-28-requestbar-009-visual-drift.md",
-      "source_section": "Codebase Findings",
-      "content": "Component drift (RequestBar.css): uniform height 24px, --radius-sm(5px), focus = border-color only (no ring), Send weight 500/no shadow, soft-chip method treatment, Save/Share icon-only. All needed tokens already exist in tokens.css.",
-      "landed_in": "AC",
-      "landed_ref": "AC-9"
-    },
-    {
-      "finding_id": "F-2026-06-28-requestbar-009-visual-drift-3",
-      "source_path": "research/2026-06-28-requestbar-009-visual-drift.md",
-      "source_section": "Root Cause",
-      "content": "Root cause is token-APPLICATION local to RequestBar.css, not a token gap or logic defect \u2014 localised CSS rewrite + small presentational markup (\u2318\u21b5 kbd, action labels).",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-6"
-    },
-    {
-      "finding_id": "F-2026-06-28-requestbar-009-visual-drift-4",
-      "source_path": "research/2026-06-28-requestbar-009-visual-drift.md",
-      "source_section": "Runner-up / Open Uncertainties",
-      "content": "Runner-up token-gap (un-gated .method.GET..OPTIONS defaults dropped in migration) is falsified for in-app (data-mstyle='soft' colours the pill) \u2014 only bites no-data-mstyle isolation; deferred as optional design-system follow-up.",
-      "landed_in": "OOS",
-      "landed_ref": "OOS-1"
-    },
-    {
-      "finding_id": "F-2026-06-28-requestbar-009-visual-drift-5",
-      "source_path": "research/2026-06-28-requestbar-009-visual-drift.md",
-      "source_section": "Open Uncertainties",
-      "content": "Confirm exact reference geometry/treatment via runtime design-auditor screenshot + computed-style diff before locking RequestBar.css values (code-confirmed, not yet runtime-verified).",
-      "landed_in": "Risk",
-      "landed_ref": "Risk-2"
+      "landed_ref": ""
     },
     {
       "finding_id": "F-spec-1",
-      "source_path": "specs/009-request-bar/spec.md",
-      "source_section": "\u00a73 Desired / \u00a75 AC",
-      "content": "009 shipped functional RequestBar: method Dropdown + URL input + Send/Save/Share, \u2318\u21b5/\u2318S, canSend trim guard, updateActiveSpec, per-tab isolation \u2014 all behaviour to PRESERVE unchanged.",
+      "source_path": "specs/005-tab-bar-visual-fidelity/spec.md",
+      "source_section": "s1",
+      "content": "Prior fidelity work pinned gap/padding/border but omitted the cell max-width; this adds it.",
       "landed_in": "AC",
-      "landed_ref": "AC-7"
+      "landed_ref": ""
     },
     {
       "finding_id": "F-spec-2",
-      "source_path": "specs/009-request-bar/spec.md",
-      "source_section": "\u00a75.2 AC-6",
-      "content": "009 AC-6: renderer keeps Shell as sole writer of data-mstyle \u2014 binding invariant carried into 010.",
+      "source_path": "specs/005-tab-bar-visual-fidelity/spec.md",
+      "source_section": "s2",
+      "content": "Label is already a flex-filling ellipsis element; truncation machinery is reused.",
       "landed_in": "AC",
-      "landed_ref": "AC-3"
+      "landed_ref": ""
     },
     {
       "finding_id": "F-spec-3",
-      "source_path": "specs/009-request-bar/spec.md",
-      "source_section": "\u00a77 Constraints",
-      "content": "009 \u00a77 already mandated: design/reference.html is look-only (never reproduce data-om-*/__OmT/tweaks-panel markup); verify fidelity via computed-style equality + thresholded screenshot diff per 005; CT fixtures import tokens.css + set data-mstyle + Radix two-step gate.",
-      "landed_in": "AC",
-      "landed_ref": "AC-2"
+      "source_path": "specs/005-tab-bar-visual-fidelity/spec.md",
+      "source_section": "s3",
+      "content": "Active/geometry CSS scoped to tabbar so the section-tabs consumer is unaffected; reuse the precedent.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
     },
     {
       "finding_id": "F-spec-4",
-      "source_path": "specs/009-request-bar/spec.md",
-      "source_section": "\u00a74 Affected Areas",
-      "content": "009 RequestBar class structure: .request-bar, .request-bar__method (+ .method/{METHOD}), .request-bar__url, .request-bar__send, .request-bar__save(--dirty), .request-bar__share \u2014 the semantic class surface 010 restyles.",
-      "landed_in": "Risk",
-      "landed_ref": "Risk-4"
+      "source_path": "specs/005-tab-bar-visual-fidelity/spec.md",
+      "source_section": "s4",
+      "content": "The Playwright CT fidelity suite with a thresholded screenshot diff exists; the cap assertion plugs into it.",
+      "landed_in": "AC",
+      "landed_ref": ""
     },
     {
       "finding_id": "F-spec-5",
       "source_path": "specs/005-tab-bar-visual-fidelity/spec.md",
-      "source_section": "\u00a73 / \u00a75.3 AC-18,AC-21",
-      "content": "005 is the fidelity-verification template: computed-style EXACT equality on enumerated props in Playwright CT (resolves ::before/::after) + thresholded screenshot diff with explicit anti-aliasing pixel-threshold; runtime design-auditor (Chrome MCP) supplementary.",
-      "landed_in": "AC",
-      "landed_ref": "AC-13"
+      "source_section": "s5",
+      "content": "The tabbar container is overflow-visible; the cap must not clip the active accent or the chevron.",
+      "landed_in": "Risk",
+      "landed_ref": ""
     },
     {
-      "finding_id": "F-spec-6",
-      "source_path": "specs/005-tab-bar-visual-fidelity/spec.md",
-      "source_section": "\u00a73 / \u00a77 scoping",
-      "content": "005 scoped new geometry CSS under .tabbar so the other Tabs consumer wasn't regressed; 010 analogue: scope restyle under .request-bar so no other component regresses.",
+      "finding_id": "F-2026-06-29-tabbar-tab-grows-with-1",
+      "source_path": "research/2026-06-29-tabbar-tab-grows-with.md",
+      "source_section": "s1",
+      "content": "Cap is on the wrong element; the design cell wrapper has no max-width so the cell grows with content.",
       "landed_in": "AC",
-      "landed_ref": "AC-12"
+      "landed_ref": ""
     },
     {
-      "finding_id": "F-spec-7",
-      "source_path": "specs/005-tab-bar-visual-fidelity/spec.md",
-      "source_section": "\u00a78 Q-2 / Risks",
-      "content": "005 deferred the exact screenshot-diff anti-aliasing pixel-threshold to /plan and mandated an explicit threshold must be set (no eyeballing); same pattern applies to 010.",
+      "finding_id": "F-2026-06-29-tabbar-tab-grows-with-2",
+      "source_path": "research/2026-06-29-tabbar-tab-grows-with.md",
+      "source_section": "s2",
+      "content": "Add the cell cap and remove the divergent label cap, keeping the base ellipsis; pure CSS, tabbar-scoped.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-2026-06-29-tabbar-tab-grows-with-3",
+      "source_path": "research/2026-06-29-tabbar-tab-grows-with.md",
+      "source_section": "s3",
+      "content": "deriveLabel returns a plain string; CSS owns truncation; the capped button is flex-filling with zero min-width.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-2026-06-29-tabbar-tab-grows-with-4",
+      "source_path": "research/2026-06-29-tabbar-tab-grows-with.md",
+      "source_section": "s4",
+      "content": "Open: confirm at runtime the cap halts growth and fires the ellipsis under the real tabbar cascade.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-2026-06-29-tabbar-tab-grows-with-5",
+      "source_path": "research/2026-06-29-tabbar-tab-grows-with.md",
+      "source_section": "s5",
+      "content": "Any CT assertion pinning the old label cap would need re-pointing to the cell cap.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-design-fidelity-contract-1",
+      "source_path": "design/design-fidelity-contract.md",
+      "source_section": "s1",
+      "content": "Contract puts the cell max-width target plus gap/padding/border on the design tab cell.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-design-fidelity-contract-2",
+      "source_path": "design/design-fidelity-contract.md",
+      "source_section": "s2",
+      "content": "Contract label spec is nowrap/overflow-hidden/ellipsis/flex with no label max-width.",
       "landed_in": "Constraint",
-      "landed_ref": "Constraint-8"
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-design-fidelity-contract-3",
+      "source_path": "design/design-fidelity-contract.md",
+      "source_section": "s3",
+      "content": "Contract tab bar resolves a sunken background, a fixed height, and a bottom border; assert tokens as resolves-to-token.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-design-fidelity-contract-4",
+      "source_path": "design/design-fidelity-contract.md",
+      "source_section": "s4",
+      "content": "Copy resolved values, never the export cruft.",
+      "landed_in": "OOS",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-memory-1",
+      "source_path": ".claude/memory/MEMORY.md",
+      "source_section": "s1",
+      "content": "CT fidelity tests must reproduce the full styling context or measure an unstyled element.",
+      "landed_in": "Risk",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-memory-2",
+      "source_path": ".claude/memory/MEMORY.md",
+      "source_section": "s2",
+      "content": "A width CT must baseline with realistic content; empty-versus-filled yields false regressions.",
+      "landed_in": "Risk",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-memory-3",
+      "source_path": ".claude/memory/MEMORY.md",
+      "source_section": "s3",
+      "content": "Method-chip color depends on the mstyle attribute; do not drop chip styling when measuring cell width.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-tabs-stories-1",
+      "source_path": "src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx",
+      "source_section": "s1",
+      "content": "Shipped CT harness already resolves the full tabbar cascade and asserts wrapper gap/padding/border but not max-width; research open-uncertainty disproven.",
+      "landed_in": "AC",
+      "landed_ref": ""
     }
   ],
-  "source_no_items_relevant": {},
+  "source_no_items_relevant": {
+    "docs/glossary.md": true
+  },
   "findings_finalized": true,
   "decision_points": [
     {
-      "dp_id": "DP-scope_boundaries-1",
-      "category": "scope_boundaries",
-      "description": "Fidelity fix scope: localised RequestBar.css(+markup) only, vs also restore un-gated tokens.css .method defaults (design-system ripple)",
+      "dp_id": "DP-existing_behavior-1",
+      "category": "existing_behavior",
+      "description": "Remove the divergent label cap or keep it alongside the new cell cap",
       "valid_implementations": [
-        "localised-requestbar-only",
-        "localised-plus-tokens-restore",
-        "localised-now-defer-tokens-followup"
+        "remove the label cap",
+        "keep the label cap"
       ],
       "status": "answered",
-      "user_answer": "Localised RequestBar.css(+markup) now (Approach 1); restore of un-gated tokens.css .method defaults is deferred to a separate follow-up (open question/bug), NOT done in 010. No tokens.css/tokens.json change in this feature.",
+      "user_answer": "Remove the divergent label cap; keep the base ellipsis rule; single cell-level cap.",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-scope_boundaries-1",
+      "category": "scope_boundaries",
+      "description": "CT fidelity harness: add styling-context setup or rely on the existing harness",
+      "valid_implementations": [
+        "add setup",
+        "rely on existing"
+      ],
+      "status": "answered",
+      "user_answer": "Include CT fidelity harness context so the cell-cap assertion resolves real tokens; the shipped harness already provides this.",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
@@ -323,49 +327,27 @@
     {
       "dp_id": "DP-ui_ux_details-1",
       "category": "ui_ux_details",
-      "description": "Save/Share actions: add visible text labels matching reference, vs keep icon-only with aria-label",
+      "description": "Native title tooltip for truncated titles or none",
       "valid_implementations": [
-        "visible-text-labels",
-        "icon-only-aria"
+        "add a tooltip",
+        "no tooltip"
       ],
       "status": "answered",
-      "user_answer": "Visible 'Save'/'Share' text labels beside icons, laid-out .btn-ghost actions per reference (32px/bordered geometry still applies). Drop now-redundant aria-label where a visible text label gives the accessible name (no double-labelling). Share stays the 009 AC-19 disabled/no-op stub \u2014 labelled + in final slot, still disabled. Actions don't reflow on long URL (009 AC-20 preserved).",
+      "user_answer": "No tooltip; pure overflow rendering with zero behaviour change.",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
     },
     {
-      "dp_id": "DP-ui_ux_details-2",
-      "category": "ui_ux_details",
-      "description": "Send \u2318\u21b5 affordance: render a visible kbd keycap inside the active Send button, vs keep the shortcut with no visible keycap",
+      "dp_id": "DP-edge_cases-1",
+      "category": "edge_cases",
+      "description": "Lower bound on tab width: content-sized or a min-width floor",
       "valid_implementations": [
-        "visible-kbd-keycap",
-        "no-visible-keycap"
+        "no min-width",
+        "add a floor"
       ],
       "status": "answered",
-      "user_answer": "Presentational <kbd> \u2318\u21b5 inside Send per reference .kbd keycap; aria-hidden (decorative \u2014 button accessible name stays 'Send'); rendered ONLY in the active/enabled (canSend) state, not the disabled empty-URL state; styled from tokens. Display-only \u2014 does NOT register/alter any shortcut; the 009 \u2318Enter canSend-guarded onSend path is unchanged.",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
-    },
-    {
-      "dp_id": "DP-breaking_changes-1",
-      "category": "breaking_changes",
-      "description": "no relevant decision point for breaking_changes",
-      "valid_implementations": [],
-      "status": "no_DP_in_category",
-      "user_answer": "",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
-    },
-    {
-      "dp_id": "DP-existing_behavior-1",
-      "category": "existing_behavior",
-      "description": "no relevant decision point for existing_behavior",
-      "valid_implementations": [],
-      "status": "no_DP_in_category",
-      "user_answer": "",
+      "user_answer": "No min-width; tabs stay content-sized; the contract specifies a maximum only.",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
@@ -382,9 +364,9 @@
       "turns": 0
     },
     {
-      "dp_id": "DP-edge_cases-1",
-      "category": "edge_cases",
-      "description": "no relevant decision point for edge_cases",
+      "dp_id": "DP-breaking_changes-1",
+      "category": "breaking_changes",
+      "description": "no relevant decision point for breaking_changes",
       "valid_implementations": [],
       "status": "no_DP_in_category",
       "user_answer": "",
@@ -408,70 +390,69 @@
   "mode": "interactive",
   "mandatory_reads": [
     {
-      "spec_type": "refactor",
-      "read_path": "src/renderer/src/components/organisms/RequestBar.tsx",
-      "slot_pattern": "__refactored_files__",
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/components/organisms/TabBar.tsx",
+      "slot_pattern": "__entry__",
       "n_a_reason": ""
     },
     {
-      "spec_type": "refactor",
-      "read_path": "src/renderer/src/components/organisms/RequestBar.css",
-      "slot_pattern": "__refactored_files__",
+      "spec_type": "feature_addition",
+      "read_path": "specs/005-tab-bar-visual-fidelity/spec.md",
+      "slot_pattern": "__similar_feature__",
       "n_a_reason": ""
     },
     {
-      "spec_type": "refactor",
-      "read_path": "src/renderer/src/App.tsx",
-      "slot_pattern": "__all_callers__",
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/components/molecules/Tabs.tsx",
+      "slot_pattern": "__type_defs__",
       "n_a_reason": ""
     },
     {
-      "spec_type": "refactor",
-      "read_path": "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx",
-      "slot_pattern": "__all_tests__",
+      "spec_type": "feature_addition",
+      "read_path": "",
+      "slot_pattern": "__api_ops__",
+      "n_a_reason": "Pure CSS/layout fidelity change; no API or data-fetching operation is touched."
+    },
+    {
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx",
+      "slot_pattern": "__test_files__",
       "n_a_reason": ""
     },
     {
-      "spec_type": "refactor",
-      "read_path": "src/renderer/src/components/organisms/__tests__/RequestBar.stories.tsx",
-      "slot_pattern": "__all_tests__",
-      "n_a_reason": ""
-    },
-    {
-      "spec_type": "refactor",
-      "read_path": "src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx",
-      "slot_pattern": "__all_tests__",
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx",
+      "slot_pattern": "__test_files__",
       "n_a_reason": ""
     }
   ],
   "discretionary_reads": [],
   "phase3_finalized": true,
-  "overview": "Close the visual-fidelity gap between the RequestBar organism (feature 009) and design/reference.html's request bar, in BOTH the empty and filled states, with ZERO behaviour change. 009 shipped functionally correct but visually drifted: the bar is too cramped (uniform 24px geometry vs the reference's 32px), the URL input's radius + focus treatment are wrong, the method pill reads as a faint soft chip rather than the reference's bordered method-select with bold coloured text, the active Send lacks the solid-primary weight + \u2318\u21b5 keycap, and Save/Share are bare undersized icons rather than laid-out labelled actions. 010 is a localised RequestBar.css restyle plus small presentational markup edits (visible Save/Share labels, an aria-hidden \u2318\u21b5 keycap), binding to existing tokens.css custom-properties \u2014 no token additions, no logic change.",
-  "current_state": "RequestBar (src/renderer/src/components/organisms/RequestBar.tsx:105-327 + sibling RequestBar.css) renders the [method \u25be][URL][Send/Save/Share] bar wired to tabsStore via per-field selectors (009, Complete). RequestBar.css applies a uniform 24px geometry: .request-bar padding 5px 8px / gap 6px (RequestBar.css:48-57); all controls height 24px with border-radius var(--radius-sm) (5px); .request-bar__url focus sets border-color only, no ring (RequestBar.css:158-161); .request-bar__send is accent-fill weight 500, no shadow and no \u2318\u21b5 element (RequestBar.css:222-246); Save/Share are icon-only buttons (RequestBar.tsx:283-323). The method trigger uses cx('request-bar__method','method',method) (RequestBar.tsx:256) so per-method colour resolves through tokens.css's [data-mstyle='soft'] .method.GET rules \u2014 Shell is the sole writer of data-mstyle (default 'soft', settingsStore.ts:65; Shell.tsx Effect 1), so the in-app pill IS coloured (009 AC-6). The reference target values live in design/styles.css: .reqbar gap 8px / padding 12px 16px (770-776), .url-bar height 32px / radius var(--radius) / focus ring box-shadow 0 0 0 3px accent14% (801-816), .btn-primary weight 600 + inset shadow (851-860), .method-select bordered 88px box with bold 11.5px plain-coloured method text (785-799) over un-gated .method.GET{color} (490-516), .kbd \u2318\u21b5 keycap (245-254), .btn-ghost bordered actions (838-849). All radius/colour/shadow/font tokens the reference needs already exist in tokens.css. App.tsx:23 mounts <RequestBar /> (default no-op onSend). Research: research/2026-06-28-requestbar-009-visual-drift.md confirms the drift is token-APPLICATION local to RequestBar.css (not a token gap). The existing CT suite (RequestBar.ct.tsx) covers layout/behaviour but has NO computed-style fidelity assertions; its fixtures already import tokens.css + set data-mstyle='soft' + apply the Radix two-step dismiss gate (the 005 CT-fixture-scoping pattern).",
-  "desired_behavior": "RequestBar shall match design/reference.html's request bar in BOTH the empty and filled states, verified by tier (computed-style EXACT equality on enumerated props in Playwright CT + a thresholded screenshot diff, per the 005 precedent), with ZERO behaviour change. (1) Bar geometry: .request-bar adopts the reference padding/gap and a ~32px control height; controls bind border-radius to var(--radius) (7px) where the reference uses it. (2) URL input: matching radius and a focus treatment that adds the accent ring (box-shadow 0 0 0 3px of an accent-14% mix) alongside the accent border. (3) Method pill: presents the reference's bordered method-select treatment (border, elevated background, --radius, bold ~11.5px coloured method text) via a LOCAL .request-bar__method override of the inherited soft chip \u2014 keeping the per-method colour on the existing .method/.{METHOD} class path and NEVER writing data-mstyle (009 AC-6). (4) Send active state: solid-primary fill at weight 600 plus the reference inset-highlight shadow, plus a presentational aria-hidden <kbd> \u2318\u21b5 keycap rendered ONLY in the enabled (canSend) state \u2014 display-only, registering no shortcut. (5) Save/Share: laid-out .btn-ghost-style buttons (bordered, ~32px) with VISIBLE 'Save'/'Share' text labels beside their icons; where the visible text supplies the accessible name, the now-redundant aria-label is dropped (no double-labelling); Share stays the 009 AC-19 disabled/no-op stub, labelled and in its final slot. (6) The empty-state Send greyed-disabled appearance is correct canSend-guard behaviour and is preserved, not restyled away. Fidelity is rebuilt with semantic classes bound to tokens.css (values from design/tokens.json), NEVER by importing design-export markup/cruft (data-om-*, __OmT, tweaks-panel). The new restyle is scoped under .request-bar so no other component regresses. All 009 behaviour is untouched (RequestSpec read/write, onSend, \u2318Enter/\u2318S, dirty/markClean, canSend trim guard, per-tab isolation, Shell-sole-writer-of-data-mstyle); existing unit + CT tests stay green and new computed-style fidelity CT is added; typecheck + lint + build pass.",
+  "overview": "Add the missing tab-cell width cap (max-width:220px) to the working-tabs TabBar so a tab holds a stable width and an overlong title ellipsis-truncates instead of stretching the tab and pushing the new-tab plus button and overflow actions. This completes the tab-strip fidelity from feature 005: that feature pinned the tab cell gap, padding, and border but omitted the cell max-width, and the current code caps the label rather than the cell (the cap sits on the label at max-width:200px in TabBar.css), diverging from design-fidelity-contract section 5, which places max-width:220px on the design tab cell. The change is pure CSS, tabbar-scoped, with zero behaviour change.",
+  "current_state": "TabBar (src/renderer/src/components/organisms/TabBar.tsx:112) renders the working-tabs strip via the shared Tabs molecule (a Tabs element with className tabbar), mapping each store Tab through toDescriptor then deriveLabel (TabBar.tsx:53), which returns a plain string with no length cap. Per docs/architecture.md the tabbar visual contract spans two CSS files: Tabs.css carries the tabbar-scoped override block and TabBar.css carries the strip chrome. The per-tab cell is the tabbar tab-wrapper rule (Tabs.css:421); it sets a gap, a padding, and a right-border but no max-width, it does not shrink, and the tablist is content-width (the tabbar tab-list rule, Tabs.css:504), so each cell sizes to its content and grows with the title, pushing the actions rightward. A divergent cap sits on the label instead (the tabbar tab-label rule at max-width:200px, TabBar.css:88). The base tab-label rule (Tabs.css:196) already carries the nowrap, the overflow-hidden, and the text-overflow-ellipsis declarations, and the capped button (the tabbar tab rule, Tabs.css:493) is flex-filling with a zero min-width. The Playwright CT fidelity suite (Tabs.ct.tsx, established by feature 005) already asserts the tabbar tab-wrapper gap, padding, and border under the TabbarFidelityFixture, which mounts with tokens.css (playwright/index.tsx), TabBar.css, Shell.css, and a soft mstyle context; but no assertion pins the wrapper max-width, and no test pins the label cap.",
+  "desired_behavior": "The working-tabs tab cell shall hold a stable maximum width and truncate an overlong title with an ellipsis. Concretely, the tabbar tab-wrapper rule shall carry max-width:220px (the design tab-cell value from design-fidelity-contract section 5), and the divergent tabbar tab-label cap (max-width:200px in TabBar.css) shall be removed so the single cap lives on the cell, reusing the base tab-label ellipsis rule (Tabs.css:196). With the cell capped, an overlong title shall truncate with an ellipsis while the tab width stays at most 220px, with the plus button, the spacer, and the overflow chevron staying anchored. The change is tabbar-scoped (bare Tabs consumers unchanged) and CSS-only (no JS, markup, descriptor, or a11y change), with zero behaviour change to tab select, close, reorder, the dirty dot, the method chip, and active styling, and with the derived label text unchanged. The fidelity suite shall gain a computed-style assertion that the tabbar tab-wrapper max-width resolves to 220px, plus a no-growth test using a long-title fixture (the tab stays at most 220px, and its label shows an ellipsis). No tooltip and no min-width floor are added.",
   "affected_areas": [
     {
-      "area": "RequestBar styles (geometry + treatment)",
+      "area": "Tabs primitive styles (tabbar tab cell)",
       "files": [
-        "src/renderer/src/components/organisms/RequestBar.css"
+        "src/renderer/src/components/molecules/Tabs.css"
       ],
-      "impact": "Modify \u2014 restyle to reference fidelity using existing tokens: reference padding/gap + ~32px control height; bind --radius (7px) where reference uses it; add URL-input accent focus-ring box-shadow; Send solid-primary weight 600 + inset shadow + .kbd keycap styling; local .request-bar__method override presenting the bordered method-select treatment (no data-mstyle); .btn-ghost-style labelled Save/Share. All rules scoped under .request-bar."
+      "impact": "Modify \u2014 add max-width:220px to the tabbar tab-wrapper rule (Tabs.css:421), the design tab cell; tabbar-scoped, with no change to the base Tabs rules."
     },
     {
-      "area": "RequestBar markup (presentational classNames + labels)",
+      "area": "TabBar styles (divergent label cap)",
       "files": [
-        "src/renderer/src/components/organisms/RequestBar.tsx"
+        "src/renderer/src/components/organisms/TabBar.css"
       ],
-      "impact": "Modify \u2014 presentational only: add visible Save/Share text labels beside icons (drop now-redundant aria-label where visible text supplies the accessible name); add an aria-hidden kbd keycap inside Send rendered only in the enabled state; className/structure edits to match the reference. NO logic change \u2014 onSend, Cmd-Enter/Cmd-S, canSend, dirty/markClean, updateActiveSpec, per-tab selectors, data-mstyle invariant untouched."
+      "impact": "Modify \u2014 remove the divergent tabbar tab-label cap (the max-width:200px rule, TabBar.css:88); the base tab-label rule (Tabs.css:196) already supplies the overflow, the ellipsis, and the nowrap, so the cap relocates to the cell without losing truncation."
     },
     {
-      "area": "RequestBar fidelity + regression tests",
+      "area": "Fidelity + behavior tests",
       "files": [
-        "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx",
-        "src/renderer/src/components/organisms/__tests__/RequestBar.stories.tsx",
-        "src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx"
+        "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx",
+        "src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx"
       ],
-      "impact": "Create/extend \u2014 add Playwright CT computed-style EXACT-equality fidelity assertions on enumerated .request-bar props (heights, radius, focus ring, method-select treatment, Send weight/shadow, labelled actions) + a thresholded screenshot diff; reuse the existing tokens.css + data-mstyle=soft fixture scope and Radix two-step dismiss gate; existing behaviour/layout CT + unit tests must stay green (accessible names Send/Save/Share/GET preserved)."
+      "impact": "Create/extend \u2014 add a computed-style assertion that the tabbar tab-wrapper max-width resolves to 220px to the existing wrapper-geometry block, and add a long-title fixture plus a no-growth test (the cell stays at most 220px, with the label showing an ellipsis). Reuse the existing TabbarFidelityFixture styling context (tokens.css, TabBar.css, Shell.css, soft mstyle)."
     }
   ],
   "acceptance_criteria": [
@@ -479,8 +460,8 @@
       "ac_id": "AC-1",
       "subsection": "tooling_artifact_presence",
       "ears_variant": "ubiquitous",
-      "statement": "The renderer shall provide the RequestBar organism module and its sibling stylesheet under the organisms directory.",
-      "verification_command": "test -f src/renderer/src/components/organisms/RequestBar.tsx && test -f src/renderer/src/components/organisms/RequestBar.css",
+      "statement": "The Tabs stylesheet shall cap the working-tabs tab-cell wrapper width at 220px.",
+      "verification_command": "grep -qE 'max-width:[[:space:]]*220px' src/renderer/src/components/molecules/Tabs.css",
       "test_anchor": "",
       "n_a_reason": ""
     },
@@ -488,16 +469,16 @@
       "ac_id": "AC-2",
       "subsection": "tooling_artifact_presence",
       "ears_variant": "ubiquitous",
-      "statement": "The RequestBar source shall contain no design-export cruft markers such as data-om attributes, __OmT wrappers, or a tweaks-panel.",
-      "verification_command": "! grep -REn 'data-om-|__OmT|tweaks-panel' src/renderer/src/components/organisms/RequestBar.tsx",
+      "statement": "The TabBar stylesheet shall not set a 200px width cap on the tab label.",
+      "verification_command": "! grep -qE 'max-width:[[:space:]]*200px' src/renderer/src/components/organisms/TabBar.css",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-3",
       "subsection": "behavior_preservation",
-      "ears_variant": "ubiquitous",
-      "statement": "The renderer shall keep Shell as the sole writer of the document data-mstyle attribute, with the RequestBar never writing it.",
+      "ears_variant": "state_driven",
+      "statement": "WHILE the Tabs primitive is rendered without the tabbar class, the Tabs primitive shall leave the tab cell uncapped so bare Tabs consumers render unchanged.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -505,17 +486,17 @@
     {
       "ac_id": "AC-4",
       "subsection": "behavior_preservation",
-      "ears_variant": "state_driven",
-      "statement": "WHILE the active tab changes, the RequestBar shall render the newly active tab's method and url without leaking the previous tab's values.",
+      "ears_variant": "ubiquitous",
+      "statement": "The TabBar shall keep tab select, close, reorder, the dirty dot, the method chip, and active-tab styling unchanged by the width cap.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-5",
-      "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE the URL input is rendered it shall bind its border-radius to the var(--radius) token, and WHILE it is focused it shall present the reference accent focus treatment of an accent border plus an accent ring shadow.",
+      "subsection": "behavior_preservation",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the TabBar derives a tab label, the TabBar shall leave deriveLabel and its text output unchanged, altering only how an overlong title is rendered.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -524,16 +505,16 @@
       "ac_id": "AC-6",
       "subsection": "behavior_change",
       "ears_variant": "state_driven",
-      "statement": "WHILE the method pill is rendered, the RequestBar shall present the reference bordered method-select treatment of a border, an elevated background, the var(--radius) token, and bold coloured method text via a local request-bar method override, keeping per-method colour on the global method classes.",
+      "statement": "WHILE a tab is rendered in the TabBar, the tab-cell wrapper shall have a computed max-width of 220px.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-7",
-      "subsection": "behavior_preservation",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the user operates any RequestBar control or keyboard shortcut, the RequestBar shall preserve the feature-009 behaviour unchanged including the updateActiveSpec write path, the onSend intent, markClean on Save, and the canSend empty-after-trim guard.",
+      "subsection": "behavior_change",
+      "ears_variant": "state_driven",
+      "statement": "WHILE a tab title exceeds the capped cell width, the TabBar shall hold the tab at most 220px wide and truncate the title with an ellipsis rather than growing the cell.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -542,7 +523,7 @@
       "ac_id": "AC-8",
       "subsection": "behavior_change",
       "ears_variant": "state_driven",
-      "statement": "WHILE the RequestBar is rendered, the RequestBar shall apply the reference bar padding and gap and an approximately 32px control height from the design reference, asserted by computed-style equality in Playwright component tests.",
+      "statement": "WHILE multiple long-titled tabs are open, the TabBar shall keep the new-tab plus button, the spacer, and the overflow chevron anchored rather than pushed by growing tabs.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -550,59 +531,23 @@
     {
       "ac_id": "AC-9",
       "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE Send is enabled the RequestBar shall render Send as a solid-primary fill at the reference font weight with the reference inset-highlight shadow and a visible aria-hidden Cmd-Enter keycap.",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the fidelity suite runs, the suite shall assert the tab-cell max-width by exact computed-style equality to 220px in a real browser via Playwright component tests.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-10",
-      "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE Send is disabled the RequestBar shall not render the Cmd-Enter keycap.",
+      "subsection": "documentation",
+      "ears_variant": "ubiquitous",
+      "statement": "The new tab-cell max-width rule shall carry a comment that cites design-fidelity-contract section 5, recording that the cap moved off the label onto the cell.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-11",
-      "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE Save and Share are rendered the RequestBar shall present them as laid-out bordered actions with visible text labels beside their icons and shall keep Share a disabled no-op stub in its final slot.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-12",
-      "subsection": "behavior_change",
-      "ears_variant": "ubiquitous",
-      "statement": "The RequestBar fidelity styling shall be scoped under the request-bar selector so no other component is restyled.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-13",
-      "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the fidelity suite runs the enumerated computed-style properties shall be asserted by exact equality in a real browser via Playwright component tests backed by a thresholded screenshot diff within an explicit anti-aliasing pixel-threshold.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-14",
-      "subsection": "documentation",
-      "ears_variant": "ubiquitous",
-      "statement": "The touched RequestBar source shall document the request-bar-scoped fidelity treatment, the local method-select override, and the aria-hidden Cmd-Enter keycap rationale in comments.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-15",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
       "statement": "The renderer source shall pass strict type-checking.",
@@ -611,7 +556,7 @@
       "n_a_reason": ""
     },
     {
-      "ac_id": "AC-16",
+      "ac_id": "AC-12",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
       "statement": "The codebase shall pass ESLint without new errors.",
@@ -620,169 +565,113 @@
       "n_a_reason": ""
     },
     {
-      "ac_id": "AC-17",
+      "ac_id": "AC-13",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
       "statement": "The project shall build cleanly.",
       "verification_command": "npm run build",
       "test_anchor": "",
       "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-18",
-      "subsection": "hygiene",
-      "ears_variant": "ubiquitous",
-      "statement": "The touched RequestBar source shall contain no inline style attributes outside comments.",
-      "verification_command": "! grep -REn 'style=[{][{]' src/renderer/src/components/organisms/RequestBar.tsx | grep -vqE ':[[:space:]]*(\\*|//|/[*])'",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-19",
-      "subsection": "hygiene",
-      "ears_variant": "ubiquitous",
-      "statement": "The RequestBar unit and component test suites shall pass.",
-      "verification_command": "npx vitest run src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx",
-      "test_anchor": "",
-      "n_a_reason": ""
     }
   ],
   "ac_subsection_na": {
-    "ci_pipeline": "No CI pipeline changes; tests run via existing npm scripts (vitest/playwright), not a new pipeline stage.",
+    "ci_pipeline": "No CI pipeline changes; tests run via the existing npm scripts, not a new pipeline stage.",
     "hooks_gates": "No new git hooks or commit gates; the project's existing forge gates apply unchanged."
   },
   "out_of_scope": [
     {
-      "content": "Restoring the un-gated tokens.css .method.GET..OPTIONS{color} default rules (Approach 2 / hypothesis B from the research) is NOT done in 010 \u2014 it is a design-system-wide change deferred to a separate follow-up; the in-app pill is already coloured via Shell's default data-mstyle='soft', so 010 needs no tokens.css change.",
-      "finding_ref": "F-2026-06-28-requestbar-009-visual-drift-4"
-    },
-    {
-      "content": "Any behaviour change whatsoever \u2014 HTTP execution, the response view, RequestSpec read/write semantics, the onSend intent, the Cmd-Enter/Cmd-S shortcuts, dirty/markClean, the canSend guard, per-tab isolation \u2014 is excluded; 010 is presentational/CSS only.",
+      "content": "A native title-attribute tooltip showing the full title on truncated tabs; this stays pure overflow rendering, and a discoverability tooltip is a possible later feature.",
       "finding_ref": ""
     },
     {
-      "content": "Chrome outside the 009 RequestBar scope \u2014 Params/Auth/Headers/Body/Tests/Code sub-tabs, {{variable}} highlighting, the environment selector, the command palette, and the app header bar \u2014 is not touched.",
+      "content": "A min-width floor on tabs; tabs stay content-sized because the contract specifies a maximum only.",
       "finding_ref": ""
     },
     {
-      "content": "Reproducing design/reference.html markup or its generated export cruft (data-om-* attributes, __OmT wrappers, inline styles, tweaks-panel) \u2014 fidelity is rebuilt from semantic classes bound to tokens.css, never by copying the reference DOM.",
+      "content": "Functional tab overflow (tab measurement, a hidden-tab dropdown, scroll-into-view); the overflow chevron stays a static affordance, as before.",
       "finding_ref": ""
     },
     {
-      "content": "Separate dark-theme fidelity work \u2014 dark rendering is driven by the existing light/dark token pairs in tokens.css; no theme-specific geometry or layout work is in scope.",
+      "content": "Changing deriveLabel or its label-derivation precedence (name then method+url then Untitled); that derived text stays byte-identical, and only overflow rendering changes.",
       "finding_ref": ""
     },
     {
-      "content": "Repo-wide reformatting or unrelated housekeeping on this feature branch \u2014 it pollutes the /verify hygiene scope vs the breakdown baseline (lesson carried from features 001/002/005).",
+      "content": "The tabsStore lifecycle (open, dedupe, close never-zero, dirty, markClean); this feature touches only the tabbar tab-cell width CSS and its fidelity test.",
+      "finding_ref": ""
+    },
+    {
+      "content": "Bare Tabs consumers and the request-pane section-tabs consumer; the cap is tabbar-scoped, so other consumers render unchanged.",
+      "finding_ref": ""
+    },
+    {
+      "content": "Reproducing the design reference markup or its generated cruft (data-om attributes, wrapper nodes, inline styles, the tweaks panel); fidelity is matched via tokens-bound semantic classes, copying the values, not the code.",
       "finding_ref": ""
     }
   ],
   "constraints": [
     {
-      "kind": "follow",
-      "content": "Only Shell.tsx writes documentElement data-mstyle (AC-6 / \u00a74 Never)"
+      "kind": "constitution_anchor",
+      "content": "Search before building and reuse: reuse the base tab-label ellipsis rule (Tabs.css:196) and add only the missing cell cap; write no new truncation CSS.",
+      "constitution_ref": "3.6"
+    },
+    {
+      "kind": "constitution_anchor",
+      "content": "Minimal changes: touch only the tabbar tab-cell width cap (the wrapper-rule add plus the label-rule removal) and its fidelity test; do not modify unrelated tab CSS.",
+      "constitution_ref": "6.1"
+    },
+    {
+      "kind": "constitution_anchor",
+      "content": "Testing: the cell max-width computed-style assertion must run in Playwright CT because jsdom cannot resolve computed layout; co-locate under the __tests__ folder as a .ct.tsx file, reusing the established fidelity suite.",
+      "constitution_ref": "3.4"
     },
     {
       "kind": "follow",
-      "content": "Never use inline styles \u2014 class-based styling via cx() (\u00a74 Never)"
+      "content": "Design Fidelity: match the design-fidelity-contract tab-strip section so the cell carries max-width:220px and the label keeps nowrap, overflow-hidden, and ellipsis with no label cap; assert each token value as resolves-to-token, since the literal is the resolved value."
     },
     {
       "kind": "follow",
-      "content": "Prefer design tokens over literal style values (\u00a74 Prefer)"
-    },
-    {
-      "kind": "follow",
-      "content": "Search before building"
-    },
-    {
-      "kind": "follow",
-      "content": "Style exclusively via tokens-bound semantic class names from tokens.css; no inline styles; bind radius/colour/shadow/font to existing custom-properties (--radius, --accent, --border, --bg-elev, --fs-*); raw px only where no token exists (spacing). Never reproduce design-export markup (data-om-*, __OmT, tweaks-panel)."
-    },
-    {
-      "kind": "follow",
-      "content": "The fix is localised to RequestBar.css plus presentational RequestBar.tsx className/label edits; every reference value maps to an existing token, so no tokens.css/tokens.json change is required. Reuse the canonical .method/.{METHOD} convention (methodChipClassName, src/renderer/src/components/molecules/Tabs.tsx:117); introduce no new method-colour mechanism and no new runtime dependency."
-    },
-    {
-      "kind": "follow",
-      "content": "Scope all new fidelity CSS under the .request-bar selector (mirror the 005 .tabbar-scoping precedent) so the method pill and other .method consumers (TabBar) are not regressed; the method-pill treatment is a local override, never a data-mstyle write."
-    },
-    {
-      "kind": "follow",
-      "content": "Verify fidelity via tiered checks per the 005 precedent \u2014 computed-style EXACT equality on the enumerated props in Playwright CT (a real browser; jsdom cannot resolve these) plus a thresholded screenshot diff with an explicit anti-aliasing pixel-threshold (no eyeballing). CT fixtures must import tokens.css, set data-mstyle on the host, and apply the Radix two-step dismiss gate."
-    },
-    {
-      "kind": "follow",
-      "content": "Where a visible text label supplies a control's accessible name (Save/Share), drop the now-redundant aria-label to avoid double-labelling; the \u2318\u21b5 keycap is decorative and aria-hidden so the Send button's accessible name stays 'Send'. Existing CT/unit accessible-name queries (Send/Save/Share/GET) must still resolve."
+      "content": "Style exclusively via tokens-bound semantic class names with no inline styles; keep the cap tabbar-scoped so bare Tabs consumers are not regressed, reusing the existing tabbar-scoping precedent."
     },
     {
       "kind": "not_break",
-      "content": "All feature-009 behaviour must not regress \u2014 RequestSpec read/write, updateActiveSpec, the onSend intent, the Cmd-Enter/Cmd-S shortcut paths, dirty/markClean, the canSend empty-after-trim guard, per-tab render isolation, and Shell as the sole writer of data-mstyle (009 AC-6). The empty-state greyed-disabled Send is correct and preserved, not restyled away."
+      "content": "Bare Tabs consumers and the selection-only non-closable path must not regress; deriveLabel and its label-derivation precedence and the tabsStore lifecycle stay unchanged, since this is presentation CSS only."
     }
   ],
-  "open_questions": [
-    {
-      "question_id": "Q-1",
-      "content": "Exact reference geometry values (control height ~32px, --radius 7px binding, bar padding/gap, focus-ring spread, Send weight/shadow) are pulled from design/styles.css and runtime-confirmed via design-auditor at /plan before the fidelity ACs lock to concrete numbers.",
-      "category_no_dp_reason": ""
-    },
-    {
-      "question_id": "Q-2",
-      "content": "The exact screenshot-diff anti-aliasing pixel-threshold is deferred to /plan; the spec mandates an explicit threshold MUST be set (verification = computed-style equality + thresholded diff, not eyeballing), /plan fixes the concrete number (e.g. Playwright toHaveScreenshot threshold + maxDiffPixelRatio), mirroring 005 Q-2.",
-      "category_no_dp_reason": ""
-    },
-    {
-      "question_id": "Q-3",
-      "content": "The deferred design-system follow-up \u2014 restoring the un-gated tokens.css .method.GET..OPTIONS{color} defaults so the pill colours in no-data-mstyle isolation (CT/stories) \u2014 is tracked separately (scope decision: localised-now, file-tokens-follow-up); it is NOT part of 010 and may be filed as its own /research or bug.",
-      "category_no_dp_reason": ""
-    }
-  ],
+  "open_questions": [],
   "risks": [
     {
-      "risk": "CT fidelity flakiness: the Radix method-dropdown dismiss arm-race plus a missing data-mstyle/tokens.css context produce intermittent false pass/fail; and jsdom cannot resolve computed/pseudo styles, so a stale CT build cache can mask a clean source as broken.",
-      "likelihood": "Med",
-      "impact": "Med",
-      "mitigation": "Author fidelity asserts in Playwright CT (real browser); reuse the established fixture scope (import tokens.css + set data-mstyle='soft' on host) and the two-step dismiss gate; when a build/test error names a clean file, clear playwright/.cache, node_modules/.vite, dist and re-run before editing source (cache-clearing lesson logged 2026-06-24)."
+      "risk": "Removing the tabbar tab-label cap also drops its overflow, ellipsis, and nowrap declarations, but the base tab-label rule (Tabs.css:196) already provides them; if it did not, truncation would silently break.",
+      "likelihood": "Low",
+      "impact": "Low",
+      "mitigation": "Confirm the base ellipsis declarations are present before removal; keep the existing label flex and overflow CT assertions green; assert the ellipsis on the long-title fixture."
     },
     {
-      "risk": "Locking RequestBar.css to assumed reference values without a runtime check could enshrine a wrong geometry/treatment value \u2014 the diagnosis is code-confirmed against design/styles.css but not yet runtime-verified against the rendered reference.",
+      "risk": "The new cell cap could clip the active accent pseudo-element or the overflow chevron if overflow interacts with the cap.",
       "likelihood": "Low",
       "impact": "Med",
-      "mitigation": "Confirm the exact reference geometry/treatment via a runtime design-auditor screenshot + computed-style diff against design/reference.html (filled state) during /plan or /implement before locking the values; fidelity ACs assert against the confirmed values."
+      "mitigation": "Rely on the existing overflow-visible rule on the tabbar container; keep the active-pseudo and screenshot CT assertions green; a runtime design-auditor pass confirms no clipping."
     },
     {
-      "risk": "Dropping a control's aria-label while adding a visible text label could break existing CT/unit getByRole name queries (Send/Save/Share/GET) if the visible text does not supply an equivalent accessible name.",
-      "likelihood": "Low",
-      "impact": "Med",
-      "mitigation": "Ensure the visible label text equals the prior accessible name before removing aria-label; keep the \u2318\u21b5 keycap aria-hidden; run the existing RequestBar CT + unit suites as a regression gate."
-    },
-    {
-      "risk": "The local .request-bar__method override must out-specify the tokens.css [data-mstyle='soft'] .method.GET colour rules; a specificity miss could drop the per-method colour or the method-select treatment.",
+      "risk": "A short-title CT fixture would never trigger truncation, yielding a false pass on the no-growth assertion.",
       "likelihood": "Med",
       "impact": "Low",
-      "mitigation": "Follow the 009 .request-bar__method.method (0,2,0) specificity precedent; colour stays from the .method.{METHOD} path; assert the computed method-text colour + border treatment in CT."
-    }
-  ],
-  "approval_summary": "I've created the specification at `specs/010-request-bar-fidelity/spec.md`. Key points:\n- **What changes**: Close the visual-fidelity gap between the RequestBar organism (feature 009) and design/reference.html's request bar, in BOTH the empty and filled states, with ZERO behaviour change. 009 shipped functionally correct but visually drifted: ...\n- **Files affected**: 5 files across 3 areas\n- **Acceptance criteria**: 19 testable criteria across 5 AC categories\n- **Out of scope**: Restoring the un-gated tokens.css .method.GET..OPTIONS{color} default rules (App; Any behaviour change whatsoever \u2014 HTTP execution, the response view, RequestSpec; Chrome outside the 009 RequestBar scope \u2014 Params/Auth/Headers/Body/Tests/Code su; \u2026\n\nPlease review and either approve or request changes. Once approved, run `/plan` to create the technical implementation plan.",
-  "plan_handoff_block": "## Manual next step \u2014 run /plan\n\nA structured handoff (specs/010-request-bar-fidelity/handoff.json) is written for /plan. /plan auto-discovers it on its first run and reads the upstream plan-seeds \u2014 but you still launch /plan manually (there is no auto-dispatch from /specify). Restart Claude Code (exit and relaunch the CLI/app so the newly installed command is picked up), then run the command below in this repo. The spec path is explicit so /plan does not need most-recent-spec discovery:\n\n~~~\n/plan specs/010-request-bar-fidelity/spec.md\n~~~\n\nMinimum handoff data:\n- Spec status: Draft\n- Spec type: refactor\n- AC count: 19 across 5 subsections (5.1: 2, 5.2: 3, 5.3: 8, 5.4: 0, 5.5: 0, 5.6: 1, 5.7: 5)\n- Decision-point coverage: 3 answered, 0 default-applied, 0 deferred-OOS, 0 deferred-open-question\n- Affected areas: 3 across src\n- Out-of-scope items: 6\n- Open questions: 3\n- Constraints: 10\n- Risks: 4\n- Phase 1.5 finding coverage: 100% (all findings landed)\n\nReference: specs/010-request-bar-fidelity/spec.md",
-  "open_question_resolutions": [
-    {
-      "question_id": "Q-1",
-      "resolution_text": "Concrete reference values extracted from design/styles.css and fixed in the plan: .request-bar padding 12px 16px / gap 8px; control height 32px; --radius (7px) on URL input, method-select box, Send and ghost actions; URL focus = border-color var(--accent) + box-shadow 0 0 0 3px var(--accent-soft); Send var(--accent) fill weight 600 + box-shadow 0 1px 0 rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.15); .kbd font 11px / --text-faint / bg --bg-elev / border 1px --border / radius 3px / padding 1px 5px; method-select min-width 88px, padding 7px 10px 7px 12px, font-mono 700 11.5px. Runtime design-auditor diff confirms before lock.",
-      "resolution_phase": "plan",
-      "resolution_timestamp": "2026-06-28T19:17:09Z"
+      "mitigation": "Add an explicit long-title fixture and assert both the cap and the rendered ellipsis, baselining the width CT with realistic content rather than empty-versus-filled."
     },
     {
-      "question_id": "Q-2",
-      "resolution_text": "Plan fixes the Playwright screenshot-diff threshold for the RequestBar fidelity snapshot: toHaveScreenshot with maxDiffPixelRatio 0.01 and per-pixel threshold 0.2 (anti-aliasing tolerance), mirroring the 005 thresholded-diff precedent; computed-style EXACT-equality assertions remain the primary gate, the screenshot diff is the backstop.",
-      "resolution_phase": "plan",
-      "resolution_timestamp": "2026-06-28T19:17:09Z"
+      "risk": "A future method-chip width change could cause the title to truncate sooner inside the fixed cell.",
+      "likelihood": "Low",
+      "impact": "Low",
+      "mitigation": "Accepted; the cell cap is fixed and the label flexes, the chip width is bounded, and the earlier truncation is the intended overflow behaviour."
     }
   ],
+  "approval_summary": "I've created the specification at `specs/011-tab-width-cap/spec.md`. Key points:\n- **What changes**: Add the missing tab-cell width cap (max-width:220px) to the working-tabs TabBar so a tab holds a stable width and an overlong title ellipsis-truncates instead of stretching the tab and pushing the new-tab plus button and overflow actions...\n- **Files affected**: 4 files across 3 areas\n- **Acceptance criteria**: 13 testable criteria across 5 AC categories\n- **Out of scope**: A native title-attribute tooltip showing the full title on truncated tabs; this ; A min-width floor on tabs; tabs stay content-sized because the contract specifie; Functional tab overflow (tab measurement, a hidden-tab dropdown, scroll-into-vie; \u2026\n\nPlease review and either approve or request changes. Once approved, run `/plan` to create the technical implementation plan.",
+  "plan_handoff_block": "## Manual next step \u2014 run /plan\n\nA structured handoff (specs/011-tab-width-cap/handoff.json) is written for /plan. /plan auto-discovers it on its first run and reads the upstream plan-seeds \u2014 but you still launch /plan manually (there is no auto-dispatch from /specify). Restart Claude Code (exit and relaunch the CLI/app so the newly installed command is picked up), then run the command below in this repo. The spec path is explicit so /plan does not need most-recent-spec discovery:\n\n~~~\n/plan specs/011-tab-width-cap/spec.md\n~~~\n\nMinimum handoff data:\n- Spec status: Draft\n- Spec type: feature_addition\n- AC count: 13 across 5 subsections (5.1: 2, 5.2: 3, 5.3: 4, 5.4: 0, 5.5: 0, 5.6: 1, 5.7: 3)\n- Decision-point coverage: 4 answered, 0 default-applied, 0 deferred-OOS, 0 deferred-open-question\n- Affected areas: 3 across src\n- Out-of-scope items: 7\n- Open questions: 0\n- Constraints: 6\n- Risks: 4\n- Phase 1.5 finding coverage: 100% (all findings landed)\n\nReference: specs/011-tab-width-cap/spec.md",
+  "open_question_resolutions": [],
   "conflicts": [],
   "source": {
-    "handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/research/2026-06-28-requestbar-009-visual-drift/handoff.json",
-    "handoff_kind": "research",
-    "research_completed_at": "2026-06-28T18:19:41+00:00",
+    "handoff_path": null,
+    "handoff_kind": null,
+    "research_completed_at": null,
     "discover_completed_at": null,
     "discover_recommended_summary": null
   }

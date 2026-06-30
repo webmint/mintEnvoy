@@ -19,6 +19,7 @@
  *   TabsNonCloseReRenderFixture    — non-close re-render with focus inside list (AC-23 guard)
  *   TabsClosableRemoveTwoPhase     — two-phase close: close non-active tab then close active (AC-23 guard)
  *   TabbarFidelityFixture          — .tabbar-scoped closable strip for feature-005 fidelity (Task 009)
+ *   TabbarLongTitleFidelityFixture — two long-title tabs + one short for [011] AC-7/AC-8 width cap assertions (Task 002)
  *   TabbarInShellTabsFixture       — TabbarFidelityFixture inside .shell__tabs wrapper for AC-17 Shell-context assertion
  */
 
@@ -541,6 +542,93 @@ export function TabbarFidelityFixture(): React.JSX.Element {
         </>
       }
     />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TabbarLongTitleFidelityFixture — long-title variant for AC-7/AC-8 cap assertion
+// ---------------------------------------------------------------------------
+
+/**
+ * Fidelity fixture for the tab width cap assertions ([011] AC-7, AC-8, Task 002).
+ *
+ * Mounts <Tabs className="tabbar" closable> with MULTIPLE long-titled tabs so
+ * the "multiple long-titled tabs are open" condition from spec AC-8 is exercised.
+ * Each long label overflows 220px if the cap is absent, giving width and tablist
+ * measurements real content to compare against the 220px boundary.
+ *
+ * Baseline lesson (ct-layout-baseline-keycap-confound): never baseline against
+ * empty→filled, which conflates unrelated layout effects. Labels are pre-set.
+ *
+ * Cascade: tokens.css via playwright/index.tsx, TabBar.css + Shell.css
+ * (imported at top of this file), .tabbar className scope, and
+ * [data-mstyle="soft"] set in beforeEach by the consuming test suite.
+ * Unlike TabbarFidelityFixture, this fixture supplies its own border-box reset
+ * via the scoped `.ct-borderbox-scope` <style> so cap geometry matches
+ * production (playwright/index.tsx imports only tokens.css — base.css is NOT
+ * in the global harness; a global import would shift unrelated baselines).
+ * TabbarFidelityFixture has no border-box reset and is unaffected.
+ *
+ * Tab layout:
+ *   0 — "long-tab-1"  active, label ~65 chars → overflows at 12.5px font-size
+ *   1 — "long-tab-2"  second long tab → exercises "multiple long tabs" condition
+ *   2 — "short-tab"   short label for contrast
+ *
+ * Includes the standard actions row (.tabbar__new, .tabbar__spacer,
+ * .tabbar__overflow) so [011] AC-8 can assert the tablist width cap bound.
+ */
+export function TabbarLongTitleFidelityFixture(): React.JSX.Element {
+  const [activeId, setActiveId] = useState('long-tab-1')
+
+  // Labels long enough to clearly overflow 220px: at 12.5px, ~60 ASCII chars
+  // render at approximately 450px — well beyond the 220px cap.
+  const tabs: TabDescriptor[] = [
+    {
+      id: 'long-tab-1',
+      label: 'GET /api/v2/users/profile/settings/preferences/notifications/enabled'
+    },
+    {
+      id: 'long-tab-2',
+      label: 'POST /api/v2/organizations/members/permissions/roles/assignments'
+    },
+    { id: 'short-tab', label: 'POST /data' }
+  ]
+
+  // Reproduce production base.css `* { box-sizing: border-box }` for this
+  // fixture only, so the [011] AC-7 cap-geometry assertion (≤221px) measures
+  // border-box width (220px max-width caps the full border box) rather than
+  // content-box width (220 content + 22 padding + 1 border = 243px).
+  // A global base.css import in playwright/index.tsx would shift unrelated
+  // screenshot baselines (TabbarFidelityFixture, RequestBar) — so the reset is
+  // scoped to this fixture via the `ct-borderbox-scope` wrapper class.
+  // Reference: repo memory "CT fidelity fixture scoping".
+  return (
+    <div className="ct-borderbox-scope">
+      <style>{`.ct-borderbox-scope, .ct-borderbox-scope *, .ct-borderbox-scope *::before, .ct-borderbox-scope *::after { box-sizing: border-box; }`}</style>
+      <Tabs
+        aria-label="Long-title fidelity"
+        tabs={tabs}
+        activeId={activeId}
+        onChange={setActiveId}
+        className="tabbar"
+        closable
+        onClose={() => {}}
+        actions={
+          <>
+            {/* Mirror TabBar.tsx's actions row so CT tests can assert the + button
+                geometry and its anchored position after the capped tablist.
+                Same pattern as TabbarFidelityFixture (Task 009). */}
+            <button type="button" className="tabbar__new" aria-label="New tab">
+              <Icon name="plus" size={13} />
+            </button>
+            <span className="tabbar__spacer" />
+            <button type="button" className="tabbar__overflow" aria-label="More tabs">
+              <Icon name="chevronDown" size={13} />
+            </button>
+          </>
+        }
+      />
+    </div>
   )
 }
 

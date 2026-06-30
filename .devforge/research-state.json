@@ -1,35 +1,36 @@
 {
   "mode": "enhancement",
-  "topic_slug": "requestbar-009-visual-drift",
-  "verbatim_prompt": "The RequestBar organism built in 009-request-bar (components/organisms/RequestBar.tsx + RequestBar.css) renders functionally correct but visually drifts from design/reference.html. Against the reference's FILLED state the bar is too cramped (height/padding/internal spacing undersized), the URL input's border-radius and focus border don't match, the method pill does not show the per-method colour, the Send button's active (non-empty-url) state is not the solid-primary + \u2318\u21b5 affordance the reference shows, and Save/Share read as bare undersized icons rather than the reference's laid-out, labelled actions. Desired: RequestBar matches design/reference.html as a VISUAL reference with ZERO behaviour change \u2014 a pure styling pass (RequestBar.css + className edits in RequestBar.tsx) that leaves RequestSpec read/write, the onSend intent, the \u2318Enter/\u2318S shortcuts, dirty/markClean, the empty-after-trim canSend guard, and per-tab isolation untouched, with all existing unit + CT tests staying green. design/reference.html is a VISUAL reference ONLY \u2014 do NOT pattern after, transcribe, or import any design-export markup/JSX or cruft (data-om-*, __OmT, tweaks-panel); rebuild fidelity with semantic classes bound to tokens.css and token values from design/tokens.json. Suspected cause: the drift is token-APPLICATION in RequestBar.css (classes bind missing or wrong token custom-properties, and the method pill is not consuming the 005 .method/.{METHOD} colour convention), NOT a logic defect. Treat that as a CLAIM TO DISPROVE: verify against the real component + token graph whether the cause is (a) token APPLICATION local to RequestBar.css; (b) a token GAP where tokens.css itself lacks the needed spacing/radius/method-colour custom-properties; or (c) a method-pill wiring issue where per-method colour depends on data-mstyle which per 009 AC-6 ONLY Shell writes. EXCLUDE from the drift: the empty-state appearance where Send is greyed because canSend is false on an empty URL, and any chrome from epics outside 009's scope. Scope: localised to RequestBar if the cause is pure application; feature-wide if it is a token gap. unchanged_behaviour: no change to RequestSpec read/write, the onSend intent, \u2318Enter/\u2318S shortcut behaviour, dirty + markClean, the empty-after-trim Send guard, per-tab render isolation, and the Shell-as-sole-writer-of-data-mstyle invariant (009 AC-6) \u2014 RequestBar must still NOT write document.documentElement.dataset.mstyle.",
+  "topic_slug": "tabbar-tab-grows-with",
+  "verbatim_prompt": "A browser-style tab in an HTTP client's tab strip grows wider with its title instead of staying a fixed width \u2014 a long title stretches the tab across the strip and pushes the new-tab (+) button. Desired: each tab has a max-width with white-space:nowrap + text-overflow:ellipsis and does NOT reflow or grow with title length \u2014 long titles truncate to an ellipsis, tab width stays stable, the + button stays in place. Zero behaviour change: tab select/close/reorder, the dirty dot, the method chip, active-tab styling all stay; this is a pure CSS/layout constraint on the tab title. Scope: the TabBar / tab-strip (specs/002-tabs-primitive, specs/005-tab-bar-visual-fidelity), NOT the RequestBar. Visual fidelity is MANDATORY: design/reference.html is the VISUAL TARGET to match to pixel parity, and the exact resolved values are pre-extracted in design/styles.css and design/design-fidelity-contract.md (section 'Tab strip' \u2014 notably .tab max-width 220px and .tab-label white-space:nowrap/overflow:hidden/text-overflow:ellipsis, plus tab padding/gap/height) \u2014 use those exact computed-style values as the fidelity AC targets, treating var(--token) as resolves-to-token (not a literal hex). Copy the VALUES, never the CODE: the export carries generated cruft (data-om-* attributes, __OmT wrappers, inline styles, a tweaks-panel) that must NOT enter the build \u2014 rebuild with semantic class names bound to design/tokens.json. unchanged_behaviour: tab select/close/reorder, dirty dot, method chip, active styling, title text content (only overflow rendering changes); tests stay green.",
   "dimensions": {
     "symptom": {
-      "value": "Against design/reference.html's FILLED state, RequestBar drifts visually: bar too cramped (height/padding/internal spacing undersized); URL input border-radius + focus border wrong; method pill missing per-method colour; Send active (non-empty URL) not solid-primary + \u2318\u21b5 affordance; Save/Share are bare undersized icons not laid-out labelled actions. Empty-state Send greying is EXCLUDED (correct canSend guard).",
+      "value": "TabBar tabs flex-grow with their title text: a long title stretches the tab across the strip and pushes the new-tab (+) button. Tabs should hold a fixed max-width and ellipsis-truncate; tab width must stay stable and the + button stay anchored.",
       "state": "Clear",
       "turns": 0
     },
     "affected_area": {
-      "value": "RequestBar organism (src/renderer/src/components/organisms/RequestBar.tsx + co-located RequestBar.css) is definitely affected. tokens.css / design/tokens.json presumed correct but unverified \u2014 investigation must confirm whether the needed spacing/radius/method-colour custom-properties exist there or are a gap.",
+      "value": "Tab strip rendered by TabBar.tsx (organisms) via the shared <Tabs> molecule (molecules/Tabs.tsx). Tab button + label markup and base width CSS live in molecules/Tabs.css (.tabs/.tab/.tab-label); .tabbar-scoped overrides in organisms/TabBar.css. Title text derived in TabBar.tsx deriveLabel -> toDescriptor. Note: Tabs.css is the SHARED molecule base \u2014 other (currently non-mounted) consumers also use it.",
       "state": "Clear",
       "turns": 0
     },
     "repro_or_current": {
-      "value": "Mount RequestBar in the app request pane (or its story/CT harness) and render it. Most drift (cramped height/padding/spacing, wrong URL-input radius, greyscale method pill, bare undersized Save/Share) is visible immediately at render WITHOUT typing. Only the Send active solid-primary + \u2318\u21b5 affordance and the focus border require a non-empty URL / focus to observe. Compare against design/reference.html FILLED state.",
+      "value": "Open the request tab strip. A tab title comes from deriveLabel (method + URL/name) via toDescriptor. As soon as a title exceeds the cell's content width, the .tabbar .tabs__tab-wrapper cell grows with the title (no max-width; inherits flex-shrink:0; tablist is content-width via .tabbar .tabs__list flex:0 0 auto). The widening tab consumes strip space and pushes the +/spacer/overflow-chevron actions to the right; multiple long titles overflow the strip. Any title past the cell width grows the tab \u2014 no threshold.",
       "state": "Clear",
       "turns": 0
     },
     "desired": {
-      "value": "RequestBar visually matches design/reference.html in BOTH states (empty/not-filled AND filled): correct bar height/padding/internal spacing, matching URL-input border-radius + focus border, per-method coloured pill via the 005 .method/.{METHOD} class convention (NOT a data-mstyle write), Send active = solid-primary + \u2318\u21b5 affordance, Save/Share laid-out + labelled. The ONE exclusion: Send greyed-disabled on an empty URL is correct canSend-guard behaviour, not a drift to fix. Fidelity rebuilt with semantic classes bound to tokens.css (values from design/tokens.json) \u2014 NOT by importing design-export markup/cruft (data-om-*, __OmT, tweaks-panel). Zero behaviour change; all unit + CT tests green.",
+      "value": "Cap the tab cell so it never grows with title length and long titles truncate with an ellipsis. Concretely: add max-width:220px to .tabbar .tabs__tab-wrapper (the design's .tab equivalent), matching design-fidelity-contract section 5. The .tabs__tab-label ellipsis machinery (white-space:nowrap + overflow:hidden + text-overflow:ellipsis + flex:1) is already present and fires once the cap exists; the button already has min-width:0 + flex:1 1 auto. Tab width stays stable; +/spacer/overflow-chevron actions stay anchored. Computed-style fidelity AC targets per contract: wrapper max-width resolves 220px, padding 0 10px 0 12px, gap 8px, tab bar height 36px; var(--token) asserted as resolves-to-token (not literal hex).",
       "state": "Clear",
       "turns": 0
     },
     "scope": {
-      "value": "feature-wide",
+      "value": "one place",
       "state": "Clear",
-      "turns": 0
+      "turns": 0,
+      "evidence": "src/renderer/src/components/molecules/Tabs.css:421"
     },
     "unchanged_behavior": {
-      "value": "No change to: RequestSpec read/write; the onSend intent; \u2318Enter/\u2318S shortcut behaviour; dirty + markClean; the empty-after-trim canSend Send guard; per-tab render isolation; the Shell-as-sole-writer-of-data-mstyle invariant (009 AC-6) \u2014 RequestBar must still NOT write document.documentElement.dataset.mstyle. All existing unit + CT tests stay green.",
+      "value": "No behaviour change: tab select / close / reorder, the dirty dot, the method chip, active-tab styling, and the title text content itself stay identical \u2014 only overflow RENDERING changes (long title now ellipsis-truncates instead of growing the tab). Fix is .tabbar-scoped so bare .tabs consumers (section tabs, PrimitivesDemo) are untouched. All existing TabBar/Tabs unit + CT tests stay green; no JS/markup change.",
       "state": "Clear",
       "turns": 0
     }
@@ -37,25 +38,20 @@
   "gaps": [
     {
       "dimension": "desired",
-      "description": "Confirm the exact reference geometry/treatment target values via a runtime design-auditor screenshot + computed-style diff against design/reference.html (filled state) before locking RequestBar.css values \u2014 diagnosis is code-confirmed but not yet runtime-verified."
+      "description": "Confirm at runtime (Playwright CT computed-style or Chrome DevTools) that the relocated cell-level cap actually halts tab growth and fires the label ellipsis under the real .tabbar cascade \u2014 the grill seed flagged the CT harness not loading tokens.css, so the cascade must be proven before finalizing."
     },
     {
       "dimension": "desired",
-      "description": "Decide separately whether the shared stylesheet should expose un-prefixed per-verb default rules for contexts the shell has not initialised (CT/stories) \u2014 design-system-scope question, deferred from this localised pass."
+      "description": "Confirm at runtime (Playwright CT computed-style or Chrome DevTools) that the relocated cell-level cap actually halts tab growth and fires the label ellipsis under the real .tabbar cascade \u2014 the grill seed flagged the CT harness not loading tokens.css, so the cascade must be proven before finalizing."
     }
   ],
   "override_recorded": false,
   "conflicts": [],
   "intake_classifications": [
     {
-      "statement": "RequestBar must match design/reference.html's FILLED state visually (height/padding/spacing, URL input radius+focus border, per-method pill colour, Send active solid-primary + \u2318\u21b5 affordance, laid-out labelled Save/Share) with ZERO behaviour change \u2014 a pure styling pass over RequestBar.css + className edits in RequestBar.tsx, all unit+CT tests staying green.",
+      "statement": "TabBar tabs flex-grow with title length, stretching the strip and pushing the + button; they should hold a fixed max-width and ellipsis-truncate long titles (nowrap+overflow), tab width stable, + button anchored \u2014 matching design reference to pixel parity, zero behaviour change to select/close/reorder/dirty-dot/method-chip/active styling.",
       "kind": "requirement",
-      "minimal_fix": "Edit RequestBar.css (and RequestBar.tsx classNames only) so the filled-state classes bind the correct existing token custom-properties and the method pill uses the 005 .method/.{METHOD} class path; add tokens to tokens.css ONLY if a needed custom-property is proven absent. No JS/behaviour edits."
-    },
-    {
-      "statement": "Suspected cause: the drift is token-APPLICATION in RequestBar.css (classes bind missing/wrong token custom-properties; method pill not consuming the 005 .method/.{METHOD} colour convention), NOT a logic defect \u2014 possibly (a) local application, (b) a tokens.css gap, or (c) a method-pill data-mstyle wiring issue.",
-      "kind": "hypothesis",
-      "minimal_fix": null
+      "minimal_fix": "Constrain the tab element so it does not flex-grow: add max-width (per design contract \u2014 .tab 220px) and prevent flex-grow, and on the title/.tab-label apply white-space:nowrap + overflow:hidden + text-overflow:ellipsis. Bind to design/tokens.json values via semantic class names; do not import the export's generated cruft. No JS/behaviour changes."
     }
   ]
 }

@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.1",
+  "research_path": "research/2026-06-29-tabbar-tab-grows-with.md",
+  "research_completed_at": "2026-06-29T21:13:50+00:00",
+  "mode": "feature_addition",
+  "intent": {
+    "symptom_summary": "TabBar tabs flex-grow with their title text: a long title stretches the tab across the strip and pushes the new-tab (+) button. Tabs should hold a fixed max-width and ellipsis-truncate; tab width must stay stable and the + button stay anchored.",
+    "desired_summary": "Cap the tab cell so it never grows with title length and long titles truncate with an ellipsis. Concretely: add max-width:220px to .tabbar .tabs__tab-wrapper (the design's .tab equivalent), matching design-fidelity-contract section 5. The .tabs__tab-label ellipsis machinery (white-space:nowrap + overflow:hidden + text-overflow:ellipsis + flex:1) is already present and fires once the cap exists; the button already has min-width:0 + flex:1 1 auto. Tab width stays stable; +/spacer/overflow-chevron actions stay anchored. Computed-style fidelity AC targets per contract: wrapper max-width resolves 220px, padding 0 10px 0 12px, gap 8px, tab bar height 36px; var(--token) asserted as resolves-to-token (not literal hex).",
+    "scope": "feature-wide",
+    "verbatim_prompt": "A browser-style tab in an HTTP client's tab strip grows wider with its title instead of staying a fixed width \u2014 a long title stretches the tab across the strip and pushes the new-tab (+) button. Desired: each tab has a max-width with white-space:nowrap + text-overflow:ellipsis and does NOT reflow or grow with title length \u2014 long titles truncate to an ellipsis, tab width stays stable, the + button stays in place. Zero behaviour change: tab select/close/reorder, the dirty dot, the method chip, active-tab styling all stay; this is a pure CSS/layout constraint on the tab title. Scope: the TabBar / tab-strip (specs/002-tabs-primitive, specs/005-tab-bar-visual-fidelity), NOT the RequestBar. Visual fidelity is MANDATORY: design/reference.html is the VISUAL TARGET to match to pixel parity, and the exact resolved values are pre-extracted in design/styles.css and design/design-fidelity-contract.md (section 'Tab strip' \u2014 notably .tab max-width 220px and .tab-label white-space:nowrap/overflow:hidden/text-overflow:ellipsis, plus tab padding/gap/height) \u2014 use those exact computed-style values as the fidelity AC targets, treating var(--token) as resolves-to-token (not a literal hex). Copy the VALUES, never the CODE: the export carries generated cruft (data-om-* attributes, __OmT wrappers, inline styles, a tweaks-panel) that must NOT enter the build \u2014 rebuild with semantic class names bound to design/tokens.json. unchanged_behaviour: tab select/close/reorder, dirty dot, method chip, active styling, title text content (only overflow rendering changes); tests stay green."
+  },
+  "spec_seeds": {
+    "spec_type_hint": "feature_addition",
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Search before building (Key Rules / Always #12)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Design Fidelity principle (design-fidelity-contract section 5)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Minimal changes (Key Rules / Always #3) + .tabbar scoping",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [],
+    "risks": [],
+    "open_questions": [],
+    "value_semantics": [],
+    "value_production_sites": [],
+    "literal_archaeology": [],
+    "data_flow_chain": null
+  },
+  "plan_seeds": {
+    "recommended_approach_id": "relocate_the_cap_to_the_cell_contract_faithful",
+    "recommended_approach_summary": "Reuses the canonical truncation rule already present at src/renderer/src/components/molecules/Tabs.css:196 (it matches design-fidelity-contract B1) instead of writing any new styling, and derives its authority from design-fidelity-contract section 5. The single cell-level cap resolves the tab-growth symptom under every enumerated framing, so no flex-layer change is needed. It satisfies unchanged_behavior: the change is .tabbar-scoped and CSS-only, so select/close/reorder, the dirty dot, the method chip, active styling, and the rendered text stay byte-identical; the sole visible difference is how an overlong title is clipped. Bare .tabs consumers are untouched. Runtime behaviour is deferred to the computed-style probe captured under Open Uncertainties before finalizing.",
+    "layer_destination": "tbd",
+    "layer_justification": "multi-layer",
+    "complexity": {
+      "changes": "Low",
+      "risk": "Low",
+      "verify_cost": "Low"
+    },
+    "cited_canonical_patterns": [],
+    "alternatives_considered": [
+      {
+        "id": "bump_the_label_cap_value_200_to_220_on_the_label",
+        "summary": "Change .tabbar .tabs__tab-label max-width from 200px to 220px in place (TabBar.css:88); leave the cap on the label.",
+        "rejected_reason": "not recommended; see /plan if needed"
+      }
+    ],
+    "proposed_call_shape": null,
+    "correctness_vetted": false
+  },
+  "probe": {
+    "tier": "1.5",
+    "actor": "llm",
+    "discriminator": {
+      "primary_confirms_if": "tbd \u2014 populated by Step 4 probe-tier classifier",
+      "runner_up_confirms_if": "if test FAILS but with different assertion outcome \u2192 runner-up applies; LLM evaluates output diff",
+      "both_disproved_if": "if test PASSES with current code \u2192 both hypotheses are wrong; widen investigation",
+      "production_site_check": null
+    },
+    "feasibility_check": {
+      "data_shape_only": true,
+      "auth_required": false,
+      "network_dependent": false,
+      "timing_dependent": false,
+      "is_test_code": false
+    },
+    "test_framework": null,
+    "test_path": null,
+    "script_path": "research/2026-06-29-tabbar-tab-grows-with/probe-script.mjs",
+    "is_first_test_for_file": false
+  },
+  "downstream_links": {
+    "spec_path": "specs/011-tabbar-tab-grows-with/spec.md",
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}

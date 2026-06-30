@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/011-tab-width-cap/tasks",
+  "breakdown_completed_at": "2026-06-29T23:05:02Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/011-tab-width-cap/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/011-tab-width-cap/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/011-tab-width-cap/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "relocate-width-cap-to-tab-cell",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "002"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/molecules/Tabs.css",
+        "src/renderer/src/components/organisms/TabBar.css"
+      ],
+      "expects": [
+        "The `.tabbar .tabs__tab-wrapper` rule exists in `Tabs.css` and carries no `max-width`.",
+        "The `.tabbar .tabs__tab-label` rule with a `max-width: 200px` declaration exists in `TabBar.css`.",
+        "The base `.tabs__tab-label` rule in `Tabs.css` carries the `white-space:nowrap` + `overflow:hidden` + `text-overflow:ellipsis` declarations."
+      ],
+      "produces": [
+        "The `.tabbar .tabs__tab-wrapper` rule in `Tabs.css` contains `max-width: 220px`.",
+        "The `.tabbar .tabs__tab-label` rule in `TabBar.css` contains no `max-width: 200px` declaration.",
+        "The base `.tabs__tab-label` ellipsis declarations in `Tabs.css` are unchanged.",
+        "No change to `TabBar.tsx`, `Tabs.tsx`, or any non-CSS file (deriveLabel and the descriptor contract stay byte-identical)."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-10",
+        "AC-11",
+        "AC-12",
+        "AC-13"
+      ],
+      "doc_refs": [
+        "design/design-fidelity-contract.md (\u00a75 Tab strip)"
+      ],
+      "review_checkpoint": false
+    },
+    {
+      "number": "002",
+      "title": "ct-cap-assertion-and-no-growth-test",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx",
+        "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx"
+      ],
+      "expects": [
+        "The `.tabbar .tabs__tab-wrapper` rule in `Tabs.css` contains `max-width: 220px`.",
+        "`TabbarFidelityFixture` exists in `Tabs.stories.tsx` and mounts under the `.tabbar` + `tokens.css` + `[data-mstyle=\"soft\"]` cascade."
+      ],
+      "produces": [
+        "`Tabs.stories.tsx` exports a long-title fidelity fixture whose title overflows the 220px cell.",
+        "`Tabs.ct.tsx` asserts `.tabbar .tabs__tab-wrapper` computed `max-width` equals `220px`.",
+        "`Tabs.ct.tsx` asserts a long-title tab cell width is \u2264 220px and its label computed `text-overflow` is `ellipsis`."
+      ],
+      "ac_addressed": [
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-9",
+        "AC-11",
+        "AC-12",
+        "AC-13"
+      ],
+      "doc_refs": [
+        "design/design-fidelity-contract.md (\u00a75 Tab strip)"
+      ],
+      "review_checkpoint": true
+    }
+  ],
+  "additions": [
+    "None \u2014 the plan's File Impact (4 files) maps cleanly onto the two tasks; no files discovered during analysis beyond the plan."
+  ],
+  "dependency_graph": "001 (relocate-width-cap-to-tab-cell) \u2500\u2500\u2192 002 (ct-cap-assertion-and-no-growth-test)"
+}
