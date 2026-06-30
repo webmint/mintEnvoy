@@ -16,8 +16,8 @@
   --border-faint: #f0efed;
 
   --text: #18181b;
-  --text-muted: #71717a;
-  --text-faint: #a1a1aa;
+  --text-muted: #6c6c75;
+  --text-faint: #6e6e77;
   --text-inverse: #ffffff;
 
   --shadow-sm: 0 1px 0 rgba(24, 24, 27, 0.04), 0 1px 2px rgba(24, 24, 27, 0.04);
@@ -59,7 +59,7 @@
 
   --text: #f4f4f5;
   --text-muted: #a1a1aa;
-  --text-faint: #71717a;
+  --text-faint: #787881;
   --text-inverse: #0c0c0d;
 
   --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.4);
@@ -682,6 +682,13 @@ textarea {
   text-overflow: ellipsis;
   flex: 1;
 }
+.tab .tab-label.dirty {
+  font-style: italic;
+  color: var(--m-put);
+}
+[data-theme="dark"] .tab .tab-label.dirty {
+  color: var(--m-put);
+}
 
 .tab .tab-rename {
   flex: 1;
@@ -700,8 +707,9 @@ textarea {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--text-faint);
+  background: var(--m-put);
   flex-shrink: 0;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--m-put) 22%, transparent);
 }
 
 .tab .tab-close {
