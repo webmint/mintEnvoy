@@ -424,6 +424,12 @@
   gap: 8px;
   padding: 0 10px 0 12px;
   border-right: 1px solid var(--border, #e8e6e3);
+  /* design-fidelity-contract §5: max-width cap belongs on the tab cell, not the
+     label. Cap relocated here from .tabbar .tabs__tab-label (TabBar.css). The
+     base .tabs__tab-label ellipsis triple (white-space / overflow / text-overflow)
+     fires once this wrapper reaches its limit. Bare .tabs consumers (no .tabbar)
+     remain uncapped (AC-3). */
+  max-width: 220px;
 }
 
 /**

@@ -210,7 +210,7 @@ The Tabs primitive does NOT wrap Radix Tabs, departing from the Dropdown/Modal/T
 - `method?: string` — renders a `<span aria-hidden="true">` chip before the label using global class names `.method` and `.{METHOD}` (e.g. `.GET`, `.DELETE`); unknown methods use the base `.method` class only (uncolored). See hazards below.
 - `dirty?: boolean` — in the closable branch, replaces the ✕ button with a non-focusable `<span class="tabs__tab-dirty">` dot; Delete/Backspace on the focused tab still fires `onClose` regardless of dirty state.
 
-**Hazard: `.tabbar` visual contract spans two CSS files.** `TabBar` passes `className="tabbar"` to the Tabs primitive. The full visual treatment is split: `Tabs.css` carries a `.tabbar`-scoped override block (compound selectors prefixed with `.tabbar`) that changes geometry, active treatment, hover fill, tablist flex, and overflow; `TabBar.css` carries strip chrome (height, background, bottom border). Both files must be read together when debugging or changing TabBar appearance.
+**Hazard: `.tabbar` visual contract spans two CSS files.** `TabBar` passes `className="tabbar"` to the Tabs primitive. The full visual treatment is split: `Tabs.css` carries a `.tabbar`-scoped override block (compound selectors prefixed with `.tabbar`) that changes geometry, active treatment, hover fill, tablist flex, and overflow; `TabBar.css` carries strip chrome (height, background, bottom border). Both files must be read together when debugging or changing TabBar appearance. The tab-cell width cap (`max-width: 220px`, design-fidelity-contract §5) lives on `.tabbar .tabs__tab-wrapper` in `Tabs.css` (feature 011); `TabBar.css` carries no label-scoped truncation override.
 
 <!-- src/renderer/src/components/molecules/Tabs.css:392 -->
 
