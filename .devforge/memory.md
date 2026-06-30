@@ -63,6 +63,8 @@
 - **[Task 001 / 010-request-bar-fidelity]**: restyle-requestbar-markup-labels-keycap — completed. _(Task 001)_
 - **[Task 002 / 010-request-bar-fidelity]**: rewrite-requestbar-css-fidelity — completed. _(Task 002)_
 - **[Task 003 / 010-request-bar-fidelity]**: add-ct-fidelity-suite — completed. _(Task 003)_
+- **[Task 001 / 011-tab-width-cap]**: relocate-width-cap-to-tab-cell — completed. _(Task 001)_
+- **[Task 002 / 011-tab-width-cap]**: ct-cap-assertion-and-no-growth-test — completed. _(Task 002)_
 ## 2026-06-22 — /verify scope pollution (feature 001-ui-primitives)
 
 **Lesson**: /verify computed NEEDS WORK entirely from artifacts, not real defects. Causes: (1) `review.md` was stale — its 7 confirmed findings were already remediated by `/fix` before `/verify` ran (re-run `/review` after `/fix` to refresh); (2) the assembled-diff scope is `main..HEAD`, which here includes framework reformats (a repo-wide `prettier --write .`), `specs/`, `.devforge/`, and `docs/` housekeeping commits → 147 scope-creep + most leftover flags are NON-feature files; (3) the leftover-artifact detector flags ordinary `//` explanatory comments as `commented_code_block` (56 false positives in feature test files). Real feature signal was clean: 24/24 AC PASS, mechanical PASS, src/renderer hygiene clean.

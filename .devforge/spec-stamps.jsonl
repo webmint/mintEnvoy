@@ -5,3 +5,4 @@
 {"git_sha": "a8dadf636d0ab39a9a81db89f3dc27f8cc38666d", "spec_path": "specs/008-dropdown-ct-dismiss/spec.md", "stamped_at": "2026-06-27T17:38:39Z"}
 {"git_sha": "48b333be54b343936f43fe257ef83d105646aaef", "spec_path": "specs/009-request-bar/spec.md", "stamped_at": "2026-06-28T08:30:29Z"}
 {"git_sha": "11bbde2ee33c17291fb821cc72aff8076dffd28a", "spec_path": "specs/010-request-bar-fidelity/spec.md", "stamped_at": "2026-06-28T19:10:46Z"}
+{"git_sha": "f072056da21bc87cd1d6e986a3694bc2d6e1a041", "spec_path": "specs/011-tab-width-cap/spec.md", "stamped_at": "2026-06-29T22:08:09Z"}
