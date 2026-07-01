@@ -1,12 +1,12 @@
 # Bug 002: Leftover ping debug artifact in main
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Info
 **Source**: manual
 **Feature**: N/A
 **AC**: N/A
 **Reported**: 2026-06-24
-**Fixed**:
+**Fixed**: 2026-07-01
 
 ## Description
 
@@ -36,4 +36,4 @@ _None — standalone bug._
 
 ## Fix Notes
 
-_Filled in after resolution._
+Verified resolved (2026-07-01): `src/main/index.ts` no longer contains the `ipcMain.on('ping', () => console.log('pong'))` handler (nor any `ping`/`pong` reference), and no renderer/preload caller remains. `ipcMain` is no longer even imported. No debug artifact present. Status was stale.

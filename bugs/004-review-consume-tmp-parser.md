@@ -1,12 +1,12 @@
 # Bug 004: review consume-tmp parser drops findings on field-label format variants
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning
 **Source**: manual
 **Feature**: N/A
 **AC**: N/A
 **Reported**: 2026-06-29
-**Fixed**:
+**Fixed**: 2026-07-01
 
 ## Description
 
@@ -36,4 +36,4 @@ _None — standalone bug._
 
 ## Fix Notes
 
-_Filled in after resolution._
+Verified resolved (2026-07-01). The shared parser `.devforge/lib/_shared/_consume.py` now runs a fence-aware `_normalize_label_lines` pass at the top of `_parse_finding_block` (called at line 278). It rewrites decorated `## Finding N` label lines to canonical `Label: value` form before the existing field regexes run: `_RE_DECORATED_LABEL_LINE` tolerates leading indent, one optional list bullet (`- Severity:`), and surrounding bold (`**Severity**:` / `**Severity:**`); for the six single-line fields (Severity, File, Line, Pattern, Confidence, Category) `_strip_inline_code` strips surrounding backticks from the value (e.g. `` `src/.../RequestBar.css` `` → `src/.../RequestBar.css`). Fence-aware so evidence code bodies are never rewritten. Since `/review` consume-tmp and `/audit` share this parser, both label-format variants and backtick-wrapped File paths now parse instead of silently dropping to 0 findings.

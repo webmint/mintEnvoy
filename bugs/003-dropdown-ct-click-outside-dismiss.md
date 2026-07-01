@@ -1,9 +1,10 @@
 # Bug 003: Dropdown CT — clicking outside the menu does not close it
 
-**Status**: Open
+**Status**: Fixed
 **Source**: manual
 **Severity**: Warning
 **Filed**: 2026-06-26
+**Fixed**: 2026-07-01
 **File**: src/renderer/src/components/molecules/**tests**/Dropdown.ct.tsx:185
 
 ## Description
@@ -32,3 +33,7 @@ Re-observed during feature `006-reorganize-flat-components` verification. Still 
 - `Dropdown.ct.tsx:236` — `AC-3 focus return after click-outside › focus returns to the trigger button after the menu closes via click-outside` — a downstream symptom (focus return cannot fire because the click-outside dismissal never happens).
 
 CT suite is 125/127 (these 2 are the sole failures). Investigate the root dismissal failure once; both tests should recover together.
+
+## Fix Notes
+
+Verified resolved (2026-07-01). Root cause was the Radix `DismissableLayer` arm-race: its outside-click `pointerdown` listener is armed via `setTimeout(0)`, so an immediate `page.mouse.click` outside raced the arm. Both affected tests in `Dropdown.ct.tsx` now precede the outside-click with a readiness floor — `await menu.evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)))` then `await page.evaluate(() => new Promise(r => setTimeout(r, 0)))` — guaranteeing the deferred listener has fired (macrotask boundary, not a fixed delay). Re-ran `playwright test Dropdown.ct.tsx -g "outside"` → 3 passed (3.5s), including AC-4 dismiss, the reduced-motion macrotask-floor variant, and AC-3 focus-return-after-click-outside. Test-only fix, no production change.
