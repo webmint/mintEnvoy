@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.1",
+  "research_path": "research/2026-06-30-requestbar-visually-drifts-from.md",
+  "research_completed_at": "2026-06-30T20:32:11+00:00",
+  "mode": "feature_addition",
+  "intent": {
+    "symptom_summary": "RequestBar drifts from design/reference.html on 5 presentational props an earlier fidelity pass (spec 010) did not enumerate: method-trigger font/colour/treatment, method dropdown OPEN PANEL styling, URL input (missing leading link icon + wrong font + wrong placeholder string), Save hover state, Share rendered with text label instead of icon-only.",
+    "desired_summary": "Every listed element matches design/reference.html to pixel parity using the exact resolved values pre-extracted in design/styles.css + design-fidelity-contract.md (var(--token)=resolves-to-token; color-mix(...) at token level), bound to semantic class names from design/tokens.json (no export cruft: data-om-*, __OmT, inline styles, tweaks-panel). Dispositions: MATCH 'Request bar' + 'Method colours (per verb)' for the listed elements; Share MATCHES .btn-ghost but icon-only + stays disabled; 'Send split-dropdown' section DEVIATE/OUT. URL placeholder equals exactly 'Enter URL or paste cURL command\u2026' (literal, no cURL behaviour).",
+    "scope": "feature-wide",
+    "verbatim_prompt": "The RequestBar of an HTTP client visually drifts from the design reference on several presentational props an earlier fidelity pass did not enumerate: (1) the method-select trigger's font-family, text colour and surrounding treatment; (2) the method dropdown's OPEN PANEL (menu) styling; (3) the URL input \u2014 a missing leading link icon, a wrong font, and a placeholder that must match the reference string exactly (\"Enter URL or paste cURL command\u2026\", a literal placeholder only \u2014 NO cURL behaviour implied); (4) the Save button's hover state; (5) the Share button carries a visible text label but the reference shows it icon-only. Fix these as exact computed-style targets, zero behaviour change. Visual fidelity is MANDATORY: design/reference.html is the VISUAL TARGET to match to pixel parity, and the exact resolved values are pre-extracted in design/styles.css and design/design-fidelity-contract.md \u2014 use those exact computed-style values, treating var(--token) as resolves-to-token (not a literal hex) and color-mix(...) at token level. Copy the VALUES, never the CODE: the export carries generated cruft (data-om-* attributes, __OmT wrappers, inline styles, a tweaks-panel) that must NOT enter the build \u2014 rebuild with semantic class names bound to design/tokens.json. Apply ONLY this disposition (the contract is the full reference menu; the app diverges from parts of it): MATCH the \"Request bar\" and \"Method colours (per verb)\" sections for the elements above; Share values MATCH .btn-ghost BUT assert it icon-only (no text label) and keep Share disabled (no behaviour assertion); DEVIATE/OUT on the \"Send split-dropdown\" section \u2014 the app ships a simple Send with no split (that surface is the send-options feature, not this bug). Scope: RequestBar.css + presentational RequestBar.tsx (URL link icon, exact placeholder, drop Share label) + the Dropdown molecule's menu panel; tab-title behaviour, Send-options, and Share enable/behaviour are out; tests stay green."
+  },
+  "spec_seeds": {
+    "spec_type_hint": "feature_addition",
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Only Shell writes documentElement data-mstyle (\u00a74 Never / 009 AC-6)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Never use inline styles \u2014 class-based styling via cx() (\u00a74 Never)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Prefer design tokens over literal values (\u00a74 Prefer)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Search before building",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [],
+    "risks": [
+      {
+        "risk": "Behaviour paths untouched. Main risk is the shared Dropdown molecule ripple (PrimitivesDemo + visual snapshots) and CT fidelity needing the data-mstyle=soft context (005 fixture-scoping).",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "tbd via /plan"
+      }
+    ],
+    "open_questions": [],
+    "value_semantics": [],
+    "value_production_sites": [],
+    "literal_archaeology": [],
+    "data_flow_chain": null
+  },
+  "plan_seeds": {
+    "recommended_approach_id": "localized_requestbar_fidelity_pass_bounded_dropdown_panel_alignment",
+    "recommended_approach_summary": "Fits the stated scope and the project reuse-first rule: it consumes the existing atom at src/renderer/src/components/atoms/icons.ts:72 rather than building a new one, and leaves the document-level marker attribute under its sole owner (Shell) untouched. Honours unchanged_behavior \u2014 the send path, the canSend guard, dirty/markClean and the disabled action stub are not modified, so unit and CT suites stay green. Per-element computed-style targets and the precise scope live in the Codebase Findings table and the Open Uncertainties; full-parity confirmation is deferred to the verify step.",
+    "layer_destination": "tbd",
+    "layer_justification": "multi-layer",
+    "complexity": {
+      "changes": "Med",
+      "risk": "Med",
+      "verify_cost": "Med"
+    },
+    "cited_canonical_patterns": [],
+    "alternatives_considered": [
+      {
+        "id": "requestbar_only_pass_defer_the_shared_dropdown_panel",
+        "summary": "Apply only the RequestBar.css/.tsx fixes (URL .url-bar + link icon + placeholder, Share icon-only, method-trigger tidy, Save hover) and leave the Dropdown molecule untouched, deferring the method-menu panel alignment to a separate design-system change.",
+        "rejected_reason": "not recommended; see /plan if needed"
+      }
+    ],
+    "proposed_call_shape": null,
+    "correctness_vetted": false
+  },
+  "probe": {
+    "tier": "3",
+    "actor": "user",
+    "discriminator": {
+      "primary_confirms_if": "If all computed styles equal design/styles.css targets -> PRIMARY (A) confirmed, static-CSS fix sufficient. If method-trigger/Save-hover already match but URL/Share/Dropdown differ -> A confirmed for those and C's residual is null. If any target value maps to a missing token -> RUNNER-UP (B) confirmed.",
+      "runner_up_confirms_if": "tbd \u2014 manual observation required",
+      "both_disproved_if": "tbd",
+      "production_site_check": null
+    },
+    "feasibility_check": {
+      "data_shape_only": false,
+      "auth_required": false,
+      "network_dependent": false,
+      "timing_dependent": false,
+      "is_test_code": false
+    },
+    "test_framework": null,
+    "test_path": null,
+    "script_path": null,
+    "is_first_test_for_file": false
+  },
+  "downstream_links": {
+    "spec_path": null,
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}

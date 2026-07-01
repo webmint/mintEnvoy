@@ -1,0 +1,184 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/012-requestbar-element-fidelity/plan.md",
+  "plan_completed_at": "2026-07-01T06:55:07Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/012-requestbar-element-fidelity/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/012-requestbar-element-fidelity/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "Presentation \u2014 organisms",
+        "what": "RequestBar markup restructure: wrap URL input in `.url-bar` flex container with leading aria-hidden `<Icon name=\"link\">`, exact placeholder, icon-only Share + `aria-label=\"Share\"`, keep Save label \u2014 presentational only, no logic",
+        "files": "src/renderer/src/components/organisms/RequestBar.tsx"
+      },
+      {
+        "layer": "Presentation \u2014 organisms (styles)",
+        "what": "`.url-bar` container + focus-within ring; `.method-select` treatment with `justify-content:center` removed and `color` still unset; `.btn-ghost` Save rest+hover; seven `[data-mstyle='chip']` counter-rules kept in lockstep with `METHODS`; all scoped under `.request-bar`",
+        "files": "src/renderer/src/components/organisms/RequestBar.css"
+      },
+      {
+        "layer": "Presentation \u2014 molecules (shared)",
+        "what": "Open-panel rebind: `.dropdown-content` `box-shadow var(--shadow-lg)` + 1px inter-item gap; `.dropdown-item` padding `6px 8px` \u2014 bounded cross-component change, ripples to dev-only PrimitivesDemo",
+        "files": "src/renderer/src/components/molecules/Dropdown.css"
+      },
+      {
+        "layer": "Support \u2014 atoms (reuse only)",
+        "what": "Existing `link` Icon consumed as URL leading icon \u2014 no change",
+        "files": "src/renderer/src/components/atoms/icons.ts"
+      },
+      {
+        "layer": "Test \u2014 CT/unit",
+        "what": "Computed-style EXACT-equality Playwright CT on the five props + thresholded screenshot diff; tokens.css + `data-mstyle='soft'` fixture, Radix two-step dismiss gate, non-empty-URL no-reflow baseline, mstyle variants beyond soft; rebaseline Dropdown panel snapshot; existing suites stay green",
+        "files": "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx, .../__tests__/RequestBar.test.tsx, src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "URL field structure",
+        "chosen_approach": "`.url-bar` flex container [aria-hidden link Icon + existing input, gap 6px]; input stays bound to `RequestSpec.url` via `updateActiveSpec`; `canSend` trim guard reads same value",
+        "why": "Matches reference `.url-bar`; icon is decorative so aria-hidden; zero behaviour change preserves 009/010 (AC-3/AC-12); Icon reused from atoms",
+        "alternatives_rejected": "Bare input with `::before` pseudo-icon \u2014 can't host the SVG atom, duplicates icon markup"
+      },
+      {
+        "decision": "Method-trigger color",
+        "chosen_approach": "Keep `color` UNSET on `.request-bar .request-bar__method.method`; remove only the extra `justify-content:center`",
+        "why": "Documented cascade hazard: per-method colour falls through `[data-mstyle]` at the (0,3,0) tie won by source-order; adding `color` kills all seven per-method colours with no compile error (AC-13)",
+        "alternatives_rejected": "Setting explicit per-method `color` on the trigger \u2014 reintroduces the hazard docs/architecture.md warns against"
+      },
+      {
+        "decision": "Chip counter-rules",
+        "chosen_approach": "Keep the seven `(0,5,0)` `[data-mstyle='chip']` per-method counter-rules in lockstep with `METHODS` in httpMethods.ts",
+        "why": "Removing/drifting any reintroduces the white-on-white chip regression; CT asserts per-method computed colour across mstyle variants, not just soft",
+        "alternatives_rejected": "Dropping counter-rules assuming soft-only usage \u2014 Shell can set any mstyle"
+      },
+      {
+        "decision": "Share accessible name",
+        "chosen_approach": "Drop visible text node (icon-only), restore `aria-label=\"Share\"`; stays disabled no-op in final slot",
+        "why": "Visible text previously supplied the accessible name; icon-only without aria-label breaks `getByRole` name queries (AC-8, AC-6)",
+        "alternatives_rejected": "Icon-only with no aria-label \u2014 silently breaks accessible-name regression queries"
+      },
+      {
+        "decision": "Save button",
+        "chosen_approach": "Keep visible label; bind reference `.btn-ghost` rest (color `--text-muted`, border `--border`, bg `--bg-elev`) + hover (color `--text`, border-color `--border-strong`)",
+        "why": "Reference keeps Save labelled; hover is pure treatment via existing tokens (AC-9)",
+        "alternatives_rejected": "Icon-only Save \u2014 reference shows labelled; out of scope"
+      },
+      {
+        "decision": "Shared Dropdown panel rebind",
+        "chosen_approach": "Edit shared `Dropdown.css` in place: `box-shadow var(--shadow-lg)`, 1px inter-item gap, `.dropdown-item` padding `6px 8px`; accept ripple to PrimitivesDemo + rebaseline snapshot",
+        "why": "Panel is IN scope (defer-alternative rejected at /specify); only consumers are RequestBar + dev-only tree-shaken PrimitivesDemo, so blast radius is bounded and deliberate (AC-10)",
+        "alternatives_rejected": "Fork a RequestBar-local dropdown panel class \u2014 duplicates the molecule, violates DRY"
+      },
+      {
+        "decision": "Token binding",
+        "chosen_approach": "Bind all shadow/radius/colour/padding to EXISTING tokens (`--shadow-lg`, `--radius-md`, `--radius`, `--bg-elev`, `--bg-hover`, `--border`, `--border-strong`, `--font-mono`, `--text-muted`); raw px only for item padding + panel gap where no token exists",
+        "why": "Every target value already exists as a token; \"prefer design tokens over literal values\" (\u00a77); no token additions (AC-1, OOS F-spec-2)",
+        "alternatives_rejected": "Adding new tokens or restoring un-gated `.method` colour defaults \u2014 explicitly out of scope"
+      },
+      {
+        "decision": "Fidelity verification",
+        "chosen_approach": "Computed-style EXACT-equality Playwright CT + thresholded screenshot diff; tokens.css + `data-mstyle='soft'` fixture, Radix two-step dismiss gate, non-empty-URL no-reflow baseline",
+        "why": "jsdom can't resolve computed/pseudo styles \u2014 real-browser CT required (AC-11); reuses 005/010 fixture-scoping lessons",
+        "alternatives_rejected": "Vitest/jsdom-only assertions \u2014 cannot read resolved computed styles or pseudo-elements"
+      },
+      {
+        "decision": "Screenshot-diff threshold (Q-1)",
+        "chosen_approach": "`toHaveScreenshot(..., { maxDiffPixelRatio: 0.01, threshold: 0.1 })` on the RequestBar/panel fidelity snapshots",
+        "why": "Reuses the 010 precedent verbatim for consistency with the established fidelity suite; settles Q-1 with an explicit (non-eyeballed) threshold (AC-11)",
+        "alternatives_rejected": "A fresh/tighter threshold \u2014 inconsistent with the sibling 010 CT, no basis to diverge"
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "src/renderer/src/components/organisms/RequestBar.tsx",
+        "action": "Modify",
+        "what_changes": "Wrap URL input in a `.url-bar` container + leading aria-hidden `<Icon name=\"link\">`; set placeholder to `Enter URL or paste cURL command\u2026`; drop the Share text node (icon-only) + add `aria-label=\"Share\"`; keep Save label. No logic change."
+      },
+      {
+        "file": "src/renderer/src/components/organisms/RequestBar.css",
+        "action": "Modify",
+        "what_changes": "Add `.url-bar` container treatment + `:focus-within` accent ring; method-select treatment with `justify-content:center` removed, `color` unset; Save `.btn-ghost` rest+hover; keep the seven chip counter-rules in lockstep; all under `.request-bar`."
+      },
+      {
+        "file": "src/renderer/src/components/molecules/Dropdown.css",
+        "action": "Modify",
+        "what_changes": "`.dropdown-content` \u2192 `box-shadow var(--shadow-lg)` + 1px inter-item gap; `.dropdown-item` padding \u2192 `6px 8px`."
+      },
+      {
+        "file": "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx",
+        "action": "Modify",
+        "what_changes": "Add computed-style EXACT-equality asserts for url-bar / method-select / Save hover / icon-only Share + a thresholded screenshot diff (`maxDiffPixelRatio: 0.01, threshold: 0.1`); cover mstyle variants beyond soft; non-empty-URL baseline."
+      },
+      {
+        "file": "src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx",
+        "action": "Modify",
+        "what_changes": "Extend unit asserts: exact placeholder string, Share icon-only accessible name (`getByRole` name = Share), Save label retained."
+      },
+      {
+        "file": "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx",
+        "action": "Modify",
+        "what_changes": "Add panel computed-style asserts (shadow/gap/item-padding) + rebaseline the panel screenshot snapshot; keep the Radix two-step dismiss gate."
+      }
+    ],
+    "doc_impact": [
+      {
+        "doc_file": "docs/architecture.md",
+        "action": "Update",
+        "what_changes": "Extend the `RequestBar \u2014 method-select CSS cascade` section to note the new `.url-bar` container structure + the icon-only Share, and the shared Dropdown open-panel reference values (shadow-lg / 6px 8px item pad / 1px gap)."
+      },
+      {
+        "doc_file": "docs/renderer/index.md",
+        "action": "Update",
+        "what_changes": "Refresh the RequestBar/Dropdown one-liners if the URL-input structure or Share affordance description drifts."
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Shared Dropdown panel rebind ripples to dev-only PrimitivesDemo + visual-snapshot baselines (unrelated dropdown regression / snapshot failure)",
+        "likelihood": "Med",
+        "impact": "Low",
+        "mitigation": "Limit the edit to box-shadow + item padding + panel gap; deliberately rebaseline the Dropdown snapshot; the other consumer is dev-only, tree-shaken from production."
+      },
+      {
+        "risk": "Method-trigger CSS edit reintroduces white-on-white chip regression (counter-rules drift from `METHODS`) or kills all per-method colours (accidental `color` decl)",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Keep `color` unset on `.request-bar__method.method`; keep the seven `(0,5,0)` counter-rules in lockstep with `METHODS`; assert per-method computed colour across mstyle variants (not just soft) in CT."
+      },
+      {
+        "risk": "Method-trigger + Save-hover may already match the reference from 010 \u2014 locking ACs without a runtime check could enshrine wrong values (spec Q-2)",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Carry a design-auditor runtime computed-style + screenshot diff vs design/reference.html to /breakdown as a verification task before locking those ACs; residual drift, if any, is context-only."
+      },
+      {
+        "risk": "Dropping Share's visible label without an accessible name breaks existing `getByRole` name queries",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Add `aria-label=\"Share\"` when going icon-only; run existing RequestBar CT + unit accessible-name queries as a regression gate."
+      },
+      {
+        "risk": "CT flakiness \u2014 Radix dismiss arm-race, keycap-mount no-reflow baseline confound, jsdom cannot resolve computed/pseudo styles",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Real-browser Playwright CT only; two-step dismiss gate; non-empty-URL no-reflow baseline; clear playwright/.cache + node_modules/.vite + dist on clean-file build errors."
+      }
+    ],
+    "specialist_consultation": [
+      {
+        "specialist": "architect",
+        "sub_question": "Layer map, key decisions, risks, constitution flags for the fidelity pass",
+        "input_summary": "Single Presentation layer; keep method-trigger `color` unset; keep chip counter-rules in lockstep; restore Share aria-label; reuse 010 screenshot threshold 0.01/0.1",
+        "verdict": "accepted",
+        "cites": "docs/architecture.md:240-275 (method-select cascade hazard); own-reasoning"
+      }
+    ],
+    "dependencies": [
+      "None \u2014 no packages to install, no services to configure, no environment variables. Reuses the existing `link` Icon atom, `tokens.css` custom-properties, Radix (already in deps), and the Playwright CT harness."
+    ]
+  }
+}

@@ -331,6 +331,43 @@ test.describe('RequestBar — method Dropdown open / dismiss', () => {
     await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)))
     // ───────────────────────────────────────────────────────────────────────
 
+    // AC-10: assert Dropdown panel styles from the RequestBar consumer path while
+    // the menu is open. Task 003 restyled Dropdown.css: .dropdown-item padding 6px 8px.
+    const [itemPaddingTop, itemPaddingLeft] = await page
+      .locator('.dropdown-item')
+      .first()
+      .evaluate((el) => {
+        const s = window.getComputedStyle(el)
+        return [s.paddingTop, s.paddingLeft]
+      })
+    expect(itemPaddingTop, '.dropdown-item padding-top (AC-10 panel styles)').toBe('6px')
+    expect(itemPaddingLeft, '.dropdown-item padding-left (AC-10 panel styles)').toBe('8px')
+
+    // AC-10 (Finding 2): assert .dropdown-content panel box-shadow and row-gap from
+    // the RequestBar consumer path. Task 003 Dropdown.css sets box-shadow:var(--shadow-lg)
+    // and gap:1px (row-gap). Probe --shadow-lg via a probe element (same technique as the
+    // Send shadow and focus-ring tests) to get Chromium's exact serialized form without
+    // hardcoding the multi-layer CSS value.
+    const shadowLgResolved = await page.evaluate(() => {
+      const probe = document.createElement('div')
+      probe.style.boxShadow = 'var(--shadow-lg)'
+      document.body.appendChild(probe)
+      const shadow = window.getComputedStyle(probe).boxShadow
+      probe.remove()
+      return shadow
+    })
+    const [dropdownBoxShadow, dropdownRowGap] = await page
+      .locator('.dropdown-content')
+      .evaluate((el) => {
+        const s = window.getComputedStyle(el)
+        return [s.boxShadow, s.rowGap]
+      })
+    expect(
+      dropdownBoxShadow,
+      '.dropdown-content box-shadow must resolve to --shadow-lg (AC-10)'
+    ).toBe(shadowLgResolved)
+    expect(dropdownRowGap, '.dropdown-content row-gap must be 1px (AC-10)').toBe('1px')
+
     // Click well outside both the trigger (upper-left) and the menu panel.
     // Default CT viewport is 1280×720; bottom-right corner is safely outside.
     const vp = page.viewportSize() ?? { width: 1280, height: 720 }
@@ -432,8 +469,10 @@ test.describe('RequestBar — fidelity', () => {
     // Explicitly-sized controls carry `height: 32px` in CSS.  The CT harness has no
     // box-sizing reset (playwright/index.tsx only imports tokens.css), so the default
     // box-sizing is `content-box`.  getBoundingClientRect().height is the border-box:
-    //   - `border: none` elements (Send): content 32px + 0px border = 32px
-    //   - `border: 1px solid` elements (URL input, Save, Share): 32px + 2px = 34px
+    //   - `border: none` elements (Send, URL input): content 32px + 0px border = 32px.
+    //     The URL input's visible border belongs to the `.url-bar` container, not the
+    //     input itself (input has `border: none; background: transparent;`).
+    //   - `border: 1px solid` elements (Save, Share): 32px + 2px = 34px
     // Valid range is 32–34px; the old 24px design must NOT pass (lower bound > 24).
     const explicitlySized = [
       { selector: '.request-bar__url', label: 'URL input' },
@@ -532,7 +571,9 @@ test.describe('RequestBar — fidelity', () => {
     )
 
     const selectors = [
-      { selector: '.request-bar__url', label: 'URL input' },
+      // The URL field's border-radius lives on the .url-bar CONTAINER, not on
+      // the inner .request-bar__url input (which has border:none / border-radius:0).
+      { selector: '.url-bar', label: 'URL container (.url-bar)' },
       { selector: '.request-bar__method', label: 'method-select' },
       { selector: '.request-bar__send', label: 'Send' },
       { selector: '.request-bar__save', label: 'Save' },
@@ -564,21 +605,25 @@ test.describe('RequestBar — fidelity', () => {
     // FINAL focused value rather than the mid-transition value.
     //
     // Root cause: RequestBar.css has `transition: border-color 80ms ease` on
-    // `.request-bar__url`. When el.focus() is called and getComputedStyle() is
-    // read synchronously in the same evaluate callback, the transition has only
-    // just started (t ≈ 0). The computed border-color at t=0 is the UNFOCUSED
-    // starting value (--border, rgb(232,230,227)), not the target --accent value.
+    // `.request-bar .url-bar`. When focus() is called and getComputedStyle()
+    // is read synchronously in the same evaluate callback, the transition has
+    // only just started (t ≈ 0). The computed border-color at t=0 is the
+    // UNFOCUSED starting value (--border), not the target --accent value.
     //
     // Fix: emulate `prefers-reduced-motion: reduce`. RequestBar.css already
     // has a `@media (prefers-reduced-motion: reduce)` block that sets
-    // `.request-bar__url { transition: none }`. With transitions disabled, the
-    // focused style resolves instantly — no CDP timing race.
+    // `.request-bar .url-bar { transition: none }`. With transitions disabled,
+    // the focused style resolves instantly — no CDP timing race.
     await page.emulateMedia({ reducedMotion: 'reduce' })
 
     const [borderColor, boxShadow] = await page.evaluate(() => {
-      const el = document.querySelector('.request-bar__url') as HTMLInputElement
-      el.focus()
-      const s = window.getComputedStyle(el)
+      // Focus styling is on .url-bar (the container) via :focus-within —
+      // NOT on .request-bar__url (the inner input, which has border:none).
+      // Read getComputedStyle from the container after focusing the inner input.
+      const container = document.querySelector('.request-bar .url-bar') as HTMLElement
+      const input = container.querySelector('input') as HTMLInputElement
+      input.focus()
+      const s = window.getComputedStyle(container)
       return [s.borderColor, s.boxShadow]
     })
 
@@ -880,13 +925,71 @@ test.describe('RequestBar — fidelity', () => {
     expect(saveFontWeight, 'Save fontWeight').toBe('500')
     expect(shareFontWeight, 'Share fontWeight').toBe('500')
 
-    // Visible text labels — the accessible name must come from rendered text
+    // Save has a visible text label — accessible name comes from content
     await expect(saveBtn).toContainText('Save')
-    await expect(shareBtn).toContainText('Share')
+
+    // Share is icon-only (Task 001 markup change — AC-3):
+    //   - The visible "Share" text node was removed; only an Icon SVG remains.
+    //   - Accessible name now comes from aria-label="Share", NOT text content.
+    //   - Verify no visible text child is present (icon-only pattern).
+    const shareTextContent = await shareBtn.evaluate((el) => el.textContent?.trim() ?? '')
+    expect(shareTextContent, 'Share must have no visible text content (icon-only)').toBe('')
+    const shareAriaLabel = await shareBtn.evaluate((el) => el.getAttribute('aria-label'))
+    expect(shareAriaLabel, 'Share accessible name via aria-label').toBe('Share')
 
     // AC-19 / AC-11: Share is the 009 no-op stub and must remain disabled
     // (the `disabled` attribute is present in the JSX; browser enforces pointer events)
     await expect(shareBtn).toBeDisabled()
+
+    // AC-9: Save rest-state color = --text-muted; border-top-color = --border.
+    // Resolve expected token values at runtime via probe elements so the test
+    // stays correct if token hex values ever change — same pattern as the hover test.
+    const [textMutedRgb, borderRgb] = await page.evaluate(() => {
+      const probeText = document.createElement('div')
+      probeText.style.color = 'var(--text-muted)'
+      document.body.appendChild(probeText)
+      const textMuted = window.getComputedStyle(probeText).color
+      probeText.remove()
+
+      const probeBorder = document.createElement('div')
+      probeBorder.style.borderTopColor = 'var(--border)'
+      document.body.appendChild(probeBorder)
+      const border = window.getComputedStyle(probeBorder).borderTopColor
+      probeBorder.remove()
+
+      return [textMuted, border]
+    })
+
+    const [saveRestColor, saveRestBorderTopColor] = await saveBtn.evaluate((el) => {
+      const s = window.getComputedStyle(el)
+      return [s.color, s.borderTopColor]
+    })
+
+    expect(saveRestColor, 'Save rest-state color must resolve to --text-muted').toBe(textMutedRgb)
+    expect(
+      saveRestBorderTopColor,
+      'Save rest-state border-top-color must resolve to --border'
+    ).toBe(borderRgb)
+
+    // Finding 5 — Share rest-state color and background assertions.
+    // Parallels the Save assertions above; guards Share's ghost-bordered treatment
+    // (`color: var(--text-muted)`, `background: var(--bg-elev)`).
+    const bgElvRgb = await page.evaluate(() => {
+      const probe = document.createElement('div')
+      probe.style.backgroundColor = 'var(--bg-elev)'
+      document.body.appendChild(probe)
+      const rgb = window.getComputedStyle(probe).backgroundColor
+      probe.remove()
+      return rgb
+    })
+
+    const [shareRestColor, shareRestBg] = await shareBtn.evaluate((el) => {
+      const s = window.getComputedStyle(el)
+      return [s.color, s.backgroundColor]
+    })
+
+    expect(shareRestColor, 'Share rest-state color must resolve to --text-muted').toBe(textMutedRgb)
+    expect(shareRestBg, 'Share rest-state background must resolve to --bg-elev').toBe(bgElvRgb)
   })
 
   /**
@@ -922,25 +1025,28 @@ test.describe('RequestBar — fidelity', () => {
   })
 
   /**
-   * AC-13 — URL input horizontal padding is exactly 12px on both sides.
+   * AC-13 — URL container horizontal padding is exactly 12px on both sides.
    *
-   * RequestBar.css declares `padding: 0 12px` on `.request-bar__url`.
+   * RequestBar.css declares `padding: 0 12px` on `.url-bar` (the container),
+   * NOT on the inner `.request-bar__url` input (which has `padding: 0`).
+   * The container owns the box: border, background, and padding — the input
+   * is borderless/transparent and fills the container's content area.
    * A padding change (e.g. back to the old 8px) would be invisible to the
    * layout and screenshot tests but caught here.
    */
-  test('URL input horizontal padding is 12px left and 12px right (AC-13)', async ({
+  test('URL container (.url-bar) horizontal padding is 12px left and 12px right (AC-13)', async ({
     mount,
     page
   }) => {
     await mount(<RequestBar />)
 
-    const [paddingLeft, paddingRight] = await page.locator('.request-bar__url').evaluate((el) => {
+    const [paddingLeft, paddingRight] = await page.locator('.url-bar').evaluate((el) => {
       const s = window.getComputedStyle(el)
       return [s.paddingLeft, s.paddingRight]
     })
 
-    expect(paddingLeft, 'URL input paddingLeft').toBe('12px')
-    expect(paddingRight, 'URL input paddingRight').toBe('12px')
+    expect(paddingLeft, '.url-bar paddingLeft').toBe('12px')
+    expect(paddingRight, '.url-bar paddingRight').toBe('12px')
   })
 
   /**
@@ -977,6 +1083,229 @@ test.describe('RequestBar — fidelity', () => {
 
     expect(savePaddingLeft, 'Save paddingLeft').toBe('14px')
     expect(savePaddingRight, 'Save paddingRight').toBe('14px')
+  })
+
+  // ---------------------------------------------------------------------------
+  // Task 004 — .url-bar container computed-style lock
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Asserts the computed styles of the `.url-bar` flex container (Task 001 markup).
+   *
+   * `.url-bar` OWNS the bordered box (border, background, border-radius, height,
+   * padding, gap, font-family).  The inner `.request-bar__url` input is
+   * borderless / transparent and fills the container.  Testing the container
+   * directly locks the visual contract without relying on implementation details
+   * of the inner input (e.g. which element has `border: none`).
+   *
+   * Token values are resolved at runtime via probe elements — same technique
+   * used throughout this file — so the test stays correct if token hex values
+   * change in a future design-token update.
+   */
+  test('.url-bar container: 1px solid --border, --bg-elev background, 6px gap (Task 001 url-bar geometry)', async ({
+    mount,
+    page
+  }) => {
+    await mount(<RequestBar />)
+
+    // Resolve expected token values at runtime — avoids hardcoding hex
+    const [borderColorRgb, bgElvRgb] = await page.evaluate(() => {
+      const probeBorder = document.createElement('div')
+      probeBorder.style.borderTopColor = 'var(--border)'
+      document.body.appendChild(probeBorder)
+      const border = window.getComputedStyle(probeBorder).borderTopColor
+      probeBorder.remove()
+
+      const probeBg = document.createElement('div')
+      probeBg.style.backgroundColor = 'var(--bg-elev)'
+      document.body.appendChild(probeBg)
+      const bg = window.getComputedStyle(probeBg).backgroundColor
+      probeBg.remove()
+
+      return [border, bg]
+    })
+
+    const [borderTopStyle, borderTopWidth, borderTopColor, backgroundColor, gap, height] =
+      await page.locator('.url-bar').evaluate((el) => {
+        const s = window.getComputedStyle(el)
+        return [
+          s.borderTopStyle,
+          s.borderTopWidth,
+          s.borderTopColor,
+          s.backgroundColor,
+          s.gap,
+          s.height
+        ]
+      })
+
+    // Border: 1px solid var(--border) — the container owns the box (not the input)
+    expect(borderTopStyle, '.url-bar border-top-style').toBe('solid')
+    expect(borderTopWidth, '.url-bar border-top-width').toBe('1px')
+    expect(borderTopColor, '.url-bar border-top-color must equal --border').toBe(borderColorRgb)
+    // Background: var(--bg-elev) — elevated white ghost surface
+    expect(backgroundColor, '.url-bar background must equal --bg-elev').toBe(bgElvRgb)
+    // Gap: 6px between the leading link icon and the URL input
+    // A gap regression (e.g. back to 0) would not appear in the screenshot test
+    // but is caught here via computed row-gap (shorthand `gap` includes row-gap).
+    expect(gap, '.url-bar gap (icon → input) must be 6px').toBe('6px')
+    // Height: 32px — Task 002 sets `height: 32px` directly on the .url-bar container
+    // (AC-12). This is a direct computed-style lock; the inner .request-bar__url input
+    // has height:100% and inherits this value. A regression (e.g. back to auto) is
+    // invisible to the layout test above but caught here.
+    expect(height, '.url-bar height must be 32px (Task 002 fixed height, AC-12)').toBe('32px')
+
+    // AC-1 / AC-2: leading link Icon must be present in .url-bar and aria-hidden.
+    // Icon renders aria-hidden="true" when no `label` prop is provided (decorative).
+    // Count-guard: exactly one SVG must exist so the selector cannot silently pivot
+    // to a second svg inserted before the link icon in a future change.
+    const urlBarSvgCount = await page.locator('.url-bar svg').count()
+    expect(urlBarSvgCount, '.url-bar must contain exactly one svg (the leading link icon)').toBe(1)
+    // Order-guard: the svg must be the first element child of .url-bar (AC-12 "leads with").
+    const firstChildTag = await page
+      .locator('.url-bar > :first-child')
+      .evaluate((el) => el.tagName.toLowerCase())
+    expect(firstChildTag, '.url-bar first element child must be the svg link icon').toBe('svg')
+    // Accessibility: the single, order-confirmed svg must be aria-hidden (decorative).
+    const linkIconAriaHidden = await page
+      .locator('.url-bar svg')
+      .evaluate((el) => el.getAttribute('aria-hidden'))
+    expect(linkIconAriaHidden, '.url-bar leading link icon must have aria-hidden="true"').toBe(
+      'true'
+    )
+
+    // Finding 4 — inner .request-bar__url input has border:none / transparent background.
+    // The visible border belongs to the .url-bar container; the input must NOT add a
+    // second border (double-border regression guard).
+    const [inputBorderTopStyle, inputBackgroundColor] = await page
+      .locator('.request-bar__url')
+      .evaluate((el) => {
+        const s = window.getComputedStyle(el)
+        return [s.borderTopStyle, s.backgroundColor]
+      })
+
+    expect(
+      inputBorderTopStyle,
+      '.request-bar__url border must be none (visible border belongs to .url-bar container)'
+    ).toBe('none')
+    expect(
+      inputBackgroundColor,
+      '.request-bar__url background must be transparent (container owns the surface)'
+    ).toBe('rgba(0, 0, 0, 0)')
+  })
+
+  // ---------------------------------------------------------------------------
+  // Task 004 — method-select trigger geometry lock
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Asserts the method-select trigger's geometry properties not covered by the
+   * existing color / typography tests above:
+   *   - `letter-spacing: 0.04em` — uppercase method label spacing
+   *   - `min-width: 88px` — ensures the pill doesn't collapse for short methods
+   *   - `padding: 7px 10px 7px 12px` — deliberate asymmetry (left=12 for label
+   *     alignment, right=10 for the chevron icon gap)
+   *
+   * Uses a probe element for letter-spacing (em→px resolution) to stay correct
+   * if the font-size ever changes, matching the keycap letter-spacing pattern.
+   */
+  test('method-select: letter-spacing 0.04em, min-width 88px, padding 7px 10px 7px 12px (Task 002 geometry)', async ({
+    mount,
+    page
+  }) => {
+    await mount(<RequestBar />)
+
+    // Probe letter-spacing at font-size 11.5px → Chromium's resolved px form
+    const expectedLetterSpacing = await page.evaluate(() => {
+      const probe = document.createElement('div')
+      probe.style.fontSize = '11.5px'
+      probe.style.letterSpacing = '0.04em'
+      document.body.appendChild(probe)
+      const ls = window.getComputedStyle(probe).letterSpacing
+      probe.remove()
+      return ls
+    })
+
+    const [
+      letterSpacing,
+      minWidth,
+      paddingTop,
+      paddingRight,
+      paddingBottom,
+      paddingLeft,
+      justifyContent
+    ] = await page.locator('.request-bar__method').evaluate((el) => {
+      const s = window.getComputedStyle(el)
+      return [
+        s.letterSpacing,
+        s.minWidth,
+        s.paddingTop,
+        s.paddingRight,
+        s.paddingBottom,
+        s.paddingLeft,
+        s.justifyContent
+      ]
+    })
+
+    expect(letterSpacing, 'method-select letter-spacing resolves to 0.04em').toBe(
+      expectedLetterSpacing
+    )
+    expect(minWidth, 'method-select min-width').toBe('88px')
+    expect(paddingTop, 'method-select padding-top').toBe('7px')
+    expect(paddingRight, 'method-select padding-right').toBe('10px')
+    expect(paddingBottom, 'method-select padding-bottom').toBe('7px')
+    expect(paddingLeft, 'method-select padding-left').toBe('12px')
+    // Finding 2 fix: space-between right-aligns the chevron; lock it so a regression passes silently.
+    expect(justifyContent, 'method-select justify-content').toBe('space-between')
+  })
+
+  /**
+   * Fidelity fix locks — Findings 1 + 2 from /review:
+   *
+   * F1: The chevron caret (.request-bar__method-caret) must resolve to --text (dark),
+   *     NOT the inherited method color (e.g. --m-get blue for GET).  The method text
+   *     stays method-colored; only the caret is neutralized.
+   *
+   * F2: The method button must compute to exactly 33px total height.
+   *     `line-height: 17px` creates a 17px content line box; with 7+7 padding
+   *     and 1+1 border (content-box) the total is 17 + 14 + 2 = 33px.
+   *     This matches the reference `.method-select` which gets its 17px content
+   *     height from the `.method` child span's `height: 17px`.
+   */
+  test('method button: height is 33px (F2) and chevron caret resolves to --text (F1)', async ({
+    mount,
+    page
+  }) => {
+    await mount(<RequestBar />)
+
+    // F2 — method button total height lock
+    // Math.round() guards against subpixel floats (e.g. 32.98) in different
+    // Chromium builds or CI runners while preserving the 33px fidelity contract.
+    const methodHeight = await page
+      .locator('.request-bar__method')
+      .evaluate((el) => el.getBoundingClientRect().height)
+    expect(
+      Math.round(methodHeight),
+      'method-select height must be 33px (F2: line-height:17px + 7+7 padding + 1+1 border, content-box)'
+    ).toBe(33)
+
+    // F1 — chevron caret color lock
+    const textRgb = await page.evaluate(() => {
+      const probe = document.createElement('div')
+      probe.style.color = 'var(--text)'
+      document.body.appendChild(probe)
+      const rgb = window.getComputedStyle(probe).color
+      probe.remove()
+      return rgb
+    })
+
+    const caretColor = await page
+      .locator('.request-bar__method-caret')
+      .evaluate((el) => window.getComputedStyle(el).color)
+
+    expect(
+      caretColor,
+      'chevron caret must resolve to --text (dark), not the inherited method color (F1)'
+    ).toBe(textRgb)
   })
 
   /**
@@ -1016,17 +1345,19 @@ test.describe('RequestBar — fidelity', () => {
    * rule that was changed by the /fix: `border-color: var(--border-strong)` instead
    * of the old `background: var(--bg-hover)`.
    *
-   * Two assertions:
+   * Three assertions:
    *   1. `borderTopColor` exactly equals the resolved `--border-strong` token.
    *   2. `backgroundColor` stays at `--bg-elev` (the /fix removed --bg-hover fill).
+   *   3. `color` resolves to `--text` — the hover rule promotes the muted rest-state
+   *      color (--text-muted) to the full --text token on pointer entry.
    *
-   * Uses probe-element technique for both expected values so the test stays correct
+   * Uses probe-element technique for all expected values so the test stays correct
    * if token hex values ever change — same pattern as the focus-ring and keycap tests.
    *
    * `prefers-reduced-motion: reduce` is emulated before hover so any CSS transition
-   * on `border-color` resolves instantly rather than being caught mid-interpolation.
+   * on `border-color` or `color` resolves instantly rather than being caught mid-interpolation.
    */
-  test('Save button on hover: border-color resolves to --border-strong and background stays --bg-elev (no fill)', async ({
+  test('Save button on hover: border-color resolves to --border-strong, background stays --bg-elev, color resolves to --text', async ({
     mount,
     page
   }) => {
@@ -1037,7 +1368,7 @@ test.describe('RequestBar — fidelity', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
 
     // Resolve expected values at runtime via probe elements — avoids hardcoding hex.
-    const [borderStrongRgb, bgElvRgb] = await page.evaluate(() => {
+    const [borderStrongRgb, bgElvRgb, textRgb] = await page.evaluate(() => {
       const probeB = document.createElement('div')
       probeB.style.borderTopColor = 'var(--border-strong)'
       document.body.appendChild(probeB)
@@ -1050,17 +1381,23 @@ test.describe('RequestBar — fidelity', () => {
       const bg = window.getComputedStyle(probeBg).backgroundColor
       probeBg.remove()
 
-      return [border, bg]
+      const probeText = document.createElement('div')
+      probeText.style.color = 'var(--text)'
+      document.body.appendChild(probeText)
+      const text = window.getComputedStyle(probeText).color
+      probeText.remove()
+
+      return [border, bg, text]
     })
 
     // Move the pointer over the Save button so :hover applies.
     await page.locator('.request-bar__save').hover()
 
-    const [borderTopColor, backgroundColor] = await page
+    const [borderTopColor, backgroundColor, color] = await page
       .locator('.request-bar__save')
       .evaluate((el) => {
         const s = window.getComputedStyle(el)
-        return [s.borderTopColor, s.backgroundColor]
+        return [s.borderTopColor, s.backgroundColor, s.color]
       })
 
     // The /fix changed :hover from `background: var(--bg-hover)` to
@@ -1069,11 +1406,15 @@ test.describe('RequestBar — fidelity', () => {
       borderStrongRgb
     )
 
-    // Secondary: the hover rule must NOT set a background fill.
+    // The hover rule must NOT set a background fill.
     // backgroundColor must remain the rest-state --bg-elev (not --bg-hover).
     expect(backgroundColor, 'Save :hover backgroundColor should remain --bg-elev (no fill)').toBe(
       bgElvRgb
     )
+
+    // The hover rule sets `color: var(--text)` — promotes from --text-muted at rest.
+    // Proving this catches a regression where the color line is accidentally dropped.
+    expect(color, 'Save :hover color should resolve to --text').toBe(textRgb)
   })
 
   /**
@@ -1156,7 +1497,6 @@ test.describe('RequestBar — chip mode fidelity', () => {
     })
   })
 
-
   /**
    * All-methods regression guard: every HTTP method in METHODS must render its
    * per-method colored background in chip mode, NOT the elevated white surface
@@ -1200,11 +1540,11 @@ test.describe('RequestBar — chip mode fidelity', () => {
         return rgb
       }, tokenName)
 
-      const [actualBg, color, borderTopStyle] = await page
+      const [actualBg, color, borderTopStyle, borderTopColor] = await page
         .locator('.request-bar__method')
         .evaluate((el) => {
           const s = window.getComputedStyle(el)
-          return [s.backgroundColor, s.color, s.borderTopStyle]
+          return [s.backgroundColor, s.color, s.borderTopStyle, s.borderTopColor]
         })
 
       // The chip counter-rule must win: per-method colored background, NOT --bg-elev
@@ -1217,13 +1557,101 @@ test.describe('RequestBar — chip mode fidelity', () => {
         'rgb(255, 255, 255)'
       )
 
-      // border must be none — chip counter-rules each declare `border: none` to clear
-      // the (0,3,0) ghost-border set by the RequestBar.css ancestor-scoped override.
-      // Guards against a future counter-rule accidentally omitting `border: none`.
-      expect(borderTopStyle, `chip mode: ${method} borderTopStyle must be none`).toBe('none')
+      // border must be solid transparent — chip counter-rules each declare
+      // `border: 1px solid transparent` to preserve the 33px box height (matching
+      // soft mode + the reference) while keeping no visible border; the per-method
+      // background fills the transparent border area (background-clip: border-box).
+      // borderTopStyle is 'solid' (not 'none') because a transparent solid border
+      // contributes the 2px to the content-box total height.
+      expect(
+        borderTopStyle,
+        `chip mode: ${method} borderTopStyle must be solid (transparent border preserves 33px height)`
+      ).toBe('solid')
+
+      // border must be INVISIBLE — the chip counter-rule declares `border: 1px solid transparent`.
+      // Locking the color to rgba(0,0,0,0) ensures "solid" means present-for-height, NOT
+      // a visible colored line.  A future de-transparentization (e.g. setting a real border
+      // color) would break this assertion and flag the visual regression before it ships.
+      expect(
+        borderTopColor,
+        `chip mode: ${method} borderTopColor must be transparent (rgba(0,0,0,0)) — border is for height, not visibility`
+      ).toBe('rgba(0, 0, 0, 0)')
     }
   })
 
+  /**
+   * Chip-mode caret color lock (F1 chip regression guard, updated to match reference).
+   *
+   * The design-auditor runtime pass found the reference `.method-select` chevron
+   * computes to dark --text in ALL mstyles including chip — the reference scopes the
+   * chip color to an inner `.method` span, leaving the button + caret child dark.
+   *
+   * RequestBar.css no longer carries a chip-scoped caret override; the unscoped
+   * `.request-bar__method-caret { color: var(--text) }` rule applies in all mstyles.
+   *
+   * This test asserts that in chip mode the caret's computed color resolves to --text
+   * (dark), NOT white — matching the reference in all mstyle modes.
+   *
+   * Probe-element technique avoids hardcoding the hex value (same pattern as the
+   * soft-mode caret test in the fidelity block above).
+   */
+  test('chip mode: chevron caret color resolves to --text (dark), matching the reference in all mstyles', async ({
+    mount,
+    page
+  }) => {
+    await mount(<RequestBar />)
+
+    // Resolve --text via probe element — avoids hardcoding rgb(24, 24, 27)
+    const textRgb = await page.evaluate(() => {
+      const probe = document.createElement('div')
+      probe.style.color = 'var(--text)'
+      document.body.appendChild(probe)
+      const rgb = window.getComputedStyle(probe).color
+      probe.remove()
+      return rgb
+    })
+
+    const caretColor = await page
+      .locator('.request-bar__method-caret')
+      .evaluate((el) => window.getComputedStyle(el).color)
+
+    expect(
+      caretColor,
+      'chip mode: caret must resolve to --text (dark), matching the reference in all mstyles'
+    ).toBe(textRgb)
+  })
+
+  /**
+   * Chip-mode height parity lock — method button must be 33px in chip mode.
+   *
+   * Root cause: the seven chip counter-rules previously set `border: none`,
+   * removing the 2×1px border that the base rule contributes to the content-box
+   * total (17px line-height + 7+7 padding + 1+1 border = 33px).  Without the
+   * border the chip button computed to 31px, 2px shorter than soft mode (33px)
+   * and the reference.
+   *
+   * Fix: `border: 1px solid transparent` in each counter-rule restores the 2px
+   * border contribution with no visible border — the per-method background fills
+   * the transparent border area (background-clip: border-box default).
+   *
+   * Math.round() guards against subpixel floats (e.g. 32.98) across Chromium
+   * builds and CI runners — same technique as the soft-mode F2 height lock.
+   */
+  test('chip mode: method button height is 33px (parity with soft mode + reference)', async ({
+    mount,
+    page
+  }) => {
+    await mount(<RequestBar />)
+
+    const methodHeight = await page
+      .locator('.request-bar__method')
+      .evaluate((el) => el.getBoundingClientRect().height)
+
+    expect(
+      Math.round(methodHeight),
+      'chip mode: method-select height must be 33px (border: 1px solid transparent restores content-box height)'
+    ).toBe(33)
+  })
 })
 
 // ---------------------------------------------------------------------------

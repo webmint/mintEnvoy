@@ -1,0 +1,127 @@
+# Research: RequestBar visually drifts from design reference on several un-enumerated presentational props (method trigger font/colour, method menu panel, URL input link icon + font + exact placeholder, Save hover, Share icon-only)
+
+
+**Date**: 2026-06-30
+**Topic**: RequestBar visually drifts from design reference on several un-enumerated presentational props (method trigger font/colour, method menu panel, URL input link icon + font + exact placeholder, Save hover, Share icon-only)
+**Mode**: Enhancement
+**Verdict**: Feasible with caveats
+
+## Summary
+
+The five un-enumerated RequestBar drifts are token-APPLICATION + presentational-markup local to RequestBar.css/.tsx and the shared Dropdown molecule's panel — not a token gap or a logic defect. Every reference target value in design/styles.css already exists as a token (tokens.css/design/tokens.json), so the fix is localized rebinds + small markup edits: restructure the URL input into a .url-bar flex container with a leading link Icon and the exact placeholder 'Enter URL or paste cURL command…', drop the Share text label (icon-only, stays disabled), tidy the method trigger, and align the Dropdown OPEN PANEL (--shadow-lg, item padding 8px, gap 1px). The method-trigger and Save-hover treatments appear already reference-correct from spec 010, so any residual drift there is runtime-context only and needs a computed-style confirm. The one cross-cutting note: the Dropdown is a shared molecule (prod consumers RequestBar + PrimitivesDemo), so its panel rebind ripples slightly — bounded and within the ticket's intended scope.
+
+## Symptom
+
+| Dimension | Value |
+|---|---|
+| Symptom | RequestBar drifts from design/reference.html on 5 presentational props an earlier fidelity pass (spec 010) did not enumerate: method-trigger font/colour/treatment, method dropdown OPEN PANEL styling, URL input (missing leading link icon + wrong font + wrong placeholder string), Save hover state, Share rendered with text label instead of icon-only. |
+| Affected area | src/renderer/src/components/organisms/RequestBar.tsx + RequestBar.css (method trigger, URL input, Save/Share buttons) AND src/renderer/src/components/molecules/Dropdown.tsx + Dropdown.css (method menu OPEN PANEL) |
+| Repro / Current | Currently: method trigger uses wrong font-family/text-colour + surrounding treatment vs reference; method dropdown OPEN PANEL mis-styled vs reference; URL input has no leading link icon, wrong font, and placeholder string not matching reference; Save button hover state off; Share renders a visible text label instead of icon-only. All purely visual drift from design/reference.html. |
+| Desired | Every listed element matches design/reference.html to pixel parity using the exact resolved values pre-extracted in design/styles.css + design-fidelity-contract.md (var(--token)=resolves-to-token; color-mix(...) at token level), bound to semantic class names from design/tokens.json (no export cruft: data-om-*, __OmT, inline styles, tweaks-panel). Dispositions: MATCH 'Request bar' + 'Method colours (per verb)' for the listed elements; Share MATCHES .btn-ghost but icon-only + stays disabled; 'Send split-dropdown' section DEVIATE/OUT. URL placeholder equals exactly 'Enter URL or paste cURL command…' (literal, no cURL behaviour). |
+| Scope | feature-wide |
+
+## Codebase Findings (WHERE)
+
+| Surface | File:line | Relevance | Framing |
+|---|---|---|---|
+| URL input: bare input, no leading link icon / no .url-bar container | src/renderer/src/components/organisms/RequestBar.tsx:285 | Bare <input class=request-bar__url>; reference .url-bar (design/styles.css:772-784) is a flex container with a leading icon + input, gap 6px. Restructure to a .url-bar wrapper with a leading <Icon name=link> (icon exists, icons.ts:72) + the input. Markup add. | primary |
+| URL placeholder string mismatch | src/renderer/src/components/organisms/RequestBar.tsx:290 | placeholder=Enter URL; target literal is exactly 'Enter URL or paste cURL command…' (text only, NO cURL behaviour). One-string edit. | primary |
+| URL font binding | src/renderer/src/components/organisms/RequestBar.css:142 | font-family var(--font-mono) + font-size var(--fs-base)=12.5px (tokens.css:70); reference .url-bar is mono and input is 12.5px — already matches statically. The reported 'wrong font' is likely a render-context artefact; after the .url-bar restructure the container must keep mono and the input 12.5px. Verify at runtime. | primary |
+| Share button renders a visible text label | src/renderer/src/components/organisms/RequestBar.tsx:339 | Renders <Icon name=share> + the text 'Share' (line 341); reference shows icon-only. .request-bar__share CSS (RequestBar.css:327) already matches .btn-ghost (border/bg-elev/text-muted, design/styles.css:820-828). Fix = drop the text node only; keep disabled (no behaviour assertion). | primary |
+| Save button hover treatment | src/renderer/src/components/organisms/RequestBar.css:296 | .request-bar__save:hover sets border-color var(--border-strong) + color var(--text) — matches reference .btn-ghost:hover (design/styles.css:825-828). Appears already correct; verify residual hover drift at runtime. | primary |
+| Method-select trigger treatment | src/renderer/src/components/organisms/RequestBar.css:73 | .request-bar__method.method binds mono/700/11.5px/0.04em, min-width 88px, padding 7px 10px 7px 12px, border var(--border), bg var(--bg-elev) — matches reference .method-select (design/styles.css:749-770). Extra justify-content:center (line 87) is not in the reference; per-verb text colour falls through the [data-mstyle=soft] cascade. Largely fixed by spec 010; verify residual font/colour/treatment at runtime. | primary |
+| Method dropdown OPEN PANEL: shadow token | src/renderer/src/components/molecules/Dropdown.css:45 | .dropdown-content box-shadow var(--shadow-md); reference .dropdown uses var(--shadow-lg) (design/styles.css:1540). border-radius var(--radius-md) and bg var(--bg-elev) already match. Token exists; rebind shadow. SHARED molecule surface. | primary |
+| Method dropdown OPEN PANEL: item padding + panel gap | src/renderer/src/components/molecules/Dropdown.css:85 | .dropdown-item padding .375rem .625rem (6px 10px) vs reference .dd-item 6px 8px (design/styles.css:1557); reference .dropdown has gap:1px (styles.css:1546) absent here. Minor pad/gap rebind. .dropdown-item[data-highlighted] hover bg var(--bg-hover) already matches reference .dd-item:hover. | primary |
+| Canonical reusable: link Icon atom | src/renderer/src/components/atoms/icons.ts:72 | canonical pattern — reusable: the 'link' icon already exists in the project icon set (globe also at :53). Reuse via <Icon name=link> for the URL leading icon — no new SVG. Search-before-building. | primary |
+| Canonical reusable: .method/{METHOD} verb-colour class path | src/renderer/src/components/organisms/RequestBar.tsx:269 | canonical pattern — reusable: trigger already uses cx(request-bar__method, method, method-value); per-verb colour stays on this class path and NEVER a data-mstyle write. Reuse, do not reinvent. | primary |
+| Dropdown is a SHARED molecule (ripple surface) | src/renderer/src/components/molecules/Dropdown.css:37 | RUNNER-UP evidence: .dropdown-content is consumed by RequestBar + PrimitivesDemo (imports of molecules/Dropdown), so a panel shadow/padding rebind ripples beyond the method menu — partial support for the shared-system framing. BUT bounded: only the Dropdown molecule is shared; every RequestBar.css/.tsx fix stays local. Runner-up holds only for the Dropdown slice, which the ticket explicitly scopes in -> not the dominant framing. | runner-up |
+
+## Root Cause Hypothesis (WHY)
+
+**Primary hypothesis**: The enumerated props drift because RequestBar.css/.tsx + Dropdown.css apply wrong/extra/missing values and markup against design/styles.css, while every required target value already exists as a token. The fix is localized token-rebinds + presentational markup edits (URL .url-bar restructure with a link Icon + exact placeholder, drop the Share text label) plus a bounded shadow/padding alignment of the shared Dropdown panel — no new tokens, no behaviour change.
+
+**Confidence**: Hypothesis
+
+## Runner-up framing
+
+| Field | Value |
+|---|---|
+| Frame | Drift is a shared design-system gap: the reference targets force changes to shared layers (tokens.css and/or the shared Dropdown molecule consumed app-wide), so the fix ripples design-system-wide rather than staying local to RequestBar. |
+| Falsifier | Find a reference target value that maps to NO existing token (forcing a token addition), OR find the Dropdown panel is consumed by many production organisms so re-aligning it regresses them. Counter-evidence: every reference value (--shadow-lg, --radius-md, --bg-elev, --bg-hover, --font-mono, --fs-base) already exists as a token; the only shared surface is the Dropdown molecule (prod consumers RequestBar + PrimitivesDemo), aligned intentionally per the ticket scope -> ripple bounded, not an unbounded system gap. |
+| Confidence vs primary | lower |
+
+## Hypothesis Enumeration
+
+| Hypothesis | Falsifier (what would disprove it) | Runtime probe needed? |
+|---|---|---|
+| PRIMARY: drift is token-APPLICATION + presentational markup local to RequestBar.css/.tsx + Dropdown.css — wrong/extra/missing values & markup (URL bare input without link icon, placeholder 'Enter URL', Share text label, Dropdown panel --shadow-md vs --shadow-lg, item pad 10px vs 8px). Every target value already exists as a token; no new tokens, no behaviour change. | A reference target value that maps to NO existing token (forces a token addition) -> pushes the fix into the runner-up shared-system framing. | no |
+| RUNNER-UP: drift requires shared design-system changes (tokens.css and/or the shared Dropdown molecule) that ripple beyond RequestBar. | Every reference value already exists as a token AND the only shared surface is the Dropdown molecule (prod consumers RequestBar + PrimitivesDemo) aligned intentionally per the ticket -> ripple bounded; runner-up disproved as the dominant framing. | no |
+| RESIDUAL-RUNTIME: method-trigger and Save-hover may already match the reference (spec 010 fixed them); any residual visual drift is runtime-context only (data-mstyle cascade / font inheritance), not a static CSS value gap. | A runtime computed-style diff shows method-trigger font/colour or Save hover differing from design/styles.css targets -> a real static drift remains and must be rebound. | yes |
+
+## Recommended Verify Step
+
+| Sub-field | Value |
+|---|---|
+| probe | Mount RequestBar with data-mstyle=soft (app request pane or story/CT harness) and open the method dropdown; capture getComputedStyle for .request-bar__method (font-family,color,padding,min-width), .request-bar__url + leading icon (font-family,font-size,icon present), .request-bar__save:hover, .request-bar__share (icon-only, no text node), .dropdown-content (box-shadow,border-radius,padding), .dropdown-item (padding); screenshot-diff vs design/reference.html. |
+| reproduction | Open the app request pane (or the RequestBar story/CT harness), focus the URL input, hover Save, and click the method trigger to open the panel. |
+| discriminator | If all computed styles equal design/styles.css targets -> PRIMARY (A) confirmed, static-CSS fix sufficient. If method-trigger/Save-hover already match but URL/Share/Dropdown differ -> A confirmed for those and C's residual is null. If any target value maps to a missing token -> RUNNER-UP (B) confirmed. |
+
+## Approaches (HOW to change)
+
+### Localized RequestBar fidelity pass + bounded Dropdown panel alignment
+- **Description**: Rebind RequestBar.css/.tsx and Dropdown.css to the design/styles.css reference values using existing tokens: restructure the URL input into a .url-bar flex container with a leading <Icon name=link> + the exact placeholder, drop the Share text label (icon-only, stays disabled), remove the extra justify-content:center on the method trigger, and align the Dropdown panel shadow (--shadow-lg) + item padding (8px) + gap (1px). No new tokens, no data-mstyle write, no behaviour change.
+- **Addresses hypothesis**: A, C
+- **Does NOT cover**: B
+- **Pros**: Every target value already exists as a token — no tokens.css / source-token addition; Reuses the existing link Icon atom and the .method/{METHOD} verb-colour class path — no new mechanism; Behaviour untouched (onSend, Cmd-Enter/Cmd-S, canSend, dirty/markClean, Share disabled) — unit + CT stay green; Matches the ticket scope exactly (RequestBar + the Dropdown menu panel)
+- **Cons**: Touches the shared Dropdown molecule — panel shadow/padding ripples to PrimitivesDemo + visual snapshots; CT fidelity tests must reproduce the data-mstyle=soft context (known 005 fixture-scoping constraint); Pixel parity on method-trigger / Save-hover needs a runtime computed-style confirm (hypothesis C)
+- **Complexity**: Med
+
+### RequestBar-only pass, defer the shared Dropdown panel
+- **Description**: Apply only the RequestBar.css/.tsx fixes (URL .url-bar + link icon + placeholder, Share icon-only, method-trigger tidy, Save hover) and leave the Dropdown molecule untouched, deferring the method-menu panel alignment to a separate design-system change.
+- **Addresses hypothesis**: A
+- **Does NOT cover**: B, C
+- **Pros**: Zero shared-molecule ripple — no PrimitivesDemo / other-dropdown regression risk; Smallest blast radius; no shared visual-snapshot churn
+- **Cons**: Under-delivers — the ticket explicitly scopes the Dropdown menu OPEN PANEL IN, so that drift stays unfixed; Splits one fidelity fix into two passes
+- **Complexity**: Low
+
+**Recommended approach**: Localized RequestBar fidelity pass + bounded Dropdown panel alignment — Fits the stated scope and the project reuse-first rule: it consumes the existing atom at src/renderer/src/components/atoms/icons.ts:72 rather than building a new one, and leaves the document-level marker attribute under its sole owner (Shell) untouched. Honours unchanged_behavior — the send path, the canSend guard, dirty/markClean and the disabled action stub are not modified, so unit and CT suites stay green. Per-element computed-style targets and the precise scope live in the Codebase Findings table and the Open Uncertainties; full-parity confirmation is deferred to the verify step.
+
+## Constitution Constraints
+
+| Rule | Impact on this change |
+|---|---|
+| Only Shell writes documentElement data-mstyle (§4 Never / 009 AC-6) | The method-trigger per-verb colour fix MUST stay on the .method/{METHOD} class path; RequestBar never writes document.documentElement.dataset.mstyle. |
+| Never use inline styles — class-based styling via cx() (§4 Never) | All geometry/treatment changes land in RequestBar.css + Dropdown.css + className/markup edits; no inline style={{…}} added. |
+| Prefer design tokens over literal values (§4 Prefer) | Bind shadow/radius/colour/padding to existing tokens (--shadow-lg, --radius-md, --bg-elev, --bg-hover, --font-mono, --fs-base); raw px only for spacing with no token (8px item pad / 1px gap), matching the existing pattern. |
+| Search before building | Reuse the existing link Icon atom at src/renderer/src/components/atoms/icons.ts:72 for the URL leading icon, and the canonical .method/{METHOD} class path at src/renderer/src/components/organisms/RequestBar.tsx:269 — reuse beats reinvention; no new SVG or colour mechanism. |
+
+## Complexity Assessment
+
+| Dimension | Rating | Notes |
+|---|---|---|
+| Codebase changes | Med | RequestBar.tsx markup edits (URL .url-bar wrapper + link Icon, exact placeholder, drop Share label) + minor RequestBar.css + a bounded Dropdown.css panel rebind. No token/store/logic files touched. |
+| Risk | Med | Behaviour paths untouched. Main risk is the shared Dropdown molecule ripple (PrimitivesDemo + visual snapshots) and CT fidelity needing the data-mstyle=soft context (005 fixture-scoping). |
+| Verify cost | Med | Runtime computed-style + screenshot diff vs design/reference.html via design-auditor (Chrome DevTools MCP); existing unit + CT suites stay green. |
+
+## Open Uncertainties
+
+- [NEEDS CLARIFICATION: desired — Confirm via a live computed-style + screenshot diff that the method-trigger and Save-hover already meet the design/styles.css targets (spec 010 may have fixed them) before locking those rules — residual drift, if any, is context-only not a static value gap.]
+- [NEEDS CLARIFICATION: desired — Decide whether the bounded shared menu-panel molecule edit is acceptable system-wide (prod consumers beyond the request bar) or should be deferred — the runner-up framing tension.]
+
+## Next step
+
+Copy the block below into a new `/specify` session manually. No automation — user controls when (or if) `/specify` runs.
+
+~~~
+/specify "RequestBar drifts from design/reference.html on 5 presentational props an earlier fidelity pass (spec 010) did not enumerate: method-trigger font/colour/treatment, method dropdown OPEN PANEL styling, URL input (missing leading link icon + wrong font + wrong placeholder string), Save hover state, Share rendered with text label instead of icon-only. — Every listed element matches design/reference.html to pixel parity using the exact resolved values pre-extracted in design/styles.css + design-fidelity-contract.md (var(--token)=resolves-to-token; color-mix(...) at token level), bound to semantic class names from design/tokens.json (no export cruft: data-om-*, __OmT, inline styles, tweaks-panel). Dispositions: MATCH 'Request bar' + 'Method colours (per verb)' for the listed elements; Share MATCHES .btn-ghost but icon-only + stays disabled; 'Send split-dropdown' section DEVIATE/OUT. URL placeholder equals exactly 'Enter URL or paste cURL command…' (literal, no cURL behaviour)."
+
+Research reference: research/2026-06-30-requestbar-visually-drifts-from.md
+Key facts:
+- Mode: Enhancement
+- Symptom: RequestBar drifts from design/reference.html on 5 presentational props an earlier fidelity pass (spec 010) did not enumerate: method-trigger font/colour/treatment, method dropdown OPEN PANEL styling, URL input (missing leading link icon + wrong font + wrong placeholder string), Save hover state, Share rendered with text label instead of icon-only.
+- Desired: Every listed element matches design/reference.html to pixel parity using the exact resolved values pre-extracted in design/styles.css + design-fidelity-contract.md (var(--token)=resolves-to-token; color-mix(...) at token level), bound to semantic class names from design/tokens.json (no export cruft: data-om-*, __OmT, inline styles, tweaks-panel). Dispositions: MATCH 'Request bar' + 'Method colours (per verb)' for the listed elements; Share MATCHES .btn-ghost but icon-only + stays disabled; 'Send split-dropdown' section DEVIATE/OUT. URL placeholder equals exactly 'Enter URL or paste cURL command…' (literal, no cURL behaviour).
+- Recommended approach: Localized RequestBar fidelity pass + bounded Dropdown panel alignment
+- Hypothesis addressed: A, C
+- Hypotheses NOT covered: B
+- Open uncertainties: 0 (see research doc §Open Uncertainties)
+~~~

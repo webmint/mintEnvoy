@@ -1,0 +1,133 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/012-requestbar-element-fidelity/tasks",
+  "breakdown_completed_at": "2026-07-01T07:13:03Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/012-requestbar-element-fidelity/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/012-requestbar-element-fidelity/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/012-requestbar-element-fidelity/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "restructure requestbar markup",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": ["002", "004"],
+      "touched_files": [
+        "src/renderer/src/components/organisms/RequestBar.tsx",
+        "src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx"
+      ],
+      "expects": [
+        "`RequestBar.tsx` renders the URL as a bare `<input className=\"request-bar__url\">` with `placeholder=\"Enter URL\"` and the Share button carries a visible `Share` text node.",
+        "`link` is exported in the icon map in `src/renderer/src/components/atoms/icons.ts` (`link:` key present).",
+        "`updateActiveSpec` and the `canSend` (`url.trim() !== ''`) predicate exist in `RequestBar.tsx`."
+      ],
+      "produces": [
+        "`RequestBar.tsx` contains a `className=\"url-bar\"` container element wrapping an `<Icon name=\"link\"` (aria-hidden) and the `className=\"request-bar__url\"` input.",
+        "The URL input `placeholder` attribute is exactly the string `Enter URL or paste cURL command\u2026`.",
+        "The Share `<button>` has `aria-label=\"Share\"`, remains `disabled`, and contains no visible \"Share\" text node.",
+        "The Save `<button>` retains its visible `Save` text label.",
+        "`RequestBar.tsx` contains no `data-om-`, `__OmT`, or `tweaks-panel` markers and no `style={{` inline-style attribute (outside comments).",
+        "`RequestBar.test.tsx` asserts the exact placeholder, the Share `getByRole` name of \"Share\", and the retained Save label."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-12",
+        "AC-14",
+        "AC-15",
+        "AC-16",
+        "AC-17",
+        "AC-18",
+        "AC-19"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "002",
+      "title": "rebind requestbar css fidelity",
+      "agent": "frontend-engineer",
+      "depends_on": ["001"],
+      "blocks": ["004"],
+      "touched_files": ["src/renderer/src/components/organisms/RequestBar.css"],
+      "expects": [
+        "`RequestBar.tsx` renders a `className=\"url-bar\"` container wrapping the `.request-bar__url` input (produced by task 001).",
+        "`RequestBar.css` `.request-bar .request-bar__method.method` currently declares `justify-content: center;` and no `color`.",
+        "`tokens.css` defines `--border`, `--border-strong`, `--bg-elev`, `--radius`, `--accent`, `--accent-soft`, `--font-mono`, `--text`, `--text-muted`.",
+        "`METHODS` in `src/renderer/src/lib/httpMethods.ts` lists exactly 7 methods (GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD)."
+      ],
+      "produces": [
+        "`RequestBar.css` contains a `.url-bar` rule bound to `var(--border)` / `var(--bg-elev)` / `var(--radius)` / `var(--font-mono)` with `gap:6px`, `height:32px`, `padding:0 12px`, and a `.url-bar:focus-within` rule with `var(--accent)` border + `box-shadow: 0 0 0 3px var(--accent-soft)`.",
+        "`.request-bar .request-bar__method.method` contains NO `justify-content` declaration and NO `color` declaration.",
+        "`.request-bar__save` rest declares `color: var(--text-muted)` and `.request-bar__save:hover` declares `color: var(--text)` + `border-color: var(--border-strong)`.",
+        "Exactly seven `[data-mstyle='chip'] \u2026 .method.{METHOD}` counter-rules remain, one per `METHODS` entry.",
+        "No hardcoded colour literals and no `var(--x, <literal>)` fallbacks introduced in the new/edited `.request-bar` rules."
+      ],
+      "ac_addressed": ["AC-9", "AC-12", "AC-13", "AC-14", "AC-15", "AC-16", "AC-17"],
+      "doc_refs": ["docs/architecture.md"],
+      "review_checkpoint": true
+    },
+    {
+      "number": "003",
+      "title": "rebind shared dropdown open-panel css",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": ["004"],
+      "touched_files": ["src/renderer/src/components/molecules/Dropdown.css"],
+      "expects": [
+        "`Dropdown.css` `.dropdown-content` currently declares `box-shadow: var(--shadow-md, \u2026)` and has no inter-item gap.",
+        "`Dropdown.css` `.dropdown-item` currently declares `padding: 0.375rem 0.625rem`.",
+        "`tokens.css` defines `--shadow-lg`, `--radius-md`, `--bg-elev`, `--bg-hover`.",
+        "`Dropdown.tsx` is not modified by this feature (AC-1 Dropdown side satisfied by non-modification)."
+      ],
+      "produces": [
+        "`.dropdown-content` declares `box-shadow: var(--shadow-lg)` and a `1px` inter-item panel gap.",
+        "`.dropdown-item` declares `padding: 6px 8px`.",
+        "`.dropdown-content` retains `border-radius: var(--radius-md)` + `background-color: var(--bg-elev)`; `.dropdown-item[data-highlighted]` retains `background-color: var(--bg-hover)`.",
+        "`Dropdown.css` and `Dropdown.tsx` contain no `data-om-`, `__OmT`, or `tweaks-panel` markers."
+      ],
+      "ac_addressed": ["AC-1", "AC-10", "AC-14", "AC-15", "AC-16", "AC-17"],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "004",
+      "title": "computed-style fidelity ct suite",
+      "agent": "qa-engineer",
+      "depends_on": ["001", "002", "003"],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx",
+        "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx"
+      ],
+      "expects": [
+        "`RequestBar.tsx` renders the `.url-bar` container + icon-only Share with `aria-label=\"Share\"` (task 001).",
+        "`RequestBar.css` has the `.url-bar` treatment, the method-trigger rule without `justify-content` and without `color`, and the Save rest+hover tokens (task 002).",
+        "`Dropdown.css` `.dropdown-content` uses `var(--shadow-lg)` + 1px gap and `.dropdown-item` padding `6px 8px` (task 003).",
+        "The Playwright CT harness + existing `RequestBar.ct.tsx` / `Dropdown.ct.tsx` fixture patterns (tokens.css import, `data-mstyle` host, Radix dismiss gate) are present."
+      ],
+      "produces": [
+        "`RequestBar.ct.tsx` contains computed-style EXACT-equality asserts for the url-bar, method-select (across \u22652 mstyle variants), Save hover, and icon-only Share, plus `toHaveScreenshot(\u2026, { maxDiffPixelRatio: 0.01, threshold: 0.1 })` diffs and a non-empty-URL no-reflow baseline.",
+        "`Dropdown.ct.tsx` contains computed-style asserts for the panel box-shadow (`--shadow-lg`), 1px gap, and item padding `6px 8px`, plus a rebaselined panel screenshot snapshot and the retained Radix two-step dismiss gate.",
+        "Both CT files run green in the real-browser Playwright runner; the existing behaviour/unit suites stay green."
+      ],
+      "ac_addressed": ["AC-10", "AC-11", "AC-15", "AC-16", "AC-17", "AC-19"],
+      "doc_refs": [],
+      "review_checkpoint": true
+    }
+  ],
+  "additions": [
+    "None \u2014 every touched file was enumerated in the plan's File Impact table; no cascading files discovered in Phase 1. The `link` Icon atom (icons.ts:72) is reused unchanged."
+  ],
+  "dependency_graph": "001 (restructure requestbar markup) \u2500\u2500\u2192 002 (rebind requestbar css) \u2500\u2500\u2192 004 (fidelity ct suite)\n003 (rebind dropdown panel css) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2192 004 (fidelity ct suite)\n                                                             001 \u2500\u2500\u2500\u2500\u2500\u2500\u2192 004"
+}

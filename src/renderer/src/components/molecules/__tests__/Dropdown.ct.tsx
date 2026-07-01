@@ -476,3 +476,209 @@ test.describe('Dropdown — AC-14 reduced-motion', () => {
     expect(animationName).toBe('dropdown-content-in')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Task 004 — Dropdown panel computed-style fidelity (real Chromium)
+// ---------------------------------------------------------------------------
+
+/**
+ * Computed-style fidelity suite for the Dropdown panel (Task 003 restyling).
+ *
+ * jsdom cannot resolve CSS custom properties (color-mix, token references) or
+ * compute box-shadow shorthands — Chromium is required for all assertions here.
+ *
+ * Styling context (project memory ct-fidelity-fixture-scoping):
+ *   - `tokens.css` is imported globally for all CT tests via playwright/index.tsx.
+ *   - The fixture host needs no data-mstyle attribute for Dropdown tests since
+ *     none of the dropdown panel rules depend on [data-mstyle].
+ *   - `box-sizing: border-box` is already declared on `.dropdown-item` in
+ *     Dropdown.css, so no fixture-level inline <style> is needed for padding
+ *     assertions (project memory ct-borderbox-harness-import-breaks-screenshots).
+ *
+ * Dismiss gate (project memory ct-radix-dismiss-arm-race):
+ *   Applied in tests that require opening then closing the dropdown.  Tests
+ *   that mount with `initialOpen={true}` skip the gate (no open animation races
+ *   a dismiss action).
+ */
+test.describe('Dropdown — fidelity (Task 004)', () => {
+  /**
+   * Asserts that the open panel (.dropdown-content) carries the correct
+   * computed box-shadow, inter-item gap, border-radius, and background.
+   *
+   *   - box-shadow: must resolve to the --shadow-lg token value
+   *   - row-gap: 1px (the vertical flex column's inter-item gap)
+   *   - border-top-left-radius: --radius-md (9px in the light theme)
+   *   - background-color: --bg-elev (elevated white surface)
+   *
+   * All expected values are resolved at runtime via probe elements —
+   * the test stays correct if token hex or numeric values change.
+   */
+  test('open panel: box-shadow resolves to --shadow-lg, 1px row-gap, --radius-md border-radius, --bg-elev background', async ({
+    mount,
+    page
+  }) => {
+    // Mount pre-opened so no animation race against the style read
+    await mount(<DropdownFixture initialOpen={true} />)
+
+    const content = page.locator('.dropdown-content').first()
+    await expect(content).toBeVisible()
+
+    // Probe expected token values at runtime — avoids hardcoding resolved px/rgb
+    const [shadowLgValue, bgElvRgb, radiusMd] = await page.evaluate(() => {
+      // box-shadow probe: inject a div with `box-shadow: var(--shadow-lg)` and
+      // read back Chromium's serialized form — the same technique used for the
+      // Send-button shadow assertions in RequestBar.ct.tsx.
+      const probeShadow = document.createElement('div')
+      probeShadow.style.boxShadow = 'var(--shadow-lg)'
+      document.body.appendChild(probeShadow)
+      const shadow = window.getComputedStyle(probeShadow).boxShadow
+      probeShadow.remove()
+
+      const probeBg = document.createElement('div')
+      probeBg.style.backgroundColor = 'var(--bg-elev)'
+      document.body.appendChild(probeBg)
+      const bg = window.getComputedStyle(probeBg).backgroundColor
+      probeBg.remove()
+
+      // --radius-md is a plain px value — read directly from :root
+      const radius = window
+        .getComputedStyle(document.documentElement)
+        .getPropertyValue('--radius-md')
+        .trim()
+
+      return [shadow, bg, radius]
+    })
+
+    const [boxShadow, rowGap, borderRadius, backgroundColor] = await content.evaluate((el) => {
+      const s = window.getComputedStyle(el)
+      return [s.boxShadow, s.rowGap, s.borderTopLeftRadius, s.backgroundColor]
+    })
+
+    expect(boxShadow, 'panel box-shadow must equal --shadow-lg').toBe(shadowLgValue)
+    // 1px inter-item gap (vertical flex column, not row-gap separately)
+    expect(rowGap, 'panel row-gap must be 1px (inter-item gap)').toBe('1px')
+    expect(borderRadius, 'panel border-radius must equal --radius-md (9px)').toBe(radiusMd)
+    expect(backgroundColor, 'panel background must equal --bg-elev').toBe(bgElvRgb)
+  })
+
+  /**
+   * Asserts that `.dropdown-item` has exactly `padding: 6px 8px` (the reference
+   * .menu-item treatment from design/styles.css).
+   *
+   * Dropdown.css declares `padding: 6px 8px` and `box-sizing: border-box` on
+   * `.dropdown-item`, so `getComputedStyle` returns the correct inner-padding
+   * even though the CT harness defaults to content-box for the host document
+   * (project memory ct-borderbox-harness-import-breaks-screenshots).
+   */
+  test('.dropdown-item padding is 6px 8px (reference .menu-item treatment)', async ({
+    mount,
+    page
+  }) => {
+    await mount(<DropdownFixture initialOpen={true} />)
+
+    const firstItem = page.getByRole('menuitem').first()
+    await expect(firstItem).toBeVisible()
+
+    const [paddingTop, paddingRight, paddingBottom, paddingLeft] = await firstItem.evaluate(
+      (el) => {
+        const s = window.getComputedStyle(el)
+        return [s.paddingTop, s.paddingRight, s.paddingBottom, s.paddingLeft]
+      }
+    )
+
+    expect(paddingTop, 'item padding-top').toBe('6px')
+    expect(paddingRight, 'item padding-right').toBe('8px')
+    expect(paddingBottom, 'item padding-bottom').toBe('6px')
+    expect(paddingLeft, 'item padding-left').toBe('8px')
+  })
+
+  /**
+   * Asserts that a `[data-highlighted]` menu item's background resolves to
+   * the `--bg-hover` token (AC-2 keyboard/pointer highlight parity).
+   *
+   * Radix sets `data-highlighted` on the focused menu item for both keyboard
+   * navigation and pointer hover.  This test opens via keyboard so Radix
+   * auto-focuses the first item (and sets data-highlighted on it), then reads
+   * the computed backgroundColor after the 80ms transition completes.
+   *
+   * Transition completion gate: `.dropdown-item` has `transition: background-color
+   * 80ms ease`.  After `await expect(firstItem).toBeFocused()` confirms focus,
+   * `el.getAnimations().map(a => a.finished)` waits for ALL running CSS
+   * transitions (Chromium exposes them via the Web Animations API) to resolve
+   * before reading the computed style — the same technique used by the Radix
+   * dismiss-gate pattern in the rest of this file.
+   */
+  test('[data-highlighted] .dropdown-item background resolves to --bg-hover (AC-2 highlight)', async ({
+    mount,
+    page
+  }) => {
+    await mount(<DropdownFixture initialOpen={false} />)
+
+    // Open via keyboard so Radix registers keyboard-manager and auto-focuses
+    // the first item, applying data-highlighted to it.
+    await page.getByTestId('ct-dropdown-trigger').focus()
+    await page.keyboard.press('Enter')
+
+    const menu = page.getByRole('menu')
+    await expect(menu).toBeVisible()
+
+    // Wait for Radix to settle focus — the first item must carry data-highlighted
+    const firstItem = page.getByRole('menuitem').first()
+    await expect(firstItem).toBeFocused()
+
+    // Wait for the 80ms background-color CSS transition to finish before reading
+    // the computed value — prevents reading a mid-interpolation result.
+    // Chromium exposes CSS transitions via el.getAnimations() (Web Animations API),
+    // so Promise.all + a.finished covers both CSS animations and CSS transitions.
+    await firstItem.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)))
+
+    // Probe --bg-hover to get Chromium's serialized rgb() form
+    const bgHoverRgb = await page.evaluate(() => {
+      const probe = document.createElement('div')
+      probe.style.backgroundColor = 'var(--bg-hover)'
+      document.body.appendChild(probe)
+      const rgb = window.getComputedStyle(probe).backgroundColor
+      probe.remove()
+      return rgb
+    })
+
+    const highlightedBg = await firstItem.evaluate(
+      (el) => window.getComputedStyle(el).backgroundColor
+    )
+
+    expect(highlightedBg, '[data-highlighted] item background must equal --bg-hover').toBe(
+      bgHoverRgb
+    )
+  })
+
+  /**
+   * Visual regression baseline for the open Dropdown panel.
+   *
+   * This is a DELIBERATE rebaseline (Task 004): the panel styling changed in
+   * Tasks 001-003 (box-shadow, gap, border-radius rebind) and the old baseline
+   * no longer matches. The test regenerates an authoritative baseline for the
+   * current design-fidelity-correct panel.
+   *
+   * Radix two-step dismiss gate is NOT needed here — the panel is mounted
+   * pre-opened (no dismiss action in this test).
+   *
+   * PRIMARY fidelity proof: the computed-style assertions above.
+   * This screenshot gates against FUTURE visual regressions.
+   */
+  test('open panel visual regression screenshot (Task 004 rebaseline)', async ({ mount, page }) => {
+    // Emulate reduced-motion so the panel is fully rendered (no mid-animation
+    // opacity/scale from the dropdown-content-in keyframe).
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+
+    await mount(<DropdownFixture initialOpen={true} />)
+
+    const content = page.locator('.dropdown-content').first()
+    await expect(content).toBeVisible()
+
+    await expect(content).toHaveScreenshot('dropdown-panel-fidelity.png', {
+      maxDiffPixelRatio: 0.01,
+      threshold: 0.1,
+      animations: 'disabled'
+    })
+  })
+})

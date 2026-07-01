@@ -23,12 +23,12 @@ _Populated by `constitute` (for new/greenfield projects — chosen patterns) or 
 
 The renderer process has a three-sublayer structure beneath feature components:
 
-| Sublayer                 | Contents                                                                                                                                                                                                                          | Path                                      |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| Presentation — atoms     | Inline SVG `Icon` component + typed `IconName` string-literal union over the project-owned 40-icon set                                                                                                                            | `src/renderer/src/components/atoms/`      |
-| Presentation — molecules | `Dropdown`, `Modal`, `Toast` — thin wrappers over Radix UI primitives, styled via semantic classes. `Tabs` — controlled selection-only tab-strip; hand-rolled WAI-ARIA engine (see Patterns § below for the departure rationale). `Divider` — hand-rolled WAI-ARIA splitter (domain-agnostic; used by `PaneSplit`). | `src/renderer/src/components/molecules/`  |
-| Presentation — organisms | `Shell` (root composition layer), `Titlebar`, `Statusbar`, and `PaneSplit` — grouped under `organisms/shell/` (app-shell domain). `Sidebar`, `TabBar`, and `RequestBar` — flat domain singletons directly under `organisms/`. Organisms compose molecules/atoms; they never import across the same tier. | `src/renderer/src/components/organisms/`  |
-| Support — lib/ (thin)    | `toastStore` (zustand queue + imperative `toast()` API), `settingsStore` (zustand SSOT for theme/accent/mstyle/sidebarWidth/paneRatio/sidebarCollapsed + clamp helpers), `icons-glue` (Icon lookup/fallback), shared `cx()` className helper, `httpMethods` (ordered `METHODS` tuple + `HttpMethod` union — method SSOT consumed by `requestSpec`, `RequestBar`, and `Tabs`) | `src/renderer/src/lib/`          |
+| Sublayer                 | Contents                                                                                                                                                                                                                                                                                                                                                                     | Path                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Presentation — atoms     | Inline SVG `Icon` component + typed `IconName` string-literal union over the project-owned 40-icon set                                                                                                                                                                                                                                                                       | `src/renderer/src/components/atoms/`     |
+| Presentation — molecules | `Dropdown`, `Modal`, `Toast` — thin wrappers over Radix UI primitives, styled via semantic classes. `Tabs` — controlled selection-only tab-strip; hand-rolled WAI-ARIA engine (see Patterns § below for the departure rationale). `Divider` — hand-rolled WAI-ARIA splitter (domain-agnostic; used by `PaneSplit`).                                                          | `src/renderer/src/components/molecules/` |
+| Presentation — organisms | `Shell` (root composition layer), `Titlebar`, `Statusbar`, and `PaneSplit` — grouped under `organisms/shell/` (app-shell domain). `Sidebar`, `TabBar`, and `RequestBar` — flat domain singletons directly under `organisms/`. Organisms compose molecules/atoms; they never import across the same tier.                                                                     | `src/renderer/src/components/organisms/` |
+| Support — lib/ (thin)    | `toastStore` (zustand queue + imperative `toast()` API), `settingsStore` (zustand SSOT for theme/accent/mstyle/sidebarWidth/paneRatio/sidebarCollapsed + clamp helpers), `icons-glue` (Icon lookup/fallback), shared `cx()` className helper, `httpMethods` (ordered `METHODS` tuple + `HttpMethod` union — method SSOT consumed by `requestSpec`, `RequestBar`, and `Tabs`) | `src/renderer/src/lib/`                  |
 
 **Dependency direction**: organisms import from molecules and atoms; molecules and atoms import from lib/; `lib/` must NOT import from `components/`. No sibling-tier imports (organisms must not import other organisms). All intra-renderer imports use the `@renderer` alias — no deep relative paths across sublayer boundaries.
 
@@ -152,17 +152,17 @@ All CSS layout rules that depend on sidebar width or pane ratio must read from `
 <!-- src/renderer/src/components/organisms/shell/Shell.tsx:250 -->
 
 ```typescript
-  useEffect(() => {
-    const { style } = document.documentElement
-    const nextWidth = `${sidebarWidth}px`
-    if (style.getPropertyValue('--sidebar-width') !== nextWidth) {
-      style.setProperty('--sidebar-width', nextWidth)
-    }
-    const nextRatio = `${paneRatio}`
-    if (style.getPropertyValue('--pane-ratio') !== nextRatio) {
-      style.setProperty('--pane-ratio', nextRatio)
-    }
-  }, [sidebarWidth, paneRatio])
+useEffect(() => {
+  const { style } = document.documentElement
+  const nextWidth = `${sidebarWidth}px`
+  if (style.getPropertyValue('--sidebar-width') !== nextWidth) {
+    style.setProperty('--sidebar-width', nextWidth)
+  }
+  const nextRatio = `${paneRatio}`
+  if (style.getPropertyValue('--pane-ratio') !== nextRatio) {
+    style.setProperty('--pane-ratio', nextRatio)
+  }
+}, [sidebarWidth, paneRatio])
 ```
 
 ### Divider — ratio-valued drag mapping (hazard: raw px delta must not be added to a unitless ratio)
@@ -176,9 +176,9 @@ Rule: any Divider whose `value` is not 1:1 with pointer pixels **must** supply `
 <!-- src/renderer/src/components/molecules/Divider.tsx:250 -->
 
 ```typescript
-    const extent = getDragExtent ? getDragExtent() : null
-    const valueDelta = extent ? pixelDelta / extent : pixelDelta
-    const candidate = drag.startValue + valueDelta
+const extent = getDragExtent ? getDragExtent() : null
+const valueDelta = extent ? pixelDelta / extent : pixelDelta
+const candidate = drag.startValue + valueDelta
 ```
 
 ### Tabs — hand-rolled WAI-ARIA tablist (documented departure from the Radix-wrap rule)
@@ -245,9 +245,9 @@ The method-selector button uses an ancestor-scoped rule `.request-bar .request-b
 
 **Hazard: adding `color` to `.request-bar .request-bar__method.method` kills per-method text colouring.** Any `color` declaration in that rule — or in any ancestor-scoped rule at equal or higher specificity — overrides all seven per-method colours simultaneously with no compile-time error and no visual regression signal unless the computed-style CT suite is run.
 
-**Hazard: chip-mode counter-rules must stay in lockstep with `METHODS` in `httpMethods.ts`.** The (0,3,0) override's `background: var(--bg-elev)` wins source-order over `[data-mstyle='chip'] .method.GET` (also 0,3,0), producing white text on a white surface in chip mode. `RequestBar.css` restores chip colours via seven (0,5,0) counter-rules — one per `HttpMethod`. Adding a method to the `METHODS` tuple without a matching counter-rule reintroduces the white-on-white chip regression for that method.
+**Hazard: chip-mode counter-rules must stay in lockstep with `METHODS` in `httpMethods.ts`, and must use `border: 1px solid transparent`.** The (0,3,0) override's `background: var(--bg-elev)` wins source-order over `[data-mstyle='chip'] .method.GET` (also 0,3,0), producing white text on a white surface in chip mode. `RequestBar.css` restores chip colours via seven (0,5,0) counter-rules — one per `HttpMethod`. Adding a method to the `METHODS` tuple without a matching counter-rule reintroduces the white-on-white chip regression for that method. Each counter-rule must set `border: 1px solid transparent` (not `border: none`) — the transparent border preserves the 33px button height (17px line-height + 7+7 padding + 1+1 border = 33px, content-box) that `border: none` would silently reduce by 2px under chip mode.
 
-<!-- src/renderer/src/components/organisms/RequestBar.css:61-65 -->
+<!-- src/renderer/src/components/organisms/RequestBar.css:65-69 -->
 
 ```css
  * Ancestor-scoped to `.request-bar` so the combined selector reaches (0,3,0),
@@ -257,22 +257,71 @@ The method-selector button uses an ancestor-scoped rule `.request-bar .request-b
  * here lets the per-method chip colour fall through unchallenged.
 ```
 
-<!-- src/renderer/src/components/organisms/RequestBar.css:364-375 -->
+<!-- src/renderer/src/components/organisms/RequestBar.css:419-451 -->
 
 ```css
 /* IMPORTANT: one rule per HTTP method — must stay in lockstep with METHODS in
  * src/renderer/src/lib/httpMethods.ts. Adding a method there without a matching
  * rule here reintroduces the white-on-white chip regression for that method. */
 /* stylelint-disable no-descending-specificity */
-[data-mstyle='chip'] .request-bar .request-bar__method.method.GET     { background: var(--m-get);     border: none; }
-[data-mstyle='chip'] .request-bar .request-bar__method.method.POST    { background: var(--m-post);    border: none; }
-[data-mstyle='chip'] .request-bar .request-bar__method.method.PUT     { background: var(--m-put);     border: none; }
-[data-mstyle='chip'] .request-bar .request-bar__method.method.PATCH   { background: var(--m-patch);   border: none; }
-[data-mstyle='chip'] .request-bar .request-bar__method.method.DELETE  { background: var(--m-delete);  border: none; }
-[data-mstyle='chip'] .request-bar .request-bar__method.method.OPTIONS { background: var(--m-options); border: none; }
-[data-mstyle='chip'] .request-bar .request-bar__method.method.HEAD    { background: var(--m-head);    border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.GET {
+  background: var(--m-get);
+  border: 1px solid transparent;
+}
+[data-mstyle='chip'] .request-bar .request-bar__method.method.POST {
+  background: var(--m-post);
+  border: 1px solid transparent;
+}
+[data-mstyle='chip'] .request-bar .request-bar__method.method.PUT {
+  background: var(--m-put);
+  border: 1px solid transparent;
+}
+[data-mstyle='chip'] .request-bar .request-bar__method.method.PATCH {
+  background: var(--m-patch);
+  border: 1px solid transparent;
+}
+[data-mstyle='chip'] .request-bar .request-bar__method.method.DELETE {
+  background: var(--m-delete);
+  border: 1px solid transparent;
+}
+[data-mstyle='chip'] .request-bar .request-bar__method.method.OPTIONS {
+  background: var(--m-options);
+  border: 1px solid transparent;
+}
+[data-mstyle='chip'] .request-bar .request-bar__method.method.HEAD {
+  background: var(--m-head);
+  border: 1px solid transparent;
+}
 /* stylelint-enable no-descending-specificity */
 ```
+
+**Note: `.url-bar` flex container owns the border and focus ring (feature 012).** The URL input is wrapped in a `.url-bar` flex container (`[aria-hidden link Icon][<input>]`, `gap: 6px`) that owns the border, background, height, and horizontal padding. Focus styling lives on `.url-bar:focus-within` (accent border + `0 0 0 3px var(--accent-soft)` ring), not on the `<input>` directly — the ring wraps the decorative icon and input together. The inner `<input>` is borderless and transparent with `flex: 1 1 0` and `min-width: 0` for horizontal-overflow scrolling. Do not add `outline` or border rules to `.request-bar__url` directly; target `.url-bar:focus-within` instead.
+
+<!-- src/renderer/src/components/organisms/RequestBar.css:159-182 -->
+
+```css
+.request-bar .url-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  border-radius: var(--radius);
+  height: 32px;
+  padding: 0 12px;
+  font-family: var(--font-mono);
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Focus ring wraps the whole field (icon + input) on input focus */
+.request-bar .url-bar:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+```
+
+**Note: shared Dropdown open-panel reference values (feature 012).** `Dropdown.css` sets `.dropdown-content` to `box-shadow: var(--shadow-lg)` (not `--shadow-md`), a `1px` inter-item `gap`, and `.dropdown-item` padding of `6px 8px`. These values match `design/reference.html` and apply to all Dropdown consumers (currently the RequestBar method menu and the dev-only PrimitivesDemo gallery). Callers that need a different shadow or item density must scope their own override rather than editing the shared molecule.
 
 ## Conventions
 

@@ -11,8 +11,12 @@
  *
  * ## Layout
  *
- * `.request-bar` is a flex row: [method button][url input (flex:1)][actions].
- * Method + actions are flex-shrink:0 so only the URL input grows/shrinks.
+ * `.request-bar` is a flex row: [method button][.url-bar container (flex:1)][actions].
+ * The `.url-bar` div owns the border, background, height, and padding of the URL
+ * field. The inner `.request-bar__url` input is borderless/transparent with flex:1
+ * so it fills the container. Focus styling is on `.url-bar:focus-within`, NOT on
+ * the input directly. Method + actions are flex-shrink:0 so only the URL container
+ * grows/shrinks.
  *
  * ## Method button — specificity (0,3,0) ancestor-scoped override
  *
@@ -81,10 +85,12 @@
   background: var(--bg-elev);
   border-radius: var(--radius);
 
-  /* Layout */
+  /* Layout — space-between right-aligns the chevron to the button's right edge,
+     matching the reference .method-select (design/styles.css uses .method{flex:1}
+     to achieve the same visual: method text at start, chevron at end). */
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 6px;
 
   /* Sizing — height: auto overrides the soft-chip's height: 17px at (0,2,0) */
@@ -96,6 +102,9 @@
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 11.5px;
+  /* line-height: 17px gives a 17px content line box → 17 + 7 + 7 + 1 + 1 = 33px total
+     (content-box; reference .method span carries height:17px for the same 33px) */
+  line-height: 17px;
   letter-spacing: 0.04em;
 
   /* Prevent method button from growing with URL length (AC-20) */
@@ -120,53 +129,96 @@
   opacity: 0.65;
 }
 
+/**
+ * Chevron caret icon inside the method button.
+ * Bound to --text (dark) in ALL mstyle modes, matching the reference where the
+ * .method-select chevron computes to --text regardless of mstyle (including chip).
+ * The method text color (e.g. --m-get blue or chip white) falls through from the
+ * [data-mstyle] cascade; the caret is always neutralised to dark-neutral.
+ */
+.request-bar__method-caret {
+  color: var(--text);
+}
+
 /* ---------------------------------------------------------------------------
- * URL input (.request-bar__url)
+ * URL field container (.url-bar) + input (.request-bar__url)
  *
- * Fills all remaining horizontal space via flex:1. min-width:0 prevents the
- * input from overflowing its flex container. The native browser handles
- * horizontal scrolling when content exceeds the input width (no extra CSS).
+ * The `.url-bar` flex container (from task 001's markup) OWNS the box: border,
+ * background, radius, height, and horizontal padding. It holds a leading
+ * decorative link icon plus the URL input. Focus styling lives on
+ * `.url-bar:focus-within` (accent border + 3px accent-soft ring), NOT on the
+ * input — so the ring wraps the icon + input together. The inner input is
+ * borderless/transparent, flex:1 with min-width:0 so the URL scrolls
+ * horizontally on overflow rather than reflowing the bar (AC-12). Bound to the
+ * reference .url-bar treatment (design/styles.css).
  * ------------------------------------------------------------------------- */
 
 /**
- * URL text input.
- * Flex:1 with min-width:0 ensures horizontal scroll on overflow (AC-20).
+ * URL field container — owns the bordered box; flex row of [link icon][input].
+ */
+.request-bar .url-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  border-radius: var(--radius);
+  height: 32px;
+  padding: 0 12px;
+  font-family: var(--font-mono);
+
+  /* Fill all remaining space; min-width:0 allows the field to shrink below its
+     natural width so the URL scrolls horizontally rather than reflowing the bar. */
+  flex: 1 1 0;
+  min-width: 0;
+
+  transition: border-color 80ms ease;
+}
+
+/* Focus ring wraps the whole field (icon + input) on input focus */
+.request-bar .url-bar:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/**
+ * URL text input — borderless/transparent; the .url-bar container owns the box.
+ * Flex:1 with min-width:0 ensures horizontal scroll on overflow (AC-12).
  */
 .request-bar__url {
-  /* Reset input defaults */
+  /* Reset input defaults — container owns border/background */
   appearance: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
+  border: none;
+  background: transparent;
   color: var(--text);
   font-family: var(--font-mono);
   font-size: var(--fs-base);
   line-height: 1;
   margin: 0;
-  padding: 0 12px;
-  height: 32px;
+  padding: 0;
 
-  /* Fill all remaining space; min-width:0 allows the input to shrink below its
-     natural width so the URL scrolls horizontally rather than reflowing the bar. */
+  /* Fill the container; min-width:0 allows the input to shrink so the URL
+     scrolls horizontally rather than reflowing the bar. height:100% stretches
+     the input across the container's full 32px so the entire field is a click
+     target (align-items:center would otherwise size the input to text height,
+     leaving dead click-zones above/below); the browser still centres the text
+     vertically, matching the reference. */
   flex: 1 1 0;
   min-width: 0;
+  height: 100%;
 
   /* Single-line — overflow scrolls natively */
   white-space: nowrap;
   overflow: hidden;
-
-  transition: border-color 80ms ease;
 }
 
 .request-bar__url::placeholder {
   color: var(--text-faint);
 }
 
-/* Focus ring on URL input */
+/* Focus is signalled by .url-bar:focus-within — no ring on the bare input */
 .request-bar__url:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* ---------------------------------------------------------------------------
@@ -354,7 +406,10 @@
  * .request-bar__method + .method + .METHOD) beat both the (0,3,0) override
  * and the (0,3,0) chip tokens, restoring the 009 chip appearance:
  *   - per-method colored background
- *   - border:none (chip uses inset box-shadow from tokens.css, not a border)
+ *   - border: 1px solid transparent — preserves the 33px box height (matching
+ *     soft mode + the reference: 17px line-height + 7+7 padding + 1+1 border
+ *     = 33px, content-box) with no visible border; the per-method background
+ *     fills the transparent border area (background-clip: border-box default)
  *   - color:#fff falls through from [data-mstyle='chip'] .method (0,2,0)
  *
  * Soft/outline/dot/bar are unaffected — their [data-mstyle] selector never
@@ -365,13 +420,34 @@
  * src/renderer/src/lib/httpMethods.ts. Adding a method there without a matching
  * rule here reintroduces the white-on-white chip regression for that method. */
 /* stylelint-disable no-descending-specificity */
-[data-mstyle='chip'] .request-bar .request-bar__method.method.GET     { background: var(--m-get);     border: none; }
-[data-mstyle='chip'] .request-bar .request-bar__method.method.POST    { background: var(--m-post);    border: none; }
-[data-mstyle='chip'] .request-bar .request-bar__method.method.PUT     { background: var(--m-put);     border: none; }
-[data-mstyle='chip'] .request-bar .request-bar__method.method.PATCH   { background: var(--m-patch);   border: none; }
-[data-mstyle='chip'] .request-bar .request-bar__method.method.DELETE  { background: var(--m-delete);  border: none; }
-[data-mstyle='chip'] .request-bar .request-bar__method.method.OPTIONS { background: var(--m-options); border: none; }
-[data-mstyle='chip'] .request-bar .request-bar__method.method.HEAD    { background: var(--m-head);    border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.GET {
+  background: var(--m-get);
+  border: 1px solid transparent;
+}
+[data-mstyle='chip'] .request-bar .request-bar__method.method.POST {
+  background: var(--m-post);
+  border: 1px solid transparent;
+}
+[data-mstyle='chip'] .request-bar .request-bar__method.method.PUT {
+  background: var(--m-put);
+  border: 1px solid transparent;
+}
+[data-mstyle='chip'] .request-bar .request-bar__method.method.PATCH {
+  background: var(--m-patch);
+  border: 1px solid transparent;
+}
+[data-mstyle='chip'] .request-bar .request-bar__method.method.DELETE {
+  background: var(--m-delete);
+  border: 1px solid transparent;
+}
+[data-mstyle='chip'] .request-bar .request-bar__method.method.OPTIONS {
+  background: var(--m-options);
+  border: 1px solid transparent;
+}
+[data-mstyle='chip'] .request-bar .request-bar__method.method.HEAD {
+  background: var(--m-head);
+  border: 1px solid transparent;
+}
 /* stylelint-enable no-descending-specificity */
 
 /* ---------------------------------------------------------------------------
@@ -383,7 +459,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .request-bar .request-bar__method.method,
-  .request-bar__url,
+  .request-bar .url-bar,
   .request-bar__send,
   .request-bar__save,
   .request-bar__share {
