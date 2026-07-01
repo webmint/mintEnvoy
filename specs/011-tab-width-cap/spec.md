@@ -19,11 +19,11 @@ The working-tabs tab cell shall hold a stable maximum width and truncate an over
 
 ## 4. Affected Areas
 
-| Area | Files | Impact |
-|------|-------|--------|
-| Tabs primitive styles (tabbar tab cell) | src/renderer/src/components/molecules/Tabs.css | Modify — add max-width:220px to the tabbar tab-wrapper rule (Tabs.css:421), the design tab cell; tabbar-scoped, with no change to the base Tabs rules. |
-| TabBar styles (divergent label cap) | src/renderer/src/components/organisms/TabBar.css | Modify — remove the divergent tabbar tab-label cap (the max-width:200px rule, TabBar.css:88); the base tab-label rule (Tabs.css:196) already supplies the overflow, the ellipsis, and the nowrap, so the cap relocates to the cell without losing truncation. |
-| Fidelity + behavior tests | src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx, src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx | Create/extend — add a computed-style assertion that the tabbar tab-wrapper max-width resolves to 220px to the existing wrapper-geometry block, and add a long-title fixture plus a no-growth test (the cell stays at most 220px, with the label showing an ellipsis). Reuse the existing TabbarFidelityFixture styling context (tokens.css, TabBar.css, Shell.css, soft mstyle). |
+| Area                                    | Files                                                                                                                         | Impact                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tabs primitive styles (tabbar tab cell) | src/renderer/src/components/molecules/Tabs.css                                                                                | Modify — add max-width:220px to the tabbar tab-wrapper rule (Tabs.css:421), the design tab cell; tabbar-scoped, with no change to the base Tabs rules.                                                                                                                                                                                                                           |
+| TabBar styles (divergent label cap)     | src/renderer/src/components/organisms/TabBar.css                                                                              | Modify — remove the divergent tabbar tab-label cap (the max-width:200px rule, TabBar.css:88); the base tab-label rule (Tabs.css:196) already supplies the overflow, the ellipsis, and the nowrap, so the cap relocates to the cell without losing truncation.                                                                                                                    |
+| Fidelity + behavior tests               | src/renderer/src/components/molecules/**tests**/Tabs.ct.tsx, src/renderer/src/components/molecules/**tests**/Tabs.stories.tsx | Create/extend — add a computed-style assertion that the tabbar tab-wrapper max-width resolves to 220px to the existing wrapper-geometry block, and add a long-title fixture plus a no-growth test (the cell stays at most 220px, with the label showing an ellipsis). Reuse the existing TabbarFidelityFixture styling context (tokens.css, TabBar.css, Shell.css, soft mstyle). |
 
 ## 5. Acceptance Criteria
 
@@ -32,9 +32,9 @@ Each AC must be testable and unambiguous. **Cover each category that applies. Ma
 ### 5.1 Tooling / artifact presence and absence
 
 - [x] **AC-1**: The Tabs stylesheet shall cap the working-tabs tab-cell wrapper width at 220px.
-  > Verification: grep -qE 'max-width:[[:space:]]*220px' src/renderer/src/components/molecules/Tabs.css
+  > Verification: grep -qE 'max-width:[[:space:]]\*220px' src/renderer/src/components/molecules/Tabs.css
 - [x] **AC-2**: The TabBar stylesheet shall not set a 200px width cap on the tab label.
-  > Verification: ! grep -qE 'max-width:[[:space:]]*200px' src/renderer/src/components/organisms/TabBar.css
+  > Verification: ! grep -qE 'max-width:[[:space:]]\*200px' src/renderer/src/components/organisms/TabBar.css
 
 ### 5.2 Behavior preservation
 
@@ -89,7 +89,7 @@ N/A — No new git hooks or commit gates; the project's existing forge gates app
 - Must not break: Bare Tabs consumers and the selection-only non-closable path must not regress; deriveLabel and its label-derivation precedence and the tabsStore lifecycle stay unchanged, since this is presentation CSS only.
 - Must follow constitution §3.6: Search before building and reuse: reuse the base tab-label ellipsis rule (Tabs.css:196) and add only the missing cell cap; write no new truncation CSS.
 - Must follow constitution §6.1: Minimal changes: touch only the tabbar tab-cell width cap (the wrapper-rule add plus the label-rule removal) and its fidelity test; do not modify unrelated tab CSS.
-- Must follow constitution §3.4: Testing: the cell max-width computed-style assertion must run in Playwright CT because jsdom cannot resolve computed layout; co-locate under the __tests__ folder as a .ct.tsx file, reusing the established fidelity suite.
+- Must follow constitution §3.4: Testing: the cell max-width computed-style assertion must run in Playwright CT because jsdom cannot resolve computed layout; co-locate under the **tests** folder as a .ct.tsx file, reusing the established fidelity suite.
 
 ## 8. Open Questions
 
@@ -99,9 +99,9 @@ N/A — No new git hooks or commit gates; the project's existing forge gates app
 
 ## 9. Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Removing the tabbar tab-label cap also drops its overflow, ellipsis, and nowrap declarations, but the base tab-label rule (Tabs.css:196) already provides them; if it did not, truncation would silently break. | Low | Low | Confirm the base ellipsis declarations are present before removal; keep the existing label flex and overflow CT assertions green; assert the ellipsis on the long-title fixture. |
-| The new cell cap could clip the active accent pseudo-element or the overflow chevron if overflow interacts with the cap. | Low | Med | Rely on the existing overflow-visible rule on the tabbar container; keep the active-pseudo and screenshot CT assertions green; a runtime design-auditor pass confirms no clipping. |
-| A short-title CT fixture would never trigger truncation, yielding a false pass on the no-growth assertion. | Med | Low | Add an explicit long-title fixture and assert both the cap and the rendered ellipsis, baselining the width CT with realistic content rather than empty-versus-filled. |
-| A future method-chip width change could cause the title to truncate sooner inside the fixed cell. | Low | Low | Accepted; the cell cap is fixed and the label flexes, the chip width is bounded, and the earlier truncation is the intended overflow behaviour. |
+| Risk                                                                                                                                                                                                            | Likelihood | Impact | Mitigation                                                                                                                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Removing the tabbar tab-label cap also drops its overflow, ellipsis, and nowrap declarations, but the base tab-label rule (Tabs.css:196) already provides them; if it did not, truncation would silently break. | Low        | Low    | Confirm the base ellipsis declarations are present before removal; keep the existing label flex and overflow CT assertions green; assert the ellipsis on the long-title fixture.   |
+| The new cell cap could clip the active accent pseudo-element or the overflow chevron if overflow interacts with the cap.                                                                                        | Low        | Med    | Rely on the existing overflow-visible rule on the tabbar container; keep the active-pseudo and screenshot CT assertions green; a runtime design-auditor pass confirms no clipping. |
+| A short-title CT fixture would never trigger truncation, yielding a false pass on the no-growth assertion.                                                                                                      | Med        | Low    | Add an explicit long-title fixture and assert both the cap and the rendered ellipsis, baselining the width CT with realistic content rather than empty-versus-filled.              |
+| A future method-chip width change could cause the title to truncate sooner inside the fixed cell.                                                                                                               | Low        | Low    | Accepted; the cell cap is fixed and the label flexes, the chip width is bounded, and the earlier truncation is the intended overflow behaviour.                                    |

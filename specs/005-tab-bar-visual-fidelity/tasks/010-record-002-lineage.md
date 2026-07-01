@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                             | Action | Description                                                     |
+| -------------------------------- | ------ | --------------------------------------------------------------- |
 | specs/002-tabs-primitive/spec.md | Modify | Append a feature-005 extension block under §10 Contract Lineage |
 
 ## Description
@@ -20,7 +20,7 @@
 Record the task-002 contract change in the 002 spec lineage (the AC-29-of-004 pattern — a contract change is recorded, not a silent prop addition). Append a `### Extension: feature 005-tab-bar-visual-fidelity (<date>)` block under the existing §10 Contract Lineage, mirroring the 004 extension block. Document:
 
 - The new optional `TabDescriptor` fields `method?: string` and `dirty?: boolean` (both default-absent → backward-compatible).
-- The dirty-XOR-close render model in the closable branch (dirty → non-focusable clickable `tabs__tab-dirty` span; clean → always-visible `tabs__tab-close` SVG button), and that it replaces the close *control* slot, never the *label* span (004 AC-26 preserved).
+- The dirty-XOR-close render model in the closable branch (dirty → non-focusable clickable `tabs__tab-dirty` span; clean → always-visible `tabs__tab-close` SVG button), and that it replaces the close _control_ slot, never the _label_ span (004 AC-26 preserved).
 - The byte-identical non-closable path guarantee (005 AC-2) — unchanged from the 004 lineage guarantee.
 - The global `.method`/`.{METHOD}` class usage inside the BEM Tabs primitive — a documented departure from the BEM-only convention (constitution §2.3), reused from tokens.css's existing method palette.
 - The Q-3 accessibility tradeoff: the dirty dot has no accessible name (matches the reference's non-interactive span); assistive-tech close routes via the retained Delete/Backspace keyboard path.
@@ -33,10 +33,12 @@ Record the task-002 contract change in the 002 spec lineage (the AC-29-of-004 pa
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `specs/002-tabs-primitive/spec.md` has a `## 10. Contract Lineage` section with a `### Extension: feature 004-working-tabs-state-machine` block.
 - Task 002 produced the `method`/`dirty` fields + dirty-XOR-close model this block documents.
 
 ### Produces (checked after execution)
+
 - A `### Extension: feature 005-tab-bar-visual-fidelity` block exists under §10 documenting the method/dirty fields, the dirty-XOR-close model, the byte-identical guarantee, the global-`.method` departure, and the Q-3 a11y tradeoff.
 
 ## Done When

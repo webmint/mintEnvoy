@@ -16,6 +16,7 @@ Working tabs in the tab bar no longer grow without bound as their titles get lon
 `19 files changed, 1421 insertions(+), 30 deletions(-)` (most of which is the feature's spec/plan/task/review records).
 
 Code (`src/renderer/src/components/`):
+
 - `molecules/Tabs.css` — added the `max-width: 220px` cap to the `.tabbar` tab-cell wrapper with a design-fidelity-contract §5 comment.
 - `organisms/TabBar.css` — removed the now-redundant `.tabbar` label rule; rewrote the file-block header from "Label truncation" to "Tab width cap".
 - `molecules/__tests__/Tabs.stories.tsx` — added `TabbarLongTitleFidelityFixture` (two long + one short tab, with a fixture-scoped border-box reset).

@@ -11,9 +11,9 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/organisms/__tests__/TabBar.test.tsx | Create | Render/select/close/new-blank + label precedence + dirty marker |
+| File                                                            | Action | Description                                                     |
+| --------------------------------------------------------------- | ------ | --------------------------------------------------------------- |
+| src/renderer/src/components/organisms/**tests**/TabBar.test.tsx | Create | Render/select/close/new-blank + label precedence + dirty marker |
 
 ## Description
 
@@ -29,10 +29,12 @@ Write the Vitest + Testing Library suite for the TabBar organism (task 007). Fol
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `TabBar` (task 007) is exported and composes the closable Tabs primitive wired to `tabsStore`.
 - The renderer Vitest + Testing Library stack is configured (feature 001).
 
 ### Produces (checked after execution)
+
 - `src/renderer/src/components/organisms/__tests__/TabBar.test.tsx` exists with cases covering gesture routing, label precedence, and the dirty marker.
 - The TabBar suite passes.
 
@@ -50,6 +52,6 @@ Write the Vitest + Testing Library suite for the TabBar organism (task 007). Fol
 ## Completion Notes
 
 **Completed**: 2026-06-25T06:53:40Z
-**Files changed**: src/renderer/src/components/organisms/__tests__/TabBar.test.tsx
+**Files changed**: src/renderer/src/components/organisms/**tests**/TabBar.test.tsx
 **Contract**: Expects 2/2 | Produces 2/2
 **Notes**: TabBar.test.tsx 14/14. AC-24 gesture routing (activate/close/newBlank + active-tab close->right-neighbor + already-active click no-op + collectionRequestId:null seed), AC-25 all 3 label-precedence branches verbatim, AC-26 dirty/clean marker. Singleton store reset in beforeEach. Panel repair: added the two active-tab routing cases qa flagged + collectionRequestId assertion.

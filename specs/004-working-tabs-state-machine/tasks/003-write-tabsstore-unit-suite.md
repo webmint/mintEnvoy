@@ -11,9 +11,9 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/lib/__tests__/tabsStore.test.ts | Create | Vitest unit suite: every lifecycle action + dirty/markClean + invariants + Q-2 JSON round-trip contract |
+| File                                             | Action | Description                                                                                             |
+| ------------------------------------------------ | ------ | ------------------------------------------------------------------------------------------------------- |
+| src/renderer/src/lib/**tests**/tabsStore.test.ts | Create | Vitest unit suite: every lifecycle action + dirty/markClean + invariants + Q-2 JSON round-trip contract |
 
 ## Description
 
@@ -37,11 +37,13 @@ Cover every lifecycle action and invariant, and pin the Q-2 cross-task serializa
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `tabsStore` (task 002) exports the store + `Tab`/`OpenFromCollectionInput`/`TabsState`, with all 5 actions.
 - `makeBlankRequest` (task 001) is importable for the seed + serialization assertions.
 - The renderer Vitest stack (vitest + @testing-library) is configured (feature 001).
 
 ### Produces (checked after execution)
+
 - `src/renderer/src/lib/__tests__/tabsStore.test.ts` exists with `describe`/`it` blocks covering AC-13 through AC-21 and the JSON round-trip.
 - `npx vitest run src/renderer/src/lib/__tests__/tabsStore.test.ts` passes (AC-8).
 
@@ -64,6 +66,6 @@ Cover every lifecycle action and invariant, and pin the Q-2 cross-task serializa
 ## Completion Notes
 
 **Completed**: 2026-06-24T23:07:35Z
-**Files changed**: src/renderer/src/lib/__tests__/tabsStore.test.ts
+**Files changed**: src/renderer/src/lib/**tests**/tabsStore.test.ts
 **Contract**: Expects 3/3 | Produces 2/2
 **Notes**: 28-test Vitest suite, all green. Covers AC-13..21 + leg-precedence + unknown-id no-ops + serialization round-trip + isBearerAuth both-branches + makeBlankRequest reference-independence. Round-1 panel repair (genuine): removed §3.1 as-cast on JSON.parse, added params:[] + full-state-invariance assertions + dirty-non-active test, dropped redundant afterEach. AC-8 verified by direct vitest run (28 passed).

@@ -5,11 +5,11 @@
   "templateOwned": {
     "description": "Files 100% owned by the template — safe to overwrite on update. Each entry maps template-repo source path to installed-target path.",
     "files": [
-      { "source": "src/manifest.json",                      "target": ".claude/template-manifest.json" },
-      { "source": "src/devforge/lib/**",                    "target": ".devforge/lib/**" },
-      { "source": "src/devforge/storage-rules.md",          "target": ".devforge/storage-rules.md" },
-      { "source": "src/git-hooks/**",                       "target": ".devforge/templates/git-hooks/**" },
-      { "source": "src/hooks/**",                           "target": ".claude/hooks/**" }
+      { "source": "src/manifest.json", "target": ".claude/template-manifest.json" },
+      { "source": "src/devforge/lib/**", "target": ".devforge/lib/**" },
+      { "source": "src/devforge/storage-rules.md", "target": ".devforge/storage-rules.md" },
+      { "source": "src/git-hooks/**", "target": ".devforge/templates/git-hooks/**" },
+      { "source": "src/hooks/**", "target": ".claude/hooks/**" }
     ]
   },
 

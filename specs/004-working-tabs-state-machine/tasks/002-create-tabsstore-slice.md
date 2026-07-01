@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                              | Action | Description                                                                            |
+| --------------------------------- | ------ | -------------------------------------------------------------------------------------- |
 | src/renderer/src/lib/tabsStore.ts | Create | zustand slice `{ tabs, activeTabId }` + 5 actions + never-zero/neighbor/dedupe helpers |
 
 ## Description
@@ -46,10 +46,12 @@ The store initializes with one seeded blank tab so the never-zero invariant hold
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `requestSpec.ts` (task 001) exports `RequestSpec` and `makeBlankRequest`.
 - `zustand` is declared in `package.json` (existing dependency; `settingsStore.ts`/`toastStore.ts` use `create`).
 
 ### Produces (checked after execution)
+
 - `src/renderer/src/lib/tabsStore.ts` exports `tabsStore`, `Tab`, `OpenFromCollectionInput`, `TabsState`.
 - `tabsStore` exposes the literal action names `openFromCollection`, `newBlank`, `close`, `selectActive`, `markClean`.
 - `tabsStore.getState().tabs.length >= 1` at construction (never-zero seeded init).

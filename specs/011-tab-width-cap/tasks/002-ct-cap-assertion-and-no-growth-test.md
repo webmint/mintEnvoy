@@ -11,10 +11,10 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx | Modify | Add a long-title fidelity fixture whose tab title overflows the 220px cell |
-| src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx | Modify | Add the 220px computed-style cap assertion + a long-title no-growth/ellipsis test |
+| File                                                             | Action | Description                                                                       |
+| ---------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------- |
+| src/renderer/src/components/molecules/**tests**/Tabs.stories.tsx | Modify | Add a long-title fidelity fixture whose tab title overflows the 220px cell        |
+| src/renderer/src/components/molecules/**tests**/Tabs.ct.tsx      | Modify | Add the 220px computed-style cap assertion + a long-title no-growth/ellipsis test |
 
 ## Description
 
@@ -37,10 +37,12 @@ Prove the relocated cap in a real browser. Add a computed-style assertion that `
 ## Contracts
 
 ### Expects (checked before execution)
+
 - The `.tabbar .tabs__tab-wrapper` rule in `Tabs.css` contains `max-width: 220px`.
 - `TabbarFidelityFixture` exists in `Tabs.stories.tsx` and mounts under the `.tabbar` + `tokens.css` + `[data-mstyle="soft"]` cascade.
 
 ### Produces (checked after execution)
+
 - `Tabs.stories.tsx` exports a long-title fidelity fixture whose title overflows the 220px cell.
 - `Tabs.ct.tsx` asserts `.tabbar .tabs__tab-wrapper` computed `max-width` equals `220px`.
 - `Tabs.ct.tsx` asserts a long-title tab cell width is ≤ 220px and its label computed `text-overflow` is `ellipsis`.
@@ -59,6 +61,6 @@ Prove the relocated cap in a real browser. Add a computed-style assertion that `
 ## Completion Notes
 
 **Completed**: 2026-06-30T15:59:31Z
-**Files changed**: src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx, src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx
+**Files changed**: src/renderer/src/components/molecules/**tests**/Tabs.stories.tsx, src/renderer/src/components/molecules/**tests**/Tabs.ct.tsx
 **Contract**: Expects 2/2 | Produces 3/3
 **Notes**: Added TabbarLongTitleFidelityFixture (2 long + 1 short tab, scoped .ct-borderbox-scope <style> for production border-box) + 4 CT tests: AC-6/AC-9 max-width==220px, [011] AC-7 cell<=221px border-box, [011] AC-8 tablist<=662px (diagnostic), bare-wrapper max-width:none (AC-3). Full CT suite 161/161. Deviation: box-sizing reproduced via fixture-scoped <style> after a global base.css harness import broke 2 screenshot baselines (reverted); playwright/index.tsx net-unchanged.

@@ -1,6 +1,6 @@
 # Handoff — finish feature 010-request-bar-fidelity (HEAD chip-mode fix)
 
-**Branch**: `spec/010-request-bar-fidelity`  ·  **Date written**: 2026-06-29
+**Branch**: `spec/010-request-bar-fidelity` · **Date written**: 2026-06-29
 
 ## TL;DR — one `/fix` left, then close the feature
 
@@ -11,6 +11,7 @@ Resume with: **`/fix`** → **`/review`** → **`/verify`** → **`/summarize`**
 ## The exact defect (confirmed by /review refutation, 2 High findings)
 
 `specs/010-request-bar-fidelity/review.md` (latest) holds both:
+
 1. **`RequestBar.css:368`** — chip counter-rules enumerate only GET/POST/PUT/PATCH/DELETE/OPTIONS. `METHODS` (`src/renderer/src/lib/httpMethods.ts:29`) = `['GET','POST','PUT','PATCH','DELETE','OPTIONS','HEAD']` — **HEAD** is the 7th. `RequestBar.tsx:269` emits `cx('request-bar__method','method',method)` → a HEAD tab gets the `.HEAD` class. With no HEAD chip rule, HEAD falls to the `(0,3,0)` `background: var(--bg-elev)` override (white) + `#fff` text from `[data-mstyle='chip'] .method` (tokens.css) → white-on-light.
 2. **`RequestBar.ct.tsx:1067`** (chip describe block, lines 1078–1196) — asserts only GET + POST backgrounds; no HEAD test.
 
@@ -20,9 +21,14 @@ Resume with: **`/fix`** → **`/review`** → **`/verify`** → **`/summarize`**
 - Current chip rules: `RequestBar.css:363–368` (GET..OPTIONS), inside a `stylelint-disable no-descending-specificity` block.
 
 **CSS** (`RequestBar.css`): add the 7th rule after line 368, same form/specificity (0,5,0):
+
 ```css
-[data-mstyle='chip'] .request-bar .request-bar__method.method.HEAD { background: var(--m-head); border: none; }
+[data-mstyle='chip'] .request-bar .request-bar__method.method.HEAD {
+  background: var(--m-head);
+  border: none;
+}
 ```
+
 **Consider a more robust form** than enumeration (the enumeration is exactly what let this reopen): e.g. drive the per-method chip background off a single CSS custom property the method class sets, so a future `METHODS` addition can't silently break chip again. If that's not clean, at minimum the enumeration must stay in lockstep with `METHODS` (7 rules) — add a comment tying it to `METHODS`.
 
 **CT** (`RequestBar.ct.tsx` chip-mode describe block ~line 1078): add a HEAD assertion (probe-resolved `var(--m-head)` background). **Better**: loop over all 7 `METHODS` so the test can't drift from the CSS again. Reuse the existing probe-element + `data-mstyle='chip'` inner-beforeEach pattern already in that block. Seed/switch to a HEAD tab (the two-tab fixture supports method switching).

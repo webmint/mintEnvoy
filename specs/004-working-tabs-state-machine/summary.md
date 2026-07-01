@@ -22,6 +22,7 @@ A working tabs system for the mintEnvoy HTTP client: users can open, switch, and
 `54 files changed, 6689 insertions(+), 646 deletions(-)` (includes planning artifacts under `specs/`).
 
 Source code (`src/renderer/src/`):
+
 - `lib/` — `requestSpec.ts`, `tabsStore.ts` (+ `__tests__/tabsStore.test.ts`)
 - `components/molecules/` — `Tabs.tsx`, `Tabs.css` (+ `__tests__/Tabs.test.tsx`, `Tabs.ct.tsx`, `Tabs.stories.tsx`)
 - `components/organisms/` — `TabBar.tsx`, `TabBar.css` (+ `__tests__/TabBar.test.tsx`)

@@ -19,10 +19,10 @@ A single param or header row (params[] and headers[] share this shape).
 
 Exactly two members in scope; the union is intentionally extensible (other variants owned by the out-of-scope auth-panel task).
 
-| Variant  | Shape                              | Description                                   |
-| -------- | ---------------------------------- | --------------------------------------------- |
-| none     | `{ type: 'none' }`                 | No auth                                        |
-| bearer   | `{ type: 'bearer'; token: string }`| Bearer token; token stored verbatim (no interp)|
+| Variant | Shape                               | Description                                     |
+| ------- | ----------------------------------- | ----------------------------------------------- |
+| none    | `{ type: 'none' }`                  | No auth                                         |
+| bearer  | `{ type: 'bearer'; token: string }` | Bearer token; token stored verbatim (no interp) |
 
 Narrowed via a type guard (`isBearerAuth(auth): auth is BearerAuth`), never via `any`/casts.
 
@@ -30,42 +30,42 @@ Narrowed via a type guard (`isBearerAuth(auth): auth is BearerAuth`), never via 
 
 The full HTTP-request definition bound to a tab.
 
-| Field   | Type                                   | Required | Description                                      |
-| ------- | -------------------------------------- | -------- | ------------------------------------------------ |
-| method  | string                                 | yes      | HTTP method (seed default `'GET'`)               |
-| url     | string                                 | yes      | Request URL; stored verbatim (un-interpolated template) |
-| name    | string                                 | yes      | Display name (may be empty)                      |
-| params  | Row[]                                  | yes      | Query params                                     |
-| headers | Row[]                                  | yes      | Request headers (auth is NOT mirrored here)      |
-| body    | `{ lang: string; type: string; text: string }` | yes | Request body descriptor                |
-| auth    | Auth                                   | yes      | Discriminated-union auth                         |
+| Field   | Type                                           | Required | Description                                             |
+| ------- | ---------------------------------------------- | -------- | ------------------------------------------------------- |
+| method  | string                                         | yes      | HTTP method (seed default `'GET'`)                      |
+| url     | string                                         | yes      | Request URL; stored verbatim (un-interpolated template) |
+| name    | string                                         | yes      | Display name (may be empty)                             |
+| params  | Row[]                                          | yes      | Query params                                            |
+| headers | Row[]                                          | yes      | Request headers (auth is NOT mirrored here)             |
+| body    | `{ lang: string; type: string; text: string }` | yes      | Request body descriptor                                 |
+| auth    | Auth                                           | yes      | Discriminated-union auth                                |
 
 ### Tab
 
 A slice-owned wrapper pairing a RequestSpec with tab-local state.
 
-| Field              | Type             | Required | Description                                                                                          |
-| ------------------ | ---------------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| id                 | string           | yes      | Unique tab id (`crypto.randomUUID()`); per-tab surrogate key — NOT a collection identity             |
-| collectionRequestId | string \| null  | yes      | Source collection-request identity, set when the tab was opened from a collection; `null` for new-blank. This is the field AC-13's id-first dedupe matches on (distinct from `id`). |
-| spec               | RequestSpec      | yes      | The request this tab edits                                                                            |
-| dirty              | boolean          | yes      | Unsaved-edits flag; cleared by markClean                                                             |
+| Field               | Type           | Required | Description                                                                                                                                                                         |
+| ------------------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                  | string         | yes      | Unique tab id (`crypto.randomUUID()`); per-tab surrogate key — NOT a collection identity                                                                                            |
+| collectionRequestId | string \| null | yes      | Source collection-request identity, set when the tab was opened from a collection; `null` for new-blank. This is the field AC-13's id-first dedupe matches on (distinct from `id`). |
+| spec                | RequestSpec    | yes      | The request this tab edits                                                                                                                                                          |
+| dirty               | boolean        | yes      | Unsaved-edits flag; cleared by markClean                                                                                                                                            |
 
 ### OpenFromCollectionInput (the typed `openFromCollection` argument)
 
 The slice does NOT build the collection identity itself (the collection-list trigger site is §6 out of scope); it accepts and stores one supplied by the caller.
 
-| Field              | Type        | Required | Description                                                              |
-| ------------------ | ----------- | -------- | ----------------------------------------------------------------------- |
-| collectionRequestId | string     | yes      | Stable identity of the collection request being opened (matched by dedupe leg 1) |
-| spec               | RequestSpec | yes      | The request payload to seed the tab with                                |
+| Field               | Type        | Required | Description                                                                      |
+| ------------------- | ----------- | -------- | -------------------------------------------------------------------------------- |
+| collectionRequestId | string      | yes      | Stable identity of the collection request being opened (matched by dedupe leg 1) |
+| spec                | RequestSpec | yes      | The request payload to seed the tab with                                         |
 
 ### TabsState (zustand slice shape)
 
-| Field        | Type     | Required | Description                          |
-| ------------ | -------- | -------- | ------------------------------------ |
-| tabs         | Tab[]    | yes      | Open tabs; **array order IS tab order** |
-| activeTabId  | string   | yes      | id of the active tab                 |
+| Field       | Type   | Required | Description                             |
+| ----------- | ------ | -------- | --------------------------------------- |
+| tabs        | Tab[]  | yes      | Open tabs; **array order IS tab order** |
+| activeTabId | string | yes      | id of the active tab                    |
 
 Actions (live on the store, not on the serializable data): `openFromCollection(input: OpenFromCollectionInput)`, `newBlank()`, `close(tabId)`, `selectActive(tabId)`, `markClean(tabId)`.
 

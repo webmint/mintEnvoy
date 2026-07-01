@@ -374,37 +374,27 @@
       },
       {
         "area": "HTTP method single-source module",
-        "files": [
-          "src/renderer/src/lib/httpMethods.ts"
-        ],
+        "files": ["src/renderer/src/lib/httpMethods.ts"],
         "impact": "Create new \u2014 export const METHODS (7 methods, display order) + export type HttpMethod = typeof METHODS[number]; lib-only, no component/store imports"
       },
       {
         "area": "RequestSpec model method type",
-        "files": [
-          "src/renderer/src/lib/requestSpec.ts"
-        ],
+        "files": ["src/renderer/src/lib/requestSpec.ts"],
         "impact": "Modify \u2014 re-point method from string to HttpMethod imported from httpMethods.ts (single source); makeBlankRequest GET seed stays valid"
       },
       {
         "area": "tabsStore spec-edit action",
-        "files": [
-          "src/renderer/src/lib/tabsStore.ts"
-        ],
+        "files": ["src/renderer/src/lib/tabsStore.ts"],
         "impact": "Modify \u2014 add updateActiveSpec(patch: Partial<RequestSpec>) action: shallow-merge into active tab spec, set dirty=true only on actual change, resolve active tab internally; existing actions unchanged"
       },
       {
         "area": "App root request-pane wiring",
-        "files": [
-          "src/renderer/src/App.tsx"
-        ],
+        "files": ["src/renderer/src/App.tsx"],
         "impact": "Modify \u2014 add panes={{ request: <RequestBar onSend={...} /> }} to the existing <Shell tabs={<TabBar/>} /> element; ToastProvider/Shell wiring otherwise unchanged"
       },
       {
         "area": "Constitution sole-subscriber rule",
-        "files": [
-          "constitution.md"
-        ],
+        "files": ["constitution.md"],
         "impact": "Modify \u2014 update \u00a74 'TabBar.tsx is the sole subscriber' wording to admit RequestBar as the spec-edit subscriber of tabsStore (documentation-only; no behavior change to TabBar)"
       },
       {

@@ -1,7 +1,7 @@
 ---
 name: grill
 description: Standalone adversarial design-grill — the design-level mirror of `/review`. Runs by invocation between `/plan` and `/breakdown` to attack the FINISHED design (`plan.md` + its `spec.md`) before `/breakdown` spends effort decomposing it. Dispatches the `devils-advocate` adversary (which resolves a three-ring codebase blast radius and self-gated web-verification), cross-examines every attack with a non-author refutation pass (architect excluded), writes `specs/[feature]/grill.md`, and recommends a 4-way disposition (PROCEED / REVISE-PLAN / RE-ENTER-UPSTREAM / KILL). Opt-in — never an auto-gate.
-argument-hint: "[plan-file-or-feature]"
+argument-hint: '[plan-file-or-feature]'
 disable-model-invocation: true
 ---
 
@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 `/grill` is a standalone, opt-in pipeline stage positioned BETWEEN `/plan` and `/breakdown`. It is the design-level mirror of `/review`: `/plan` builds the design, and `/grill` attacks the FINISHED design (`plan.md` and the `spec.md` it implements) before `/breakdown` spends effort decomposing it and `/implement` writes the code — while killing a fatally-flawed design is still cheap. It dispatches the `devils-advocate` adversary in ADVERSARIAL DESIGN-GRILL MODE, validates every attack against the actual artifacts to discard ungrounded ones, cross-examines the survivors with a refutation pass (default-dismiss unless the defect is demonstrable from quoted evidence), writes a findings report to `specs/[feature]/grill.md`, and recommends a 4-way disposition. Read-only on source — it never modifies source, never modifies the plan or spec; it WIP-commits only its OWN artifacts (the report + seed + state) in an install-repo-only, fail-soft `[WIP]` commit that folds into `/finalize`'s squash. State + render shape are owned by `.devforge/lib/grill_helper`; the orchestrator composes values via verb subcommands.
 
-The genuine gap it fills: `/plan` *compares* 2–3 alternatives and the architect picks a winner, but nobody ever attacks the winner — comparison is optimization, not refutation. By charter the architect is an OPTIMIZER / decision authority ("decide HOW", "own the final architectural call"), not an adversary chartered to attack the design it chose. So the chosen design is never adversarially attacked anywhere in the pipeline. `/grill` is the only place it is.
+The genuine gap it fills: `/plan` _compares_ 2–3 alternatives and the architect picks a winner, but nobody ever attacks the winner — comparison is optimization, not refutation. By charter the architect is an OPTIMIZER / decision authority ("decide HOW", "own the final architectural call"), not an adversary chartered to attack the design it chose. So the chosen design is never adversarially attacked anywhere in the pipeline. `/grill` is the only place it is.
 
 **`/grill` produces FINDINGS PLUS a recommended DISPOSITION — but the disposition is a RECOMMENDATION, not a binding verdict.** The human owns the final call at the existing `/breakdown` approval gate. Unlike `/review` (pure findings-only, because `/verify` owns its verdict downstream), `/grill` carries a light disposition because there is no downstream design-`/verify` to own it. The four dispositions are PROCEED / REVISE-PLAN / RE-ENTER-UPSTREAM / KILL.
 
@@ -396,4 +396,7 @@ rm -rf "$WORKDIR"
 8. **Read-only on source** — no source modifications, no fixes to the plan or spec. `/grill` does WIP-commit its OWN artifacts via `artifact_helper commit-artifacts` — `grill.md` + `grill-state.json` at the end of PHASE 6, and `grill-seed.json` in PHASE 7's matching re-entry arm when the user authorizes it — install-repo-only, fail-soft `[WIP]` commits that fold into `/finalize`'s squash; it never commits source or modifies the plan/spec.
 9. **Wrapper-mode aware** — the adversary reads source files from the resolved Source Root (`source_root` from `preflight`); `specs/[feature]/` always lives at the workspace root.
 10. **Cleanup is last** — all intermediate scratch lives in `$WORKDIR` (`${TMPDIR:-/tmp}/forge-grill`), outside the repo, and is swept by the single `rm -rf "$WORKDIR"` at the end of PHASE 7, never mid-run.
+
+```
+
 ```

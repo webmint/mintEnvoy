@@ -11,11 +11,11 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/organisms/RequestBar.tsx | Create | the RequestBar organism |
-| src/renderer/src/components/organisms/RequestBar.css | Create | token-bound layout styles |
-| src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx | Create | Vitest unit tests |
+| File                                                                | Action | Description               |
+| ------------------------------------------------------------------- | ------ | ------------------------- |
+| src/renderer/src/components/organisms/RequestBar.tsx                | Create | the RequestBar organism   |
+| src/renderer/src/components/organisms/RequestBar.css                | Create | token-bound layout styles |
+| src/renderer/src/components/organisms/**tests**/RequestBar.test.tsx | Create | Vitest unit tests         |
 
 ## Description
 
@@ -41,12 +41,14 @@ Build the flat `RequestBar` organism: layout `[method ▾][URL][Send]` plus Save
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `METHODS` + `HttpMethod` exported from `lib/httpMethods` (task 001).
 - `tabsStore.updateActiveSpec(patch)` exists (task 002); `tabsStore.markClean(tabId)` exists (pre-existing state).
 - constitution §4 admits a spec-edit subscriber (task 003).
 - `Dropdown` (controlled, `open`/`onOpenChange`/`trigger`/`items`) + `Icon` atom + `cx` + `tokens.css` exist.
 
 ### Produces (checked after execution)
+
 - `src/renderer/src/components/organisms/RequestBar.tsx` exports `RequestBar` with an `onSend?` prop typed against `HttpMethod` + primitives (no `requestSpec` import).
 - RequestBar writes method/url only through `updateActiveSpec` and Save only through `markClean`.
 - `RequestBar.css` exists with token-bound classes and no inline styles in the tsx.
@@ -67,6 +69,6 @@ Build the flat `RequestBar` organism: layout `[method ▾][URL][Send]` plus Save
 ## Completion Notes
 
 **Completed**: 2026-06-28T11:15:36Z
-**Files changed**: src/renderer/src/components/organisms/RequestBar.tsx, src/renderer/src/components/organisms/RequestBar.css, src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx
+**Files changed**: src/renderer/src/components/organisms/RequestBar.tsx, src/renderer/src/components/organisms/RequestBar.css, src/renderer/src/components/organisms/**tests**/RequestBar.test.tsx
 **Contract**: Expects 4/4 | Produces 4/4
 **Notes**: RequestBar organism: per-field primitive selectors (no §9 over-render), controlled URL input + method Dropdown via updateActiveSpec, Send/Save/Share, ⌘↵/⌘S via onSendRef+empty-deps document keydown. 23 unit tests. 1 autonomous review-repair round (perf over-render + listener churn + 3 test gaps + JSDoc). Icons: chevronDown/send/save/share.

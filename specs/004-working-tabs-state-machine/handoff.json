@@ -381,16 +381,12 @@
     "affected_areas": [
       {
         "area": "tabsStore slice",
-        "files": [
-          "src/renderer/src/lib/tabsStore.ts"
-        ],
+        "files": ["src/renderer/src/lib/tabsStore.ts"],
         "impact": "Create new \u2014 module-level zustand slice (tabs[], activeTabId) with lifecycle actions (openFromCollection id-then-url dedupe, newBlank, close never-zero + right-then-left neighbor, selectActive), per-tab dirty + markClean(tabId), and seed-default construction; mirrors settingsStore/toastStore convention"
       },
       {
         "area": "RequestSpec domain model",
-        "files": [
-          "src/renderer/src/lib/requestSpec.ts"
-        ],
+        "files": ["src/renderer/src/lib/requestSpec.ts"],
         "impact": "Create new \u2014 RequestSpec + Row + Auth discriminated-union ({none}|{bearer,token}) types, a type guard for auth narrowing, and a makeBlankRequest() seed factory (GET, empty url/name/body, Accept: application/json header, auth bearer {{apiKey}}); no auth->headers mirroring"
       },
       {
@@ -411,9 +407,7 @@
       },
       {
         "area": "Shell tabs-slot wiring",
-        "files": [
-          "src/renderer/src/components/organisms/Shell.tsx"
-        ],
+        "files": ["src/renderer/src/components/organisms/Shell.tsx"],
         "impact": "Modify \u2014 mount the real <TabBar/> into the existing shell tabs slot (replacing the test fixture); no new layout plumbing"
       },
       {
@@ -428,9 +422,7 @@
       },
       {
         "area": "PrimitivesDemo gallery",
-        "files": [
-          "src/renderer/src/components/PrimitivesDemo.tsx"
-        ],
+        "files": ["src/renderer/src/components/PrimitivesDemo.tsx"],
         "impact": "Modify \u2014 register a closable Tabs variant (and/or TabBar) for dev-only manual visual fidelity check against design/reference.html"
       }
     ],

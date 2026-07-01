@@ -14,6 +14,7 @@ Removed a leftover electron-vite scaffold debug handler from the Electron main p
 ## Files changed
 
 Source (1 file, +1/−4):
+
 - `src/main/` — `index.ts`: removed the ping handler, its comment, and the unused import token.
 
 Planning artifacts (specs/research, not shipped code): spec, plan, task, handoffs, design-manifest, review.md, verification.md under `specs/007-remove-ping-handler/` and `research/2026-06-27-remove-leftover-electron-vite*`.

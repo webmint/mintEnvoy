@@ -19,8 +19,8 @@ src/main/index.ts no longer registers the 'ping' IPC handler: the ipcMain.on('pi
 
 ## 4. Affected Areas
 
-| Area | Files | Impact |
-|------|-------|--------|
+| Area                        | Files             | Impact                                                                                                                                   |
+| --------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Electron main process entry | src/main/index.ts | Delete the ipcMain.on('ping', ...) handler (line 54) + its // IPC test comment (line 53); remove ipcMain from the line 1 electron import |
 
 ## 5. Acceptance Criteria
@@ -85,6 +85,6 @@ N/A — docs/main/index.md does not document the ping handler; no docs/ update i
 
 ## 9. Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Deleting the handler accidentally removes a still-needed import or alters the whenReady block, breaking app boot | Low | Low | Remove only ipcMain from the line 1 import (other imports stay); typecheck + lint + build gate the change; smoke-launch confirms the window still opens |
+| Risk                                                                                                             | Likelihood | Impact | Mitigation                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deleting the handler accidentally removes a still-needed import or alters the whenReady block, breaking app boot | Low        | Low    | Remove only ipcMain from the line 1 import (other imports stay); typecheck + lint + build gate the change; smoke-launch confirms the window still opens |

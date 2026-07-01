@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                     | Action | Description                                       |
+| ------------------------ | ------ | ------------------------------------------------- |
 | src/renderer/src/App.tsx | Modify | mount RequestBar into the Shell request-pane slot |
 
 ## Description
@@ -29,10 +29,12 @@ Wire RequestBar into the app shell by adding the `panes.request` slot to the exi
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `RequestBar` is exported from `src/renderer/src/components/organisms/RequestBar.tsx` (task 004).
 - `App.tsx` renders `<Shell tabs={<TabBar />} />` and `Shell` accepts a `panes` prop with a `request` slot (existing — `ShellPanes`).
 
 ### Produces (checked after execution)
+
 - `App.tsx` renders `<Shell ... panes={{ request: <RequestBar ... /> }} />`, mounting RequestBar into the request pane.
 
 ## Done When
@@ -48,6 +50,6 @@ Wire RequestBar into the app shell by adding the `panes.request` slot to the exi
 ## Completion Notes
 
 **Completed**: 2026-06-28T12:24:18Z
-**Files changed**: src/renderer/src/App.tsx, src/renderer/src/__tests__/app-toast-mount.test.tsx
+**Files changed**: src/renderer/src/App.tsx, src/renderer/src/**tests**/app-toast-mount.test.tsx
 **Contract**: Expects 2/2 | Produces 1/1
-**Notes**: App mounts RequestBar via panes.request on the existing <Shell tabs={<TabBar/>}/>. ADDITION: AC-21 containment test in app-toast-mount.test.tsx (.request-bar within .pane-split__pane--request) added in review repair — fails if the panes prop is dropped. Build green.
+**Notes**: App mounts RequestBar via panes.request on the existing <Shell tabs={<TabBar/>}/>. ADDITION: AC-21 containment test in app-toast-mount.test.tsx (.request-bar within .pane-split\_\_pane--request) added in review repair — fails if the panes prop is dropped. Build green.

@@ -11,10 +11,10 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/molecules/Tabs.css | Modify | Add `max-width: 220px` to the `.tabbar .tabs__tab-wrapper` rule + a comment citing design-fidelity-contract §5 |
-| src/renderer/src/components/organisms/TabBar.css | Modify | Remove the `max-width: 200px` declaration from the `.tabbar .tabs__tab-label` rule |
+| File                                             | Action | Description                                                                                                    |
+| ------------------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------- |
+| src/renderer/src/components/molecules/Tabs.css   | Modify | Add `max-width: 220px` to the `.tabbar .tabs__tab-wrapper` rule + a comment citing design-fidelity-contract §5 |
+| src/renderer/src/components/organisms/TabBar.css | Modify | Remove the `max-width: 200px` declaration from the `.tabbar .tabs__tab-label` rule                             |
 
 ## Description
 
@@ -33,11 +33,13 @@ This is CSS-only and `.tabbar`-scoped: do NOT touch `TabBar.tsx`, `Tabs.tsx`, `d
 ## Contracts
 
 ### Expects (checked before execution)
+
 - The `.tabbar .tabs__tab-wrapper` rule exists in `Tabs.css` and carries no `max-width`.
 - The `.tabbar .tabs__tab-label` rule with a `max-width: 200px` declaration exists in `TabBar.css`.
 - The base `.tabs__tab-label` rule in `Tabs.css` carries the `white-space:nowrap` + `overflow:hidden` + `text-overflow:ellipsis` declarations.
 
 ### Produces (checked after execution)
+
 - The `.tabbar .tabs__tab-wrapper` rule in `Tabs.css` contains `max-width: 220px`.
 - The `.tabbar .tabs__tab-label` rule in `TabBar.css` contains no `max-width: 200px` declaration.
 - The base `.tabs__tab-label` ellipsis declarations in `Tabs.css` are unchanged.
@@ -59,4 +61,4 @@ This is CSS-only and `.tabbar`-scoped: do NOT touch `TabBar.tsx`, `Tabs.tsx`, `d
 **Completed**: 2026-06-30T07:04:57Z
 **Files changed**: src/renderer/src/components/molecules/Tabs.css, src/renderer/src/components/organisms/TabBar.css
 **Contract**: Expects 3/3 | Produces 4/4
-**Notes**: Cap relocated to .tabbar .tabs__tab-wrapper (220px) with §5 comment; .tabbar .tabs__tab-label removed in TabBar.css. Deviation: removed the whole redundant rule (its post-cap declarations duplicated base .tabs__tab-label) instead of only the max-width line, per review-panel cleanup; TabBar.css file-block header rewritten Label-truncation -> Tab-width-cap.
+**Notes**: Cap relocated to .tabbar .tabs**tab-wrapper (220px) with §5 comment; .tabbar .tabs**tab-label removed in TabBar.css. Deviation: removed the whole redundant rule (its post-cap declarations duplicated base .tabs\_\_tab-label) instead of only the max-width line, per review-panel cleanup; TabBar.css file-block header rewritten Label-truncation -> Tab-width-cap.

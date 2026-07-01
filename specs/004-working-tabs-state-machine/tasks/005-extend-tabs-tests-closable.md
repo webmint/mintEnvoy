@@ -11,10 +11,10 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/molecules/__tests__/Tabs.test.tsx | Modify | `closable=true` behavior + `closable=false` byte-identical regression |
-| src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx | Modify | CT: Delete/Backspace close + roving-focus restoration + structural a11y |
+| File                                                          | Action | Description                                                             |
+| ------------------------------------------------------------- | ------ | ----------------------------------------------------------------------- |
+| src/renderer/src/components/molecules/**tests**/Tabs.test.tsx | Modify | `closable=true` behavior + `closable=false` byte-identical regression   |
+| src/renderer/src/components/molecules/**tests**/Tabs.ct.tsx   | Modify | CT: Delete/Backspace close + roving-focus restoration + structural a11y |
 
 ## Description
 
@@ -37,10 +37,12 @@ Extend the existing Tabs test files (do NOT rewrite the 002 suites — add cases
 ## Contracts
 
 ### Expects (checked before execution)
+
 - The closable/onClose Tabs contract from task 004 is present (`TabsProps.closable`, `TabsProps.onClose`, sibling ✕, Delete/Backspace path, `useLayoutEffect` focus restoration).
 - The existing `Tabs.test.tsx` and `Tabs.ct.tsx` 002 suites are present and passing.
 
 ### Produces (checked after execution)
+
 - `Tabs.test.tsx` contains a `closable=false` byte-identical regression and `closable=true` behavior cases.
 - `Tabs.ct.tsx` contains Delete/Backspace close, roving-focus-restoration, and structural-a11y cases.
 - The Tabs Vitest + CT suites pass.
@@ -62,6 +64,6 @@ Extend the existing Tabs test files (do NOT rewrite the 002 suites — add cases
 ## Completion Notes
 
 **Completed**: 2026-06-25T05:56:08Z
-**Files changed**: src/renderer/src/components/molecules/__tests__/Tabs.test.tsx, src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx, src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx
+**Files changed**: src/renderer/src/components/molecules/**tests**/Tabs.test.tsx, src/renderer/src/components/molecules/**tests**/Tabs.ct.tsx, src/renderer/src/components/molecules/**tests**/Tabs.stories.tsx
 **Contract**: Expects 2/2 | Produces 3/3
 **Notes**: jsdom 52/52 + Tabs CT 32/32. AC-11 byte-identical regression, AC-12 single roving stop, AC-22 x-click/Delete/Backspace onClose (real browser), AC-23 focus restoration + onBlur internal-transfer guard (two-phase) + non-close guard. Panel repair: rewrote non-close-guard test to exercise the focus-INSIDE document.activeElement===activeEl branch (was wrongly focus-outside) as a CT test + new fixture; strengthened onBlur to two-phase; added disabled-tab aria-label + sibling-DOM-position assertions. Added Tabs.stories.tsx CT fixtures. 2 pre-existing unrelated Dropdown CT failures out of scope.

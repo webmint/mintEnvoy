@@ -11,14 +11,14 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/organisms/Divider.tsx → src/renderer/src/components/molecules/Divider.tsx | Move | Relocate the component file; no content change |
-| src/renderer/src/components/organisms/Divider.css → src/renderer/src/components/molecules/Divider.css | Move | Sibling stylesheet travels with the .tsx; `Divider.tsx`'s `import './Divider.css'` is relative and needs no edit |
-| src/renderer/src/components/organisms/Sidebar.tsx | Modify | Rewrite the Divider import to the new molecules path (stays in organisms/) |
-| src/renderer/src/components/organisms/PaneSplit.tsx | Modify | Rewrite the Divider import to the new molecules path (PaneSplit itself stays in organisms/ until task 002) |
-| src/renderer/src/components/organisms/__tests__/Shell.test.tsx | Modify | Rewrite ONLY the Divider import to the new molecules path, in place (file stays put until task 002 moves it) |
-| src/renderer/src/components/organisms/__tests__/Shell.stories.tsx | Modify | Rewrite ONLY the Divider import to the new molecules path, in place (file stays put until task 002 moves it) |
+| File                                                                                                  | Action | Description                                                                                                      |
+| ----------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------- |
+| src/renderer/src/components/organisms/Divider.tsx → src/renderer/src/components/molecules/Divider.tsx | Move   | Relocate the component file; no content change                                                                   |
+| src/renderer/src/components/organisms/Divider.css → src/renderer/src/components/molecules/Divider.css | Move   | Sibling stylesheet travels with the .tsx; `Divider.tsx`'s `import './Divider.css'` is relative and needs no edit |
+| src/renderer/src/components/organisms/Sidebar.tsx                                                     | Modify | Rewrite the Divider import to the new molecules path (stays in organisms/)                                       |
+| src/renderer/src/components/organisms/PaneSplit.tsx                                                   | Modify | Rewrite the Divider import to the new molecules path (PaneSplit itself stays in organisms/ until task 002)       |
+| src/renderer/src/components/organisms/**tests**/Shell.test.tsx                                        | Modify | Rewrite ONLY the Divider import to the new molecules path, in place (file stays put until task 002 moves it)     |
+| src/renderer/src/components/organisms/**tests**/Shell.stories.tsx                                     | Modify | Rewrite ONLY the Divider import to the new molecules path, in place (file stays put until task 002 moves it)     |
 
 ## Description
 
@@ -44,12 +44,14 @@ Pure relocation + import-path rewrite — no prop, export-surface, runtime, styl
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `src/renderer/src/components/organisms/Divider.tsx` exists and exports `Divider`; `src/renderer/src/components/organisms/Divider.css` exists.
 - `Sidebar.tsx` imports `Divider` from `@renderer/components/organisms/Divider`.
 - `PaneSplit.tsx` imports `Divider` from `@renderer/components/organisms/Divider`.
 - `__tests__/Shell.test.tsx` and `__tests__/Shell.stories.tsx` each import `Divider` from `@renderer/components/organisms/Divider`.
 
 ### Produces (checked after execution)
+
 - `src/renderer/src/components/molecules/Divider.tsx` exists and exports `Divider`; `src/renderer/src/components/molecules/Divider.css` exists.
 - No file `src/renderer/src/components/organisms/Divider.tsx` and no file `src/renderer/src/components/organisms/Divider.css`.
 - `Sidebar.tsx`, `PaneSplit.tsx`, `__tests__/Shell.test.tsx`, and `__tests__/Shell.stories.tsx` each import `Divider` from `@renderer/components/molecules/Divider`.
@@ -69,6 +71,6 @@ Pure relocation + import-path rewrite — no prop, export-surface, runtime, styl
 ## Completion Notes
 
 **Completed**: 2026-06-26T21:29:48Z
-**Files changed**: src/renderer/src/components/molecules/Divider.tsx, src/renderer/src/components/molecules/Divider.css, src/renderer/src/components/organisms/Divider.tsx, src/renderer/src/components/organisms/Divider.css, src/renderer/src/components/organisms/PaneSplit.tsx, src/renderer/src/components/organisms/Sidebar.tsx, src/renderer/src/components/organisms/__tests__/Shell.stories.tsx, src/renderer/src/components/organisms/__tests__/Shell.test.tsx
+**Files changed**: src/renderer/src/components/molecules/Divider.tsx, src/renderer/src/components/molecules/Divider.css, src/renderer/src/components/organisms/Divider.tsx, src/renderer/src/components/organisms/Divider.css, src/renderer/src/components/organisms/PaneSplit.tsx, src/renderer/src/components/organisms/Sidebar.tsx, src/renderer/src/components/organisms/**tests**/Shell.stories.tsx, src/renderer/src/components/organisms/**tests**/Shell.test.tsx
 **Contract**: Expects 4/4 | Produces 4/4
 **Notes**: Pure git-mv relocation of Divider organisms→molecules + 4 importer path rewrites. typecheck/lint/build green; Vitest 336/336, Playwright CT 127/127 (run manually — no test command configured in verify gate).

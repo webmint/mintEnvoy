@@ -11,21 +11,23 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx | Modify | Real-browser computed-style EXACT + thresholded screenshot fidelity assertions |
-| src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx | Modify | Add the tabbar-scoped fidelity fixture |
+| File                                                             | Action | Description                                                                    |
+| ---------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------ |
+| src/renderer/src/components/molecules/**tests**/Tabs.ct.tsx      | Modify | Real-browser computed-style EXACT + thresholded screenshot fidelity assertions |
+| src/renderer/src/components/molecules/**tests**/Tabs.stories.tsx | Modify | Add the tabbar-scoped fidelity fixture                                         |
 
 ## Description
 
 Author the tiered fidelity proof (Decisions (a)/(e)/(g)) in Playwright CT — the real-browser leg the whole feature rests on. This is the 4-way convergence of render (002), Tabs.css (003), TabBar.css+Shell (005), and the token harness (006).
 
 **GRILL F1 BINDING (mandatory — the prior grill confirmed this gap twice).** The fidelity fixture MUST reproduce the full production styling context, all three prerequisites:
+
 1. tokens.css is loaded globally (task 006 — already done at the mount root).
 2. `data-mstyle='soft'` is set PER-TEST on `document.documentElement` (a fidelity-`describe` `beforeEach`/`page.evaluate`, or a `hooksConfig`-gated `beforeMount`) — NOT globally in index.tsx.
 3. **The mounted fixture carries `className="tabbar"` + `closable` + an active, method-bearing tab** (or mount `<TabBar/>` directly). Every new fidelity rule is `.tabbar`-compound-scoped (`.tabbar .tabs__tab-wrapper--active`, `.tabs.tabbar`, `.tabbar`-geometry) and the active `::before`/`::after` only render on the wrapper in the closable branch — a bare `<Tabs>` (as every EXISTING `Tabs.stories.tsx` fixture is) measures unscoped, inert rules and silently passes against an unstyled element.
 
 **Assertions (tiered):**
+
 - **Computed-style EXACT (primary, AC-18)** — via `window.getComputedStyle` (the established CT mechanic, e.g. `Dropdown.ct.tsx`): the `.tabbar` geometry (background `--bg-sunken`, height 36px, 1px `--border` bottom border, 8px right padding), the tab geometry (gap 8px, padding `0 10px 0 12px`, 1px right border, `--fs-base` font-size), the active accent (`::before` 1.5px `--accent`; `::after` 1px `--bg`), and the HEAD chip color (`getComputedStyle(chip).color` === the resolved `--m-head`) under `data-mstyle='soft'`.
 - **Screenshot diff (supplementary, AC-21)** — `toHaveScreenshot({ threshold: 0.2, maxDiffPixelRatio: 0.01, animations: 'disabled' })` with pinned device scale. NOTE (grill F2 / Risk-6): this is a FIRST-EVER baseline for this feature — there is no prior baseline; manually confirm the first captured screenshot renders the soft-mstyle palette correctly BEFORE committing it (a wrong first render would bake an off-palette baseline). The computed-style EXACT assertions are the loud primary gate; the screenshot is supplementary.
 - **Label ellipsis (AC-16)** — assert the `.tabs__tab-label` computes `flex: 1` (or its resolved `flex-grow: 1`) and truncates with an ellipsis when the label overflows the capped tab width (part of the tab-geometry computed-style block).
@@ -43,10 +45,12 @@ Author the tiered fidelity proof (Decisions (a)/(e)/(g)) in Playwright CT — th
 ## Contracts
 
 ### Expects (checked before execution)
+
 - Task 002 renders the chip, dirty-XOR-close, and `tabs__tab-wrapper--active`; task 003 added the `.tabbar`-scoped active/geometry rules; task 005 set the `.tabbar` strip + removed the duplicate Shell border; task 006 imports tokens.css into the CT mount root.
 - `playwright.config.ts` has `snapshotDir` configured; `getComputedStyle` is usable in CT (per `Dropdown.ct.tsx`).
 
 ### Produces (checked after execution)
+
 - `Tabs.stories.tsx` has a `className="tabbar"` + closable + active + method fidelity fixture.
 - `Tabs.ct.tsx` mounts that fixture under per-test `data-mstyle='soft'` and asserts the enumerated computed-style values EXACT (AC-18) plus a thresholded screenshot (AC-21); the HEAD chip color resolves to `--m-head` (AC-19).
 - The fidelity assertions run against a `.tabbar`-scoped element (not a bare `<Tabs>`).
@@ -66,6 +70,6 @@ Author the tiered fidelity proof (Decisions (a)/(e)/(g)) in Playwright CT — th
 ## Completion Notes
 
 **Completed**: 2026-06-26T13:39:59Z
-**Files changed**: src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx, src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx, __snapshots__/components/molecules/__tests__/Tabs.ct.tsx-snapshots/tabbar-fidelity-chromium-darwin.png
+**Files changed**: src/renderer/src/components/molecules/**tests**/Tabs.ct.tsx, src/renderer/src/components/molecules/**tests**/Tabs.stories.tsx, **snapshots**/components/molecules/**tests**/Tabs.ct.tsx-snapshots/tabbar-fidelity-chromium-darwin.png
 **Contract**: Expects 2/2 | Produces 3/3
 **Notes**: Fidelity CT green (120/1, the 1=pre-existing Dropdown bug 003). Caught + fixed a real AC-14 strip gap (harness wasn't loading TabBar.css) via harness CSS composition (TabBar.css+Shell.css), NOT by duplicating into Tabs.css. All EXACT computed-style ACs + screenshot baseline (visually confirmed). 1 repair round (+6 assertions: AC-17 shell 0px, AC-15 font, AC-11 wrapper-bg, AC-16 ellipsis, AC-22 overflow). Non-blocking: stale AC-17 describe-comment.

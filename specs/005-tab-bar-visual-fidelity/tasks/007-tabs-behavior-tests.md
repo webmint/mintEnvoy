@@ -11,9 +11,9 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/molecules/__tests__/Tabs.test.tsx | Modify | Add byte-identical regression, dirty-XOR-close, method-chip, keyboard-close cases |
+| File                                                          | Action | Description                                                                       |
+| ------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------- |
+| src/renderer/src/components/molecules/**tests**/Tabs.test.tsx | Modify | Add byte-identical regression, dirty-XOR-close, method-chip, keyboard-close cases |
 
 ## Description
 
@@ -35,10 +35,12 @@ Cover the task-002 behavior changes with Vitest + Testing Library. (These test t
 ## Contracts
 
 ### Expects (checked before execution)
+
 - Task 002 renders dirty-XOR-close (`tabs__tab-dirty` / `tabs__tab-close`), the method chip, and keeps Delete/Backspace gated on `closable`.
 - The existing `Tabs.test.tsx` uses Vitest + Testing Library + user-event (jsdom).
 
 ### Produces (checked after execution)
+
 - `Tabs.test.tsx` asserts: closable=false byte-identical (no dirty/close node, one roving stop); dirty→dot-not-close + dot-click→onClose; clean→close-not-dot; Delete/Backspace closes a dirty tab; method chip class.
 - The suite passes.
 
@@ -57,6 +59,6 @@ Cover the task-002 behavior changes with Vitest + Testing Library. (These test t
 ## Completion Notes
 
 **Completed**: 2026-06-26T12:09:58Z
-**Files changed**: src/renderer/src/components/molecules/__tests__/Tabs.test.tsx
+**Files changed**: src/renderer/src/components/molecules/**tests**/Tabs.test.tsx
 **Contract**: Expects 2/2 | Produces 2/2
 **Notes**: 75 vitest green (+29 cases). 2 repair rounds: null-guards on dirty-dot queries, onChange-not-called on keyboard-close, Delete/Backspace×dirty/clean matrix, lowercase-method case. Non-blocking: line 1069 inline querySelector! left unguarded (structural deref, reviewer-approved).

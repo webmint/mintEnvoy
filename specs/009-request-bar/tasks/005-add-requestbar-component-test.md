@@ -11,9 +11,9 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx | Create | Playwright component test |
+| File                                                              | Action | Description               |
+| ----------------------------------------------------------------- | ------ | ------------------------- |
+| src/renderer/src/components/organisms/**tests**/RequestBar.ct.tsx | Create | Playwright component test |
 
 ## Description
 
@@ -28,9 +28,11 @@ Add the real-browser Playwright CT for RequestBar — the focus/keyboard/fidelit
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `RequestBar` is exported from `src/renderer/src/components/organisms/RequestBar.tsx` (task 004) with its `onSend` prop.
 
 ### Produces (checked after execution)
+
 - `RequestBar.ct.tsx` exists and exercises layout, disabled Send, ⌘↵/⌘S, method-dropdown dismiss (two-step gate), and per-tab isolation.
 
 ## Done When
@@ -47,6 +49,6 @@ Add the real-browser Playwright CT for RequestBar — the focus/keyboard/fidelit
 ## Completion Notes
 
 **Completed**: 2026-06-28T12:12:13Z
-**Files changed**: src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx, src/renderer/src/components/organisms/__tests__/RequestBar.stories.tsx
+**Files changed**: src/renderer/src/components/organisms/**tests**/RequestBar.ct.tsx, src/renderer/src/components/organisms/**tests**/RequestBar.stories.tsx
 **Contract**: Expects 1/1 | Produces 1/1
 **Notes**: RequestBar Playwright CT (7 tests: layout, disabled-Send, ⌘↵/⌘S, Radix dropdown dismiss two-step gate, per-tab isolation, AC-20 overflow-no-reflow). ADDITION: RequestBar.stories.tsx fixture file (required by the established CT pattern, per Dropdown.stories.tsx). 1 review-repair round (AC-20 CT + order-independent store reset + §5.2 shared-fixture import + CT-4 comment). test-only setState confirmed as established convention.

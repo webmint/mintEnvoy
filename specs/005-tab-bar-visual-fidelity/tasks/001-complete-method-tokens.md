@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                           | Action | Description                                                                             |
+| ------------------------------ | ------ | --------------------------------------------------------------------------------------- |
 | src/renderer/styles/tokens.css | Modify | Add base `.method` font rule, `--m-head` token (light+dark), `.method.HEAD` color rules |
 
 ## Description
@@ -34,10 +34,12 @@ Complete the method-token set so a HEAD chip renders colored and the chip uses t
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `src/renderer/styles/tokens.css` defines `--m-get`/`--m-post`/…/`--m-options` and per-`[data-mstyle]` `.method` variants, with NO existing `--m-head` and no bare `.method { font-family }` rule.
 - `--font-mono` is defined in `tokens.css`.
 
 ### Produces (checked after execution)
+
 - `--m-head` is defined in both the light and dark token blocks of `tokens.css`.
 - A `.method.HEAD` color rule exists (base) and a `[data-mstyle='soft'] .method.HEAD` rule exists.
 - A bare `.method { font-family: var(--font-mono) }` rule exists carrying no box geometry.

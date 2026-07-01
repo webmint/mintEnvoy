@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Translate an approved spec into a technical implementation plan with architecture decisions, layer map, file impact, and risk assessment.
-argument-hint: "[spec-file]"
+argument-hint: '[spec-file]'
 disable-model-invocation: true
 ---
 
@@ -150,14 +150,14 @@ Exit 2 means the spec is malformed (neither Date nor Status frontmatter line). E
 
 Read the spec and check for these signals. **Only flag signals for things NOT already in the project's current stack.** If the spec references a library/technology that's already in the project's dependencies (check `CLAUDE.md`, `package.json`, `pubspec.yaml`, `requirements.txt`, etc.), that is NOT a signal — the team has already made that choice.
 
-| Signal | Example | NOT a signal when... |
-|--------|---------|---------------------|
-| External library/package **not in project dependencies** | "use Stripe SDK" (and Stripe is not in package.json) | Library is already installed |
-| New integration with **unconfigured** third-party service | "connect to payment gateway" (no payment config exists) | Service is already integrated |
-| Architectural decision where multiple valid approaches exist | "real-time updates" (polling vs SSE vs WebSocket) | Always a signal — requires decision |
-| Greenfield pattern not yet present in the codebase | first use of caching, first background job | Pattern already exists in codebase |
-| Performance constraints that need benchmarking | "handle 10k concurrent users", "< 200ms response" | Always a signal — requires research |
-| Technology **not part of the project's current stack** | new protocol or tool the codebase hasn't used | Technology is already in the stack |
+| Signal                                                       | Example                                                 | NOT a signal when...                |
+| ------------------------------------------------------------ | ------------------------------------------------------- | ----------------------------------- |
+| External library/package **not in project dependencies**     | "use Stripe SDK" (and Stripe is not in package.json)    | Library is already installed        |
+| New integration with **unconfigured** third-party service    | "connect to payment gateway" (no payment config exists) | Service is already integrated       |
+| Architectural decision where multiple valid approaches exist | "real-time updates" (polling vs SSE vs WebSocket)       | Always a signal — requires decision |
+| Greenfield pattern not yet present in the codebase           | first use of caching, first background job              | Pattern already exists in codebase  |
+| Performance constraints that need benchmarking               | "handle 10k concurrent users", "< 200ms response"       | Always a signal — requires research |
+| Technology **not part of the project's current stack**       | new protocol or tool the codebase hasn't used           | Technology is already in the stack  |
 
 **No signals found** → proceed to Phase 1 with codebase research only.
 
@@ -168,11 +168,13 @@ Read the spec and check for these signals. **Only flag signals for things NOT al
 For each signal, choose the appropriate research tool:
 
 **For specific libraries named in the spec** (binding):
+
 - **Required**: Use Context7 first (`resolve-library-id` → `query-docs`) to get current documentation. **Do not skip directly to WebSearch.**
 - **Fallback condition**: Only fall back to WebSearch if (a) Context7 returns no results for the library, OR (b) the Context7 tool is unavailable in this session. Document the fallback in research.md with the specific reason ("Context7 returned no docs for X" or "Context7 unavailable").
 - **Auditability**: The choice is logged in tool-call traces; reviewers can verify which path was taken.
 
 **For comparing alternatives or architectural decisions:**
+
 - Use WebSearch to find current best practices and proven approaches.
 - Compare at least 2-3 alternatives with pros/cons.
 - Check library options: maintenance status, bundle size, community adoption.
@@ -186,6 +188,7 @@ After raw findings for each alternative are gathered (pros/cons/maintenance/bund
 Skip ONLY when alternatives are mechanical (one library is project-default per `CLAUDE.md`, others are non-starters). The skip reason must be recorded as a one-line note in the plan.md "Specialist Consultation" section (see Phase 2 template) — that section is always present in plan.md and is the single source of truth for invocation/skip provenance, regardless of whether research.md was generated. Silent skips are a hard error.
 
 **For all signals:**
+
 - Look at real-world examples of similar implementations.
 - Verify external API contracts and limitations.
 
@@ -213,14 +216,16 @@ Save to `specs/[feature-name]/research.md`:
 **Signals detected**: [list which signals triggered deep research]
 
 ## Questions Investigated
+
 1. [Question] → [Finding + decision]
 2. [Question] → [Finding + decision]
 
 ## Alternatives Compared
 
 ### [Decision Area] (e.g., "Payment processor", "WebSocket library")
-| Option | Pros | Cons | Verdict |
-|--------|------|------|---------|
+
+| Option     | Pros   | Cons   | Verdict           |
+| ---------- | ------ | ------ | ----------------- |
 | [option A] | [pros] | [cons] | Chosen / Rejected |
 | [option B] | [pros] | [cons] | Chosen / Rejected |
 | [option C] | [pros] | [cons] | Chosen / Rejected |
@@ -228,6 +233,7 @@ Save to `specs/[feature-name]/research.md`:
 **Decision**: [chosen option] — [one-line rationale]
 
 ## References
+
 - [links to docs, examples, or source files consulted]
 ```
 
@@ -279,15 +285,18 @@ If the feature involves data entities, define them. Save to `specs/[feature-name
 ## Entities
 
 ### [EntityName]
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | string | yes | Unique identifier |
-| ... | ... | ... | ... |
+
+| Field | Type   | Required | Description       |
+| ----- | ------ | -------- | ----------------- |
+| id    | string | yes      | Unique identifier |
+| ...   | ...    | ...      | ...               |
 
 ### Relationships
+
 - [Entity A] → [Entity B]: [relationship type and description]
 
 ### Validation Rules
+
 - [Field]: [constraint]
 ```
 
@@ -301,6 +310,7 @@ If the feature involves API calls (REST, GraphQL, etc.), define contracts. Save 
 # API Contracts: [Feature Name]
 
 ## [Endpoint/Query/Mutation Name]
+
 - **Type**: [GET/POST/Query/Mutation]
 - **Input**: [type definition or reference to existing type]
 - **Output**: [type definition or reference to existing type]
@@ -363,11 +373,13 @@ Save to `specs/[feature-name]/plan.md`. The Layer Map below shows a Domain/Data/
 ## Specialist Consultation
 
 **Invocations**:
+
 - Phase 0 alternatives: [yes — see research.md §Alternatives Compared | no — N/A (no 2+ alternatives compared, OR alternatives were mechanical per CLAUDE.md project-defaults — one-line reason: ___)]
 - Phase 1.3 architecture decisions: yes (mandatory)
 - Specialists consulted (orchestrator-relayed on the architect's request, or directly): [see Specialist Consultation table]
 
 **Architect-authored sections** (transcribed verbatim from architect return):
+
 - Layer Map: [rows N-M]
 - Key Design Decisions: [rows N-M]
 - Risk Assessment seeds: [rows N-M]
@@ -388,6 +400,7 @@ Save to `specs/[feature-name]/plan.md`. The Layer Map below shows a Domain/Data/
 ## Constitution Compliance
 
 [Verify the planned approach doesn't violate any NON-NEGOTIABLE rules]
+
 - Rule X: [compliant / requires attention]
 - Rule Y: [compliant / requires attention]
 
@@ -397,48 +410,48 @@ Save to `specs/[feature-name]/plan.md`. The Layer Map below shows a Domain/Data/
 
 [Which architectural layers this feature touches and what happens in each]
 
-| Layer | What | Files (existing or new) |
-|-------|------|------------------------|
-| Domain | [types, interfaces, use cases] | [file paths] |
-| Data | [repositories, API calls] | [file paths] |
-| Presentation | [components, views, state] | [file paths] |
+| Layer        | What                           | Files (existing or new) |
+| ------------ | ------------------------------ | ----------------------- |
+| Domain       | [types, interfaces, use cases] | [file paths]            |
+| Data         | [repositories, API calls]      | [file paths]            |
+| Presentation | [components, views, state]     | [file paths]            |
 
 ### Key Design Decisions
 
-| Decision | Chosen Approach | Why | Alternatives Rejected |
-|----------|----------------|-----|----------------------|
-| [decision] | [approach] | [rationale] | [alternatives] |
+| Decision   | Chosen Approach | Why         | Alternatives Rejected |
+| ---------- | --------------- | ----------- | --------------------- |
+| [decision] | [approach]      | [rationale] | [alternatives]        |
 
 ### Established-Convention Departures
 
 [Include this subsection ONLY if ≥1 Key Design Decision is flagged "DEPARTURE" in its Why column (per architect Rule 3). Omit the entire subsection — heading and table — when there are no departures (e.g. greenfield or first-touch concerns).]
 
-| Departure | Established Pattern Left | Why Necessary |
-|-----------|--------------------------|---------------|
+| Departure            | Established Pattern Left                          | Why Necessary                                             |
+| -------------------- | ------------------------------------------------- | --------------------------------------------------------- |
 | [new pattern chosen] | [what the codebase already does for this concern] | [why the established pattern genuinely doesn't work here] |
 
 ### File Impact
 
-| File | Action | What Changes |
-|------|--------|-------------|
+| File   | Action        | What Changes        |
+| ------ | ------------- | ------------------- |
 | [path] | Create/Modify | [brief description] |
 | [path] | Create/Modify | [brief description] |
 
 ### Documentation Impact
 
-| Doc File | Action | What Changes |
-|----------|--------|-------------|
-| docs/<package>/overview.md | Update/Create | [what needs documenting at the package level] |
-| docs/<package>/architecture.md | Update | [if package-level layer patterns change] |
-| docs/<package>/<concern>/index.md | Update/Create | [if a concern's Purpose or Structure changes] |
-| docs/architecture.md | Update | [if cross-package architecture patterns change] |
+| Doc File                          | Action        | What Changes                                    |
+| --------------------------------- | ------------- | ----------------------------------------------- |
+| docs/<package>/overview.md        | Update/Create | [what needs documenting at the package level]   |
+| docs/<package>/architecture.md    | Update        | [if package-level layer patterns change]        |
+| docs/<package>/<concern>/index.md | Update/Create | [if a concern's Purpose or Structure changes]   |
+| docs/architecture.md              | Update        | [if cross-package architecture patterns change] |
 
 [If no documentation impact: "No documentation changes expected — internal implementation only."]
 
 ## Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
+| Risk   | Likelihood   | Impact       | Mitigation      |
+| ------ | ------------ | ------------ | --------------- |
 | [risk] | Low/Med/High | Low/Med/High | [how to handle] |
 
 ## Dependencies

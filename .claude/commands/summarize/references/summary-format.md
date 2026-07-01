@@ -28,16 +28,18 @@ Focus on what the user gets, not implementation details.]
 ### Changes
 
 [One line per task, in user terms — what it accomplished, not the raw files:]
+
 - [Task title] — [1-line what it did]
 - ...
 
 ### Files changed
 
 [Grouped by directory/area from changes.json's by_directory, with counts:]
+
 - `src/components/` — N file(s)
 - `src/utils/` — N file(s)
 - `tests/` — N file(s)
-[Total: X files changed, Y insertions, Z deletions]
+  [Total: X files changed, Y insertions, Z deletions]
 
 (In wrapper mode, when changes.json.source_changes is non-null, add a parallel
 "Source repo changes" grouping for the code repo alongside the wrapper-side
@@ -46,6 +48,7 @@ specs/docs changes.)
 ### Key decisions
 
 [The most important decisions from decisions.json. One line each:]
+
 - [Decision]: [what was chosen and why]
 - ...
 
@@ -53,6 +56,7 @@ specs/docs changes.)
 
 [OMIT THIS WHOLE SECTION when no task noted a deviation — i.e. no task in
 notes.json has a non-empty `notes`. When present, one line per deviating task:]
+
 - [Task title]: [what deviated and why]
 - ...
 
@@ -61,6 +65,7 @@ notes.json has a non-empty `notes`. When present, one line per deviating task:]
 [Compact checklist. Each AC's status is taken VERBATIM from verification.json's
 ac_list (NOT re-derived from the spec). A passed AC ticks `- [x]`; a non-passed
 AC is left `- [ ]` and annotated with its status:]
+
 - [x] AC-1: [short label]
 - [ ] AC-2: [short label] — PARTIAL
 

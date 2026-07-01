@@ -11,9 +11,9 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/organisms/__tests__/TabBar.test.tsx | Modify | Migrate the legacy ● badge assertions; add method-chip, dot-click, chevron cases |
+| File                                                            | Action | Description                                                                      |
+| --------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------- |
+| src/renderer/src/components/organisms/**tests**/TabBar.test.tsx | Modify | Migrate the legacy ● badge assertions; add method-chip, dot-click, chevron cases |
 
 ## Description
 
@@ -34,10 +34,12 @@ Update the TabBar suite for the task-004 changes. The existing suite has a `desc
 ## Contracts
 
 ### Expects (checked before execution)
+
 - Task 004 maps `method`/`dirty` into the descriptor, removed the `'●'` badge, and added the `+`/spacer/chevron actions row.
 - The existing `TabBar.test.tsx` has a `describe` asserting the `'●'` dirty badge.
 
 ### Produces (checked after execution)
+
 - `TabBar.test.tsx` asserts the dirty dot (`tabs__tab-dirty`) + retained label text + dot-click→store `close`, with no `'●'` badge assertions remaining.
 - Method-chip and static-chevron assertions exist; the label-precedence assertions still pass.
 - The suite passes.
@@ -57,6 +59,6 @@ Update the TabBar suite for the task-004 changes. The existing suite has a `desc
 ## Completion Notes
 
 **Completed**: 2026-06-26T12:47:50Z
-**Files changed**: src/renderer/src/components/organisms/__tests__/TabBar.test.tsx
+**Files changed**: src/renderer/src/components/organisms/**tests**/TabBar.test.tsx
 **Contract**: Expects 2/2 | Produces 2/2
 **Notes**: Migrated badge→dot; suite fixed (TabBar.test 26 green, full project 336 green). 2 repair rounds: active-dirty dot-click neighbor test, scoped chip query, and a label-element assertion fixing a chip-confounded method+url precedence check.

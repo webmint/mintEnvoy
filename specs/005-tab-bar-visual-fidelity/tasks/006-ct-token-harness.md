@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                 | Action | Description                                       |
+| -------------------- | ------ | ------------------------------------------------- |
 | playwright/index.tsx | Modify | Import tokens.css globally into the CT mount root |
 
 ## Description
@@ -32,11 +32,13 @@ Decision (g) — the grill-mandated CT fidelity-harness setup. The Playwright CT
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `playwright/index.tsx` is a comment-only file with no stylesheet import.
 - `playwright.config.ts` `ctViteConfig` provides the `@renderer` alias; `tokens.css` exists at `src/renderer/styles/tokens.css` (relative `../src/renderer/styles/tokens.css` from `playwright/index.tsx`).
 - Task 001 produced the `--m-head` / `.method.HEAD` rules the fidelity suite will assert against.
 
 ### Produces (checked after execution)
+
 - `playwright/index.tsx` imports `tokens.css` so every CT page resolves real token values + `.method` rules.
 - No `data-mstyle` is set globally in `playwright/index.tsx`.
 - The full CT suite is green after the import (or any existing-suite shift is flagged as an out-of-scope consequence at the checkpoint).

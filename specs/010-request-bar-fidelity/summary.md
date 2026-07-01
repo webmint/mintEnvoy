@@ -16,6 +16,7 @@ The RequestBar — the top-of-request control row holding the HTTP-method pill, 
 ## Files changed
 
 22 files changed, +2830 / −111. Feature code + tests:
+
 - `src/renderer/src/components/organisms/RequestBar.tsx`, `RequestBar.css` — the markup + styling.
 - `src/renderer/src/components/organisms/__tests__/` — `RequestBar.ct.tsx`, `RequestBar.stories.tsx`, `RequestBar.test.tsx` (fidelity CT suite + fixtures).
 - `__snapshots__/.../request-bar-fidelity-chromium-darwin.png` — the visual-regression baseline.

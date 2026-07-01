@@ -40,6 +40,7 @@ A rule may legitimately fit more than one tag (an extracted rule that is also en
 **Opening prose**: none — Section 1 renders as a 4-row bold-key list, not as a sub-section bucket. The helper concatenates the four scalars into the rendered output directly.
 
 **Composition tips**:
+
 - `domain` — one sentence. Compose from `GLOSSARY_JSON` key entity terms (3-5 most-used by `used_in` count). Keep the language concrete (e.g., "Industrial equipment quoting and dealer management" beats "Business domain platform").
 - `stack` — one sentence, comma-separated. Order: language(s) → primary framework → secondary frameworks → architecture style → build tooling. Cap around 12 items.
 
@@ -52,10 +53,12 @@ A rule may legitimately fit more than one tag (an extracted rule that is also en
 **Sub-section opening prose**: 1-2 sentences naming the architectural pattern, the layers/modules involved, and the import/dependency direction. Example: "The codebase follows Clean Architecture + BLoC. Each domain package is organized into feature sub-modules with three layers — `data/`, `domain/`, `presentation/` — plus a composition-root factory."
 
 **Table shapes**:
+
 - **Layer Boundaries** (most common Section 2 table) — 4 columns: `Layer | Path | Contains | Imports from`. One row per layer.
 - **Module Structure** — typically a fenced tree code block (NOT a markdown table) showing `src/` hierarchy. Emit via `add-code-example --label EXAMPLE --language text --code "..."`.
 
 **Code-example selection criteria**:
+
 - Prefer **CORRECT/WRONG pairs** for architecture rules. Each pair is two `add-code-example` calls — one with `--label CORRECT`, one with `--label WRONG` — sharing the same `--language`.
 - Each example is 4-15 lines. Truncate larger examples; the goal is to illustrate the rule, not to ship complete files.
 - Use `--annotation` to label the rule the example illustrates (e.g., `--annotation "domain entity with immutable mutation"`).
@@ -71,10 +74,12 @@ A rule may legitimately fit more than one tag (an extracted rule that is also en
 **Sub-section opening prose**: 1-2 sentences naming the quality dimension. Each sub-section carries an optional `--tag` (`universal` for stack-agnostic dimensions like "Function Length"; `project-specific` for project-customized dimensions like "Type Safety [project-specific]").
 
 **Table shapes**:
+
 - **Naming Conventions** — 3 columns: `What | Convention | Example`. One row per naming convention (entity class, repository, use case, etc.).
 - Other sub-sections rarely need tables — bullet rules + code examples cover most ground.
 
 **Code-example selection criteria**:
+
 - Prefer **EXAMPLE** label for Section 3 (illustrative single-block snippets).
 - CORRECT/WRONG pairs work well for Type Safety + Error Handling sub-sections (e.g., showing `any` type as WRONG and `unknown` + type guard as CORRECT).
 
@@ -88,11 +93,11 @@ A rule may legitimately fit more than one tag (an extracted rule that is also en
 
 **Bucket × scope matrix**:
 
-| Bucket | Universal scope | Project-specific scope |
-|--------|-----------------|------------------------|
+| Bucket   | Universal scope                             | Project-specific scope                 |
+| -------- | ------------------------------------------- | -------------------------------------- |
 | `always` | Always-do rules every project should follow | Always-do rules unique to this project |
-| `never` | Never-do rules every project should avoid | Never-do rules unique to this project |
-| `prefer` | Universal preferences | Project-specific preferences |
+| `never`  | Never-do rules every project should avoid   | Never-do rules unique to this project  |
+| `prefer` | Universal preferences                       | Project-specific preferences           |
 
 **Per-bucket count expectation**: 3-8 rules per bucket. Heavily-curated codebases (with strong coding conventions) push the project-specific buckets toward 8; new projects with thin conventions push them toward 3.
 
@@ -107,16 +112,19 @@ A rule may legitimately fit more than one tag (an extracted rule that is also en
 **Shape**: 1-3 sub-sections (Key Entities, Business Rules, External Contracts), each with rules + optional table + optional code examples.
 
 **Sub-section count expectation**:
+
 - 1 sub-section (5.1 Key Entities only) — minimum viable Section 5; greenfield projects with thin domain knowledge.
 - 2 sub-sections (5.1 + 5.2) — typical for most projects.
 - 3 sub-sections (5.1 + 5.2 + 5.3 External Contracts) — for projects with external API integrations or third-party service contracts.
 
 **Sub-section opening prose**:
+
 - 5.1 Key Entities: name the 3-5 most-used entities (e.g., "Order, Quote, Customer, Catalog, Dealer").
 - 5.2 Business Rules: name the rule category (e.g., "Order lifecycle invariants", "Quote validation rules").
 - 5.3 External Contracts: name the integration surface (e.g., "Apollo GraphQL contracts with the backend service layer").
 
 **Composition source**:
+
 - Pull entity terms from `GLOSSARY_JSON` records where `used_in` paths point to `entities/`, `domain/`, `models/`, `core/`.
 - Pull business rules from glossary records whose `definition` paragraphs include verbs like "must", "cannot", "is required to".
 - Pull external contracts from glossary records whose `used_in` paths include `services/`, `integrations/`, `external/`, `api/`.
@@ -132,6 +140,7 @@ A rule may legitimately fit more than one tag (an extracted rule that is also en
 **Sub-section opening prose**: 1 sentence stating the workflow rule's intent. Most universal sub-sections are 2-4 bullet rules under a single-sentence opener.
 
 **Tag distribution typical for Section 6**:
+
 - Universal sub-sections (Minimal Changes, Read Before Write, etc.) → `tag = universal` for both the sub-section's `--tag` flag and the per-rule `--tag` flag.
 - Project-Specific Workflow sub-section → `--tag project-specific`; per-rule tags `extracted` (when documented) or `project-specific` (when implicit).
 
@@ -142,6 +151,7 @@ A rule may legitimately fit more than one tag (an extracted rule that is also en
 **Shape**: single `set-scaffolding-guide` call with two arguments.
 
 **`--starter-dirs`** — JSON array of directory names. Compose from `CONFIGURE_JSON.frameworks` + `CONFIGURE_JSON.architectures`:
+
 - Generic project → `["src", "tests", "docs"]`
 - Monorepo → `["apps", "packages", "tools", "docs"]`
 - Frontend SPA → `["src/components", "src/pages", "src/lib", "src/styles", "tests"]`

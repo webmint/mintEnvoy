@@ -290,16 +290,12 @@
       },
       {
         "area": "Constitution placement rule + classification sites",
-        "files": [
-          "constitution.md"
-        ],
+        "files": ["constitution.md"],
         "impact": "Add the labelled domain-placement rule inside \u00a72.2; update the \u00a72.2 EXAMPLE membership tree (l.70 region) and the \u00a75.1 UI-primitives list (l.198) to the new layout. Conscious update \u2014 no silent config drift."
       },
       {
         "area": "Architecture doc classification sites",
-        "files": [
-          "docs/architecture.md"
-        ],
+        "files": ["docs/architecture.md"],
         "impact": "Update the renderer UI-Primitives Layer table + mermaid Dependency Overview so the third classification site matches the new layout (per the in-feature docs decision)."
       }
     ],

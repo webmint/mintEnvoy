@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                                           | Action | Description                                                                                         |
+| ---------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------- |
 | src/renderer/src/components/molecules/Tabs.css | Modify | Active ::before/::after accent, dirty dot, close button, .tabbar-scoped geometry, overflow override |
 
 ## Description
@@ -37,11 +37,13 @@ Rewrite the active-tab treatment and tab geometry to match `design/reference.htm
 ## Contracts
 
 ### Expects (checked before execution)
+
 - Task 002 emits `tabs__tab-wrapper--active` on the active wrapper, `tabs__tab-dirty` (dirty), and `tabs__tab-close` (clean) nodes.
 - `.tabs` currently has `border-bottom` + `overflow: hidden` and an active box-shadow underline + `--accent-soft` wash.
 - Tokens `--accent`, `--bg`, `--text-faint`, `--bg-active`, `--text`, `--border` are defined.
 
 ### Produces (checked after execution)
+
 - `.tabbar .tabs__tab-wrapper--active::before` (accent top bar) and `::after` (bg bottom mask) rules exist; the active tab background is `var(--bg)`.
 - `.tabs__tab-dirty` (7px circle) and an always-visible 16px `.tabs__tab-close` rule exist.
 - `.tabbar`-scoped gap/padding/wrapper-border-right rules and `.tabs.tabbar { overflow: visible }` exist; `.tabs__tab-label` is `flex: 1` with ellipsis.

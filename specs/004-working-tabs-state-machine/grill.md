@@ -18,19 +18,23 @@ Re-grill after the prior REVISE-PLAN patch: the adversary attacked the patched a
 > The grill attack found no disqualifying plan-level defect. The plan is sound to execute.
 
 ## Confirmed -- Top Priorities
+
 Force-ranked across the confirmed findings. Fix these first.
 (no confirmed findings)
 
 ## Confirmed Findings
+
 (none)
 
 ## Summary
+
 - Critical: 0 | High: 0 | Medium: 0 | Info: 0
 - Confirmed: 0 | Contested: 0 | Dismissed: 0 | Uncertain: 0
 - Disposition: PROCEED
 - Finders skipped (not installed): none
 
 ## Methodology
+
 Findings are grounded -- every finding carries a verbatim quote from the
 actual plan/spec/research artefacts. A refutation stage cross-examines each
 grounded finding before it reaches the report: a finding earns the headline

@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                             | Action | Description                                                                       |
+| -------------------------------- | ------ | --------------------------------------------------------------------------------- |
 | specs/002-tabs-primitive/spec.md | Modify | Record the opt-in `closable`/`onClose` contract extension in the 002 spec lineage |
 
 ## Description
@@ -30,10 +30,12 @@ This is a documentation-only edit — no source code changes. It runs after task
 ## Contracts
 
 ### Expects (checked before execution)
+
 - The closable/onClose contract from task 004 is implemented (so the lineage note records a real, settled change).
 - `specs/002-tabs-primitive/spec.md` exists.
 
 ### Produces (checked after execution)
+
 - `specs/002-tabs-primitive/spec.md` contains a lineage note recording the feature-004 `closable`/`onClose` contract extension as a backward-compatible contract change (AC-29).
 
 ## Done When

@@ -21,6 +21,7 @@ The working-tabs TabBar now matches the design reference. Each tab shows a color
 ## Files changed
 
 `+4111 / −148` across 37 files.
+
 - **`src/renderer`** (10) — `styles/tokens.css`; `components/molecules/Tabs.tsx` + `Tabs.css`; `components/organisms/TabBar.tsx` + `TabBar.css` + `Shell.css`; the molecule + organism test suites (`Tabs.test`, `Tabs.ct`, `Tabs.stories`, `TabBar.test`).
 - **`playwright`** (1) — `index.tsx` token-harness import.
 - **`__snapshots__`** (1) — the fidelity screenshot baseline.

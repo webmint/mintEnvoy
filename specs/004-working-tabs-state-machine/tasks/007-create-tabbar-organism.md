@@ -11,10 +11,10 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                                             | Action | Description                                                               |
+| ------------------------------------------------ | ------ | ------------------------------------------------------------------------- |
 | src/renderer/src/components/organisms/TabBar.tsx | Create | Strip composing Tabs; store→TabDescriptor mapping; label/dirty/`+` wiring |
-| src/renderer/src/components/organisms/TabBar.css | Create | Tokens-bound semantic classes; reduced-motion-gated; no inline styles |
+| src/renderer/src/components/organisms/TabBar.css | Create | Tokens-bound semantic classes; reduced-motion-gated; no inline styles     |
 
 ## Description
 
@@ -38,11 +38,13 @@ Label precedence per tab: `spec.name` when non-empty, else `method + ' ' + url` 
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `tabsStore` (task 002) exposes the `tabs`/`activeTabId` state + `selectActive`/`close`/`newBlank` actions for per-field selector subscription. (`openFromCollection` is NOT consumed here.)
 - The closable/onClose Tabs contract (task 004) is present (`TabsProps.closable`, `TabsProps.onClose`).
 - The Tabs molecule's `badge` slot and `actions` slot exist (feature 002, unchanged contract).
 
 ### Produces (checked after execution)
+
 - `src/renderer/src/components/organisms/TabBar.tsx` exports `TabBar` and `src/renderer/src/components/organisms/TabBar.css` exists with tokens-bound classes (AC-3).
 - TabBar composes `Tabs` with `closable`, routing activate→`selectActive`, ✕→`close`, +→`newBlank` (AC-24).
 - Label precedence name→method+url→`Untitled` rendered verbatim (AC-25); dirty marker via `badge` slot alongside the label (AC-26).
@@ -66,4 +68,4 @@ Label precedence per tab: `spec.name` when non-empty, else `method + ' ' + url` 
 **Completed**: 2026-06-25T06:26:44Z
 **Files changed**: src/renderer/src/components/organisms/TabBar.tsx, src/renderer/src/components/organisms/TabBar.css, src/renderer/src/components/molecules/Tabs.css
 **Contract**: Expects 3/3 | Produces 4/4
-**Notes**: TabBar organism: per-field tabsStore selectors + stable action refs, closable Tabs composition, label precedence name->method+url->Untitled, dirty marker via badge slot, + new-tab. Imports only Tabs molecule + lib (no sibling organism, Risk 2). Panel repair: React.JSX->{JSX} import (organism convention); removed dead .tabs__badge--dirty from Tabs.css + fixed TabBar.css comment + added real .tabbar .tabs__badge accent-dot rule. Tabs suite 52/52.
+**Notes**: TabBar organism: per-field tabsStore selectors + stable action refs, closable Tabs composition, label precedence name->method+url->Untitled, dirty marker via badge slot, + new-tab. Imports only Tabs molecule + lib (no sibling organism, Risk 2). Panel repair: React.JSX->{JSX} import (organism convention); removed dead .tabs**badge--dirty from Tabs.css + fixed TabBar.css comment + added real .tabbar .tabs**badge accent-dot rule. Tabs suite 52/52.

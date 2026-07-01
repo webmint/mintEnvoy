@@ -103,7 +103,7 @@
     "is_first_test_for_file": false
   },
   "downstream_links": {
-    "spec_path": null,
+    "spec_path": "specs/012-requestbar-visually-drifts-from/spec.md",
     "plan_path": null,
     "execute_task_commit_shas": []
   },

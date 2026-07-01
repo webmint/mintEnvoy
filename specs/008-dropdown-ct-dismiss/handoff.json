@@ -146,23 +146,17 @@
     "affected_areas": [
       {
         "area": "node_modules/@radix-ui",
-        "files": [
-          "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265"
-        ],
+        "files": ["node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265"],
         "impact": "see findings"
       },
       {
         "area": "Dropdown click-outside CT tests",
-        "files": [
-          "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx"
-        ],
+        "files": ["src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx"],
         "impact": "Edit the two failing test cases (the outside clicks at :198 and :253): insert an overlay-readiness wait before each corner click. Strict assertions unchanged."
       },
       {
         "area": "Dropdown CT fixture (conditional)",
-        "files": [
-          "src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx"
-        ],
+        "files": ["src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx"],
         "impact": "Only if the readiness wait needs a fixture affordance (e.g. a stable test hook). Preferred approach needs no fixture change; listed so /plan can confirm."
       }
     ],

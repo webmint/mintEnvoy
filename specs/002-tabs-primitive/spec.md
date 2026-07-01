@@ -130,10 +130,10 @@ N/A — No new git hooks or commit gates introduced by this feature.
 
 Feature `004-working-tabs-state-machine` extended this primitive with two opt-in, **default-off** props:
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `closable` | `boolean` | `false` | When `true`, renders a per-tab sibling `<button tabIndex={-1}>` ✕ close control alongside each tab trigger. |
-| `onClose` | `(id: string) => void` | `undefined` | Signal-only callback — emits the closed tab's `id`; mutates no list (the caller owns tab state). |
+| Prop       | Type                   | Default     | Description                                                                                                 |
+| ---------- | ---------------------- | ----------- | ----------------------------------------------------------------------------------------------------------- |
+| `closable` | `boolean`              | `false`     | When `true`, renders a per-tab sibling `<button tabIndex={-1}>` ✕ close control alongside each tab trigger. |
+| `onClose`  | `(id: string) => void` | `undefined` | Signal-only callback — emits the closed tab's `id`; mutates no list (the caller owns tab state).            |
 
 **What the extension adds (closable=true path only):**
 
@@ -161,10 +161,10 @@ This guarantee is proven by the AC-11/AC-12 regression tests in feature 004 (see
 
 Feature `005-tab-bar-visual-fidelity` extended the `TabDescriptor` interface with two further opt-in, **default-off** fields:
 
-| Field | Type | Default | Description |
-| --- | --- | --- | --- |
-| `method` | `string` | `undefined` | When set, renders a leading `.method` color chip before the tab label. Applies in both the `closable=true` and `closable=false` branches. Consumers that omit it receive no chip — fully backward-compatible. |
-| `dirty` | `boolean` | `undefined` / `false` | In the `closable=true` branch only: when `true`, replaces the per-tab close button with a non-focusable `.tabs__tab-dirty` dot that is clickable-to-close. When absent or `false`, the always-visible `.tabs__tab-close` SVG button renders as before. |
+| Field    | Type      | Default               | Description                                                                                                                                                                                                                                            |
+| -------- | --------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `method` | `string`  | `undefined`           | When set, renders a leading `.method` color chip before the tab label. Applies in both the `closable=true` and `closable=false` branches. Consumers that omit it receive no chip — fully backward-compatible.                                          |
+| `dirty`  | `boolean` | `undefined` / `false` | In the `closable=true` branch only: when `true`, replaces the per-tab close button with a non-focusable `.tabs__tab-dirty` dot that is clickable-to-close. When absent or `false`, the always-visible `.tabs__tab-close` SVG button renders as before. |
 
 **What the extension adds (closable=true path):**
 
@@ -172,7 +172,7 @@ Feature `005-tab-bar-visual-fidelity` extended the `TabDescriptor` interface wit
 - **Dirty-XOR-close**: exactly one close-region element renders per tab in the closable branch. When `dirty` is `true`, a `.tabs__tab-dirty` span is rendered (no `role`, no `tabIndex`, not registered in `buttonRefs`, clickable → `onClose(id)`). When `dirty` is `false` or absent, the always-visible `.tabs__tab-close` `<button>` renders an `<Icon name="x">` SVG glyph. The two elements are mutually exclusive — never both visible at once.
 - **Close-button glyph change**: the 004 close button used a unicode `✕` character; 005 replaces it with the `Icon` atom's `x` SVG (`<Icon name="x">`), consistent with the project's established icon usage.
 
-**AC-26-preserved note (from feature 004):** the dirty marker replaces the close *control*, never the label span. The `.tabs__tab-label` text node is untouched whether the tab is dirty or clean (005 AC-4).
+**AC-26-preserved note (from feature 004):** the dirty marker replaces the close _control_, never the label span. The `.tabs__tab-label` text node is untouched whether the tab is dirty or clean (005 AC-4).
 
 **Backward-compatibility guarantee:**
 

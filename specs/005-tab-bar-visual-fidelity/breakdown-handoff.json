@@ -15,13 +15,8 @@
       "title": "complete method tokens and HEAD color",
       "agent": "frontend-engineer",
       "depends_on": [],
-      "blocks": [
-        "002",
-        "006"
-      ],
-      "touched_files": [
-        "src/renderer/styles/tokens.css"
-      ],
+      "blocks": ["002", "006"],
+      "touched_files": ["src/renderer/styles/tokens.css"],
       "expects": [
         "`src/renderer/styles/tokens.css` defines `--m-get`/`--m-post`/\u2026/`--m-options` and per-`[data-mstyle]` `.method` variants, with NO existing `--m-head` and no bare `.method { font-family }` rule.",
         "`--font-mono` is defined in `tokens.css`."
@@ -31,12 +26,7 @@
         "A `.method.HEAD` color rule exists (base) and a `[data-mstyle='soft'] .method.HEAD` rule exists.",
         "A bare `.method { font-family: var(--font-mono) }` rule exists carrying no box geometry."
       ],
-      "ac_addressed": [
-        "AC-1",
-        "AC-7",
-        "AC-8",
-        "AC-19"
-      ],
+      "ac_addressed": ["AC-1", "AC-7", "AC-8", "AC-19"],
       "doc_refs": [],
       "review_checkpoint": false
     },
@@ -44,18 +34,9 @@
       "number": "002",
       "title": "extend Tabs render contract (method chip + dirty-XOR-close)",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "001"
-      ],
-      "blocks": [
-        "003",
-        "004",
-        "007",
-        "010"
-      ],
-      "touched_files": [
-        "src/renderer/src/components/molecules/Tabs.tsx"
-      ],
+      "depends_on": ["001"],
+      "blocks": ["003", "004", "007", "010"],
+      "touched_files": ["src/renderer/src/components/molecules/Tabs.tsx"],
       "expects": [
         "`TabDescriptor` is `{ id; label; badge?; disabled? }` and the closable branch renders a unicode `\u2715` close button at `tabIndex={-1}` (002/004 contract).",
         "The Icon atom exports `Icon` and its icon set includes `x` (`src/renderer/src/components/atoms/icons.ts`).",
@@ -81,25 +62,16 @@
         "AC-28",
         "AC-29"
       ],
-      "doc_refs": [
-        "specs/002-tabs-primitive/spec.md"
-      ],
+      "doc_refs": ["specs/002-tabs-primitive/spec.md"],
       "review_checkpoint": true
     },
     {
       "number": "003",
       "title": "Tabs fidelity CSS (active accent, dirty dot, close, geometry)",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "002"
-      ],
-      "blocks": [
-        "005",
-        "009"
-      ],
-      "touched_files": [
-        "src/renderer/src/components/molecules/Tabs.css"
-      ],
+      "depends_on": ["002"],
+      "blocks": ["005", "009"],
+      "touched_files": ["src/renderer/src/components/molecules/Tabs.css"],
       "expects": [
         "Task 002 emits `tabs__tab-wrapper--active` on the active wrapper, `tabs__tab-dirty` (dirty), and `tabs__tab-close` (clean) nodes.",
         "`.tabs` currently has `border-bottom` + `overflow: hidden` and an active box-shadow underline + `--accent-soft` wash.",
@@ -111,16 +83,7 @@
         "`.tabbar`-scoped gap/padding/wrapper-border-right rules and `.tabs.tabbar { overflow: visible }` exist; `.tabs__tab-label` is `flex: 1` with ellipsis.",
         "No new active/geometry rule applies to a bare `.tabs` (non-`.tabbar`) consumer (AC-22)."
       ],
-      "ac_addressed": [
-        "AC-11",
-        "AC-12",
-        "AC-13",
-        "AC-14",
-        "AC-15",
-        "AC-16",
-        "AC-22",
-        "AC-28"
-      ],
+      "ac_addressed": ["AC-11", "AC-12", "AC-13", "AC-14", "AC-15", "AC-16", "AC-22", "AC-28"],
       "doc_refs": [],
       "review_checkpoint": true
     },
@@ -128,16 +91,9 @@
       "number": "004",
       "title": "TabBar descriptor mapping + actions row",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "002"
-      ],
-      "blocks": [
-        "005",
-        "008"
-      ],
-      "touched_files": [
-        "src/renderer/src/components/organisms/TabBar.tsx"
-      ],
+      "depends_on": ["002"],
+      "blocks": ["005", "008"],
+      "touched_files": ["src/renderer/src/components/organisms/TabBar.tsx"],
       "expects": [
         "Task 002 added `method`/`dirty` to `TabDescriptor`.",
         "`toDescriptor` currently sets `badge: tab.dirty ? '\u25cf' : undefined` (TabBar.tsx) and the actions slot is a single `+` button.",
@@ -148,11 +104,7 @@
         "`deriveLabel` is unchanged from its 004 form.",
         "The actions slot renders a `+` button (Icon `plus`), a `tabbar__spacer`, and a static \"More tabs\" chevron button (Icon `chevronDown`) carrying a `TODO(overflow)` marker and no overflow logic."
       ],
-      "ac_addressed": [
-        "AC-4",
-        "AC-5",
-        "AC-20"
-      ],
+      "ac_addressed": ["AC-4", "AC-5", "AC-20"],
       "doc_refs": [],
       "review_checkpoint": false
     },
@@ -160,13 +112,8 @@
       "number": "005",
       "title": "TabBar strip CSS + Shell border de-dup",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "003",
-        "004"
-      ],
-      "blocks": [
-        "009"
-      ],
+      "depends_on": ["003", "004"],
+      "blocks": ["009"],
       "touched_files": [
         "src/renderer/src/components/organisms/TabBar.css",
         "src/renderer/src/components/organisms/Shell.css"
@@ -182,11 +129,7 @@
         "The `.tabbar .tabs__badge` block is removed.",
         "`.shell__tabs` no longer declares a `border-bottom` (exactly one strip bottom border remains)."
       ],
-      "ac_addressed": [
-        "AC-14",
-        "AC-17",
-        "AC-20"
-      ],
+      "ac_addressed": ["AC-14", "AC-17", "AC-20"],
       "doc_refs": [],
       "review_checkpoint": true
     },
@@ -194,15 +137,9 @@
       "number": "006",
       "title": "CT fidelity-harness token context",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "001"
-      ],
-      "blocks": [
-        "009"
-      ],
-      "touched_files": [
-        "playwright/index.tsx"
-      ],
+      "depends_on": ["001"],
+      "blocks": ["009"],
+      "touched_files": ["playwright/index.tsx"],
       "expects": [
         "`playwright/index.tsx` is a comment-only file with no stylesheet import.",
         "`playwright.config.ts` `ctViteConfig` provides the `@renderer` alias; `tokens.css` exists at `src/renderer/styles/tokens.css` (relative `../src/renderer/styles/tokens.css` from `playwright/index.tsx`).",
@@ -213,11 +150,7 @@
         "No `data-mstyle` is set globally in `playwright/index.tsx`.",
         "The full CT suite is green after the import (or any existing-suite shift is flagged as an out-of-scope consequence at the checkpoint)."
       ],
-      "ac_addressed": [
-        "AC-18",
-        "AC-19",
-        "AC-21"
-      ],
+      "ac_addressed": ["AC-18", "AC-19", "AC-21"],
       "doc_refs": [],
       "review_checkpoint": true
     },
@@ -225,13 +158,9 @@
       "number": "007",
       "title": "Tabs behavior tests (byte-identical, dirty-XOR-close)",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "002"
-      ],
+      "depends_on": ["002"],
       "blocks": [],
-      "touched_files": [
-        "src/renderer/src/components/molecules/__tests__/Tabs.test.tsx"
-      ],
+      "touched_files": ["src/renderer/src/components/molecules/__tests__/Tabs.test.tsx"],
       "expects": [
         "Task 002 renders dirty-XOR-close (`tabs__tab-dirty` / `tabs__tab-close`), the method chip, and keeps Delete/Backspace gated on `closable`.",
         "The existing `Tabs.test.tsx` uses Vitest + Testing Library + user-event (jsdom)."
@@ -240,13 +169,7 @@
         "`Tabs.test.tsx` asserts: closable=false byte-identical (no dirty/close node, one roving stop); dirty\u2192dot-not-close + dot-click\u2192onClose; clean\u2192close-not-dot; Delete/Backspace closes a dirty tab; method chip class.",
         "The suite passes."
       ],
-      "ac_addressed": [
-        "AC-2",
-        "AC-3",
-        "AC-6",
-        "AC-12",
-        "AC-13"
-      ],
+      "ac_addressed": ["AC-2", "AC-3", "AC-6", "AC-12", "AC-13"],
       "doc_refs": [],
       "review_checkpoint": false
     },
@@ -254,13 +177,9 @@
       "number": "008",
       "title": "TabBar tests (migrate badge assertions, actions row)",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "004"
-      ],
+      "depends_on": ["004"],
       "blocks": [],
-      "touched_files": [
-        "src/renderer/src/components/organisms/__tests__/TabBar.test.tsx"
-      ],
+      "touched_files": ["src/renderer/src/components/organisms/__tests__/TabBar.test.tsx"],
       "expects": [
         "Task 004 maps `method`/`dirty` into the descriptor, removed the `'\u25cf'` badge, and added the `+`/spacer/chevron actions row.",
         "The existing `TabBar.test.tsx` has a `describe` asserting the `'\u25cf'` dirty badge."
@@ -270,10 +189,7 @@
         "Method-chip and static-chevron assertions exist; the label-precedence assertions still pass.",
         "The suite passes."
       ],
-      "ac_addressed": [
-        "AC-4",
-        "AC-20"
-      ],
+      "ac_addressed": ["AC-4", "AC-20"],
       "doc_refs": [],
       "review_checkpoint": false
     },
@@ -281,12 +197,7 @@
       "number": "009",
       "title": "Tabs fidelity CT suite + fixture",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "002",
-        "003",
-        "005",
-        "006"
-      ],
+      "depends_on": ["002", "003", "005", "006"],
       "blocks": [],
       "touched_files": [
         "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx",
@@ -301,15 +212,7 @@
         "`Tabs.ct.tsx` mounts that fixture under per-test `data-mstyle='soft'` and asserts the enumerated computed-style values EXACT (AC-18) plus a thresholded screenshot (AC-21); the HEAD chip color resolves to `--m-head` (AC-19).",
         "The fidelity assertions run against a `.tabbar`-scoped element (not a bare `<Tabs>`)."
       ],
-      "ac_addressed": [
-        "AC-11",
-        "AC-14",
-        "AC-15",
-        "AC-18",
-        "AC-19",
-        "AC-21",
-        "AC-27"
-      ],
+      "ac_addressed": ["AC-11", "AC-14", "AC-15", "AC-18", "AC-19", "AC-21", "AC-27"],
       "doc_refs": [],
       "review_checkpoint": true
     },
@@ -317,13 +220,9 @@
       "number": "010",
       "title": "record the 005 contract extension in 002 lineage",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "002"
-      ],
+      "depends_on": ["002"],
       "blocks": [],
-      "touched_files": [
-        "specs/002-tabs-primitive/spec.md"
-      ],
+      "touched_files": ["specs/002-tabs-primitive/spec.md"],
       "expects": [
         "`specs/002-tabs-primitive/spec.md` has a `## 10. Contract Lineage` section with a `### Extension: feature 004-working-tabs-state-machine` block.",
         "Task 002 produced the `method`/`dirty` fields + dirty-XOR-close model this block documents."
@@ -331,12 +230,8 @@
       "produces": [
         "A `### Extension: feature 005-tab-bar-visual-fidelity` block exists under \u00a710 documenting the method/dirty fields, the dirty-XOR-close model, the byte-identical guarantee, the global-`.method` departure, and the Q-3 a11y tradeoff."
       ],
-      "ac_addressed": [
-        "AC-23"
-      ],
-      "doc_refs": [
-        "specs/002-tabs-primitive/spec.md"
-      ],
+      "ac_addressed": ["AC-23"],
+      "doc_refs": ["specs/002-tabs-primitive/spec.md"],
       "review_checkpoint": false
     }
   ],

@@ -86,9 +86,7 @@
     "affected_areas": [
       {
         "area": "Electron main process entry",
-        "files": [
-          "src/main/index.ts"
-        ],
+        "files": ["src/main/index.ts"],
         "impact": "Delete the ipcMain.on('ping', ...) handler (line 54) + its // IPC test comment (line 53); remove ipcMain from the line 1 electron import"
       }
     ],

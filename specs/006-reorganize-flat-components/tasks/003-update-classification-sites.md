@@ -11,16 +11,17 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| constitution.md | Modify | Add the labelled domain-placement rule inside §2.2; update the §2.2 EXAMPLE membership tree and the §5.1 UI-primitives list to the new layout |
-| docs/architecture.md | Modify | Update all five moved-path citation sites to the new layout |
+| File                 | Action | Description                                                                                                                                   |
+| -------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| constitution.md      | Modify | Add the labelled domain-placement rule inside §2.2; update the §2.2 EXAMPLE membership tree and the §5.1 UI-primitives list to the new layout |
+| docs/architecture.md | Modify | Update all five moved-path citation sites to the new layout                                                                                   |
 
 ## Description
 
 Update the three classification sites that enumerate the renderer component layout so they reflect the post-move structure, in lockstep with the code moves from tasks 001–002. Docs-only task — no source code, no import graph, no runtime impact.
 
 1. **Constitution §2.2 — add the domain-placement rule.** Record a single labelled rule inside §2.2 that EXTENDS (does not replace) the existing §2.2:56 layering canon. Use this exact wording for the rule's substance (compose nothing new):
+
    > Shared + domain-agnostic components belong in `molecules/`; single-domain-bound components belong in `organisms/<domain>/`; create an `organisms/<domain>/` subfolder only when a domain reaches ≥2 components (no empty future domain folders); no barrel/index files.
 
 2. **Constitution §2.2 EXAMPLE membership tree** (the `**EXAMPLE** — renderer module structure` fenced tree, ~l.70): update the `molecules/` and `organisms/` lines so `molecules/` lists `Divider` and `organisms/` shows the `shell/` group (Shell, Titlebar, Statusbar, PaneSplit) plus the flat `Sidebar`, `TabBar` singletons.
@@ -49,11 +50,13 @@ Do not change any other content. Line numbers above are guides — locate each s
 ## Contracts
 
 ### Expects (checked before execution)
+
 - (from tasks 001–002) `Divider` lives under `components/molecules/`; `Shell`/`Titlebar`/`Statusbar`/`PaneSplit` live under `components/organisms/shell/`.
 - `constitution.md` contains a §2.2 section with the EXAMPLE membership tree and a §5.1 UI-primitives list.
 - `docs/architecture.md` contains the UI-Primitives Layer table, the module-structure tree, the `Shell.tsx`/`Divider.tsx` path-comment markers, and the mermaid Dependency Overview.
 
 ### Produces (checked after execution)
+
 - `constitution.md` §2.2 contains a single labelled domain-placement rule (the `molecules/` vs `organisms/<domain>/` wording).
 - `constitution.md` §2.2 membership tree lists `Divider` under `molecules/` and shows the `organisms/shell/` group; §5.1 list classifies `Divider` as a molecule — both in lockstep.
 - `docs/architecture.md` UI-Primitives table, prose, module tree, both path-comment markers, and mermaid all reflect the new layout.

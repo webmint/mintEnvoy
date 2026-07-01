@@ -81,89 +81,67 @@
     "affected_areas": [
       {
         "area": "tabsStore active-tab spec write/read",
-        "files": [
-          "src/renderer/src/lib/tabsStore.ts"
-        ],
+        "files": ["src/renderer/src/lib/tabsStore.ts"],
         "impact": "read active tab method+url; REQUIRES a new store action to mutate spec.method/spec.url + set dirty (none exists; markClean clears only) \u2014 candidate for reuse-by-extension",
         "is_internal_extension_candidate": false
       },
       {
         "area": "RequestSpec model",
-        "files": [
-          "src/renderer/src/lib/requestSpec.ts"
-        ],
+        "files": ["src/renderer/src/lib/requestSpec.ts"],
         "impact": "method+url field types this feature binds to",
         "is_internal_extension_candidate": false
       },
       {
         "area": "Dropdown molecule",
-        "files": [
-          "src/renderer/src/components/molecules/Dropdown.tsx"
-        ],
+        "files": ["src/renderer/src/components/molecules/Dropdown.tsx"],
         "impact": "reuse for method selector",
         "is_internal_extension_candidate": false
       },
       {
         "area": "method-pill tokens",
-        "files": [
-          "src/renderer/styles/tokens.css"
-        ],
+        "files": ["src/renderer/styles/tokens.css"],
         "impact": "consume existing .method.* color classes via data-mstyle",
         "is_internal_extension_candidate": false
       },
       {
         "area": "organism placement (flat) + request-pane mount",
-        "files": [
-          "src/renderer/src/components/organisms"
-        ],
+        "files": ["src/renderer/src/components/organisms"],
         "impact": "organisms are FLAT (TabBar.tsx/Sidebar.tsx, only shell/ nested) \u2014 RequestBar lands flat organisms/RequestBar.tsx, NOT organisms/request/; mounts into Shell panes.request slot, composed at App root",
         "is_internal_extension_candidate": false
       },
       {
         "area": "internal:src/renderer/src/lib/tabsStore.ts",
-        "files": [
-          "src/renderer/src/lib/tabsStore.ts"
-        ],
+        "files": ["src/renderer/src/lib/tabsStore.ts"],
         "impact": "internal \u2014 holds active tab + RequestSpec; exposes read (tabs/activeTabId) + markClean, BUT no spec-edit/dirty-set action (gap)",
         "is_internal_extension_candidate": true
       },
       {
         "area": "internal:src/renderer/src/lib/requestSpec.ts",
-        "files": [
-          "src/renderer/src/lib/requestSpec.ts"
-        ],
+        "files": ["src/renderer/src/lib/requestSpec.ts"],
         "impact": "internal \u2014 RequestSpec type {method,url,name,params,headers,body,auth}; method+url are the fields this feature edits",
         "is_internal_extension_candidate": true
       },
       {
         "area": "internal:src/renderer/src/components/molecules/Dropdown.tsx",
-        "files": [
-          "src/renderer/src/components/molecules/Dropdown.tsx"
-        ],
+        "files": ["src/renderer/src/components/molecules/Dropdown.tsx"],
         "impact": "internal \u2014 reuse for the method selector; no second overlay lib needed",
         "is_internal_extension_candidate": true
       },
       {
         "area": "internal:src/renderer/styles/tokens.css",
-        "files": [
-          "src/renderer/styles/tokens.css"
-        ],
+        "files": ["src/renderer/styles/tokens.css"],
         "impact": "internal \u2014 per-method color classes already exist; consume via .method {METHOD} class, data-mstyle set on <html> by Shell",
         "is_internal_extension_candidate": true
       },
       {
         "area": "internal:src/renderer/src/components/organisms/TabBar.tsx",
-        "files": [
-          "src/renderer/src/components/organisms/TabBar.tsx"
-        ],
+        "files": ["src/renderer/src/components/organisms/TabBar.tsx"],
         "impact": "internal \u2014 sibling organism showing the exact zustand subscribe/memoize pattern RequestBar should mirror; lives flat at organisms/",
         "is_internal_extension_candidate": true
       },
       {
         "area": "internal:src/renderer/src/components/organisms/shell/Shell.tsx",
-        "files": [
-          "src/renderer/src/components/organisms/shell/Shell.tsx"
-        ],
+        "files": ["src/renderer/src/components/organisms/shell/Shell.tsx"],
         "impact": "internal \u2014 established global \u2318B shortcut pattern; reuse shape for \u2318\u21b5 Send / \u2318S Save (preventDefault stops native save)",
         "is_internal_extension_candidate": true
       }
@@ -241,10 +219,7 @@
         "id": "B",
         "name": "Field-specific store actions",
         "shape": "Add setActiveMethod(method) and setActiveUrl(url) to tabsStore; each writes its field into the active tab spec and sets dirty=true. RequestBar calls the matching action per control.",
-        "pros": [
-          "explicit, self-documenting call sites",
-          "each action is independently typed"
-        ],
+        "pros": ["explicit, self-documenting call sites", "each action is independently typed"],
         "cons": [
           "store surface grows one action per editable field \u2014 does not scale to headers/body later",
           "two dirty-set sites to keep consistent",
@@ -256,9 +231,7 @@
         "id": "C",
         "name": "Local draft + commit-on-action",
         "shape": "RequestBar holds local method/url state and only writes to the store on blur/Send/Save (deferred commit), rather than writing on every keystroke.",
-        "pros": [
-          "fewer store writes per keystroke"
-        ],
+        "pros": ["fewer store writes per keystroke"],
         "cons": [
           "breaks reactive dirty-on-edit \u2014 tab would not show dirty while typing",
           "loses live per-tab sync; external/tab-switch changes can clobber the draft",

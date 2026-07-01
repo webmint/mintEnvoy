@@ -15,10 +15,7 @@
       "title": "add-httpmethods-source-and-retype-method",
       "agent": "frontend-engineer",
       "depends_on": [],
-      "blocks": [
-        "002",
-        "004"
-      ],
+      "blocks": ["002", "004"],
       "touched_files": [
         "src/renderer/src/lib/httpMethods.ts",
         "src/renderer/src/lib/requestSpec.ts"
@@ -32,13 +29,7 @@
         "`src/renderer/src/lib/requestSpec.ts` imports `HttpMethod` from httpMethods and `RequestSpec.method` is typed `HttpMethod`.",
         "`makeBlankRequest` still returns a spec whose `method` is `'GET'`."
       ],
-      "ac_addressed": [
-        "AC-2",
-        "AC-5",
-        "AC-22",
-        "AC-23",
-        "AC-29"
-      ],
+      "ac_addressed": ["AC-2", "AC-5", "AC-22", "AC-23", "AC-29"],
       "doc_refs": [],
       "review_checkpoint": false
     },
@@ -46,12 +37,8 @@
       "number": "002",
       "title": "add-tabsstore-updateactivespec-action",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "001"
-      ],
-      "blocks": [
-        "004"
-      ],
+      "depends_on": ["001"],
+      "blocks": ["004"],
       "touched_files": [
         "src/renderer/src/lib/tabsStore.ts",
         "src/renderer/src/lib/__tests__/tabsStore.test.ts"
@@ -65,13 +52,7 @@
         "`updateActiveSpec` sets the active tab `dirty=true` on a value-changing patch and leaves `dirty` unchanged on a no-op patch.",
         "`tabsStore.test.ts` contains assertions for dirty-on-change, no-op-no-flip, and per-tab isolation."
       ],
-      "ac_addressed": [
-        "AC-4",
-        "AC-9",
-        "AC-10",
-        "AC-23",
-        "AC-30"
-      ],
+      "ac_addressed": ["AC-4", "AC-9", "AC-10", "AC-23", "AC-30"],
       "doc_refs": [],
       "review_checkpoint": false
     },
@@ -80,21 +61,15 @@
       "title": "amend-constitution-sole-subscriber-rule",
       "agent": "frontend-engineer",
       "depends_on": [],
-      "blocks": [
-        "004"
-      ],
-      "touched_files": [
-        "constitution.md"
-      ],
+      "blocks": ["004"],
+      "touched_files": ["constitution.md"],
       "expects": [
         "`constitution.md` \u00a74 / \u00a75.2 contain the phrase naming `TabBar.tsx` as the sole subscriber of tabsStore."
       ],
       "produces": [
         "`constitution.md` no longer asserts TabBar is the *sole* tabsStore subscriber; it records RequestBar as the spec-edit subscriber."
       ],
-      "ac_addressed": [
-        "AC-24"
-      ],
+      "ac_addressed": ["AC-24"],
       "doc_refs": [],
       "review_checkpoint": false
     },
@@ -102,15 +77,8 @@
       "number": "004",
       "title": "build-requestbar-organism",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "001",
-        "002",
-        "003"
-      ],
-      "blocks": [
-        "005",
-        "006"
-      ],
+      "depends_on": ["001", "002", "003"],
+      "blocks": ["005", "006"],
       "touched_files": [
         "src/renderer/src/components/organisms/RequestBar.tsx",
         "src/renderer/src/components/organisms/RequestBar.css",
@@ -149,31 +117,23 @@
         "AC-29",
         "AC-30"
       ],
-      "doc_refs": [
-        "docs/architecture.md"
-      ],
+      "doc_refs": ["docs/architecture.md"],
       "review_checkpoint": true
     },
     {
       "number": "005",
       "title": "add-requestbar-component-test",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "004"
-      ],
+      "depends_on": ["004"],
       "blocks": [],
-      "touched_files": [
-        "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx"
-      ],
+      "touched_files": ["src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx"],
       "expects": [
         "`RequestBar` is exported from `src/renderer/src/components/organisms/RequestBar.tsx` (task 004) with its `onSend` prop."
       ],
       "produces": [
         "`RequestBar.ct.tsx` exists and exercises layout, disabled Send, \u2318\u21b5/\u2318S, method-dropdown dismiss (two-step gate), and per-tab isolation."
       ],
-      "ac_addressed": [
-        "AC-30"
-      ],
+      "ac_addressed": ["AC-30"],
       "doc_refs": [],
       "review_checkpoint": false
     },
@@ -181,13 +141,9 @@
       "number": "006",
       "title": "mount-requestbar-in-app-request-pane",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "004"
-      ],
+      "depends_on": ["004"],
       "blocks": [],
-      "touched_files": [
-        "src/renderer/src/App.tsx"
-      ],
+      "touched_files": ["src/renderer/src/App.tsx"],
       "expects": [
         "`RequestBar` is exported from `src/renderer/src/components/organisms/RequestBar.tsx` (task 004).",
         "`App.tsx` renders `<Shell tabs={<TabBar />} />` and `Shell` accepts a `panes` prop with a `request` slot (existing \u2014 `ShellPanes`)."
@@ -195,12 +151,7 @@
       "produces": [
         "`App.tsx` renders `<Shell ... panes={{ request: <RequestBar ... /> }} />`, mounting RequestBar into the request pane."
       ],
-      "ac_addressed": [
-        "AC-21",
-        "AC-25",
-        "AC-26",
-        "AC-27"
-      ],
+      "ac_addressed": ["AC-21", "AC-25", "AC-26", "AC-27"],
       "doc_refs": [],
       "review_checkpoint": true
     }

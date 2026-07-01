@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                                                 | Action | Description                                                                                                                                                                                |
+| ---------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | src/renderer/src/components/organisms/RequestBar.css | Modify | Rewrite geometry + treatment to the reference values using existing tokens; add the ancestor-scoped `(0,3,0)` method-select background override; all new rules scoped under `.request-bar` |
 
 ## Description
@@ -34,11 +34,13 @@ Rewrite `RequestBar.css` so the bar matches `design/reference.html`'s request ba
 ## Contracts
 
 ### Expects (checked before execution)
+
 - Task 001 landed: `RequestBar.tsx` renders a `request-bar__kbd` element inside Send and visible Save/Share labels.
 - The method trigger still carries `cx('request-bar__method', 'method', method)`; `tokens.css` defines `--radius`, `--accent`, `--accent-soft`, `--bg-elev`, `--text-faint`, `--text-muted`, `--text-inverse`, `--border`, `--font-mono`.
 - `tokens.css` defines `[data-mstyle='soft'] .method.{METHOD}` colour rules.
 
 ### Produces (checked after execution)
+
 - `.request-bar` uses `padding: 12px 16px` and `gap: 8px`; URL input, Send, method-select and ghost actions bind `border-radius: var(--radius)` at a `32px` control height.
 - `.request-bar__url:focus` declares both `border-color: var(--accent)` and `box-shadow: 0 0 0 3px var(--accent-soft)`.
 - `.request-bar__send` declares `font-weight: 600` and an inset-highlight `box-shadow`.
@@ -63,4 +65,4 @@ Rewrite `RequestBar.css` so the bar matches `design/reference.html`'s request ba
 **Completed**: 2026-06-29T08:01:15Z
 **Files changed**: src/renderer/src/components/organisms/RequestBar.css
 **Contract**: Expects 3/3 | Produces 6/6
-**Notes**: CSS-only fidelity rewrite to design reference using existing tokens. Method-select (0,3,0) ancestor override (bg/border/radius, no color) wins source-order tie; per-method [data-mstyle] color falls through. New .request-bar__kbd keycap; ghost-bordered Save/Share; Send weight-600 + inset shadow. All selectors .request-bar-scoped; no data-mstyle write. Panel clean R0. Deviation: removed var() fallback literals (token-only bind per spec; CT imports tokens.css globally). No test_command configured — fidelity verified by Task 003 CT.
+**Notes**: CSS-only fidelity rewrite to design reference using existing tokens. Method-select (0,3,0) ancestor override (bg/border/radius, no color) wins source-order tie; per-method [data-mstyle] color falls through. New .request-bar\_\_kbd keycap; ghost-bordered Save/Share; Send weight-600 + inset shadow. All selectors .request-bar-scoped; no data-mstyle write. Panel clean R0. Deviation: removed var() fallback literals (token-only bind per spec; CT imports tokens.css globally). No test_command configured — fidelity verified by Task 003 CT.

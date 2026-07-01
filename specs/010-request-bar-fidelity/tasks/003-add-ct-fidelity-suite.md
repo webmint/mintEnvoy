@@ -11,10 +11,10 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx | Modify | Add Playwright CT computed-style EXACT-equality fidelity assertions on enumerated `.request-bar` props + a thresholded screenshot diff |
-| src/renderer/src/components/organisms/__tests__/RequestBar.stories.tsx | Modify | Add a filled-state fixture (non-empty URL → enabled Send + keycap) if existing fixtures don't cover it |
+| File                                                                   | Action | Description                                                                                                                            |
+| ---------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| src/renderer/src/components/organisms/**tests**/RequestBar.ct.tsx      | Modify | Add Playwright CT computed-style EXACT-equality fidelity assertions on enumerated `.request-bar` props + a thresholded screenshot diff |
+| src/renderer/src/components/organisms/**tests**/RequestBar.stories.tsx | Modify | Add a filled-state fixture (non-empty URL → enabled Send + keycap) if existing fixtures don't cover it                                 |
 
 ## Description
 
@@ -32,11 +32,13 @@ Add the tiered fidelity verification for the restyled RequestBar (per the 005 pr
 ## Contracts
 
 ### Expects (checked before execution)
+
 - Task 001 landed: `RequestBar.tsx` renders the `request-bar__kbd` (aria-hidden, canSend-gated) and visible Save/Share labels.
 - Task 002 landed: `.request-bar` carries the reference geometry, `--radius` binding, URL focus ring, Send weight-600 + shadow, and the `.request-bar .request-bar__method.method` background/border override (no color).
 - The existing CT fixtures import `tokens.css` and set `data-mstyle='soft'` on the host; the two-step Radix dismiss gate is present in `RequestBar.ct.tsx`.
 
 ### Produces (checked after execution)
+
 - `RequestBar.ct.tsx` contains computed-style EXACT-equality assertions on the enumerated `.request-bar` props (height, radius, focus ring, method-select background/border + per-method colour, Send weight/shadow, keycap presence/absence, labelled actions).
 - `RequestBar.ct.tsx` contains a `toHaveScreenshot` assertion with `maxDiffPixelRatio` set.
 - `RequestBar.stories.tsx` provides a fixture that renders the filled/enabled state (non-empty URL).
@@ -56,6 +58,6 @@ Add the tiered fidelity verification for the restyled RequestBar (per the 005 pr
 ## Completion Notes
 
 **Completed**: 2026-06-29T08:47:35Z
-**Files changed**: src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx, src/renderer/src/components/organisms/__tests__/RequestBar.stories.tsx, __snapshots__/components/organisms/__tests__/RequestBar.ct.tsx-snapshots/request-bar-fidelity-chromium-darwin.png
+**Files changed**: src/renderer/src/components/organisms/**tests**/RequestBar.ct.tsx, src/renderer/src/components/organisms/**tests**/RequestBar.stories.tsx, **snapshots**/components/organisms/**tests**/RequestBar.ct.tsx-snapshots/request-bar-fidelity-chromium-darwin.png
 **Contract**: Expects 3/3 | Produces 4/4
 **Notes**: Added describe('RequestBar — fidelity'): 10 CT tests (heights, --radius binding, exact box-shadow via probe-elements, method bg/border + GET->--m-get AND POST->--m-post proving (0,3,0) no-color fall-through, Send weight-600+inset shadow, keycap present/absent, Save/Share bordered+labelled+Share disabled) + thresholded toHaveScreenshot baseline. Panel clean R1; repair leg closed 5 qa assertion-strength gaps. 10/10 fidelity tests pass. KNOWN REGRESSION (NOT this task): pre-existing AC-20 CT (long URL must not reflow Send button) FAILS — Tasks 001/002 RequestBar.css/.tsx introduced a ~30px reflow (confirmed via git stash). Task 003 cannot touch those files; the new CT correctly catches it. 'Existing CT stay green' Done-When left unticked accordingly — remediate via /fix on RequestBar.css (flex-shrink/min-width) before /verify.

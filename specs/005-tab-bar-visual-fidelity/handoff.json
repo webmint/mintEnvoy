@@ -397,51 +397,37 @@
     "affected_areas": [
       {
         "area": "Tabs primitive (contract + render)",
-        "files": [
-          "src/renderer/src/components/molecules/Tabs.tsx"
-        ],
+        "files": ["src/renderer/src/components/molecules/Tabs.tsx"],
         "impact": "Modify \u2014 add optional method?:string + dirty?:boolean to TabDescriptor (additive, backward-compatible); render a leading .method chip before the label when method is set; in the closable branch render dirty-dot-XOR-close (dirty \u2192 clickable 7px dot replacing the close button; clean \u2192 always-visible SVG x via Icon); keep non-closable path byte-identical (002 AC-11); keep hand-rolled roving a11y intact"
       },
       {
         "area": "Tabs primitive styles",
-        "files": [
-          "src/renderer/src/components/molecules/Tabs.css"
-        ],
+        "files": ["src/renderer/src/components/molecules/Tabs.css"],
         "impact": "Modify \u2014 replace box-shadow active underline with top ::before accent (1.5px --accent) + bottom ::after mask (1px --bg) over --bg bg; add .tabs__tab-dirty (7px --text-faint circle); rewrite .tabs__tab-close to always-visible 16px grid-centered (border-radius 3px, --text-faint, hover --bg-active); geometry gap 8px, padding 0 10px 0 12px, label flex:1 ellipsis; new active/geometry rules scoped under .tabbar; remove/guard overflow:hidden only if it clips ::before/chevron"
       },
       {
         "area": "TabBar organism",
-        "files": [
-          "src/renderer/src/components/organisms/TabBar.tsx"
-        ],
+        "files": ["src/renderer/src/components/organisms/TabBar.tsx"],
         "impact": "Modify \u2014 toDescriptor adds method: tab.spec.method + dirty: tab.dirty and REMOVES badge: tab.dirty ? '\u25cf'; deriveLabel unchanged (004 AC-25); actions slot becomes + new-tab button (Icon plus) + flex:1 spacer + static 'More tabs' chevron button (Icon chevronDown) with a TODO(overflow) marker"
       },
       {
         "area": "TabBar styles",
-        "files": [
-          "src/renderer/src/components/organisms/TabBar.css"
-        ],
+        "files": ["src/renderer/src/components/organisms/TabBar.css"],
         "impact": "Modify \u2014 .tabbar gets --bg-sunken, height 36px, border-bottom 1px --border, padding-right 8px; per-tab .tabbar .tabs__tab border-right 1px --border; .tabbar__new + .tabbar chevron as grid-centered icon buttons; delete the .tabbar .tabs__badge dirty block"
       },
       {
         "area": "Design tokens + global method CSS",
-        "files": [
-          "src/renderer/styles/tokens.css"
-        ],
+        "files": ["src/renderer/styles/tokens.css"],
         "impact": "Modify \u2014 add base .method { font-family: var(--font-mono); ... }; add --m-head token (light + dark) and a .method.HEAD color rule (colored HEAD); confirm --font-mono present"
       },
       {
         "area": "Shell tabs-slot border de-dup",
-        "files": [
-          "src/renderer/src/components/organisms/Shell.css"
-        ],
+        "files": ["src/renderer/src/components/organisms/Shell.css"],
         "impact": "Modify \u2014 remove the duplicate border-bottom from .shell__tabs (Shell.css:130) so the strip shows a single bottom border (the .tabbar border-bottom owns it)"
       },
       {
         "area": "002 Tabs contract lineage",
-        "files": [
-          "specs/002-tabs-primitive/spec.md"
-        ],
+        "files": ["specs/002-tabs-primitive/spec.md"],
         "impact": "Modify \u2014 append a '### Extension: feature 005-tab-bar-visual-fidelity' block under \u00a710 documenting the new method/dirty descriptor fields, dirty-XOR-close render model, AC-26-preserved note, byte-identical non-closable path, and the global-.method-class departure (the AC-29 lineage pattern)"
       },
       {

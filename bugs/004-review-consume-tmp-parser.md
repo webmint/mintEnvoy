@@ -6,7 +6,7 @@
 **Feature**: N/A
 **AC**: N/A
 **Reported**: 2026-06-29
-**Fixed**: 
+**Fixed**:
 
 ## Description
 
@@ -22,9 +22,9 @@ _Actual behavior not specified — see verification evidence._
 
 ## File(s)
 
-| File | Detail |
-|------|--------|
-| .devforge/lib/review_helper |  |
+| File                        | Detail |
+| --------------------------- | ------ |
+| .devforge/lib/review_helper |        |
 
 ## Evidence
 

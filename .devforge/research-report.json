@@ -1,6 +1,6 @@
 {
-  "topic": "TabBar tab grows with title instead of fixed max-width; long titles must truncate with ellipsis (nowrap+text-overflow), tab width stays stable, + button stays put \u2014 pure CSS/layout constraint, zero behaviour change, pixel-fidelity to design reference",
-  "date": "2026-06-29",
+  "topic": "RequestBar visually drifts from design reference on several un-enumerated presentational props (method trigger font/colour, method menu panel, URL input link icon + font + exact placeholder, Save hover, Share icon-only)",
+  "date": "2026-06-30",
   "mode": "enhancement",
   "symptom_snapshot": {
     "symptom": null,
@@ -10,159 +10,191 @@
     "scope": null,
     "unchanged_behavior": null
   },
-  "summary": "The tab strip already has truncation machinery, but the width cap is bound to the wrong element. TabBar.css:88 caps the LABEL (.tabbar .tabs__tab-label) at max-width:200px, while the design's .tab cell \u2014 our .tabbar .tabs__tab-wrapper (Tabs.css:421) \u2014 carries no max-width and the design-fidelity-contract section 5 requires .tab max-width:220px. So each cell sizes to its content (method-chip + gap + label up to 200px + padding), grows with the title, varies with chip width, and exceeds the 220px target, pushing the + actions. The fix is pure CSS and .tabbar-scoped: add max-width:220px to the cell wrapper and remove the divergent label cap, reusing the base label ellipsis rule (Tabs.css:196) that already matches contract B1. deriveLabel returns a plain string, so no JS/markup/behaviour change is needed and existing tests stay green (the CT fidelity assertion that pins the old 200px label cap will need re-pointing to the 220px cell cap).",
+  "summary": "The five un-enumerated RequestBar drifts are token-APPLICATION + presentational-markup local to RequestBar.css/.tsx and the shared Dropdown molecule's panel \u2014 not a token gap or a logic defect. Every reference target value in design/styles.css already exists as a token (tokens.css/design/tokens.json), so the fix is localized rebinds + small markup edits: restructure the URL input into a .url-bar flex container with a leading link Icon and the exact placeholder 'Enter URL or paste cURL command\u2026', drop the Share text label (icon-only, stays disabled), tidy the method trigger, and align the Dropdown OPEN PANEL (--shadow-lg, item padding 8px, gap 1px). The method-trigger and Save-hover treatments appear already reference-correct from spec 010, so any residual drift there is runtime-context only and needs a computed-style confirm. The one cross-cutting note: the Dropdown is a shared molecule (prod consumers RequestBar + PrimitivesDemo), so its panel rebind ripples slightly \u2014 bounded and within the ticket's intended scope.",
   "findings": [
     {
-      "surface": "Tab cell / design .tab equivalent (.tabbar .tabs__tab-wrapper)",
-      "file_line": "src/renderer/src/components/molecules/Tabs.css:421",
-      "relevance": "The padded cell that the design contract calls .tab; has gap:8px/padding:0 10px 0 12px/border-right but NO max-width. Per contract section 5 it should carry max-width:220px \u2014 this is the fix site for the cell-level cap.",
+      "surface": "URL input: bare input, no leading link icon / no .url-bar container",
+      "file_line": "src/renderer/src/components/organisms/RequestBar.tsx:285",
+      "relevance": "Bare <input class=request-bar__url>; reference .url-bar (design/styles.css:772-784) is a flex container with a leading icon + input, gap 6px. Restructure to a .url-bar wrapper with a leading <Icon name=link> (icon exists, icons.ts:72) + the input. Markup add.",
       "framing": "primary"
     },
     {
-      "surface": "Divergent label cap (.tabbar .tabs__tab-label)",
-      "file_line": "src/renderer/src/components/organisms/TabBar.css:88",
-      "relevance": "Caps the LABEL at max-width:200px instead of the cell at 220px; contract B1 specifies NO label max-width (only nowrap/overflow/ellipsis/flex). This mis-placed cap leaves the cell uncapped (varies with chip) and diverges in value (200 vs 220). Remove to align.",
+      "surface": "URL placeholder string mismatch",
+      "file_line": "src/renderer/src/components/organisms/RequestBar.tsx:290",
+      "relevance": "placeholder=Enter URL; target literal is exactly 'Enter URL or paste cURL command\u2026' (text only, NO cURL behaviour). One-string edit.",
       "framing": "primary"
     },
     {
-      "surface": "Base label ellipsis rule (.tabs__tab-label) \u2014 canonical pattern",
-      "file_line": "src/renderer/src/components/molecules/Tabs.css:196",
-      "relevance": "canonical pattern \u2014 reusable: flex:1/overflow:hidden/text-overflow:ellipsis/white-space:nowrap matches contract B1 exactly. Already present; fires once the cell is capped. No new truncation code needed.",
+      "surface": "URL font binding",
+      "file_line": "src/renderer/src/components/organisms/RequestBar.css:142",
+      "relevance": "font-family var(--font-mono) + font-size var(--fs-base)=12.5px (tokens.css:70); reference .url-bar is mono and input is 12.5px \u2014 already matches statically. The reported 'wrong font' is likely a render-context artefact; after the .url-bar restructure the container must keep mono and the input 12.5px. Verify at runtime.",
       "framing": "primary"
     },
     {
-      "surface": "Tab button truncation enablers (.tabbar .tabs__tab)",
-      "file_line": "src/renderer/src/components/molecules/Tabs.css:493",
-      "relevance": "flex:1 1 auto + min-width:0 on the button lets the label ellipsis fire once the wrapper width is capped. Already correct; supports the cell-cap fix with no further change.",
+      "surface": "Share button renders a visible text label",
+      "file_line": "src/renderer/src/components/organisms/RequestBar.tsx:339",
+      "relevance": "Renders <Icon name=share> + the text 'Share' (line 341); reference shows icon-only. .request-bar__share CSS (RequestBar.css:327) already matches .btn-ghost (border/bg-elev/text-muted, design/styles.css:820-828). Fix = drop the text node only; keep disabled (no behaviour assertion).",
       "framing": "primary"
     },
     {
-      "surface": "Content-width tablist (.tabbar .tabs__list)",
-      "file_line": "src/renderer/src/components/molecules/Tabs.css:504",
-      "relevance": "flex:0 0 auto makes the tablist content-width; combined with wrapper flex-shrink:0 this is the runner-up framing's basis (flex-layer fix). Evidence shows the flex layer is intentional design (Fix C) and not the defect \u2014 the missing cell cap is.",
+      "surface": "Save button hover treatment",
+      "file_line": "src/renderer/src/components/organisms/RequestBar.css:296",
+      "relevance": ".request-bar__save:hover sets border-color var(--border-strong) + color var(--text) \u2014 matches reference .btn-ghost:hover (design/styles.css:825-828). Appears already correct; verify residual hover drift at runtime.",
+      "framing": "primary"
+    },
+    {
+      "surface": "Method-select trigger treatment",
+      "file_line": "src/renderer/src/components/organisms/RequestBar.css:73",
+      "relevance": ".request-bar__method.method binds mono/700/11.5px/0.04em, min-width 88px, padding 7px 10px 7px 12px, border var(--border), bg var(--bg-elev) \u2014 matches reference .method-select (design/styles.css:749-770). Extra justify-content:center (line 87) is not in the reference; per-verb text colour falls through the [data-mstyle=soft] cascade. Largely fixed by spec 010; verify residual font/colour/treatment at runtime.",
+      "framing": "primary"
+    },
+    {
+      "surface": "Method dropdown OPEN PANEL: shadow token",
+      "file_line": "src/renderer/src/components/molecules/Dropdown.css:45",
+      "relevance": ".dropdown-content box-shadow var(--shadow-md); reference .dropdown uses var(--shadow-lg) (design/styles.css:1540). border-radius var(--radius-md) and bg var(--bg-elev) already match. Token exists; rebind shadow. SHARED molecule surface.",
+      "framing": "primary"
+    },
+    {
+      "surface": "Method dropdown OPEN PANEL: item padding + panel gap",
+      "file_line": "src/renderer/src/components/molecules/Dropdown.css:85",
+      "relevance": ".dropdown-item padding .375rem .625rem (6px 10px) vs reference .dd-item 6px 8px (design/styles.css:1557); reference .dropdown has gap:1px (styles.css:1546) absent here. Minor pad/gap rebind. .dropdown-item[data-highlighted] hover bg var(--bg-hover) already matches reference .dd-item:hover.",
+      "framing": "primary"
+    },
+    {
+      "surface": "Canonical reusable: link Icon atom",
+      "file_line": "src/renderer/src/components/atoms/icons.ts:72",
+      "relevance": "canonical pattern \u2014 reusable: the 'link' icon already exists in the project icon set (globe also at :53). Reuse via <Icon name=link> for the URL leading icon \u2014 no new SVG. Search-before-building.",
+      "framing": "primary"
+    },
+    {
+      "surface": "Canonical reusable: .method/{METHOD} verb-colour class path",
+      "file_line": "src/renderer/src/components/organisms/RequestBar.tsx:269",
+      "relevance": "canonical pattern \u2014 reusable: trigger already uses cx(request-bar__method, method, method-value); per-verb colour stays on this class path and NEVER a data-mstyle write. Reuse, do not reinvent.",
+      "framing": "primary"
+    },
+    {
+      "surface": "Dropdown is a SHARED molecule (ripple surface)",
+      "file_line": "src/renderer/src/components/molecules/Dropdown.css:37",
+      "relevance": "RUNNER-UP evidence: .dropdown-content is consumed by RequestBar + PrimitivesDemo (imports of molecules/Dropdown), so a panel shadow/padding rebind ripples beyond the method menu \u2014 partial support for the shared-system framing. BUT bounded: only the Dropdown molecule is shared; every RequestBar.css/.tsx fix stays local. Runner-up holds only for the Dropdown slice, which the ticket explicitly scopes in -> not the dominant framing.",
       "framing": "runner-up"
-    },
-    {
-      "surface": "deriveLabel (plain-string label source)",
-      "file_line": "src/renderer/src/components/organisms/TabBar.tsx:53",
-      "relevance": "Returns a plain string (name | method+url | Untitled); CSS owns truncation, no JS length cap. Confirms the fix is pure CSS with zero behaviour/markup change.",
-      "framing": "primary"
-    },
-    {
-      "surface": "Canonical max-width+ellipsis idiom (Dropdown.css)",
-      "file_line": "src/renderer/src/components/molecules/Dropdown.css:166",
-      "relevance": "canonical pattern \u2014 reusable: project's existing max-width (Dropdown.css:39, 280px) + text-overflow:ellipsis truncation idiom; same pattern the cell cap reuses.",
-      "framing": "primary"
     }
   ],
   "hypotheses": [
     {
       "label": "A",
-      "cause": "Width cap is on the wrong element: .tabbar .tabs__tab-label caps the LABEL at 200px (TabBar.css:88), but the design's .tab cell (.tabbar .tabs__tab-wrapper, Tabs.css:421) has no max-width. So the cell sizes to content (chip+gap+label<=200+padding), grows with the title, varies with chip width, and exceeds the 220px contract target.",
-      "falsifier": "If halting cell growth required a JS or flex change rather than a cell-level max-width, hypothesis A is wrong.",
+      "cause": "PRIMARY: drift is token-APPLICATION + presentational markup local to RequestBar.css/.tsx + Dropdown.css \u2014 wrong/extra/missing values & markup (URL bare input without link icon, placeholder 'Enter URL', Share text label, Dropdown panel --shadow-md vs --shadow-lg, item pad 10px vs 8px). Every target value already exists as a token; no new tokens, no behaviour change.",
+      "falsifier": "A reference target value that maps to NO existing token (forces a token addition) -> pushes the fix into the runner-up shared-system framing.",
       "runtime_probe_needed": false
     },
     {
       "label": "B",
-      "cause": "Growth is a flex-distribution artifact: the content-width tablist (.tabbar .tabs__list flex:0 0 auto, Tabs.css:504) plus flex-shrink:0 wrappers, fixable at the flex layer (flex-basis/allow-shrink) rather than a max-width cap.",
-      "falsifier": "Adding max-width:220px to .tabbar .tabs__tab-wrapper alone halts growth and fires the ellipsis, making a flex-layer change unnecessary and non-contract-faithful.",
+      "cause": "RUNNER-UP: drift requires shared design-system changes (tokens.css and/or the shared Dropdown molecule) that ripple beyond RequestBar.",
+      "falsifier": "Every reference value already exists as a token AND the only shared surface is the Dropdown molecule (prod consumers RequestBar + PrimitivesDemo) aligned intentionally per the ticket -> ripple bounded; runner-up disproved as the dominant framing.",
       "runtime_probe_needed": false
     },
     {
       "label": "C",
-      "cause": "Only the value is wrong: bump the existing label cap from 200px to 220px on .tabbar .tabs__tab-label, leaving it on the label.",
-      "falsifier": "Contract section 5 places max-width on the .tab cell, not the label; capping the label still leaves cell width = chip+label+padding, which varies with chip and exceeds 220px, failing the cell-level computed-style fidelity AC.",
-      "runtime_probe_needed": false
+      "cause": "RESIDUAL-RUNTIME: method-trigger and Save-hover may already match the reference (spec 010 fixed them); any residual visual drift is runtime-context only (data-mstyle cascade / font inheritance), not a static CSS value gap.",
+      "falsifier": "A runtime computed-style diff shows method-trigger font/colour or Save hover differing from design/styles.css targets -> a real static drift remains and must be rebound.",
+      "runtime_probe_needed": true
     }
   ],
-  "root_cause_hypothesis": "The tab width cap is bound to the wrong element. The label is capped at 200px (TabBar.css:88) while the design's .tab cell (.tabbar .tabs__tab-wrapper, Tabs.css:421) carries no max-width, so the cell grows with content and diverges from the contract's .tab max-width:220px. Relocating the cap to the cell (and removing the divergent label cap) fixes growth and aligns to fidelity; the base label ellipsis rule (Tabs.css:196) already truncates.",
-  "confidence": "Confirmed",
+  "root_cause_hypothesis": "The enumerated props drift because RequestBar.css/.tsx + Dropdown.css apply wrong/extra/missing values and markup against design/styles.css, while every required target value already exists as a token. The fix is localized token-rebinds + presentational markup edits (URL .url-bar restructure with a link Icon + exact placeholder, drop the Share text label) plus a bounded shadow/padding alignment of the shared Dropdown panel \u2014 no new tokens, no behaviour change.",
+  "confidence": "Hypothesis",
   "structured_root_cause": null,
-  "verify_step": null,
+  "verify_step": {
+    "probe": "Mount RequestBar with data-mstyle=soft (app request pane or story/CT harness) and open the method dropdown; capture getComputedStyle for .request-bar__method (font-family,color,padding,min-width), .request-bar__url + leading icon (font-family,font-size,icon present), .request-bar__save:hover, .request-bar__share (icon-only, no text node), .dropdown-content (box-shadow,border-radius,padding), .dropdown-item (padding); screenshot-diff vs design/reference.html.",
+    "reproduction": "Open the app request pane (or the RequestBar story/CT harness), focus the URL input, hover Save, and click the method trigger to open the panel.",
+    "discriminator": "If all computed styles equal design/styles.css targets -> PRIMARY (A) confirmed, static-CSS fix sufficient. If method-trigger/Save-hover already match but URL/Share/Dropdown differ -> A confirmed for those and C's residual is null. If any target value maps to a missing token -> RUNNER-UP (B) confirmed."
+  },
   "approaches": [
     {
-      "name": "Relocate the cap to the cell (contract-faithful)",
-      "description": "Add max-width:220px to .tabbar .tabs__tab-wrapper (Tabs.css:421 \u2014 the design's .tab cell) and remove the divergent max-width:200px from .tabbar .tabs__tab-label (TabBar.css:88), keeping the base .tabs__tab-label ellipsis rule. Pure CSS, .tabbar-scoped.",
+      "name": "Localized RequestBar fidelity pass + bounded Dropdown panel alignment",
+      "description": "Rebind RequestBar.css/.tsx and Dropdown.css to the design/styles.css reference values using existing tokens: restructure the URL input into a .url-bar flex container with a leading <Icon name=link> + the exact placeholder, drop the Share text label (icon-only, stays disabled), remove the extra justify-content:center on the method trigger, and align the Dropdown panel shadow (--shadow-lg) + item padding (8px) + gap (1px). No new tokens, no data-mstyle write, no behaviour change.",
       "addresses_hypotheses": [
         "A",
-        "B",
-        "C"
-      ],
-      "does_not_cover": [],
-      "pros": [
-        "Contract-faithful: caps the .tab cell at exactly 220px (design section 5)",
-        "Reuses the existing base ellipsis rule (Tabs.css:196) \u2014 no new truncation code",
-        "Tab width is stable, independent of method-chip width",
-        "Scoped to .tabbar \u2014 bare .tabs consumers (section tabs, PrimitivesDemo) untouched",
-        "Pure CSS, zero behaviour/markup change; unit tests stay green",
-        "Resolves the growth under every framing \u2014 no flex-layer change needed"
-      ],
-      "cons": [
-        "Touches two files (Tabs.css add + TabBar.css removal)",
-        "An existing CT fidelity assertion pinning the 200px label cap must be re-pointed to the 220px wrapper cap"
-      ],
-      "complexity": "Low"
-    },
-    {
-      "name": "Bump the label cap value (200 to 220 on the label)",
-      "description": "Change .tabbar .tabs__tab-label max-width from 200px to 220px in place (TabBar.css:88); leave the cap on the label.",
-      "addresses_hypotheses": [
         "C"
       ],
       "does_not_cover": [
-        "A",
         "B"
       ],
       "pros": [
-        "Single-line change, smallest possible diff",
-        "No new rule added to the wrapper"
+        "Every target value already exists as a token \u2014 no tokens.css / source-token addition",
+        "Reuses the existing link Icon atom and the .method/{METHOD} verb-colour class path \u2014 no new mechanism",
+        "Behaviour untouched (onSend, Cmd-Enter/Cmd-S, canSend, dirty/markClean, Share disabled) \u2014 unit + CT stay green",
+        "Matches the ticket scope exactly (RequestBar + the Dropdown menu panel)"
       ],
       "cons": [
-        "Diverges from contract section 5 \u2014 max-width belongs on the .tab cell, not the label",
-        "Cell width stays = chip+label+padding, varies with chip and can still exceed 220px",
-        "A cell-level computed-style fidelity AC on the wrapper would still fail"
+        "Touches the shared Dropdown molecule \u2014 panel shadow/padding ripples to PrimitivesDemo + visual snapshots",
+        "CT fidelity tests must reproduce the data-mstyle=soft context (known 005 fixture-scoping constraint)",
+        "Pixel parity on method-trigger / Save-hover needs a runtime computed-style confirm (hypothesis C)"
+      ],
+      "complexity": "Med"
+    },
+    {
+      "name": "RequestBar-only pass, defer the shared Dropdown panel",
+      "description": "Apply only the RequestBar.css/.tsx fixes (URL .url-bar + link icon + placeholder, Share icon-only, method-trigger tidy, Save hover) and leave the Dropdown molecule untouched, deferring the method-menu panel alignment to a separate design-system change.",
+      "addresses_hypotheses": [
+        "A"
+      ],
+      "does_not_cover": [
+        "B",
+        "C"
+      ],
+      "pros": [
+        "Zero shared-molecule ripple \u2014 no PrimitivesDemo / other-dropdown regression risk",
+        "Smallest blast radius; no shared visual-snapshot churn"
+      ],
+      "cons": [
+        "Under-delivers \u2014 the ticket explicitly scopes the Dropdown menu OPEN PANEL IN, so that drift stays unfixed",
+        "Splits one fidelity fix into two passes"
       ],
       "complexity": "Low"
     }
   ],
   "recommended_approach": {
-    "name": "Relocate the cap to the cell (contract-faithful)",
-    "rationale": "Reuses the canonical truncation rule already present at src/renderer/src/components/molecules/Tabs.css:196 (it matches design-fidelity-contract B1) instead of writing any new styling, and derives its authority from design-fidelity-contract section 5. The single cell-level cap resolves the tab-growth symptom under every enumerated framing, so no flex-layer change is needed. It satisfies unchanged_behavior: the change is .tabbar-scoped and CSS-only, so select/close/reorder, the dirty dot, the method chip, active styling, and the rendered text stay byte-identical; the sole visible difference is how an overlong title is clipped. Bare .tabs consumers are untouched. Runtime behaviour is deferred to the computed-style probe captured under Open Uncertainties before finalizing.",
+    "name": "Localized RequestBar fidelity pass + bounded Dropdown panel alignment",
+    "rationale": "Fits the stated scope and the project reuse-first rule: it consumes the existing atom at src/renderer/src/components/atoms/icons.ts:72 rather than building a new one, and leaves the document-level marker attribute under its sole owner (Shell) untouched. Honours unchanged_behavior \u2014 the send path, the canSend guard, dirty/markClean and the disabled action stub are not modified, so unit and CT suites stay green. Per-element computed-style targets and the precise scope live in the Codebase Findings table and the Open Uncertainties; full-parity confirmation is deferred to the verify step.",
     "hypotheses_addressed": [
       "A",
-      "B",
       "C"
     ],
-    "hypotheses_not_covered": []
+    "hypotheses_not_covered": [
+      "B"
+    ]
   },
   "constitution_constraints": [
     {
-      "rule": "Search before building (Key Rules / Always #12)",
-      "impact": "Reuse the canonical base ellipsis rule at src/renderer/src/components/molecules/Tabs.css:196 (contract B1) instead of writing new truncation CSS; the fix only adds the missing cell max-width. Reuse beats reinvention."
+      "rule": "Only Shell writes documentElement data-mstyle (\u00a74 Never / 009 AC-6)",
+      "impact": "The method-trigger per-verb colour fix MUST stay on the .method/{METHOD} class path; RequestBar never writes document.documentElement.dataset.mstyle."
     },
     {
-      "rule": "Design Fidelity principle (design-fidelity-contract section 5)",
-      "impact": "Constrains the target: .tab (= .tabbar .tabs__tab-wrapper) max-width:220px, label nowrap/overflow/ellipsis, no label max-width. Computed-style AC asserts var(--token) as resolves-to-token; the 220px is the contract's resolved literal."
+      "rule": "Never use inline styles \u2014 class-based styling via cx() (\u00a74 Never)",
+      "impact": "All geometry/treatment changes land in RequestBar.css + Dropdown.css + className/markup edits; no inline style={{\u2026}} added."
     },
     {
-      "rule": "Minimal changes (Key Rules / Always #3) + .tabbar scoping",
-      "impact": "Keep the change CSS-only and .tabbar-scoped so bare .tabs consumers are untouched and select/close/reorder/dirty/chip/active behaviour is byte-identical."
+      "rule": "Prefer design tokens over literal values (\u00a74 Prefer)",
+      "impact": "Bind shadow/radius/colour/padding to existing tokens (--shadow-lg, --radius-md, --bg-elev, --bg-hover, --font-mono, --fs-base); raw px only for spacing with no token (8px item pad / 1px gap), matching the existing pattern."
+    },
+    {
+      "rule": "Search before building",
+      "impact": "Reuse the existing link Icon atom at src/renderer/src/components/atoms/icons.ts:72 for the URL leading icon, and the canonical .method/{METHOD} class path at src/renderer/src/components/organisms/RequestBar.tsx:269 \u2014 reuse beats reinvention; no new SVG or colour mechanism."
     }
   ],
   "complexity": {
-    "codebase_changes": "Low",
-    "codebase_notes": "~2 CSS edits across 2 files: add max-width:220px to Tabs.css:421 wrapper rule; remove max-width:200px from TabBar.css:88 label rule (keep ellipsis).",
-    "risk": "Low",
-    "risk_notes": "Scoped to .tabbar, CSS-only, no JS/markup change. Only regression surface: a CT fidelity assertion pinning the old 200px label cap.",
-    "verify_cost": "Low",
-    "verify_notes": "Computed-style read (CT / Chrome DevTools MCP): assert .tabbar .tabs__tab-wrapper max-width=220px, label ellipsis triple, no cell growth with a long title, + button anchored."
+    "codebase_changes": "Med",
+    "codebase_notes": "RequestBar.tsx markup edits (URL .url-bar wrapper + link Icon, exact placeholder, drop Share label) + minor RequestBar.css + a bounded Dropdown.css panel rebind. No token/store/logic files touched.",
+    "risk": "Med",
+    "risk_notes": "Behaviour paths untouched. Main risk is the shared Dropdown molecule ripple (PrimitivesDemo + visual snapshots) and CT fidelity needing the data-mstyle=soft context (005 fixture-scoping).",
+    "verify_cost": "Med",
+    "verify_notes": "Runtime computed-style + screenshot diff vs design/reference.html via design-auditor (Chrome DevTools MCP); existing unit + CT suites stay green."
   },
   "open_uncertainties": [],
-  "verdict": "Feasible",
-  "next_step_text": "## Next step\n\nCopy the block below into a new `/specify` session manually. No automation \u2014 user controls when (or if) `/specify` runs.\n\n~~~\n/specify \"TabBar tabs flex-grow with their title text: a long title stretches the tab across the strip and pushes the new-tab (+) button. Tabs should hold a fixed max-width and ellipsis-truncate; tab width must stay stable and the + button stay anchored. \u2014 Cap the tab cell so it never grows with title length and long titles truncate with an ellipsis. Concretely: add max-width:220px to .tabbar .tabs__tab-wrapper (the design's .tab equivalent), matching design-fidelity-contract section 5. The .tabs__tab-label ellipsis machinery (white-space:nowrap + overflow:hidden + text-overflow:ellipsis + flex:1) is already present and fires once the cap exists; the button already has min-width:0 + flex:1 1 auto. Tab width stays stable; +/spacer/overflow-chevron actions stay anchored. Computed-style fidelity AC targets per contract: wrapper max-width resolves 220px, padding 0 10px 0 12px, gap 8px, tab bar height 36px; var(--token) asserted as resolves-to-token (not literal hex).\"\n\nResearch reference: research/YYYY-MM-DD-tabbar-tab-grows-with.md\nKey facts:\n- Mode: Enhancement\n- Symptom: TabBar tabs flex-grow with their title text: a long title stretches the tab across the strip and pushes the new-tab (+) button. Tabs should hold a fixed max-width and ellipsis-truncate; tab width must stay stable and the + button stay anchored.\n- Desired: Cap the tab cell so it never grows with title length and long titles truncate with an ellipsis. Concretely: add max-width:220px to .tabbar .tabs__tab-wrapper (the design's .tab equivalent), matching design-fidelity-contract section 5. The .tabs__tab-label ellipsis machinery (white-space:nowrap + overflow:hidden + text-overflow:ellipsis + flex:1) is already present and fires once the cap exists; the button already has min-width:0 + flex:1 1 auto. Tab width stays stable; +/spacer/overflow-chevron actions stay anchored. Computed-style fidelity AC targets per contract: wrapper max-width resolves 220px, padding 0 10px 0 12px, gap 8px, tab bar height 36px; var(--token) asserted as resolves-to-token (not literal hex).\n- Recommended approach: Relocate the cap to the cell (contract-faithful)\n- Hypothesis addressed: A, B, C\n- Hypotheses NOT covered: (none)\n- Open uncertainties: 2 (see research doc \u00a7Open Uncertainties)\n~~~\n",
+  "verdict": "Feasible with caveats",
+  "next_step_text": "## Next step\n\nCopy the block below into a new `/specify` session manually. No automation \u2014 user controls when (or if) `/specify` runs.\n\n~~~\n/specify \"RequestBar drifts from design/reference.html on 5 presentational props an earlier fidelity pass (spec 010) did not enumerate: method-trigger font/colour/treatment, method dropdown OPEN PANEL styling, URL input (missing leading link icon + wrong font + wrong placeholder string), Save hover state, Share rendered with text label instead of icon-only. \u2014 Every listed element matches design/reference.html to pixel parity using the exact resolved values pre-extracted in design/styles.css + design-fidelity-contract.md (var(--token)=resolves-to-token; color-mix(...) at token level), bound to semantic class names from design/tokens.json (no export cruft: data-om-*, __OmT, inline styles, tweaks-panel). Dispositions: MATCH 'Request bar' + 'Method colours (per verb)' for the listed elements; Share MATCHES .btn-ghost but icon-only + stays disabled; 'Send split-dropdown' section DEVIATE/OUT. URL placeholder equals exactly 'Enter URL or paste cURL command\u2026' (literal, no cURL behaviour).\"\n\nResearch reference: research/2026-06-30-requestbar-visually-drifts-from.md\nKey facts:\n- Mode: Enhancement\n- Symptom: RequestBar drifts from design/reference.html on 5 presentational props an earlier fidelity pass (spec 010) did not enumerate: method-trigger font/colour/treatment, method dropdown OPEN PANEL styling, URL input (missing leading link icon + wrong font + wrong placeholder string), Save hover state, Share rendered with text label instead of icon-only.\n- Desired: Every listed element matches design/reference.html to pixel parity using the exact resolved values pre-extracted in design/styles.css + design-fidelity-contract.md (var(--token)=resolves-to-token; color-mix(...) at token level), bound to semantic class names from design/tokens.json (no export cruft: data-om-*, __OmT, inline styles, tweaks-panel). Dispositions: MATCH 'Request bar' + 'Method colours (per verb)' for the listed elements; Share MATCHES .btn-ghost but icon-only + stays disabled; 'Send split-dropdown' section DEVIATE/OUT. URL placeholder equals exactly 'Enter URL or paste cURL command\u2026' (literal, no cURL behaviour).\n- Recommended approach: Localized RequestBar fidelity pass + bounded Dropdown panel alignment\n- Hypothesis addressed: A, C\n- Hypotheses NOT covered: B\n- Open uncertainties: 0 (see research doc \u00a7Open Uncertainties)\n~~~\n",
   "runner_up_framing": {
-    "frame": "Growth is a flex-distribution artifact, not a missing cell cap: the tablist is content-width (.tabbar .tabs__list flex:0 0 auto) and wrappers inherit flex-shrink:0, so the correct fix is at the flex layer (give tabs a flex-basis / allow shrink) rather than adding a hard max-width:220px to the wrapper.",
-    "falsifier": "Design-fidelity-contract section 5 puts max-width on .tab (the cell), and once max-width:220px is added to .tabbar .tabs__tab-wrapper the tab stops growing and the label ellipsis fires \u2014 a flex-basis change would be neither necessary nor contract-faithful.",
+    "frame": "Drift is a shared design-system gap: the reference targets force changes to shared layers (tokens.css and/or the shared Dropdown molecule consumed app-wide), so the fix ripples design-system-wide rather than staying local to RequestBar.",
+    "falsifier": "Find a reference target value that maps to NO existing token (forcing a token addition), OR find the Dropdown panel is consumed by many production organisms so re-aligning it regresses them. Counter-evidence: every reference value (--shadow-lg, --radius-md, --bg-elev, --bg-hover, --font-mono, --fs-base) already exists as a token; the only shared surface is the Dropdown molecule (prod consumers RequestBar + PrimitivesDemo), aligned intentionally per the ticket scope -> ripple bounded, not an unbounded system gap.",
     "confidence_vs_primary": "lower"
   },
   "fix_path_helpers": [],
@@ -175,7 +207,7 @@
   "value_production_sites": [],
   "literal_archaeology": [],
   "probe_feasibility": {
-    "data_shape_only": true,
+    "data_shape_only": false,
     "auth_required": false,
     "network_dependent": false,
     "timing_dependent": false,

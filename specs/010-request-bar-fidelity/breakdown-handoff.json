@@ -15,10 +15,7 @@
       "title": "restyle-requestbar-markup-labels-keycap",
       "agent": "frontend-engineer",
       "depends_on": [],
-      "blocks": [
-        "002",
-        "003"
-      ],
+      "blocks": ["002", "003"],
       "touched_files": [
         "src/renderer/src/components/organisms/RequestBar.tsx",
         "src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx"
@@ -57,15 +54,9 @@
       "number": "002",
       "title": "rewrite-requestbar-css-fidelity",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "001"
-      ],
-      "blocks": [
-        "003"
-      ],
-      "touched_files": [
-        "src/renderer/src/components/organisms/RequestBar.css"
-      ],
+      "depends_on": ["001"],
+      "blocks": ["003"],
+      "touched_files": ["src/renderer/src/components/organisms/RequestBar.css"],
       "expects": [
         "Task 001 landed: `RequestBar.tsx` renders a `request-bar__kbd` element inside Send and visible Save/Share labels.",
         "The method trigger still carries `cx('request-bar__method', 'method', method)`; `tokens.css` defines `--radius`, `--accent`, `--accent-soft`, `--bg-elev`, `--text-faint`, `--text-muted`, `--text-inverse`, `--border`, `--font-mono`.",
@@ -99,10 +90,7 @@
       "number": "003",
       "title": "add-ct-fidelity-suite",
       "agent": "qa-engineer",
-      "depends_on": [
-        "001",
-        "002"
-      ],
+      "depends_on": ["001", "002"],
       "blocks": [],
       "touched_files": [
         "src/renderer/src/components/organisms/__tests__/RequestBar.ct.tsx",
@@ -119,16 +107,8 @@
         "`RequestBar.stories.tsx` provides a fixture that renders the filled/enabled state (non-empty URL).",
         "The existing behaviour/layout CT tests and the unit suite still pass."
       ],
-      "ac_addressed": [
-        "AC-13",
-        "AC-15",
-        "AC-16",
-        "AC-17",
-        "AC-19"
-      ],
-      "doc_refs": [
-        "docs/architecture.md"
-      ],
+      "ac_addressed": ["AC-13", "AC-15", "AC-16", "AC-17", "AC-19"],
+      "doc_refs": ["docs/architecture.md"],
       "review_checkpoint": true
     }
   ],

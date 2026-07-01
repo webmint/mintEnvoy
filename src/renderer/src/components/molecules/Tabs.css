@@ -329,7 +329,9 @@
   cursor: pointer;
   user-select: none;
 
-  transition: color 80ms ease, background-color 80ms ease;
+  transition:
+    color 80ms ease,
+    background-color 80ms ease;
 }
 
 /* Hover on the ✕ itself: elevate color and add a subtle tinted background. */

@@ -10,30 +10,30 @@ T4 builds the working-tabs state machine + RequestSpec request data model for th
 
 ## Prior Art
 
-| Reference | Kind | Relevance | Source |
-|---|---|---|---|
-| Tabs primitive (TabDescriptor/TabsProps) | pattern | internal — existing tab a11y/roving-tabindex + selection primitive (002); TabBar composes & extends it (close ✕, '+', dirty), does NOT re-roll | internal:src/renderer/src/components/molecules/Tabs.tsx |
-| zustand store convention (settingsStore/toastStore) | pattern | internal — module-level create<State>((set)=>...), Store suffix (§3.3), renderer-only, selectors; tabsStore mirrors this exactly | internal:src/renderer/src/lib/settingsStore.ts |
-| Shell organism 'tabs' slot | pattern | internal — existing mount point above PaneSplit where TabBar renders; no new layout plumbing needed | internal:src/renderer/src/components/organisms/Shell.tsx |
-| Bruno .bru / OpenCollection request schema | product | GAP: RequestSpec shape — validates {method,url,headers,params(typed array),body{type,data},auth{type,...}}; auth types none/inherit/basic/bearer/apikey/digest/oauth2/awsv4/ntlm confirm the extensible discriminated-union with none+bearer as the minimal seed | https://docs.usebruno.com/bru-lang/tag-reference |
-| Zustand slices pattern (official) | pattern | GAP: tab state machine — canonical single-slice shape (tabs[] + activeTab + actions); matches the project's existing module-level store convention | https://zustand.docs.pmnd.rs/learn/guides/slices-pattern |
-| Redux→Zustand multi-tab editor case study | pattern | GAP: per-tab dirty/unsaved tracking — validates a tabs slice holding per-tab document state + dirty flag, markClean on save/send | https://engineering.synaptic.com/managing-state-in-a-multi-tabbed-application-our-journey-from-redux-to-zustand-6d3932544300 |
+| Reference                                           | Kind    | Relevance                                                                                                                                                                                                                                                        | Source                                                                                                                       |
+| --------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Tabs primitive (TabDescriptor/TabsProps)            | pattern | internal — existing tab a11y/roving-tabindex + selection primitive (002); TabBar composes & extends it (close ✕, '+', dirty), does NOT re-roll                                                                                                                   | internal:src/renderer/src/components/molecules/Tabs.tsx                                                                      |
+| zustand store convention (settingsStore/toastStore) | pattern | internal — module-level create<State>((set)=>...), Store suffix (§3.3), renderer-only, selectors; tabsStore mirrors this exactly                                                                                                                                 | internal:src/renderer/src/lib/settingsStore.ts                                                                               |
+| Shell organism 'tabs' slot                          | pattern | internal — existing mount point above PaneSplit where TabBar renders; no new layout plumbing needed                                                                                                                                                              | internal:src/renderer/src/components/organisms/Shell.tsx                                                                     |
+| Bruno .bru / OpenCollection request schema          | product | GAP: RequestSpec shape — validates {method,url,headers,params(typed array),body{type,data},auth{type,...}}; auth types none/inherit/basic/bearer/apikey/digest/oauth2/awsv4/ntlm confirm the extensible discriminated-union with none+bearer as the minimal seed | https://docs.usebruno.com/bru-lang/tag-reference                                                                             |
+| Zustand slices pattern (official)                   | pattern | GAP: tab state machine — canonical single-slice shape (tabs[] + activeTab + actions); matches the project's existing module-level store convention                                                                                                               | https://zustand.docs.pmnd.rs/learn/guides/slices-pattern                                                                     |
+| Redux→Zustand multi-tab editor case study           | pattern | GAP: per-tab dirty/unsaved tracking — validates a tabs slice holding per-tab document state + dirty flag, markClean on save/send                                                                                                                                 | https://engineering.synaptic.com/managing-state-in-a-multi-tabbed-application-our-journey-from-redux-to-zustand-6d3932544300 |
 
 ## Integration Surface
 
-| Touchpoint | Module/file | Why touched |
-|---|---|---|
-| Tabs primitive (molecules/Tabs.tsx) | src/renderer/src/components/molecules/Tabs.tsx | existing capability — candidate for reuse over fresh build; TabBar composes it; its {id,label,badge?,disabled?} selection-only contract is EXTENDED (close ✕ sibling button, '+' control, dirty marker) — record extension in /specify |
-| zustand store convention (lib/) | src/renderer/src/lib/settingsStore.ts | existing capability — new tabsStore.ts mirrors this slice convention; reuse over inventing a new state pattern |
-| Shell 'tabs' slot | src/renderer/src/components/organisms/Shell.tsx | existing capability — TabBar mounts into the existing 'tabs' slot above PaneSplit; no new layout plumbing |
+| Touchpoint                          | Module/file                                     | Why touched                                                                                                                                                                                                                            |
+| ----------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tabs primitive (molecules/Tabs.tsx) | src/renderer/src/components/molecules/Tabs.tsx  | existing capability — candidate for reuse over fresh build; TabBar composes it; its {id,label,badge?,disabled?} selection-only contract is EXTENDED (close ✕ sibling button, '+' control, dirty marker) — record extension in /specify |
+| zustand store convention (lib/)     | src/renderer/src/lib/settingsStore.ts           | existing capability — new tabsStore.ts mirrors this slice convention; reuse over inventing a new state pattern                                                                                                                         |
+| Shell 'tabs' slot                   | src/renderer/src/components/organisms/Shell.tsx | existing capability — TabBar mounts into the existing 'tabs' slot above PaneSplit; no new layout plumbing                                                                                                                              |
 
 ## Fit Assessment
 
-| Touchpoint | User expected | Reality (scan) | Effort | Blockers |
-|---|---|---|---|---|
-| Tabs primitive (molecules/Tabs.tsx) | Extend the primitive contract with per-tab close ✕, a '+' new-tab control, and a dirty marker | Primitive is controlled/selection-only (tabs[], activeId, onChange) and ALREADY exposes an actions? slot rendered OUTSIDE role=tablist (AC-8) — the '+' new-tab control fits there with NO contract change. Only per-tab close ✕ needs a real extension: a close button rendered as a SIBLING to the role=tab label (never nested) + an APG Delete-key path. Dirty marker can ride the existing badge? slot. Net: extension is narrower than the user assumed. | Low | per-tab close button must not nest inside role=tab (would break roving tabindex); needs APG Delete-key handler on the focused tab |
-| zustand store convention (lib/) | New tabsStore.ts mirrors settingsStore.ts / toastStore.ts | Exact match: module-level create<State>((set)=>...), Store suffix (§3.3), renderer-only (no node/electron imports), selector usage. No new state pattern invented; tabsStore drops straight into the convention. | Low | none |
-| Shell 'tabs' slot | TabBar mounts into Shell's existing tabs slot | Confirmed: Shell renders a 'tabs' slot above PaneSplit, currently fed only by a test fixture (ShellWithTabsFixture). Wiring the real TabBar is a slot fill — no new layout plumbing. | Low | none |
+| Touchpoint                          | User expected                                                                                 | Reality (scan)                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Effort | Blockers                                                                                                                          |
+| ----------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Tabs primitive (molecules/Tabs.tsx) | Extend the primitive contract with per-tab close ✕, a '+' new-tab control, and a dirty marker | Primitive is controlled/selection-only (tabs[], activeId, onChange) and ALREADY exposes an actions? slot rendered OUTSIDE role=tablist (AC-8) — the '+' new-tab control fits there with NO contract change. Only per-tab close ✕ needs a real extension: a close button rendered as a SIBLING to the role=tab label (never nested) + an APG Delete-key path. Dirty marker can ride the existing badge? slot. Net: extension is narrower than the user assumed. | Low    | per-tab close button must not nest inside role=tab (would break roving tabindex); needs APG Delete-key handler on the focused tab |
+| zustand store convention (lib/)     | New tabsStore.ts mirrors settingsStore.ts / toastStore.ts                                     | Exact match: module-level create<State>((set)=>...), Store suffix (§3.3), renderer-only (no node/electron imports), selector usage. No new state pattern invented; tabsStore drops straight into the convention.                                                                                                                                                                                                                                               | Low    | none                                                                                                                              |
+| Shell 'tabs' slot                   | TabBar mounts into Shell's existing tabs slot                                                 | Confirmed: Shell renders a 'tabs' slot above PaneSplit, currently fed only by a test fixture (ShellWithTabsFixture). Wiring the real TabBar is a slot fill — no new layout plumbing.                                                                                                                                                                                                                                                                           | Low    | none                                                                                                                              |
 
 **Overall fit**: Good
 **Effort estimate**: Low
@@ -42,10 +42,13 @@ T4 builds the working-tabs state machine + RequestSpec request data model for th
 ## Design Options
 
 ### Option A: Flat tab array with embedded spec
+
 - **Shape**:
+
 ```
 state = { tabs: Tab[]; activeTabId: string } where Tab = { id; spec: RequestSpec; dirty }. Tab order IS the array order. Actions find-by-id over a small N; serialization = tabs.map(t => t.spec).
 ```
+
 - **Pros**:
   - Simplest shape — mirrors settingsStore/toastStore minimalism (KISS)
   - Array order naturally encodes tab order; no separate order list to sync
@@ -57,10 +60,13 @@ state = { tabs: Tab[]; activeTabId: string } where Tab = { id; spec: RequestSpec
 - **Complexity**: Low
 
 ### Option B: Normalized id-keyed map plus order list
+
 - **Shape**:
+
 ```
 state = { tabsById: Record<string,Tab>; order: string[]; activeTabId }. Lookups and updates are by id; order[] holds tab sequence separately.
 ```
+
 - **Pros**:
   - O(1) lookup/update by id for markClean, updateActive, dedupe-by-id
   - Cleaner immutable per-tab updates
@@ -71,10 +77,13 @@ state = { tabsById: Record<string,Tab>; order: string[]; activeTabId }. Lookups 
 - **Complexity**: Med
 
 ### Option C: Spec registry with tab refs (decoupled)
+
 - **Shape**:
+
 ```
 RequestSpecs live in their own registry map; tabs hold only spec-id refs, so one spec could back multiple tabs/views.
 ```
+
 - **Pros**:
   - Decouples spec lifetime from tab lifetime
   - Enables future multi-view of a single spec
@@ -88,8 +97,8 @@ RequestSpecs live in their own registry map; tabs hold only spec-id refs, so one
 
 ## Build vs Buy
 
-| Build | Buy/Adopt |
-|---|---|
+| Build                                                                                                                                                                                           | Buy/Adopt                                                                                                                                              |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Build the tabsStore slice + the RequestSpec domain model fresh, composing the existing internal Tabs primitive and the zustand dependency the project already ships. No new runtime dependency. | Adopt an external request-collection model/SDK (e.g. postman-collection, or Bruno's bru parser) to supply the RequestSpec shape and (de)serialization. |
 
 **Recommendation**: Build — The buy path drags a heavyweight collection SDK in to model a handful of in-memory fields — a poor trade for an extensible discriminated-union we fully control, and it would couple the domain entity to a third-party schema. zustand is already a dependency and the Tabs primitive already exists, so the build path is mostly composition of internal assets; only the domain model + state machine are genuinely net-new. Bruno/OpenCollection inform the shape as a reference, not as a runtime dependency.
@@ -103,13 +112,13 @@ RequestSpecs live in their own registry map; tabs hold only spec-id refs, so one
 
 ## Constitution Constraints
 
-| Rule | Impact |
-|---|---|
-| §3.3 Naming Conventions | zustand store is camelCase + Store suffix → name it tabsStore (not TabsStore/TabSlice); aligns with settingsStore/toastStore for clean discovery |
-| §2.1 / §2.3 Process Boundaries & Imports | tabsStore is renderer-only — no node/electron imports, resolve via @renderer alias, no cross-process imports; reinforces the scope rule that lib/ must not import components/ and the collection store must not be imported |
-| §3.1 Type Safety | strict mode, no any → the auth discriminated union must be exhaustively typed and narrowed via type guards on ; RequestSpec is fully typed, enabling the extensible-union design without escape hatches |
-| §3.4 Testing Requirements | no renderer test infra exists yet; the success bar (slice unit tests) makes this feature the one that must stand up Vitest + Testing Library — added setup scope to budget in /plan |
-| §4 Patterns (Always Do, project-specific) | 'Shared renderer state lives in a zustand store' directly validates the slice approach over component-local state |
+| Rule                                      | Impact                                                                                                                                                                                                                      |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §3.3 Naming Conventions                   | zustand store is camelCase + Store suffix → name it tabsStore (not TabsStore/TabSlice); aligns with settingsStore/toastStore for clean discovery                                                                            |
+| §2.1 / §2.3 Process Boundaries & Imports  | tabsStore is renderer-only — no node/electron imports, resolve via @renderer alias, no cross-process imports; reinforces the scope rule that lib/ must not import components/ and the collection store must not be imported |
+| §3.1 Type Safety                          | strict mode, no any → the auth discriminated union must be exhaustively typed and narrowed via type guards on ; RequestSpec is fully typed, enabling the extensible-union design without escape hatches                     |
+| §3.4 Testing Requirements                 | no renderer test infra exists yet; the success bar (slice unit tests) makes this feature the one that must stand up Vitest + Testing Library — added setup scope to budget in /plan                                         |
+| §4 Patterns (Always Do, project-specific) | 'Shared renderer state lives in a zustand store' directly validates the slice approach over component-local state                                                                                                           |
 
 ## Open uncertainties
 
@@ -124,7 +133,7 @@ RequestSpecs live in their own registry map; tabs hold only spec-id refs, so one
 
 Copy the block below into a new /specify session manually. No automated handoff — user controls when /specify runs.
 
-~~~
+```
 /specify "T4 working-tabs state machine + RequestSpec model: a renderer zustand tabsStore (flat tab array, lifecycle + dirty/markClean, seed defaults) and a TabBar composing the existing Tabs primitive."
 
 Discovery reference: discover/2026-06-24-working-tabs-state-machine-request-data-model-requestspec.md
@@ -134,5 +143,4 @@ Key facts:
 - Success criteria: Slice unit-tested: every lifecycle action (open-from-collection dedupe id-then-url, new-blank, close never-zero, select-active) + dirty flag + markClean(tabId) covered; invariants asserted (never-zero tabs, dedupe, seed defaults = auth bearer {{apiKey}} verbatim + default Accept header, auth NOT mirrored into headers[]). TabBar renders/selects/closes AND visually matches design/reference.html (look/spacing/states) against design/tokens.json. typecheck + lint + build clean.
 - Recommended option: Flat tab array with embedded spec
 - Open uncertainties: 1 (see discovery doc §Open uncertainties)
-~~~
-
+```

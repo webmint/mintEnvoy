@@ -11,10 +11,10 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                                           | Action | Description                                                                                                                                  |
+| ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | src/renderer/src/components/molecules/Tabs.tsx | Modify | Opt-in `closable`/`onClose` props (default-off); sibling `tabIndex={-1}` ✕; Delete/Backspace close path; `useLayoutEffect` focus restoration |
-| src/renderer/src/components/molecules/Tabs.css | Modify | Close-✕ styling + dirty-marker styling (token-bound) |
+| src/renderer/src/components/molecules/Tabs.css | Modify | Close-✕ styling + dirty-marker styling (token-bound)                                                                                         |
 
 ## Description
 
@@ -23,6 +23,7 @@
 When `closable` is true: render the ✕ as a **sibling `<button tabIndex={-1}>`** to the `role="tab"` element (a pointer target, NOT an extra roving stop, NOT `role="tab"`), and add a Delete/Backspace close path on the focused tab. `onClose` is **signal-only** — it emits the tab id on ✕-click or Delete/Backspace and mutates no list; the store (task 002) owns the lifecycle. The primitive's only post-close job is roving-focus integrity on the next render (AC-23).
 
 **MUST NOT (plan Risk-1 guardrails — do not violate):**
+
 - MUST NOT add the ✕ button to `buttonRefs`.
 - MUST NOT give the ✕ `role="tab"`.
 - MUST NOT switch `handleKeyDown` to a DOM selector (keep the index-based engine).
@@ -41,9 +42,11 @@ When `closable` is true: render the ✕ as a **sibling `<button tabIndex={-1}>`*
 ## Contracts
 
 ### Expects (checked before execution)
+
 - The existing selection-only Tabs primitive (`TabsProps`, `TabDescriptor`, the hand-rolled roving-tabindex engine: `handleKeyDown`, `rovingTabStopIndex`, `buttonRefs`) is present in `Tabs.tsx` (feature 002).
 
 ### Produces (checked after execution)
+
 - `TabsProps` declares optional `closable` and `onClose`.
 - With `closable` true, a sibling `<button>` with `tabIndex={-1}` (not `role="tab"`, not in `buttonRefs`) renders per tab and `onClose` fires on its click and on Delete/Backspace on the focused tab (AC-22).
 - With `closable` falsy, no Delete/Backspace close behavior, no extra close DOM node, and no extra roving tab stop (AC-11); exactly one `tabIndex={0}` tab stop regardless of `closable` (AC-12).

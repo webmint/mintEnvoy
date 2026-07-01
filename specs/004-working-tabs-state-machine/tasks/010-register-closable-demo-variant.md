@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                                           | Action | Description                                                                               |
+| ---------------------------------------------- | ------ | ----------------------------------------------------------------------------------------- |
 | src/renderer/src/components/PrimitivesDemo.tsx | Modify | Register a `closable` Tabs variant (and/or TabBar) for dev-only manual visual fidelity QA |
 
 ## Description
@@ -29,10 +29,12 @@ Add a dev-only gallery entry exercising the closable Tabs variant (from task 004
 ## Contracts
 
 ### Expects (checked before execution)
+
 - The closable/onClose Tabs contract from task 004 is present (`TabsProps.closable`, `TabsProps.onClose`, sibling ✕).
 - `PrimitivesDemo.tsx` exists with the existing `TabsSection` and the `import.meta.env.DEV` guard.
 
 ### Produces (checked after execution)
+
 - `PrimitivesDemo.tsx` renders a `closable`-enabled Tabs variant (with `onClose` + `+` control) in the dev-only gallery for manual fidelity QA (supports AC-22).
 - The existing demo rows remain; the addition stays behind the dev-only guard.
 

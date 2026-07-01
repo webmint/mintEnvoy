@@ -11,21 +11,21 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/organisms/Shell.tsx → src/renderer/src/components/organisms/shell/Shell.tsx | Move + Modify | Relocate; rewrite `@renderer` imports of Titlebar/PaneSplit/Statusbar to `organisms/shell/*` (Sidebar import unchanged) |
-| src/renderer/src/components/organisms/Shell.css → src/renderer/src/components/organisms/shell/Shell.css | Move | Sibling stylesheet travels with the .tsx |
-| src/renderer/src/components/organisms/Titlebar.tsx → src/renderer/src/components/organisms/shell/Titlebar.tsx | Move | Relocate; no content change (imports only the Icon atom, which does not move) |
-| src/renderer/src/components/organisms/Titlebar.css → src/renderer/src/components/organisms/shell/Titlebar.css | Move | Sibling stylesheet travels |
-| src/renderer/src/components/organisms/Statusbar.tsx → src/renderer/src/components/organisms/shell/Statusbar.tsx | Move | Relocate; no content change (no component imports) |
-| src/renderer/src/components/organisms/Statusbar.css → src/renderer/src/components/organisms/shell/Statusbar.css | Move | Sibling stylesheet travels |
-| src/renderer/src/components/organisms/PaneSplit.tsx → src/renderer/src/components/organisms/shell/PaneSplit.tsx | Move | Relocate; its Divider import already points at `molecules/Divider` (rewritten in task 001) and is NOT re-touched here |
-| src/renderer/src/components/organisms/PaneSplit.css → src/renderer/src/components/organisms/shell/PaneSplit.css | Move | Sibling stylesheet travels |
-| src/renderer/src/App.tsx | Modify | Rewrite the Shell import to `@renderer/components/organisms/shell/Shell` |
-| src/renderer/src/components/organisms/__tests__/Shell.test.tsx → src/renderer/src/components/organisms/shell/__tests__/Shell.test.tsx | Move + Modify | Relocate; rewrite `@renderer` imports of Shell/Titlebar/Statusbar/PaneSplit to `organisms/shell/*` (Divider import already at molecules/ from task 001, not re-touched) |
-| src/renderer/src/components/organisms/__tests__/Shell.stories.tsx → src/renderer/src/components/organisms/shell/__tests__/Shell.stories.tsx | Move + Modify | Relocate; same `@renderer` rewrites as Shell.test.tsx |
-| src/renderer/src/components/organisms/__tests__/Shell.ct.tsx → src/renderer/src/components/organisms/shell/__tests__/Shell.ct.tsx | Move | Relocate; its relative `import … from './Shell.stories'` is preserved by moving together — no `@renderer` rewrite needed |
-| src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx | Modify | Rewrite the cross-file `@renderer/components/organisms/Shell.css` import to `@renderer/components/organisms/shell/Shell.css` |
+| File                                                                                                                                        | Action        | Description                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| src/renderer/src/components/organisms/Shell.tsx → src/renderer/src/components/organisms/shell/Shell.tsx                                     | Move + Modify | Relocate; rewrite `@renderer` imports of Titlebar/PaneSplit/Statusbar to `organisms/shell/*` (Sidebar import unchanged)                                                 |
+| src/renderer/src/components/organisms/Shell.css → src/renderer/src/components/organisms/shell/Shell.css                                     | Move          | Sibling stylesheet travels with the .tsx                                                                                                                                |
+| src/renderer/src/components/organisms/Titlebar.tsx → src/renderer/src/components/organisms/shell/Titlebar.tsx                               | Move          | Relocate; no content change (imports only the Icon atom, which does not move)                                                                                           |
+| src/renderer/src/components/organisms/Titlebar.css → src/renderer/src/components/organisms/shell/Titlebar.css                               | Move          | Sibling stylesheet travels                                                                                                                                              |
+| src/renderer/src/components/organisms/Statusbar.tsx → src/renderer/src/components/organisms/shell/Statusbar.tsx                             | Move          | Relocate; no content change (no component imports)                                                                                                                      |
+| src/renderer/src/components/organisms/Statusbar.css → src/renderer/src/components/organisms/shell/Statusbar.css                             | Move          | Sibling stylesheet travels                                                                                                                                              |
+| src/renderer/src/components/organisms/PaneSplit.tsx → src/renderer/src/components/organisms/shell/PaneSplit.tsx                             | Move          | Relocate; its Divider import already points at `molecules/Divider` (rewritten in task 001) and is NOT re-touched here                                                   |
+| src/renderer/src/components/organisms/PaneSplit.css → src/renderer/src/components/organisms/shell/PaneSplit.css                             | Move          | Sibling stylesheet travels                                                                                                                                              |
+| src/renderer/src/App.tsx                                                                                                                    | Modify        | Rewrite the Shell import to `@renderer/components/organisms/shell/Shell`                                                                                                |
+| src/renderer/src/components/organisms/**tests**/Shell.test.tsx → src/renderer/src/components/organisms/shell/**tests**/Shell.test.tsx       | Move + Modify | Relocate; rewrite `@renderer` imports of Shell/Titlebar/Statusbar/PaneSplit to `organisms/shell/*` (Divider import already at molecules/ from task 001, not re-touched) |
+| src/renderer/src/components/organisms/**tests**/Shell.stories.tsx → src/renderer/src/components/organisms/shell/**tests**/Shell.stories.tsx | Move + Modify | Relocate; same `@renderer` rewrites as Shell.test.tsx                                                                                                                   |
+| src/renderer/src/components/organisms/**tests**/Shell.ct.tsx → src/renderer/src/components/organisms/shell/**tests**/Shell.ct.tsx           | Move          | Relocate; its relative `import … from './Shell.stories'` is preserved by moving together — no `@renderer` rewrite needed                                                |
+| src/renderer/src/components/molecules/**tests**/Tabs.stories.tsx                                                                            | Modify        | Rewrite the cross-file `@renderer/components/organisms/Shell.css` import to `@renderer/components/organisms/shell/Shell.css`                                            |
 
 ## Description
 
@@ -59,6 +59,7 @@ Pure relocation + import-path rewrites — no prop, export-surface, runtime, sty
 ## Contracts
 
 ### Expects (checked before execution)
+
 - (from task 001) `PaneSplit.tsx` imports `Divider` from `@renderer/components/molecules/Divider`; `__tests__/Shell.test.tsx` and `__tests__/Shell.stories.tsx` import `Divider` from `@renderer/components/molecules/Divider`.
 - `Shell.tsx` (at `organisms/`) imports `Titlebar`, `PaneSplit`, `Statusbar` from `@renderer/components/organisms/*`.
 - `App.tsx` imports `Shell` from `@renderer/components/organisms/Shell`.
@@ -66,6 +67,7 @@ Pure relocation + import-path rewrites — no prop, export-surface, runtime, sty
 - `Tabs.stories.tsx` imports `@renderer/components/organisms/Shell.css`.
 
 ### Produces (checked after execution)
+
 - `components/organisms/shell/Shell.tsx`, `Titlebar.tsx`, `Statusbar.tsx`, `PaneSplit.tsx` exist (each exporting its component) with sibling `.css` files; none of these `.tsx`/`.css` files remain directly under `components/organisms/`.
 - `components/organisms/shell/__tests__/Shell.test.tsx`, `Shell.stories.tsx`, `Shell.ct.tsx` exist; `Shell.ct.tsx` still imports from `./Shell.stories`.
 - `App.tsx` imports `Shell` from `@renderer/components/organisms/shell/Shell`.
@@ -92,6 +94,6 @@ Pure relocation + import-path rewrites — no prop, export-surface, runtime, sty
 ## Completion Notes
 
 **Completed**: 2026-06-26T21:58:03Z
-**Files changed**: src/renderer/src/App.tsx, src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx, src/renderer/src/components/organisms/shell/Shell.tsx, src/renderer/src/components/organisms/shell/Shell.css, src/renderer/src/components/organisms/shell/Titlebar.tsx, src/renderer/src/components/organisms/shell/Titlebar.css, src/renderer/src/components/organisms/shell/Statusbar.tsx, src/renderer/src/components/organisms/shell/Statusbar.css, src/renderer/src/components/organisms/shell/PaneSplit.tsx, src/renderer/src/components/organisms/shell/PaneSplit.css, src/renderer/src/components/organisms/shell/__tests__/Shell.test.tsx, src/renderer/src/components/organisms/shell/__tests__/Shell.stories.tsx, src/renderer/src/components/organisms/shell/__tests__/Shell.ct.tsx
+**Files changed**: src/renderer/src/App.tsx, src/renderer/src/components/molecules/**tests**/Tabs.stories.tsx, src/renderer/src/components/organisms/shell/Shell.tsx, src/renderer/src/components/organisms/shell/Shell.css, src/renderer/src/components/organisms/shell/Titlebar.tsx, src/renderer/src/components/organisms/shell/Titlebar.css, src/renderer/src/components/organisms/shell/Statusbar.tsx, src/renderer/src/components/organisms/shell/Statusbar.css, src/renderer/src/components/organisms/shell/PaneSplit.tsx, src/renderer/src/components/organisms/shell/PaneSplit.css, src/renderer/src/components/organisms/shell/**tests**/Shell.test.tsx, src/renderer/src/components/organisms/shell/**tests**/Shell.stories.tsx, src/renderer/src/components/organisms/shell/**tests**/Shell.ct.tsx
 **Contract**: Expects 5/5 | Produces 8/8
 **Notes**: git-mv relocation of shell group (Shell/Titlebar/Statusbar/PaneSplit +css) + test trio into organisms/shell/; 6 importer rewrites (App, Shell internal x3, 2 fixtures, Tabs.stories css). typecheck/lint/build green; Vitest 336/336, CT 127/127. Stale playwright/.cache caused transient EISDIR (cleared, non-code); one pre-existing CT timing flake (ShellCollapsedFixture) passed on re-run.

@@ -16,9 +16,7 @@
       "agent": "frontend-engineer",
       "depends_on": [],
       "blocks": [],
-      "touched_files": [
-        "src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx"
-      ],
+      "touched_files": ["src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx"],
       "expects": [
         "`Dropdown.ct.tsx` contains the test `'clicking outside the menu closes it'` whose body has a `page.mouse.click(...)` followed by `expect(menu).not.toBeVisible()` (AC-3).",
         "`Dropdown.ct.tsx` contains the test `'focus returns to the trigger button after the menu closes via click-outside'` whose body has a `page.mouse.click(...)` followed by `expect(menu).not.toBeVisible()` and `expect(trigger).toBeFocused()` (AC-4).",
@@ -30,16 +28,7 @@
         "`expect(menu).not.toBeVisible()` and `expect(trigger).toBeFocused()` are unchanged; exactly one `page.mouse.click(...)` per test (no `toPass` retry wrapper).",
         "Both tests pass deterministically; the rest of the CT suite is unaffected."
       ],
-      "ac_addressed": [
-        "AC-1",
-        "AC-2",
-        "AC-3",
-        "AC-4",
-        "AC-5",
-        "AC-6",
-        "AC-7",
-        "AC-8"
-      ],
+      "ac_addressed": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"],
       "doc_refs": [],
       "review_checkpoint": false
     }

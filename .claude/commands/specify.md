@@ -1,7 +1,7 @@
 ---
 name: specify
 description: Author a 9-section feature spec under specs/NNN-name/spec.md with EARS-validated AC, coverage-rule enforcement, and a manual-next-step /plan block.
-argument-hint: "<feature description>"
+argument-hint: '<feature description>'
 disable-model-invocation: true
 ---
 
@@ -547,13 +547,13 @@ Each AC must be testable and unambiguous. **Cover each category that applies. Ma
 
 Every AC `statement` uses EARS notation (Easy Approach to Requirements Syntax, IEEE 29148-2018 / Kiro convention). Choose one of 5 variants; helper validates the statement matches the declared variant via regex. Malformed statements are rejected.
 
-| Variant | Pattern | Use when |
-|---|---|---|
-| `ubiquitous` | `The <system> shall <response>.` | always-true requirement |
-| `event_driven` | `WHEN <trigger>, the <system> shall <response>.` | event response |
-| `state_driven` | `WHILE <state>, the <system> shall <response>.` | state-dependent behavior |
-| `optional` | `WHERE <feature>, the <system> shall <response>.` | feature-flag / conditional |
-| `unwanted` | `IF <trigger>, THEN the <system> shall <response>.` | unwanted-behavior prevention |
+| Variant        | Pattern                                             | Use when                     |
+| -------------- | --------------------------------------------------- | ---------------------------- |
+| `ubiquitous`   | `The <system> shall <response>.`                    | always-true requirement      |
+| `event_driven` | `WHEN <trigger>, the <system> shall <response>.`    | event response               |
+| `state_driven` | `WHILE <state>, the <system> shall <response>.`     | state-dependent behavior     |
+| `optional`     | `WHERE <feature>, the <system> shall <response>.`   | feature-flag / conditional   |
+| `unwanted`     | `IF <trigger>, THEN the <system> shall <response>.` | unwanted-behavior prevention |
 
 **Subsection-EARS constraints.** §5.1 (`tooling_artifact_presence`) and §5.7 (`hygiene`) accept only the `ubiquitous` variant AND require a `--verification-command`. The other five subsections accept any of the five EARS variants; `--verification-command` is optional. The helper rejects an AC that violates these constraints.
 
@@ -729,7 +729,6 @@ Declare where this feature's UI design comes from. The declaration shape is `sch
 Ask via AskUserQuestion: `"What is this feature's design source?"` with options `["None — no UI, or no design reference", "Local design/reference.html", "Figma", "Screenshot / image file"]`. Default = the first option (None). Single-line question text. End the turn. The user's reply opens the next turn.
 
 <!-- Authoring note: the four options are a structured scheme (the composed `scheme:target` value feeds the `set-design-source` setter below); the Figma URL / screenshot path is captured in a next-turn prose follow-up. This split is intentional and must NOT be collapsed into an "Other" free-text option — that would make 5 options (over AskUserQuestion's 2–4 limit) and would not capture a structured scheme. -->
-
 
 Compose the declaration value from the choice:
 

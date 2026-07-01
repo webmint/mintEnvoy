@@ -11,9 +11,9 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/lib/httpMethods.ts | Create | `METHODS` const (7 methods, display order) + `HttpMethod` type |
+| File                                | Action | Description                                                               |
+| ----------------------------------- | ------ | ------------------------------------------------------------------------- |
+| src/renderer/src/lib/httpMethods.ts | Create | `METHODS` const (7 methods, display order) + `HttpMethod` type            |
 | src/renderer/src/lib/requestSpec.ts | Modify | re-point `method` from `string` to `HttpMethod` imported from httpMethods |
 
 ## Description
@@ -34,10 +34,12 @@ Establish a single source of truth for the HTTP method list and its type, then r
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `src/renderer/src/lib/requestSpec.ts` exports `interface RequestSpec` whose `method` field is typed `string`.
 - No `HttpMethod` type and no `METHODS` constant exist anywhere in `src/renderer/`.
 
 ### Produces (checked after execution)
+
 - `src/renderer/src/lib/httpMethods.ts` exports a `METHODS` const containing the 7 methods and a `HttpMethod` type.
 - `src/renderer/src/lib/requestSpec.ts` imports `HttpMethod` from httpMethods and `RequestSpec.method` is typed `HttpMethod`.
 - `makeBlankRequest` still returns a spec whose `method` is `'GET'`.

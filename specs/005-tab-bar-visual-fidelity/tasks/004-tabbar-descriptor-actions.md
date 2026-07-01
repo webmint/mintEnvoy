@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                                             | Action | Description                                                                                 |
+| ------------------------------------------------ | ------ | ------------------------------------------------------------------------------------------- |
 | src/renderer/src/components/organisms/TabBar.tsx | Modify | Map method/dirty into descriptor; replace badge dot; build the +/spacer/chevron actions row |
 
 ## Description
@@ -33,11 +33,13 @@ Wire the store data into the extended descriptor and build the reference actions
 ## Contracts
 
 ### Expects (checked before execution)
+
 - Task 002 added `method`/`dirty` to `TabDescriptor`.
 - `toDescriptor` currently sets `badge: tab.dirty ? '●' : undefined` (TabBar.tsx) and the actions slot is a single `+` button.
 - The Icon atom's icon set includes `plus` and `chevronDown`.
 
 ### Produces (checked after execution)
+
 - `toDescriptor` sets `method` and `dirty` and no longer emits `badge: '●'`.
 - `deriveLabel` is unchanged from its 004 form.
 - The actions slot renders a `+` button (Icon `plus`), a `tabbar__spacer`, and a static "More tabs" chevron button (Icon `chevronDown`) carrying a `TODO(overflow)` marker and no overflow logic.

@@ -204,7 +204,10 @@ test.describe('Dropdown — AC-4 dismiss', () => {
     await expect(menu).not.toBeVisible()
   })
 
-  test('clicking outside closes the menu under reduced-motion (macrotask-floor only)', async ({ mount, page }) => {
+  test('clicking outside closes the menu under reduced-motion (macrotask-floor only)', async ({
+    mount,
+    page
+  }) => {
     // Reduced-motion disables the entry animation, so getAnimations() returns []
     // and the animation-completion await no-ops — this proves the setTimeout(0)
     // macrotask-boundary floor alone arms Radix's dismiss listener (spec §9 Risk-1).

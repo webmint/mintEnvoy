@@ -15,9 +15,7 @@
       "title": "relocate-width-cap-to-tab-cell",
       "agent": "frontend-engineer",
       "depends_on": [],
-      "blocks": [
-        "002"
-      ],
+      "blocks": ["002"],
       "touched_files": [
         "src/renderer/src/components/molecules/Tabs.css",
         "src/renderer/src/components/organisms/TabBar.css"
@@ -33,29 +31,15 @@
         "The base `.tabs__tab-label` ellipsis declarations in `Tabs.css` are unchanged.",
         "No change to `TabBar.tsx`, `Tabs.tsx`, or any non-CSS file (deriveLabel and the descriptor contract stay byte-identical)."
       ],
-      "ac_addressed": [
-        "AC-1",
-        "AC-2",
-        "AC-3",
-        "AC-4",
-        "AC-5",
-        "AC-10",
-        "AC-11",
-        "AC-12",
-        "AC-13"
-      ],
-      "doc_refs": [
-        "design/design-fidelity-contract.md (\u00a75 Tab strip)"
-      ],
+      "ac_addressed": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-10", "AC-11", "AC-12", "AC-13"],
+      "doc_refs": ["design/design-fidelity-contract.md (\u00a75 Tab strip)"],
       "review_checkpoint": false
     },
     {
       "number": "002",
       "title": "ct-cap-assertion-and-no-growth-test",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "001"
-      ],
+      "depends_on": ["001"],
       "blocks": [],
       "touched_files": [
         "src/renderer/src/components/molecules/__tests__/Tabs.stories.tsx",
@@ -70,18 +54,8 @@
         "`Tabs.ct.tsx` asserts `.tabbar .tabs__tab-wrapper` computed `max-width` equals `220px`.",
         "`Tabs.ct.tsx` asserts a long-title tab cell width is \u2264 220px and its label computed `text-overflow` is `ellipsis`."
       ],
-      "ac_addressed": [
-        "AC-6",
-        "AC-7",
-        "AC-8",
-        "AC-9",
-        "AC-11",
-        "AC-12",
-        "AC-13"
-      ],
-      "doc_refs": [
-        "design/design-fidelity-contract.md (\u00a75 Tab strip)"
-      ],
+      "ac_addressed": ["AC-6", "AC-7", "AC-8", "AC-9", "AC-11", "AC-12", "AC-13"],
+      "doc_refs": ["design/design-fidelity-contract.md (\u00a75 Tab strip)"],
       "review_checkpoint": true
     }
   ],

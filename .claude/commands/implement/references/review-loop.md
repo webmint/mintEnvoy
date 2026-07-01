@@ -56,7 +56,7 @@ On every repair round, re-run the FULL panel over ALL `touched_files` — not ju
 During each repair leg, before relaunching the agent, classify what you (the orchestrator) are asking the agent to change to clear a reviewer finding:
 
 - **Mechanical** — resolves silently, NOT recorded. The fix is fully determined by the finding with no shape choice: a missing docstring/JSDoc, an in-scope named type fix, a null guard the reviewer named, a lint/formatting fix, removing a left-behind debug artifact, a missing test the reviewer named. There is one correct way to clear it.
-- **Judgment** — recorded as a decision item. The fix changes the *shape* of the solution and a reasonable engineer could choose differently: a scope-creep call (include this or defer it), an abstraction/module-boundary choice, a constitution-rule interpretation where more than one reading is defensible, a contract change. These are calls the loop made on the user's behalf.
+- **Judgment** — recorded as a decision item. The fix changes the _shape_ of the solution and a reasonable engineer could choose differently: a scope-creep call (include this or defer it), an abstraction/module-boundary choice, a constitution-rule interpretation where more than one reading is defensible, a contract change. These are calls the loop made on the user's behalf.
 
 ## Bias-toward-recording tie-breaker
 
@@ -72,6 +72,7 @@ PHASE 6 records three kinds of decision item, all surfaced at PHASE 7 Stage A on
   - `alternative` — the named alternative the loop did NOT take (becomes Stage A option 2).
 
   A judgment item's finding IS fixed; the human only confirms the SHAPE — so it is NOT an open finding and may reach Stage B.
+
 - **could-not-converge** — recorded when the loop escalated at the cap with one or more reviewers still dirty. It carries the unresolved reviewer objection(s). Stage A surfaces it with the options `send back with direction / skip / stop` (per `main.md` PHASE 7 Stage A) — there is no option to accept the finding as-is, because an open finding must never reach `approve`.
 - **conflict** — recorded when the orchestrator found a COMPARABLE-severity contradiction it must not decide on the user's behalf. It carries the contested finding and the two reviewers' incompatible positions. Stage A names the contested finding on one line and offers the two positions as the first two options (plus `let me specify` and `stop`); the chosen resolution becomes a repair direction, after which the loop re-reviews to clean — the conflict is resolved before Stage B, never approved open.
 

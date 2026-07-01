@@ -73,49 +73,37 @@
     "affected_areas": [
       {
         "area": "Tabs primitive (molecules/Tabs.tsx)",
-        "files": [
-          "src/renderer/src/components/molecules/Tabs.tsx"
-        ],
+        "files": ["src/renderer/src/components/molecules/Tabs.tsx"],
         "impact": "existing capability \u2014 candidate for reuse over fresh build; TabBar composes it; its {id,label,badge?,disabled?} selection-only contract is EXTENDED (close \u2715 sibling button, '+' control, dirty marker) \u2014 record extension in /specify",
         "is_internal_extension_candidate": false
       },
       {
         "area": "zustand store convention (lib/)",
-        "files": [
-          "src/renderer/src/lib/settingsStore.ts"
-        ],
+        "files": ["src/renderer/src/lib/settingsStore.ts"],
         "impact": "existing capability \u2014 new tabsStore.ts mirrors this slice convention; reuse over inventing a new state pattern",
         "is_internal_extension_candidate": false
       },
       {
         "area": "Shell 'tabs' slot",
-        "files": [
-          "src/renderer/src/components/organisms/Shell.tsx"
-        ],
+        "files": ["src/renderer/src/components/organisms/Shell.tsx"],
         "impact": "existing capability \u2014 TabBar mounts into the existing 'tabs' slot above PaneSplit; no new layout plumbing",
         "is_internal_extension_candidate": false
       },
       {
         "area": "internal:src/renderer/src/components/molecules/Tabs.tsx",
-        "files": [
-          "src/renderer/src/components/molecules/Tabs.tsx"
-        ],
+        "files": ["src/renderer/src/components/molecules/Tabs.tsx"],
         "impact": "internal \u2014 existing tab a11y/roving-tabindex + selection primitive (002); TabBar composes & extends it (close \u2715, '+', dirty), does NOT re-roll",
         "is_internal_extension_candidate": true
       },
       {
         "area": "internal:src/renderer/src/lib/settingsStore.ts",
-        "files": [
-          "src/renderer/src/lib/settingsStore.ts"
-        ],
+        "files": ["src/renderer/src/lib/settingsStore.ts"],
         "impact": "internal \u2014 module-level create<State>((set)=>...), Store suffix (\u00a73.3), renderer-only, selectors; tabsStore mirrors this exactly",
         "is_internal_extension_candidate": true
       },
       {
         "area": "internal:src/renderer/src/components/organisms/Shell.tsx",
-        "files": [
-          "src/renderer/src/components/organisms/Shell.tsx"
-        ],
+        "files": ["src/renderer/src/components/organisms/Shell.tsx"],
         "impact": "internal \u2014 existing mount point above PaneSplit where TabBar renders; no new layout plumbing needed",
         "is_internal_extension_candidate": true
       }

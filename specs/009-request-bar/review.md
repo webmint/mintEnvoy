@@ -8,18 +8,22 @@
 **Framework / Language**: Electron, React
 
 ## Confirmed — Top Priorities
+
 Force-ranked across the confirmed findings. Fix these first.
 (no confirmed findings)
 
 ## Confirmed Findings
+
 (none)
 
 ## Summary
+
 - Critical: 0 | High: 0 | Medium: 0 | Info: 0
 - Confirmed: 0 | Contested: 0 | Dismissed: 0 | Uncertain: 0
 - Finders skipped (not installed): none
 
 ## Methodology
+
 Findings are grounded — every finding carries a verbatim quote from the actual
 cross-task code, and validation discards ungrounded ones. A refutation stage
 then cross-examines each grounded finding before it reaches the report: a

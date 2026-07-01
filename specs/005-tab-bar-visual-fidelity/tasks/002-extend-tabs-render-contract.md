@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                                           | Action | Description                                                                          |
+| ---------------------------------------------- | ------ | ------------------------------------------------------------------------------------ |
 | src/renderer/src/components/molecules/Tabs.tsx | Modify | Extend TabDescriptor; render method chip + dirty-XOR-close + active-wrapper modifier |
 
 ## Description
@@ -21,7 +21,7 @@ Extend the Tabs primitive (Decisions (c), (f), and the active-wrapper part of (a
 
 1. **Descriptor** — add optional `method?: string` and `dirty?: boolean` to `TabDescriptor` (both optional → non-closable/legacy consumers omit; `badge?` stays). JSDoc both new fields (AC-24).
 2. **Method chip** — before the label span in BOTH render branches, gated on `method !== undefined`, render `<span className={cx('method', knownMethodClass)}>{method}</span>`. Add a module-level `KNOWN_METHODS` const (`GET POST PUT PATCH DELETE OPTIONS HEAD`); `knownMethodClass` is `method` when it is in `KNOWN_METHODS` (uppercased), else `undefined` → an uncolored chip that inherits text color (AC-10). The chip uses the GLOBAL `.method`/`.{METHOD}` classes (documented departure from BEM — recorded in 002 lineage by task 010).
-3. **Dirty-XOR-close** — in the `closable` branch, after the `role="tab"` button, render mutually-exclusively: when `dirty` → `<span className="tabs__tab-dirty" onClick={e => { e.stopPropagation(); onClose?.(tab.id) }} />` (7px dot, no role, NOT focusable, NOT added to `buttonRefs`); else → the existing close `<button type="button" tabIndex={-1} aria-label={\`Close ${label}\`} className="tabs__tab-close">` but swap the unicode `✕` glyph for `<Icon name="x" size={11} />`. Exactly one of dot/close renders. The dirty span is never a roving stop (AC-3) and never replaces the label span (AC-4 preserved). Delete/Backspace close path in `handleKeyDown` stays gated on `closable` (NOT `dirty`) so a dirty tab stays keyboard-closable (AC-6).
+3. **Dirty-XOR-close** — in the `closable` branch, after the `role="tab"` button, render mutually-exclusively: when `dirty` → `<span className="tabs__tab-dirty" onClick={e => { e.stopPropagation(); onClose?.(tab.id) }} />` (7px dot, no role, NOT focusable, NOT added to `buttonRefs`); else → the existing close `<button type="button" tabIndex={-1} aria-label={\`Close ${label}\`} className="tabs\_\_tab-close">`but swap the unicode`✕`glyph for`<Icon name="x" size={11} />`. Exactly one of dot/close renders. The dirty span is never a roving stop (AC-3) and never replaces the label span (AC-4 preserved). Delete/Backspace close path in `handleKeyDown`stays gated on`closable`(NOT`dirty`) so a dirty tab stays keyboard-closable (AC-6).
 4. **Active wrapper modifier** — add `tabs__tab-wrapper--active` to the closable-branch wrapper div's className when the tab is active (compose via `cx`), so Tabs.css (task 003) can scope the active accent to the full tab cell.
 5. **Icon import** — `import { Icon } from '@renderer/components/atoms/Icon'` (molecule→atom, allowed).
 
@@ -38,11 +38,13 @@ Extend the Tabs primitive (Decisions (c), (f), and the active-wrapper part of (a
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `TabDescriptor` is `{ id; label; badge?; disabled? }` and the closable branch renders a unicode `✕` close button at `tabIndex={-1}` (002/004 contract).
 - The Icon atom exports `Icon` and its icon set includes `x` (`src/renderer/src/components/atoms/icons.ts`).
 - Task 001 produced the `.method.HEAD` / base `.method` rules the HEAD chip resolves against.
 
 ### Produces (checked after execution)
+
 - `TabDescriptor` carries optional `method` and `dirty` fields.
 - A `KNOWN_METHODS` const exists in `Tabs.tsx`.
 - The closable branch emits `tabs__tab-wrapper--active` on the active wrapper, a `tabs__tab-dirty` span when dirty, and a `tabs__tab-close` button (with `<Icon name="x">`) when clean — mutually exclusive.

@@ -150,7 +150,7 @@ Plain prose echo, NOT AskUserQuestion (multi-line content cannot fit AskUserQues
 
 ### Section 1 echo template (Project Identity)
 
-````
+```
 Here's what /constitute proposes for Section 1 — Project Identity:
 
 - name:   <project_identity.name>
@@ -159,13 +159,13 @@ Here's what /constitute proposes for Section 1 — Project Identity:
 - stack:  <project_identity.stack>
 
 Reply 'yes' to apply, 'cancel' to abort the run, or list overrides one per line as 'field: value' (e.g., 'domain: Industrial equipment quoting for dealers').
-````
+```
 
 ### Section 4 echo template (Patterns & Anti-Patterns — bucket-based, no sub-section numbers)
 
 Section 4 has no numbered sub-sections — its 6 buckets are addressed by `(--bucket × --scope)` not by `--number`. Use this echo template (NOT the Sections 2/3/5/6 template below):
 
-````
+```
 Here's what /constitute proposes for Section 4 — Patterns & Anti-Patterns:
 
 Always Do (Universal):
@@ -195,7 +195,7 @@ Reply 'yes' to apply this section, 'cancel' to abort the run, or list overrides 
   - 'drop bucket <bucket>:<scope>'                   — drop every rule in the named bucket
 
 Bucket values: always | never | prefer. Scope values: universal | project-specific.
-````
+```
 
 Each accepted line maps to one `add-pattern-rule` call (`--bucket <bucket> --scope <scope> --tag <tag> --text "<text>"`). `drop` / `replace` overrides operate against the Phase 2 composed values held in memory before any setter call — apply the merged final list once, not delta-style.
 
@@ -203,7 +203,7 @@ Each accepted line maps to one `add-pattern-rule` call (`--bucket <bucket> --sco
 
 Applies to Sections 2, 3, 5, 6 (each has numbered sub-sections like 2.1, 3.5, etc.). Section 4 uses its own template above. For each section, echo the proposed sub-sections, rules, tables, and code examples as a hierarchical list. Use the following template (substitute `<...>` with Phase 2 composed values):
 
-````
+```
 Here's what /constitute proposes for Section <N> — <Section Name>:
 
 ### <number> <title>  [<tag>]
@@ -226,7 +226,7 @@ Reply 'yes' to apply this section, 'cancel' to abort the run, or list overrides 
   - 'drop rule <number>:<index>'                    — remove rule at 1-based index from sub-section <number>
   - 'replace rule <number>:<index>: [<tag>] <text>' — replace rule at 1-based index
   - 'drop section <number>'                         — drop the entire sub-section
-````
+```
 
 For string-array fields whose values contain literal commas (e.g., TypeScript generic syntax `Either<DataError, T>`), supply the value as a JSON array — the helper's `_validate_string_array` accepts either form. Example: `add rule 3.2: [extracted] Errors propagate as ["Either<DataError, T>", "Result<Ok, Err>"]`.
 
@@ -251,7 +251,7 @@ Pre-fill defaults before echo:
 
 Echo template:
 
-````
+```
 Here's what /constitute proposes for Section 3.5 — Forcing Functions [config-block]:
 
 magic_enum_duplication:
@@ -289,7 +289,7 @@ Reply 'yes' to apply, 'cancel' to abort the run, or list overrides one per line 
   - 'design_token_provenance.allowlist_paths: src/legacy/**.css, src/legacy'   # only when offered
 
 Field-shape contract: generated_types_dirs and allowlist_paths require comma-separated values (allowlist_paths takes comma-separated globs for both magic_enum_duplication and design_token_provenance); layer_graph and layer_dirs require JSON-object form; token_source_css is a single path string. See the flag-omission rule paragraph immediately after this echo template for when each field is passed to the setter.
-````
+```
 
 Per the stop discipline above (Phase 3 § stop discipline mandatory paragraph), end the assistant turn after emitting this echo block and wait for the user's reply. Apply parsed values via `set-forcing-functions` (one call per rule — three calls when no design source exists, four when `design_token_provenance` was offered) per the setter mapping below. Flag-omission rule: `--enabled` is required on every call; each bracketed flag (`--generated-types-dirs`, `--allowlist-paths`, `--layer-graph-json`, `--layer-dirs-json`, `--token-source-css`) is passed only when both (a) the rule resolves to `--enabled true` AND (b) the field has a non-empty value. When `enabled` resolves to `false` for a rule, **or** when an optional field has no non-empty value, omit that flag from the setter call. (`set-forcing-functions` also accepts a `--manifest-path` flag, but it is deliberately NOT passed here — a global manifest path is never a config value; the `design_token_provenance` detector globs the per-feature `specs/*/design-manifest.json` files at run time. Do not add `--manifest-path` to any call.) Reply equals `yes` applies the pre-filled defaults; reply equals `cancel` aborts cleanly leaving `.devforge/constitute.json` in its post-Section-3 state. The reply-parsing rules in "Parsing the user reply (per-section)" above apply uniformly (3-attempt retry cap; on the third invalid reply, proceed with proposed values and warn the user).
 
@@ -297,7 +297,7 @@ Per the stop discipline above (Phase 3 § stop discipline mandatory paragraph), 
 
 If Phase 4 resolved `mode == "greenfield"`, after Section 6 confirms, echo Section 7:
 
-````
+```
 Here's what /constitute proposes for Section 7 — Scaffolding Guide [greenfield-only]:
 
 Starter directories:
@@ -314,7 +314,7 @@ Reply 'yes' to apply, 'cancel' to abort the run, or list overrides one per line:
   - 'add dir <name>'           — append a starter directory
   - 'drop dir <name>'          — remove a starter directory
   - 'replace files: <JSON>'    — replace the entire sample_files array (JSON of {path,language,content} records)
-````
+```
 
 ### Parsing the user reply (per-section)
 
@@ -324,6 +324,7 @@ Reply 'yes' to apply, 'cancel' to abort the run, or list overrides one per line:
 - Reply not parsable as any of the above → re-prompt: "I couldn't parse your reply. Reply 'yes' to confirm, 'cancel' to abort, or use the override syntax shown above." Allow up to 2 retries (3 total attempts). On the third invalid reply, fall back to applying the section's Phase 2 composed values as confirmed and warn: "Proceeding with proposed values for Section <N>; re-run `/constitute` to revise."
 
 After parsing each section's reply, apply the resulting setter calls IN ORDER per section type:
+
 - Section 1: one `set-project-identity` call.
 - Sections 2, 3, 5, 6: `add-section` first (creates the sub-section record), then `add-rule` / `add-table` / `add-code-example` referencing that section's `--number`.
 - Section 3.5 (Forcing Functions): one `set-forcing-functions` call per offered rule (three calls when no design source exists; four when `design_token_provenance` was offered). Runs after Section 3's setters apply, before the next section's echo. Does NOT issue `add-section` — `forcing_functions` is a top-level config block, not a numbered constitution.md sub-section.
@@ -369,12 +370,12 @@ For every section in Sections 2, 3, 5, 6 (the rule-bearing sections with numbere
 
 Bucket-to-section mapping (locked by the helper's `_SECTION_BUCKET_TO_KEY`):
 
-| Section | --bucket value |
-|---------|----------------|
-| Section 2 (Architecture Rules) | `architecture` |
+| Section                            | --bucket value |
+| ---------------------------------- | -------------- |
+| Section 2 (Architecture Rules)     | `architecture` |
 | Section 3 (Code Quality Standards) | `code-quality` |
-| Section 5 (Domain Rules) | `domain` |
-| Section 6 (Workflow Rules) | `workflow` |
+| Section 5 (Domain Rules)           | `domain`       |
+| Section 6 (Workflow Rules)         | `workflow`     |
 
 Section 4 (Patterns & Anti-Patterns) uses `add-pattern-rule` instead — six bucket × scope combinations:
 
@@ -456,6 +457,7 @@ Default mapping (skip the prompt entirely when default is unambiguous, then appl
 - `INIT_JSON.project_state == "empty"` → default `greenfield`. Skip the prompt; apply `.devforge/lib/constitute_helper set-mode --value greenfield`.
 
 If `INIT_JSON.project_state` is missing or holds an unexpected value, ask via AskUserQuestion: "Is this an existing codebase (rules extracted from code) or a greenfield project (rules from interview answers)?"
+
 - `Existing codebase` (Recommended) — extract rules from architecture + glossary
 - `Greenfield` — interview-driven; emit Section 7 Scaffolding Guide
 

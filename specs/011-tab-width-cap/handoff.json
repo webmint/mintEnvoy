@@ -189,16 +189,12 @@
     "affected_areas": [
       {
         "area": "Tabs primitive styles (tabbar tab cell)",
-        "files": [
-          "src/renderer/src/components/molecules/Tabs.css"
-        ],
+        "files": ["src/renderer/src/components/molecules/Tabs.css"],
         "impact": "Modify \u2014 add max-width:220px to the tabbar tab-wrapper rule (Tabs.css:421), the design tab cell; tabbar-scoped, with no change to the base Tabs rules."
       },
       {
         "area": "TabBar styles (divergent label cap)",
-        "files": [
-          "src/renderer/src/components/organisms/TabBar.css"
-        ],
+        "files": ["src/renderer/src/components/organisms/TabBar.css"],
         "impact": "Modify \u2014 remove the divergent tabbar tab-label cap (the max-width:200px rule, TabBar.css:88); the base tab-label rule (Tabs.css:196) already supplies the overflow, the ellipsis, and the nowrap, so the cap relocates to the cell without losing truncation."
       },
       {

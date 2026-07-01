@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                     | Action | Description                                                                                      |
+| ------------------------ | ------ | ------------------------------------------------------------------------------------------------ |
 | src/renderer/src/App.tsx | Modify | Inject `<Shell tabs={<TabBar />} />` at the composition root (replacing the test-fixture feeder) |
 
 ## Description
@@ -32,10 +32,12 @@ This is the integration step — assembling the feature into the running app. Th
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `TabBar` (task 007) is exported from `@renderer/components/organisms/TabBar`.
 - `Shell` exposes the optional `tabs?: ReactNode` slot (feature 003, `ShellProps`).
 
 ### Produces (checked after execution)
+
 - `src/renderer/src/App.tsx` renders `<Shell tabs={<TabBar />} />` (TabBar mounted into the shell tabs slot — AC-27).
 - `Shell.tsx` is unchanged and does not import `TabBar`.
 - The assembled app builds cleanly (`npm run build`) — AC-7.
@@ -53,6 +55,6 @@ This is the integration step — assembling the feature into the running app. Th
 ## Completion Notes
 
 **Completed**: 2026-06-25T07:13:33Z
-**Files changed**: src/renderer/src/App.tsx, src/renderer/src/__tests__/app-toast-mount.test.tsx
+**Files changed**: src/renderer/src/App.tsx, src/renderer/src/**tests**/app-toast-mount.test.tsx
 **Contract**: Expects 2/2 | Produces 3/3
-**Notes**: App.tsx mounts <Shell tabs={<TabBar/>}/> (AC-27); Shell.tsx untouched/slot-agnostic (Risk 2). Assembled build green (AC-7), typecheck/lint clean (AC-5/6). Panel repair: added an AC-27 assertion to app-toast-mount.test.tsx (asserts a role=tablist mounts into .shell__tabs) closing the optional-prop silent-regression gap.
+**Notes**: App.tsx mounts <Shell tabs={<TabBar/>}/> (AC-27); Shell.tsx untouched/slot-agnostic (Risk 2). Assembled build green (AC-7), typecheck/lint clean (AC-5/6). Panel repair: added an AC-27 assertion to app-toast-mount.test.tsx (asserts a role=tablist mounts into .shell\_\_tabs) closing the optional-prop silent-regression gap.

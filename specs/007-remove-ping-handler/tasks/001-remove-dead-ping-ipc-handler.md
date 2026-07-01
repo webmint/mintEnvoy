@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File              | Action | Description                                                                                 |
+| ----------------- | ------ | ------------------------------------------------------------------------------------------- |
 | src/main/index.ts | Modify | Remove the dead ping/pong IPC handler, its comment, and the now-unused ipcMain import token |
 
 ## Description
@@ -29,11 +29,13 @@ Delete the leftover electron-vite scaffold debug IPC handler from the Electron m
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `import { app, shell, BrowserWindow, ipcMain } from 'electron'` appears in `src/main/index.ts`
 - `ipcMain.on('ping'` appears in `src/main/index.ts`
 - `function createWindow` appears in `src/main/index.ts`
 
 ### Produces (checked after execution)
+
 - `ipcMain` no longer appears anywhere in `src/main/index.ts`
 - `console.log` no longer appears anywhere in `src/main/index.ts`
 - `function createWindow` still appears in `src/main/index.ts` (unchanged)

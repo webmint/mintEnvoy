@@ -11,8 +11,8 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                                | Action | Description                                                                         |
+| ----------------------------------- | ------ | ----------------------------------------------------------------------------------- |
 | src/renderer/src/lib/requestSpec.ts | Create | RequestSpec/Row/Auth types, `isBearerAuth` guard, `makeBlankRequest()` seed factory |
 
 ## Description
@@ -37,10 +37,12 @@ Create the renderer-only RequestSpec domain model: the `RequestSpec`, `Row`, and
 ## Contracts
 
 ### Expects (checked before execution)
+
 - The renderer `lib/` leaf layer exists (`src/renderer/src/lib/` — siblings `settingsStore.ts`, `toastStore.ts`, `cx.ts`).
 - No `requestSpec` module exists yet (greenfield create).
 
 ### Produces (checked after execution)
+
 - `src/renderer/src/lib/requestSpec.ts` exists and exports the literal identifiers `RequestSpec`, `Row`, `Auth`, `BearerAuth`, `isBearerAuth`, `makeBlankRequest`.
 - `makeBlankRequest` returns `auth` with the literal string `'{{apiKey}}'` and a single header whose `key` is `'Accept'` and `value` is `'application/json'`.
 - The `Auth` union declares exactly two members (`'none'`, `'bearer'`) — no third variant.

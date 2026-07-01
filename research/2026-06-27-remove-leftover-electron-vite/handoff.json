@@ -32,9 +32,7 @@
     "affected_areas": [
       {
         "area": "src/main",
-        "files": [
-          "src/main/index.ts:6"
-        ],
+        "files": ["src/main/index.ts:6"],
         "impact": "see findings"
       }
     ],

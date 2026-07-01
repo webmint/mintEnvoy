@@ -11,7 +11,7 @@ Two Playwright component tests for the Dropdown primitive's click-outside dismis
 
 ## 2. Current State
 
-Dropdown (src/renderer/src/components/molecules/Dropdown.tsx:204) wraps Radix DropdownMenu (modal by default); click-outside dismissal is owned by Radix's DismissableLayer. Two CT tests exercise it: 'AC-4 — clicking outside the menu closes it' (src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx:185) and 'AC-3 — focus return after click-outside' (Dropdown.ct.tsx:236). Both open the menu via trigger.click(), assert the menu visible, then immediately fire page.mouse.click at a viewport coordinate (Dropdown.ct.tsx:198 and :253) and assert expect(menu).not.toBeVisible(). They fail: research (research/2026-06-27-003-dropdown-ct-click.md) proved a setup-timing race — Radix DismissableLayer attaches its document pointerdown listener via setTimeout(0) (node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265) while the 140ms entry animation runs, so a click in the same tick the menu becomes visible is never classified as outside and onDismiss never fires (measured: zero of five runs dismissed with no settle, all five with a 100ms settle). The sibling Modal CT (src/renderer/src/components/molecules/__tests__/Modal.ct.tsx:127) passes the identical page.mouse.click outside dispatch because it mounts the overlay open, arming the layer long before its click — confirming this is a test-timing defect, not a production defect. Per docs/architecture.md the CT suite runs via 'playwright test -c playwright.config.ts'; these two are the sole failures (125 of 127 passing). The CT spec has been unchanged since it was added in 001-ui-primitives, so it has been racy since inception.
+Dropdown (src/renderer/src/components/molecules/Dropdown.tsx:204) wraps Radix DropdownMenu (modal by default); click-outside dismissal is owned by Radix's DismissableLayer. Two CT tests exercise it: 'AC-4 — clicking outside the menu closes it' (src/renderer/src/components/molecules/**tests**/Dropdown.ct.tsx:185) and 'AC-3 — focus return after click-outside' (Dropdown.ct.tsx:236). Both open the menu via trigger.click(), assert the menu visible, then immediately fire page.mouse.click at a viewport coordinate (Dropdown.ct.tsx:198 and :253) and assert expect(menu).not.toBeVisible(). They fail: research (research/2026-06-27-003-dropdown-ct-click.md) proved a setup-timing race — Radix DismissableLayer attaches its document pointerdown listener via setTimeout(0) (node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265) while the 140ms entry animation runs, so a click in the same tick the menu becomes visible is never classified as outside and onDismiss never fires (measured: zero of five runs dismissed with no settle, all five with a 100ms settle). The sibling Modal CT (src/renderer/src/components/molecules/**tests**/Modal.ct.tsx:127) passes the identical page.mouse.click outside dispatch because it mounts the overlay open, arming the layer long before its click — confirming this is a test-timing defect, not a production defect. Per docs/architecture.md the CT suite runs via 'playwright test -c playwright.config.ts'; these two are the sole failures (125 of 127 passing). The CT spec has been unchanged since it was added in 001-ui-primitives, so it has been racy since inception.
 
 ## 3. Desired Behavior
 
@@ -19,11 +19,11 @@ Both CT tests pass deterministically. Each test, after asserting the menu is vis
 
 ## 4. Affected Areas
 
-| Area | Files | Impact |
-|------|-------|--------|
-| node_modules/@radix-ui | node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265 | see findings |
-| Dropdown click-outside CT tests | src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx | Edit the two failing test cases (the outside clicks at :198 and :253): insert an overlay-readiness wait before each corner click. Strict assertions unchanged. |
-| Dropdown CT fixture (conditional) | src/renderer/src/components/molecules/__tests__/Dropdown.stories.tsx | Only if the readiness wait needs a fixture affordance (e.g. a stable test hook). Preferred approach needs no fixture change; listed so /plan can confirm. |
+| Area                              | Files                                                                | Impact                                                                                                                                                         |
+| --------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| node_modules/@radix-ui            | node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265    | see findings                                                                                                                                                   |
+| Dropdown click-outside CT tests   | src/renderer/src/components/molecules/**tests**/Dropdown.ct.tsx      | Edit the two failing test cases (the outside clicks at :198 and :253): insert an overlay-readiness wait before each corner click. Strict assertions unchanged. |
+| Dropdown CT fixture (conditional) | src/renderer/src/components/molecules/**tests**/Dropdown.stories.tsx | Only if the readiness wait needs a fixture affordance (e.g. a stable test hook). Preferred approach needs no fixture change; listed so /plan can confirm.      |
 
 ## 5. Acceptance Criteria
 
@@ -61,9 +61,9 @@ N/A — No docs/ change required; the bugs/003 record lifecycle is handled by /v
 ### 5.7 Hygiene
 
 - [x] **AC-6**: The changed test files shall pass type-check and lint.
-  > Verification: npm run typecheck:web && eslint --cache src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx
+  > Verification: npm run typecheck:web && eslint --cache src/renderer/src/components/molecules/**tests**/Dropdown.ct.tsx
 - [x] **AC-8**: The changed test files shall contain no leftover debug artifacts such as console statements, debugger statements, or focused or skipped tests.
-  > Verification: ! grep -nE 'console\.log|debugger|\.only\(|\.skip\(' src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx
+  > Verification: ! grep -nE 'console\.log|debugger|\.only\(|\.skip\(' src/renderer/src/components/molecules/**tests**/Dropdown.ct.tsx
 
 ## 6. Out of Scope
 
@@ -80,7 +80,7 @@ N/A — No docs/ change required; the bugs/003 record lifecycle is handled by /v
 - Must follow: Specs are contracts / strict assertions
 - Must not break: Production Dropdown click-outside dismissal behavior must not change — it works for real users; only the test's timing is corrected.
 - Must follow constitution §6.3: Search the codebase for an existing utility/helper/component before writing anything generic or reusable — reuse the Modal CT overlay-readiness pattern (Modal.ct.tsx:127) rather than inventing new test machinery.
-- Must follow constitution §3.4: Co-located tests under __tests__/ next to the code, split .test.tsx (Vitest) and .ct.tsx (Playwright CT); the click-outside behavior is CT-only and the fix stays in the .ct.tsx spec (and fixture, if needed).
+- Must follow constitution §3.4: Co-located tests under **tests**/ next to the code, split .test.tsx (Vitest) and .ct.tsx (Playwright CT); the click-outside behavior is CT-only and the fix stays in the .ct.tsx spec (and fixture, if needed).
 
 ## 8. Open Questions
 
@@ -93,7 +93,7 @@ N/A — No docs/ change required; the bugs/003 record lifecycle is handled by /v
 
 ## 9. Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Under prefers-reduced-motion (or any zero-animation config), the entry animation is disabled, so an animation-completion readiness signal could resolve immediately and let the arm-race resurface. | Low | Med | Readiness signal must not rely solely on animation presence; /plan picks a signal that holds when animations are off (e.g. a microtask/rAF settle or polling the armed state), or the test enables motion. |
-| The readiness wait could mask a genuine future production dismissal regression (test waits, then still asserts). | Low | Low | Assertions stay strict (not.toBeVisible / toBeFocused), so a real dismissal break still fails the test after the wait. |
+| Risk                                                                                                                                                                                                | Likelihood | Impact | Mitigation                                                                                                                                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Under prefers-reduced-motion (or any zero-animation config), the entry animation is disabled, so an animation-completion readiness signal could resolve immediately and let the arm-race resurface. | Low        | Med    | Readiness signal must not rely solely on animation presence; /plan picks a signal that holds when animations are off (e.g. a microtask/rAF settle or polling the armed state), or the test enables motion. |
+| The readiness wait could mask a genuine future production dismissal regression (test waits, then still asserts).                                                                                    | Low        | Low    | Assertions stay strict (not.toBeVisible / toBeFocused), so a real dismissal break still fails the test after the wait.                                                                                     |

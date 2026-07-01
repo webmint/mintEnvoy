@@ -11,13 +11,13 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File            | Action | Description                                                |
+| --------------- | ------ | ---------------------------------------------------------- |
 | constitution.md | Modify | reword §4 "TabBar.tsx is the sole subscriber" of tabsStore |
 
 ## Description
 
-Amend the constitution's §4 rule that currently names TabBar the *sole* subscriber of tabsStore, so it admits RequestBar as the spec-edit subscriber. Sequenced BEFORE the RequestBar component (task 004) so the code lands against an already-amended governance rule — otherwise shipped code would contradict the standing §4 and the `/implement` code-reviewer would flag it. Documentation-only; no behavior change to TabBar.
+Amend the constitution's §4 rule that currently names TabBar the _sole_ subscriber of tabsStore, so it admits RequestBar as the spec-edit subscriber. Sequenced BEFORE the RequestBar component (task 004) so the code lands against an already-amended governance rule — otherwise shipped code would contradict the standing §4 and the `/implement` code-reviewer would flag it. Documentation-only; no behavior change to TabBar.
 
 ## Change Details
 
@@ -28,10 +28,12 @@ Amend the constitution's §4 rule that currently names TabBar the *sole* subscri
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `constitution.md` §4 / §5.2 contain the phrase naming `TabBar.tsx` as the sole subscriber of tabsStore.
 
 ### Produces (checked after execution)
-- `constitution.md` no longer asserts TabBar is the *sole* tabsStore subscriber; it records RequestBar as the spec-edit subscriber.
+
+- `constitution.md` no longer asserts TabBar is the _sole_ tabsStore subscriber; it records RequestBar as the spec-edit subscriber.
 
 ## Done When
 

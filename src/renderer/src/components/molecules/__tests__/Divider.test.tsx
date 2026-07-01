@@ -16,12 +16,7 @@
 
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Divider } from '@renderer/components/molecules/Divider'
-import {
-  SIDEBAR_MIN,
-  SIDEBAR_MAX,
-  PANE_MIN,
-  PANE_MAX
-} from '@renderer/lib/settingsStore'
+import { SIDEBAR_MIN, SIDEBAR_MAX, PANE_MIN, PANE_MAX } from '@renderer/lib/settingsStore'
 import { simulateDrag } from '@renderer/test-utils/simulateDrag'
 
 // ---------------------------------------------------------------------------

@@ -11,10 +11,10 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/organisms/RequestBar.tsx | Modify | Presentational markup only: visible Save/Share text labels (drop redundant aria-label), canSend-gated aria-hidden `<kbd>` ⌘↵ inside Send, className/structure edits |
-| src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx | Modify | Add jsdom unit asserts for keycap DOM presence/absence, Save/Share accessible-name preservation, aria-label removal; keep existing asserts green |
+| File                                                                | Action | Description                                                                                                                                                         |
+| ------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| src/renderer/src/components/organisms/RequestBar.tsx                | Modify | Presentational markup only: visible Save/Share text labels (drop redundant aria-label), canSend-gated aria-hidden `<kbd>` ⌘↵ inside Send, className/structure edits |
+| src/renderer/src/components/organisms/**tests**/RequestBar.test.tsx | Modify | Add jsdom unit asserts for keycap DOM presence/absence, Save/Share accessible-name preservation, aria-label removal; keep existing asserts green                    |
 
 ## Description
 
@@ -36,11 +36,13 @@ Bring the RequestBar markup to design-reference fidelity WITHOUT changing any be
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `RequestBar.tsx` defines `const canSend = url.trim() !== ''` and renders a Send button with `disabled={!canSend}`.
 - `RequestBar.tsx` renders Save (`request-bar__save`) and Share (`request-bar__share`) buttons that are currently icon-only with `aria-label`.
 - The method trigger renders `cx('request-bar__method', 'method', method)` and is not modified by this task.
 
 ### Produces (checked after execution)
+
 - `RequestBar.tsx` renders visible `Save` and `Share` text inside their buttons, and neither button carries an `aria-label` attribute.
 - `RequestBar.tsx` renders a `request-bar__kbd` element with `aria-hidden="true"` inside the Send button, gated on `canSend` (present when enabled, absent when disabled).
 - The Send button's accessible name is `Send`; Save/Share accessible names are `Save`/`Share`.
@@ -60,6 +62,6 @@ Bring the RequestBar markup to design-reference fidelity WITHOUT changing any be
 ## Completion Notes
 
 **Completed**: 2026-06-29T07:40:04Z
-**Files changed**: src/renderer/src/components/organisms/RequestBar.tsx, src/renderer/src/components/organisms/__tests__/RequestBar.test.tsx
+**Files changed**: src/renderer/src/components/organisms/RequestBar.tsx, src/renderer/src/components/organisms/**tests**/RequestBar.test.tsx
 **Contract**: Expects 3/3 | Produces 5/5
 **Notes**: Markup-only fidelity change: visible Save/Share text (aria-label removed), canSend-gated aria-hidden kbd in Send. No logic touched. Panel clean R2 (one autonomous repair: added whitespace-url kbd-absent assert). Note: no test_command configured in PACKAGE_STACKS, so unit suite not executed by verify gate — typecheck/lint/build passed; test asserts validated by review.

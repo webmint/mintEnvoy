@@ -40,9 +40,7 @@
     "affected_areas": [
       {
         "area": "node_modules/@radix-ui",
-        "files": [
-          "node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265"
-        ],
+        "files": ["node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:265"],
         "impact": "see findings"
       }
     ],

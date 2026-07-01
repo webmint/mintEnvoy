@@ -15,9 +15,7 @@
       "title": "Move Divider to molecules and rewrite its importers",
       "agent": "frontend-engineer",
       "depends_on": [],
-      "blocks": [
-        "002"
-      ],
+      "blocks": ["002"],
       "touched_files": [
         "src/renderer/src/components/organisms/Divider.tsx \u2192 src/renderer/src/components/molecules/Divider.tsx",
         "src/renderer/src/components/organisms/Divider.css \u2192 src/renderer/src/components/molecules/Divider.css",
@@ -38,16 +36,7 @@
         "`Sidebar.tsx`, `PaneSplit.tsx`, `__tests__/Shell.test.tsx`, and `__tests__/Shell.stories.tsx` each import `Divider` from `@renderer/components/molecules/Divider`.",
         "No occurrence of `@renderer/components/organisms/Divider` anywhere under `src/renderer`."
       ],
-      "ac_addressed": [
-        "AC-2",
-        "AC-5",
-        "AC-6",
-        "AC-7",
-        "AC-11",
-        "AC-12",
-        "AC-13",
-        "AC-14"
-      ],
+      "ac_addressed": ["AC-2", "AC-5", "AC-6", "AC-7", "AC-11", "AC-12", "AC-13", "AC-14"],
       "doc_refs": [],
       "review_checkpoint": false
     },
@@ -55,12 +44,8 @@
       "number": "002",
       "title": "Move shell-domain group and Shell test trio into organisms/shell",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "001"
-      ],
-      "blocks": [
-        "003"
-      ],
+      "depends_on": ["001"],
+      "blocks": ["003"],
       "touched_files": [
         "src/renderer/src/components/organisms/Shell.tsx \u2192 src/renderer/src/components/organisms/shell/Shell.tsx",
         "src/renderer/src/components/organisms/Shell.css \u2192 src/renderer/src/components/organisms/shell/Shell.css",
@@ -105,23 +90,16 @@
         "AC-13",
         "AC-14"
       ],
-      "doc_refs": [
-        "docs/architecture.md"
-      ],
+      "doc_refs": ["docs/architecture.md"],
       "review_checkpoint": true
     },
     {
       "number": "003",
       "title": "Update constitution and architecture-doc classification sites to the new layout",
       "agent": "frontend-engineer",
-      "depends_on": [
-        "002"
-      ],
+      "depends_on": ["002"],
       "blocks": [],
-      "touched_files": [
-        "constitution.md",
-        "docs/architecture.md"
-      ],
+      "touched_files": ["constitution.md", "docs/architecture.md"],
       "expects": [
         "(from tasks 001\u2013002) `Divider` lives under `components/molecules/`; `Shell`/`Titlebar`/`Statusbar`/`PaneSplit` live under `components/organisms/shell/`.",
         "`constitution.md` contains a \u00a72.2 section with the EXAMPLE membership tree and a \u00a75.1 UI-primitives list.",
@@ -133,15 +111,8 @@
         "`docs/architecture.md` UI-Primitives table, prose, module tree, both path-comment markers, and mermaid all reflect the new layout.",
         "No occurrence of `organisms/(Divider|Shell|Titlebar|Statusbar|PaneSplit)` as a path in `constitution.md` or `docs/architecture.md`."
       ],
-      "ac_addressed": [
-        "AC-8",
-        "AC-9",
-        "AC-10",
-        "AC-14"
-      ],
-      "doc_refs": [
-        "docs/architecture.md"
-      ],
+      "ac_addressed": ["AC-8", "AC-9", "AC-10", "AC-14"],
+      "doc_refs": ["docs/architecture.md"],
       "review_checkpoint": false
     }
   ],

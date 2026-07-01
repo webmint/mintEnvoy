@@ -7,19 +7,21 @@
 ## Specialist Consultation
 
 **Invocations**:
+
 - Phase 0 alternatives: no — N/A (no 2+ alternatives compared; disposition is a single provably-dead-code deletion)
 - Phase 1.3 architecture decisions: yes (mandatory)
 - Specialists consulted (orchestrator-relayed on the architect's request, or directly): none — see table
 
 **Architect-authored sections** (transcribed verbatim from architect return):
+
 - Layer Map: row 1
 - Key Design Decisions: rows 1-3
 - Risk Assessment seeds: rows 1-2
 - Constitution Compliance flags: none
 
-| Specialist | Sub-question | Input summary | Verdict | Cites |
-| --- | --- | --- | --- | --- |
-| (none) | — | — | — | own-reasoning |
+| Specialist | Sub-question | Input summary | Verdict | Cites         |
+| ---------- | ------------ | ------------- | ------- | ------------- |
+| (none)     | —            | —             | —       | own-reasoning |
 
 ## Summary
 
@@ -41,22 +43,22 @@ Delete the leftover electron-vite scaffold debug IPC handler from the Electron m
 
 ### Layer Map
 
-| Layer | What | Files (existing or new) |
-|-------|------|------------------------|
-| Main process (Electron, Node) | Delete the dead `ipcMain.on('ping', …)` handler + its `// IPC test` comment inside `app.whenReady().then()`; remove `ipcMain` from the line-1 electron import | src/main/index.ts |
+| Layer                         | What                                                                                                                                                          | Files (existing or new) |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Main process (Electron, Node) | Delete the dead `ipcMain.on('ping', …)` handler + its `// IPC test` comment inside `app.whenReady().then()`; remove `ipcMain` from the line-1 electron import | src/main/index.ts       |
 
 ### Key Design Decisions
 
-| Decision | Chosen Approach | Why | Alternatives Rejected |
-|----------|----------------|-----|----------------------|
-| Disposition of the dead handler | Delete handler + comment + unused `ipcMain` import | Provably dead (research: 0 ipcRenderer/send/invoke callers, sole ipcMain handler); satisfies the constitution's "never commit debug artifacts" rule | Replace with a real IPC handler (§6 OOS); leave in place (violates hygiene rule) |
-| Scope of import edit | Remove only the `ipcMain` token; keep `app, shell, BrowserWindow` byte-identical | Minimal-change rule; removing the now-unused import is required to pass lint/typecheck (AC-5) | Rewrite/reorder the whole import line (unnecessary churn) |
-| Rest of boot flow | Leave createWindow / app.whenReady / browser-window-created / activate / window-all-closed byte-identical | Behavior-preservation constraint §7; AC-2 requires lifecycle unchanged | Any incidental refactor of the whenReady block (out of scope) |
+| Decision                        | Chosen Approach                                                                                           | Why                                                                                                                                                 | Alternatives Rejected                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Disposition of the dead handler | Delete handler + comment + unused `ipcMain` import                                                        | Provably dead (research: 0 ipcRenderer/send/invoke callers, sole ipcMain handler); satisfies the constitution's "never commit debug artifacts" rule | Replace with a real IPC handler (§6 OOS); leave in place (violates hygiene rule) |
+| Scope of import edit            | Remove only the `ipcMain` token; keep `app, shell, BrowserWindow` byte-identical                          | Minimal-change rule; removing the now-unused import is required to pass lint/typecheck (AC-5)                                                       | Rewrite/reorder the whole import line (unnecessary churn)                        |
+| Rest of boot flow               | Leave createWindow / app.whenReady / browser-window-created / activate / window-all-closed byte-identical | Behavior-preservation constraint §7; AC-2 requires lifecycle unchanged                                                                              | Any incidental refactor of the whenReady block (out of scope)                    |
 
 ### File Impact
 
-| File | Action | What Changes |
-|------|--------|-------------|
+| File              | Action | What Changes                                                                                                                                                                                                                                 |
+| ----------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | src/main/index.ts | Modify | Line 1: drop `ipcMain` from `import { app, shell, BrowserWindow, ipcMain } from 'electron'`. Inside `app.whenReady().then()`: delete the `// IPC test` comment and the `ipcMain.on('ping', () => console.log('pong'))` line. No other edits. |
 
 ### Documentation Impact
@@ -65,10 +67,10 @@ No documentation changes expected — internal implementation only. (docs/main/i
 
 ## Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Edit regresses the main↔preload↔renderer process boundary | Low | Low | Edit confined to src/main/; no preload/renderer files touched; typecheck + lint + build gate the change; lint catches any residual unused import |
-| Accidentally removing a still-needed import (`app`/`shell`/`BrowserWindow`) or altering the whenReady block, breaking app boot | Low | Low | Delete only the `ipcMain` token + the two ping lines; typecheck + build + smoke-launch confirm the window still opens (mirrors spec §9 risk) |
+| Risk                                                                                                                           | Likelihood | Impact | Mitigation                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Edit regresses the main↔preload↔renderer process boundary                                                                      | Low        | Low    | Edit confined to src/main/; no preload/renderer files touched; typecheck + lint + build gate the change; lint catches any residual unused import |
+| Accidentally removing a still-needed import (`app`/`shell`/`BrowserWindow`) or altering the whenReady block, breaking app boot | Low        | Low    | Delete only the `ipcMain` token + the two ping lines; typecheck + build + smoke-launch confirm the window still opens (mirrors spec §9 risk)     |
 
 ## Dependencies
 

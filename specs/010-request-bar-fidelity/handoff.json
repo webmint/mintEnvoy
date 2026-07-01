@@ -275,16 +275,12 @@
     "affected_areas": [
       {
         "area": "RequestBar styles (geometry + treatment)",
-        "files": [
-          "src/renderer/src/components/organisms/RequestBar.css"
-        ],
+        "files": ["src/renderer/src/components/organisms/RequestBar.css"],
         "impact": "Modify \u2014 restyle to reference fidelity using existing tokens: reference padding/gap + ~32px control height; bind --radius (7px) where reference uses it; add URL-input accent focus-ring box-shadow; Send solid-primary weight 600 + inset shadow + .kbd keycap styling; local .request-bar__method override presenting the bordered method-select treatment (no data-mstyle); .btn-ghost-style labelled Save/Share. All rules scoped under .request-bar."
       },
       {
         "area": "RequestBar markup (presentational classNames + labels)",
-        "files": [
-          "src/renderer/src/components/organisms/RequestBar.tsx"
-        ],
+        "files": ["src/renderer/src/components/organisms/RequestBar.tsx"],
         "impact": "Modify \u2014 presentational only: add visible Save/Share text labels beside icons (drop now-redundant aria-label where visible text supplies the accessible name); add an aria-hidden kbd keycap inside Send rendered only in the enabled state; className/structure edits to match the reference. NO logic change \u2014 onSend, Cmd-Enter/Cmd-S, canSend, dirty/markClean, updateActiveSpec, per-tab selectors, data-mstyle invariant untouched."
       },
       {

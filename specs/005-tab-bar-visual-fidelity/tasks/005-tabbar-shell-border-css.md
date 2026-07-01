@@ -11,10 +11,10 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                                             | Action | Description                                                              |
+| ------------------------------------------------ | ------ | ------------------------------------------------------------------------ |
 | src/renderer/src/components/organisms/TabBar.css | Modify | .tabbar strip geometry; +/chevron icon buttons; delete dirty-badge block |
-| src/renderer/src/components/organisms/Shell.css | Modify | Remove the duplicate .shell__tabs bottom border |
+| src/renderer/src/components/organisms/Shell.css  | Modify | Remove the duplicate .shell\_\_tabs bottom border                        |
 
 ## Description
 
@@ -35,11 +35,13 @@ Style the strip to the reference and remove the duplicate border in ONE atomic c
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `.tabbar` currently sets only `background-color: var(--bg)`; a `.tabbar .tabs__badge` dirty block exists.
 - `.shell__tabs` carries a `border-bottom` (the duplicate alongside the Tabs `.tabs` border).
 - Task 004 emits `.tabbar__new`, `.tabbar__spacer`, and the chevron button markup; task 003 added the active `::after` bottom mask.
 
 ### Produces (checked after execution)
+
 - `.tabbar` computes `--bg-sunken` background, 36px height, a 1px `--border` bottom border, and 8px right padding.
 - `.tabbar__new` and the chevron are grid-centered icon buttons; `.tabbar__spacer` is `flex: 1`.
 - The `.tabbar .tabs__badge` block is removed.
@@ -61,4 +63,4 @@ Style the strip to the reference and remove the duplicate border in ONE atomic c
 **Completed**: 2026-06-26T09:13:53Z
 **Files changed**: src/renderer/src/components/organisms/TabBar.css, src/renderer/src/components/organisms/Shell.css
 **Contract**: Expects 3/3 | Produces 4/4
-**Notes**: Repair: updated stale badge/border comments. Added AC-17 + a .shell__tabs(0px)/.tabbar(1px) border assertion to task 009 (qa panel).
+**Notes**: Repair: updated stale badge/border comments. Added AC-17 + a .shell\_\_tabs(0px)/.tabbar(1px) border assertion to task 009 (qa panel).

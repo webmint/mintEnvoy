@@ -16,9 +16,7 @@
       "agent": "frontend-engineer",
       "depends_on": [],
       "blocks": [],
-      "touched_files": [
-        "src/main/index.ts"
-      ],
+      "touched_files": ["src/main/index.ts"],
       "expects": [
         "`import { app, shell, BrowserWindow, ipcMain } from 'electron'` appears in `src/main/index.ts`",
         "`ipcMain.on('ping'` appears in `src/main/index.ts`",
@@ -30,13 +28,7 @@
         "`function createWindow` still appears in `src/main/index.ts` (unchanged)",
         "`app.whenReady().then` and `app.on('window-all-closed'` still appear in `src/main/index.ts` (unchanged)"
       ],
-      "ac_addressed": [
-        "AC-1",
-        "AC-2",
-        "AC-3",
-        "AC-4",
-        "AC-5"
-      ],
+      "ac_addressed": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5"],
       "doc_refs": [],
       "review_checkpoint": false
     }

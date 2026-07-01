@@ -11,9 +11,9 @@
 
 ## Files
 
-| File | Action | Description |
-|------|--------|-------------|
-| src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx | Modify | Insert an overlay-readiness gate immediately before the corner `page.mouse.click(...)` in the two click-outside tests; strict assertions unchanged. |
+| File                                                            | Action | Description                                                                                                                                         |
+| --------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| src/renderer/src/components/molecules/**tests**/Dropdown.ct.tsx | Modify | Insert an overlay-readiness gate immediately before the corner `page.mouse.click(...)` in the two click-outside tests; strict assertions unchanged. |
 
 ## Description
 
@@ -31,11 +31,13 @@ Two Playwright CT tests fire their outside corner click in the same tick the men
 ## Contracts
 
 ### Expects (checked before execution)
+
 - `Dropdown.ct.tsx` contains the test `'clicking outside the menu closes it'` whose body has a `page.mouse.click(...)` followed by `expect(menu).not.toBeVisible()` (AC-3).
 - `Dropdown.ct.tsx` contains the test `'focus returns to the trigger button after the menu closes via click-outside'` whose body has a `page.mouse.click(...)` followed by `expect(menu).not.toBeVisible()` and `expect(trigger).toBeFocused()` (AC-4).
 - `menu` is a `page.getByRole('menu')` locator in scope in both tests; `trigger` is in scope in the focus-return test.
 
 ### Produces (checked after execution)
+
 - In both tests, immediately before the corner `page.mouse.click(...)`, a `menu.evaluate(...)` call referencing `getAnimations` and `finished` is present, followed by a SEPARATE in-page `setTimeout` macrotask yield.
 - The `setTimeout` yield line carries an explanatory comment naming it a macrotask-boundary readiness floor (not a fixed delay).
 - `expect(menu).not.toBeVisible()` and `expect(trigger).toBeFocused()` are unchanged; exactly one `page.mouse.click(...)` per test (no `toPass` retry wrapper).
@@ -55,6 +57,6 @@ Two Playwright CT tests fire their outside corner click in the same tick the men
 ## Completion Notes
 
 **Completed**: 2026-06-27T19:39:59Z
-**Files changed**: src/renderer/src/components/molecules/__tests__/Dropdown.ct.tsx
+**Files changed**: src/renderer/src/components/molecules/**tests**/Dropdown.ct.tsx
 **Contract**: Expects 3/3 | Produces 4/4
 **Notes**: Added readiness gate (getAnimations().finished await + separate commented setTimeout(0) macrotask floor) before the corner click in both click-outside tests; added a reduced-motion click-outside test (qa Gap-1) proving the floor alone dismisses. Full CT suite 128/128 green. No production code touched.
