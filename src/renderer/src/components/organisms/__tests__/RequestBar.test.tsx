@@ -695,12 +695,21 @@ describe('(j) keycap and visible labels (AC-9, AC-10, AC-11)', () => {
     expect(saveBtn).not.toHaveAttribute('aria-label')
   })
 
-  it('Share button resolves by visible label and carries no aria-label (AC-11)', () => {
+  it('Share button is icon-only: resolves by aria-label="Share" and has no visible text node (AC-3)', () => {
     render(<RequestBar />)
 
     const shareBtn = screen.getByRole('button', { name: 'Share' })
     expect(shareBtn).toBeInTheDocument()
-    // aria-label was removed; accessible name is supplied by the visible text
-    expect(shareBtn).not.toHaveAttribute('aria-label')
+    // Accessible name now comes from aria-label, not visible text (AC-3 icon-only)
+    expect(shareBtn).toHaveAttribute('aria-label', 'Share')
+    // No visible "Share" text — textContent is empty beyond the aria-hidden SVG
+    expect(shareBtn.textContent?.trim()).toBe('')
+  })
+
+  it('URL input placeholder is exactly "Enter URL or paste cURL command…" (AC-2)', () => {
+    render(<RequestBar />)
+
+    const urlInput = screen.getByRole('textbox', { name: 'Request URL' })
+    expect(urlInput).toHaveAttribute('placeholder', 'Enter URL or paste cURL command…')
   })
 })

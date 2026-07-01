@@ -7,9 +7,10 @@
  * legible if the sheet loads before tokens.css in an isolated test environment.
  * Token names used: --bg-elev, --border, --border-faint, --text, --text-muted,
  * --text-faint, --accent, --bg-hover, --bg-active, --radius-md, --radius-sm,
- * --shadow-md, --fs-base, --fs-sm.
+ * --shadow-lg, --fs-base, --fs-sm.
  *
- * Content: floating menu card with elevation shadow and border.
+ * Content: floating menu card — a vertical flex column of items with a 1px
+ * inter-item gap, an elevation shadow (--shadow-lg), and a border.
  *
  * Positioning: handled entirely by Radix DropdownMenu.Content via floating-ui:
  *   - avoidCollisions: flips from the preferred side when the viewport edge
@@ -42,7 +43,16 @@
   border: 1px solid var(--border, #e8e6e3);
   background-color: var(--bg-elev, #ffffff);
   color: var(--text, #18181b);
-  box-shadow: var(--shadow-md, 0 4px 16px -4px rgba(24, 24, 27, 0.08));
+  /* Elevated panel shadow bound to the reference --shadow-lg (design/styles.css) */
+  box-shadow: var(
+    --shadow-lg,
+    0 16px 32px -8px rgba(24, 24, 27, 0.12),
+    0 4px 12px rgba(24, 24, 27, 0.06)
+  );
+  /* Vertical stack with a 1px inter-item panel gap (reference menu treatment) */
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
   /* Stack above most app content; Portal placement avoids z-index wars */
   z-index: 1000;
   /* Scale + fade-in animation — disabled for reduced-motion users below */
@@ -82,7 +92,7 @@
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.375rem 0.625rem;
+  padding: 6px 8px;
   border-radius: var(--radius-sm, 5px);
   font-size: var(--fs-base, 12.5px);
   font-family: inherit;

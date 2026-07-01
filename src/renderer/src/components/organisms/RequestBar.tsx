@@ -1,8 +1,8 @@
 /**
  * RequestBar — request submission bar organism.
  *
- * Renders a flat `[method ▾][URL input][Send][Save][Share]` row bound to the
- * active tab's RequestSpec fields via per-field tabsStore selectors.
+ * Renders a flat `[method ▾][.url-bar(link icon + URL input)][Send][Save][Share]`
+ * row bound to the active tab's RequestSpec fields via per-field tabsStore selectors.
  *
  * ## Store bindings
  *
@@ -82,7 +82,7 @@ export interface RequestBarProps {
 /**
  * Request submission bar organism.
  *
- * Binds the `[method ▾][URL input][Send][Save][Share]` row to the active tab's
+ * Binds the `[method ▾][.url-bar(link icon + URL input)][Send][Save][Share]` row to the active tab's
  * fields via per-field {@link tabsStore} selectors. Does NOT perform HTTP;
  * the caller's `onSend` callback owns the network layer.
  *
@@ -268,28 +268,35 @@ export function RequestBar({ onSend = () => {} }: RequestBarProps): JSX.Element 
         trigger={
           <button type="button" className={cx('request-bar__method', 'method', method)}>
             {method}
-            <Icon name="chevronDown" size={10} />
+            <Icon name="chevronDown" size={10} className="request-bar__method-caret" />
           </button>
         }
         items={methodItems}
         align="start"
       />
 
-      {/* ---- URL input ---- */}
+      {/* ---- URL input — wrapped in .url-bar for leading link icon (AC-1, AC-2) ---- */}
       {/*
-       * Controlled single-line input bound to the active tab's url.
+       * .url-bar container wraps a decorative leading link icon (no label prop →
+       * Icon renders it as aria-hidden="true", visual affordance only) followed by
+       * the controlled URL input. The input retains aria-label="Request URL" as its
+       * sole accessible name.
+       *
        * No `key` prop — the input is never remounted on method change (AC-11, AC-18).
        * overflow-x scrolling on content wider than the input is native browser
        * behaviour for type="text" — no CSS or JS needed.
        */}
-      <input
-        type="text"
-        className="request-bar__url"
-        value={url}
-        onChange={(e) => updateActiveSpec({ url: e.target.value })}
-        placeholder="Enter URL"
-        aria-label="Request URL"
-      />
+      <div className="url-bar">
+        <Icon name="link" size={13} />
+        <input
+          type="text"
+          className="request-bar__url"
+          value={url}
+          onChange={(e) => updateActiveSpec({ url: e.target.value })}
+          placeholder="Enter URL or paste cURL command…"
+          aria-label="Request URL"
+        />
+      </div>
 
       {/* ---- Action buttons ---- */}
       <div className="request-bar__actions">
@@ -332,13 +339,18 @@ export function RequestBar({ onSend = () => {} }: RequestBarProps): JSX.Element 
 
         {/* Share — disabled stub, rendered in its final slot (AC-19) */}
         {/*
-         * Visible text "Share" supplies the accessible name — aria-label is not
-         * needed and has been removed to avoid the redundancy (AC-11).
-         * Remains disabled (009 AC-19 stub — still a no-op).
+         * Icon-only: visible "Share" text node removed (AC-3). Accessible name
+         * now comes from aria-label="Share" rather than visible text.
+         * Remains disabled (AC-19 stub — still a no-op).
          */}
-        <button type="button" className="request-bar__share" disabled aria-disabled="true">
+        <button
+          type="button"
+          className="request-bar__share"
+          disabled
+          aria-disabled="true"
+          aria-label="Share"
+        >
           <Icon name="share" size={13} />
-          Share
         </button>
       </div>
     </div>
