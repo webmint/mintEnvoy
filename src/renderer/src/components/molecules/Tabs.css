@@ -94,7 +94,7 @@
   font-size: var(--fs-base, 12.5px);
   font-family: inherit;
   line-height: 1;
-  color: var(--text-muted, #71717a);
+  color: var(--text-muted);
   white-space: nowrap;
 
   /* Interaction */
@@ -146,7 +146,7 @@
  */
 .tabs__tab--active,
 .tabs__tab[aria-selected='true'] {
-  color: var(--accent, #10b981);
+  color: var(--text); /* var(--text) with no fallback literal: the design-token provenance gate forbids var(--x, <literal>) on token-bound sites (deliberate departure from this file's fallback convention). */
   /* Accent underline indicator — 2 px bottom inset shadow. */
   box-shadow: inset 0 -2px 0 var(--accent, #10b981);
   background-color: var(--accent-soft, color-mix(in oklab, #10b981 14%, transparent));
@@ -171,7 +171,7 @@
  */
 .tabs__tab--disabled,
 .tabs__tab:disabled {
-  color: var(--text-faint, #a1a1aa);
+  color: var(--text-faint);
   cursor: not-allowed;
   /* Suppress the hover background for disabled tabs. */
   background-color: transparent;
@@ -180,7 +180,7 @@
 .tabs__tab--disabled:hover,
 .tabs__tab:disabled:hover {
   background-color: transparent;
-  color: var(--text-faint, #a1a1aa);
+  color: var(--text-faint);
 }
 
 /* ---------------------------------------------------------------------------
@@ -219,7 +219,7 @@
   padding: 0 4px;
   border-radius: var(--radius-sm, 5px);
   background-color: var(--bg-sunken, #f4f3f1);
-  color: var(--text-muted, #71717a);
+  color: var(--text-muted);
   font-size: var(--fs-sm, 10.5px);
   font-weight: 600;
   line-height: 1;
@@ -230,7 +230,7 @@
 .tabs__tab--active .tabs__badge,
 .tabs__tab[aria-selected='true'] .tabs__badge {
   background-color: var(--accent-soft, color-mix(in oklab, #10b981 14%, transparent));
-  color: var(--accent, #10b981);
+  color: var(--text); /* var(--text) with no fallback literal: the design-token provenance gate forbids var(--x, <literal>) on token-bound sites (deliberate departure from this file's fallback convention). */
 }
 
 /* Faded badge for disabled tabs. */
@@ -323,7 +323,7 @@
   /* Typography */
   font-size: var(--fs-sm, 10.5px);
   line-height: 1;
-  color: var(--text-faint, #a1a1aa);
+  color: var(--text-faint);
 
   /* Interaction */
   cursor: pointer;
@@ -385,7 +385,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--text-faint, #a1a1aa);
+  background: var(--text-faint);
   flex-shrink: 0;
   /* Same rationale as .tabs__tab-close: center the 7px dot relative to the
      stretch wrapper without touching the wrapper's align-items (AC-22). */

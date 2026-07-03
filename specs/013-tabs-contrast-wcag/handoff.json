@@ -1,0 +1,231 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/013-tabs-contrast-wcag/spec.md",
+  "specify_completed_at": "2026-07-02T09:54:50Z",
+  "classification": {
+    "spec_number": "013",
+    "feature_name": "tabs-contrast-wcag",
+    "feature_slug": "tabs-contrast-wcag",
+    "spec_type": "bug_fix",
+    "spec_type_rationale": "existing Tabs.css renders accent-as-text (real) plus stale design tokens; fix = token sync + 2 accent swaps",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "The working-tabs strip renders two accent-colored roles below WCAG 2.1 AA, and separately the app's design tokens are STALE relative to design/styles.css (their declared source of truth): the muted and faint text tokens were already darkened for AA at the source but never synced into src/renderer/styles/tokens.css. This spec (1) syncs the three drifted token values to design/styles.css \u2014 which brings every --text-muted / --text-faint text consumer app-wide to AA in one edit \u2014 and (2) swaps the two genuine accent-on-light sites in Tabs.css to var(--text). No new token and no contract amendment are needed.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The design-token stylesheet shall define the muted and faint text tokens at the darkened values from the design source.",
+        "verification_command": "grep -q -- '--text-muted: #6c6c75' src/renderer/styles/tokens.css && grep -q -- '--text-faint: #6e6e77' src/renderer/styles/tokens.css && grep -q -- '--text-faint: #787881' src/renderer/styles/tokens.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The system shall preserve the existing token names and semantics, introducing no new color token.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE either theme is active, the Tabs strip shall keep the active-tab and inactive-tab labels visually distinct.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The system shall bring every muted and faint text role to the WCAG AA contrast minimum by syncing the token values to the design source.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE either theme is active, the active-tab label shall meet the WCAG AA contrast minimum for normal text by using var(--text), which the tabbar variant inherits.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a tab is active, the active-tab badge text shall meet the WCAG AA contrast minimum for normal text on the accent-soft background by using var(--text).",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE either theme is active, the inactive-tab label shall meet the WCAG AA contrast minimum for normal text via the synced var(--text-muted).",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE either theme is active, the close-button icon shall meet the WCAG AA non-text contrast minimum via the synced var(--text-faint).",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a tab is marked dirty, the dirty-state indicator shall meet the WCAG AA non-text contrast minimum via the synced var(--text-faint).",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The system shall pass lint and type-check on all changed files.",
+        "verification_command": "npm run lint && npm run typecheck",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "ci_pipeline": "No CI or pipeline change; renderer token/CSS fix verified by existing lint/type-check/CT.",
+      "hooks_gates": "No git hooks or quality gates added or changed.",
+      "documentation": "design-fidelity-contract \u00a75 already matches the synced tokens (its source is design/styles.css); no doc edit \u2014 hand-editing \u00a75 would desync it from its source."
+    },
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Must follow WCAG 2.1 AA \u2014 SC 1.4.3 (normal text) and SC 1.4.11 (non-text UI), in both light and dark themes.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Search for an existing utility/token before building \u2014 sync the existing muted/faint tokens rather than inventing a new one.",
+        "quantifier": null,
+        "constitution_ref": "3.6",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Prefer design tokens over literal style values; never use inline styles \u2014 changes are token values plus var() references only.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "tokens.css must mirror design/styles.css (the design source of truth); token values are synced from it, not hand-picked, and derived docs (contract \u00a75) are not hand-edited.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Renderer tier: design tokens live in styles/tokens.css; molecule CSS under molecules/.",
+        "quantifier": null,
+        "constitution_ref": "2.2",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "The active-tab badge and Tabs WAI-ARIA engine must remain intact; the fix is color/token-only.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "Design tokens",
+        "files": [
+          "src/renderer/styles/tokens.css"
+        ],
+        "impact": "Sync 3 drifted values to design/styles.css: light --text-muted->#6c6c75, light --text-faint->#6e6e77, dark --text-faint->#787881"
+      },
+      {
+        "area": "Tabs molecule styles",
+        "files": [
+          "src/renderer/src/components/molecules/Tabs.css"
+        ],
+        "impact": "Two accent-on-light swaps: active-tab label (149) and active-tab badge text (233) var(--accent)->var(--text); .tabbar inherits 149. Lines 97/326/388 unchanged (fixed by token sync)"
+      },
+      {
+        "area": "App-wide muted/faint text consumers (tests)",
+        "files": [
+          "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx"
+        ],
+        "impact": "Token darkening shifts every --text-muted/--text-faint consumer visually (Modal, Toast, Dropdown, RequestBar, TabBar, Titlebar, Statusbar, PrimitivesDemo) \u2014 affected CT screenshot baselines re-based across light+dark; Tabs CT gains contrast assertions"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Disabled-tab label color (Tabs.css:174/183, var(--text-faint)) \u2014 WCAG exempts disabled UI from the contrast minimum; left as-is (rides the synced faint anyway).",
+        "finding_ref": ""
+      },
+      {
+        "content": "Any token drift beyond the three contrast-relevant values (e.g. the app-only dark --m-head token absent from design/styles.css) \u2014 not reconciled here.",
+        "finding_ref": "F-tokens-3"
+      },
+      {
+        "content": "Hand-editing design-fidelity-contract \u00a75 \u2014 the contract derives from design/styles.css and is already correct post-sync; editing it would desync it from its source.",
+        "finding_ref": "F-design-fidelity-contract-2"
+      }
+    ],
+    "open_questions": [],
+    "risks": [
+      {
+        "risk": "Token sync darkens muted/faint text across ~9 other components (Modal, Toast, Dropdown, RequestBar, TabBar, Titlebar, Statusbar, PrimitivesDemo); their CT screenshot baselines shift, not just Tabs.",
+        "likelihood": "High",
+        "impact": "Med",
+        "mitigation": "Enumerate all --text-muted/--text-faint consumers; re-baseline every affected CT across light+dark. These are design-source-authoritative changes (intended), not regressions."
+      },
+      {
+        "risk": "CT single-variant baseline misses the dark theme; a color-only shortcut could leave other drift.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Cover BOTH themes in CT; verify at runtime via design-auditor, not just static/CT."
+      },
+      {
+        "risk": ".tabbar active-label inheritance assumption wrong (line 149 not inherited by the tabbar variant).",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Confirmed: Tabs.css:480-481 sets only box-shadow+background; CT must assert the active-label color in both bare .tabs and .tabbar scopes."
+      }
+    ]
+  },
+  "provenance": {
+    "upstream_handoff_path": null,
+    "upstream_handoff_kind": null,
+    "upstream_completed_at": null
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}

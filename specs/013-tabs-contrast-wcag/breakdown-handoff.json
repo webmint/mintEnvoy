@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/013-tabs-contrast-wcag/tasks",
+  "breakdown_completed_at": "2026-07-02T14:11:41Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/013-tabs-contrast-wcag/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/013-tabs-contrast-wcag/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/013-tabs-contrast-wcag/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "Sync drifted muted and faint token values",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/styles/tokens.css",
+        "design/tokens.json"
+      ],
+      "expects": [
+        "`src/renderer/styles/tokens.css` `:root` declares `--text-muted: #71717a` and `--text-faint: #a1a1aa`.",
+        "`src/renderer/styles/tokens.css` `[data-theme='dark']` declares `--text-faint: #71717a`.",
+        "`design/styles.css` declares light `--text-muted: #6c6c75`, light `--text-faint: #6e6e77`, dark `--text-faint: #787881` (the sync targets).",
+        "`design/tokens.json` dark theme group declares `textFaint` `$value: #71717a`."
+      ],
+      "produces": [
+        "`src/renderer/styles/tokens.css` `:root` declares `--text-muted: #6c6c75` and `--text-faint: #6e6e77`.",
+        "`src/renderer/styles/tokens.css` `[data-theme='dark']` declares `--text-faint: #787881`; its `--text-muted` remains `#a1a1aa`.",
+        "No new custom-property name is added to `tokens.css` (no `--text-secondary` or other new token).",
+        "`design/tokens.json` dark theme group declares `textFaint` `$value: #787881`, matching `design/styles.css`."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-2",
+        "AC-4",
+        "AC-7",
+        "AC-8",
+        "AC-9"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "002",
+      "title": "Swap active-tab accent-on-light sites to text token",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/molecules/Tabs.css"
+      ],
+      "expects": [
+        "`Tabs.css` rule `.tabs__tab--active, .tabs__tab[aria-selected='true']` sets `color: var(--accent, \u2026)`.",
+        "`Tabs.css` active-badge rule (`.tabs__tab--active .tabs__badge, .tabs__tab[aria-selected='true'] .tabs__badge`) sets `color: var(--accent, \u2026)`.",
+        "`Tabs.css` `.tabbar .tabs__tab--active` rule sets only `box-shadow` and `background` (no `color`) \u2014 so the swapped label color inherits into `.tabbar`."
+      ],
+      "produces": [
+        "`Tabs.css` rule `.tabs__tab--active, .tabs__tab[aria-selected='true']` sets `color: var(--text)` with NO fallback literal.",
+        "`Tabs.css` active-badge rule sets `color: var(--text)` with NO fallback literal.",
+        "The active-tab `box-shadow: inset 0 -2px 0 var(--accent, \u2026)` and both `background-color: var(--accent-soft, \u2026)` declarations remain present and unchanged.",
+        "No `.tabbar`-scoped `color` override is added (the `.tabbar` active variant still inherits line 149's color)."
+      ],
+      "ac_addressed": [
+        "AC-3",
+        "AC-5",
+        "AC-6"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "003",
+      "title": "Add Tabs contrast CT assertions and re-baseline screenshots",
+      "agent": "qa-engineer",
+      "depends_on": [
+        "001",
+        "002"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx",
+        "__snapshots__/components/molecules/__tests__/Tabs.ct.tsx-snapshots/tabbar-fidelity-chromium-darwin.png",
+        "__snapshots__/components/molecules/__tests__/Dropdown.ct.tsx-snapshots/dropdown-panel-fidelity-chromium-darwin.png",
+        "__snapshots__/components/organisms/__tests__/RequestBar.ct.tsx-snapshots/request-bar-fidelity-chromium-darwin.png"
+      ],
+      "expects": [
+        "Task 001 landed: `tokens.css` declares `--text-muted: #6c6c75` / `--text-faint: #6e6e77` (`:root`) and `--text-faint: #787881` (`[data-theme='dark']`).",
+        "Task 002 landed: `Tabs.css` `.tabs__tab--active` and active `.tabs__badge` use `color: var(--text)`.",
+        "`playwright/index.tsx` imports `../src/renderer/styles/tokens.css` (tokens resolve in the CT page).",
+        "The three baselines exist: `tabbar-fidelity`, `dropdown-panel-fidelity`, `request-bar-fidelity` (`-chromium-darwin.png`)."
+      ],
+      "produces": [
+        "`Tabs.ct.tsx` contains a `[013]` contrast `describe` asserting `getComputedStyle(...).color` for active label, active badge, inactive label, close icon, and `.backgroundColor` for the dirty dot, each in light AND dark theme, against the rgb values above.",
+        "`Tabs.ct.tsx` sets `document.documentElement.dataset.theme = 'dark'` in the dark-theme cases and resets it for isolation.",
+        "The three `-chromium-darwin.png` baselines are regenerated and reflect the darkened muted/faint text.",
+        "`npm run test:ct` passes with the new assertions and updated baselines."
+      ],
+      "ac_addressed": [
+        "AC-3",
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-9",
+        "AC-10"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    }
+  ],
+  "additions": [
+    "- **`design/tokens.json` \u2014 dark `textFaint` sync (Task 001).** The plan's File Impact lists only `tokens.css`. Phase 1 discovered that `design/tokens.json` (the DTCG artifact the `tokens.css` header names as its source) declares dark `textFaint: #71717a` \u2014 the stale value \u2014 disagreeing with `design/styles.css` (#787881, the spec's declared source of truth). No generator wires tokens.json \u2192 tokens.css (the header's \"regenerate\" note is stale). Because dark faint IS one of the three in-scope sync values, the architect (Finding A) ruled the one-line JSON fix in scope to keep the two design artifacts consistent. AC-1 greps `tokens.css` only, so this adds no acceptance check.",
+    "- **Stale fallback literals at Tabs.css:97/326/388 \u2014 noted, NOT changed.** Post-sync, the defensive fallback literals on the unchanged muted/faint sites (`, #71717a` / `, #a1a1aa`) no longer match the resolved token values. Spec \u00a76 / plan keep these lines untouched (fixed by the token sync at runtime); left as-is deliberately. Not a task."
+  ],
+  "dependency_graph": "001 (Sync muted/faint tokens) \u2500\u2500\u2510\n                                 \u251c\u2500\u2500\u2192 003 (Contrast CT + re-baseline)\n002 (Swap active-tab accent) \u2500\u2500\u2500\u2518\n\n001 \u2225 002  (independent \u2014 no edge)"
+}
