@@ -20,6 +20,8 @@
  *   TabsClosableRemoveTwoPhase     — two-phase close: close non-active tab then close active (AC-23 guard)
  *   TabbarFidelityFixture          — .tabbar-scoped closable strip for feature-005 fidelity (Task 009)
  *   TabbarLongTitleFidelityFixture — two long-title tabs + one short for [011] AC-7/AC-8 width cap assertions (Task 002)
+ *   TabbarBadgeFidelityFixture     — active tab with badge=3 in .tabbar scope, for [013] AC-6
+ *   TabsBadgeFidelityFixture       — active tab with badge=3 in bare .tabs scope, for [013] R3 bare-scope parity
  *   TabbarInShellTabsFixture       — TabbarFidelityFixture inside .shell__tabs wrapper for AC-17 Shell-context assertion
  */
 
@@ -629,6 +631,81 @@ export function TabbarLongTitleFidelityFixture(): React.JSX.Element {
         }
       />
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TabbarBadgeFidelityFixture — active tab WITH a badge, for [013] AC-6
+// ---------------------------------------------------------------------------
+
+/**
+ * Fidelity fixture for the [013] active-tab badge contrast assertion (AC-6).
+ *
+ * No other fixture sets a `badge`, so the active-badge color rule
+ * (`.tabs__tab--active .tabs__badge { color: var(--text) }`, feature-013 swap)
+ * has no mount to assert against. This fixture supplies one: a .tabbar closable
+ * strip whose ACTIVE tab carries `badge: 3`, so `.tabs__tab--active .tabs__badge`
+ * renders and its computed color can be read in both themes.
+ *
+ * A SEPARATE mount with no screenshot baseline — it only backs computed-style
+ * assertions, so it does not shift any existing fidelity PNG.
+ *
+ * Tab layout:
+ *   0 — "badge-tab"  active, badge=3   (asserts AC-6 active-badge text color)
+ *   1 — "plain-tab"  default
+ */
+export function TabbarBadgeFidelityFixture(): React.JSX.Element {
+  const [activeId, setActiveId] = useState('badge-tab')
+
+  const tabs: TabDescriptor[] = [
+    { id: 'badge-tab', label: 'Params', badge: 3 },
+    { id: 'plain-tab', label: 'Headers' }
+  ]
+
+  return (
+    <Tabs
+      aria-label="Tabbar badge fidelity"
+      tabs={tabs}
+      activeId={activeId}
+      onChange={setActiveId}
+      className="tabbar"
+      closable
+      onClose={() => {}}
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TabsBadgeFidelityFixture — bare .tabs active-badge color parity (feature-013, R3)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fidelity fixture for the [013] bare-scope active-tab badge contrast assertion (R3).
+ *
+ * Bare .tabs (no .tabbar className) with an active tab carrying badge=3, so the
+ * shared rule `.tabs__tab--active .tabs__badge { color: var(--text) }` is exercised
+ * outside the .tabbar scope — the rule must resolve in both surfaces.
+ * Mirrors TabbarBadgeFidelityFixture but with no className (bare .tabs only).
+ *
+ * Tab layout:
+ *   0 — "badge-tab"  active, badge=3   (asserts R3 bare-scope active-badge color)
+ *   1 — "plain-tab"  default
+ */
+export function TabsBadgeFidelityFixture(): React.JSX.Element {
+  const [activeId, setActiveId] = useState('badge-tab')
+
+  const tabs: TabDescriptor[] = [
+    { id: 'badge-tab', label: 'Params', badge: 3 },
+    { id: 'plain-tab', label: 'Headers' }
+  ]
+
+  return (
+    <Tabs
+      aria-label="Bare tabs badge fidelity"
+      tabs={tabs}
+      activeId={activeId}
+      onChange={setActiveId}
+    />
   )
 }
 

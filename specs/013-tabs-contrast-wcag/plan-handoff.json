@@ -1,0 +1,130 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/013-tabs-contrast-wcag/plan.md",
+  "plan_completed_at": "2026-07-02T09:54:51Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/013-tabs-contrast-wcag/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/013-tabs-contrast-wcag/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "Presentation \u2014 design tokens",
+        "what": "Sync 3 drifted values to the design source",
+        "files": "src/renderer/styles/tokens.css (light `--text-muted`, light `--text-faint`, dark `--text-faint`)"
+      },
+      {
+        "layer": "Presentation \u2014 component styles",
+        "what": "2 accent-on-light swaps to `var(--text)`",
+        "files": "src/renderer/src/components/molecules/Tabs.css (149 active label, 233 active badge)"
+      },
+      {
+        "layer": "Test (verification)",
+        "what": "Re-baseline affected CT screenshots app-wide; add Tabs contrast assertions across light + dark",
+        "files": "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx (+ other components' CT baselines)"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "Fix mechanism for muted/faint sub-AA text",
+        "chosen_approach": "Sync `tokens.css` to `design/styles.css` (3 values)",
+        "why": "The design source already declares AA-safe values (#6c6c75 / #6e6e77 / #787881); app tokens were stale. One edit fixes the inactive label (4.69:1), close icon (4.55/4.58:1), dirty-dot (4.55:1) AND every other muted/faint consumer app-wide.",
+        "alternatives_rejected": "New `--text-secondary` token + 5 swaps + contract amendment (the superseded stale-premise plan \u2014 solves a ramp gap that does not exist)"
+      },
+      {
+        "decision": "Active-tab label color (149)",
+        "chosen_approach": "`var(--accent)` \u2192 `var(--text)`",
+        "why": "Accent-as-text is 2.29/2.54:1, sub-AA independent of the token sync; `var(--text)` is 15.98/17.72:1 and matches the contract selected-text idiom. `.tabbar` (480-481) inherits, so one edit covers both variants.",
+        "alternatives_rejected": "Keep `var(--accent)` (fails); recolor via a new token (unnecessary)"
+      },
+      {
+        "decision": "Active-tab badge text (233)",
+        "chosen_approach": "`var(--accent)` \u2192 `var(--text)`",
+        "why": "Accent on `--accent-soft` fails as text; `var(--text)` clears AA; reuses the same idiom.",
+        "alternatives_rejected": "Keep `var(--accent)` (fails)"
+      },
+      {
+        "decision": "Inactive label / close icon / dirty-dot (97, 326, 388)",
+        "chosen_approach": "No per-site change \u2014 rely on the token sync",
+        "why": "Post-sync `var(--text-muted)`=4.69:1 and `var(--text-faint)`=4.55:1 clear their thresholds; a per-site swap would duplicate the token-layer fix and diverge from the design source.",
+        "alternatives_rejected": "Swap 97\u2192`--text-secondary`, 326/388\u2192`--text-muted` (the superseded plan \u2014 redundant after the sync)"
+      },
+      {
+        "decision": "Contract \u00a75 amendment",
+        "chosen_approach": "None",
+        "why": "\u00a75 prescribes `--text-muted`/`--text-faint`, which pass once the tokens sync; \u00a75 derives from `design/styles.css`, so hand-editing it would desync it from its source.",
+        "alternatives_rejected": "Amend \u00a75 (would desync the contract from its declared source)"
+      },
+      {
+        "decision": "New `--text-secondary` token",
+        "chosen_approach": "Do not add",
+        "why": "The muted-text ramp gap that motivated it does not exist once the tokens are synced to the (already-darkened) design source.",
+        "alternatives_rejected": "Add `--text-secondary` (unnecessary; more surface, more risk)"
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "src/renderer/styles/tokens.css",
+        "action": "Modify",
+        "what_changes": "Sync 3 values to design/styles.css: light `--text-muted` #71717a\u2192#6c6c75, light `--text-faint` #a1a1aa\u2192#6e6e77, dark `--text-faint` #71717a\u2192#787881"
+      },
+      {
+        "file": "src/renderer/src/components/molecules/Tabs.css",
+        "action": "Modify",
+        "what_changes": "2 swaps: line 149 `--accent`\u2192`--text` (active label); line 233 `--accent`\u2192`--text` (active badge). Lines 97/326/388 unchanged (fixed by the sync)"
+      },
+      {
+        "file": "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx",
+        "action": "Modify",
+        "what_changes": "Add WCAG contrast assertions for the fixed sites across light + dark; re-baseline Tabs fidelity screenshots"
+      },
+      {
+        "file": "(other components' CT baselines)",
+        "action": "Modify",
+        "what_changes": "Re-baseline screenshots for every `--text-muted`/`--text-faint` consumer whose text darkens from the sync (see Risk R1)"
+      }
+    ],
+    "doc_impact": [],
+    "risks": [
+      {
+        "risk": "R1: Token sync darkens muted/faint text across ~9 other components (Modal, Toast, Dropdown, RequestBar, TabBar, Titlebar, Statusbar, PrimitivesDemo); their CT screenshot baselines shift, not just Tabs",
+        "likelihood": "High",
+        "impact": "Med",
+        "mitigation": "Enumerate all `--text-muted`/`--text-faint` consumers; re-baseline every affected CT across light+dark. These are design-source-authoritative changes (intended), not regressions \u2014 /breakdown must plan the app-wide re-baseline, not a Tabs-only one"
+      },
+      {
+        "risk": "R2: CT single-variant baseline misses the dark theme",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Cover BOTH themes; verify at runtime via design-auditor (CT/static miss what runtime catches \u2014 per MEMORY)"
+      },
+      {
+        "risk": "R3: `.tabbar` active-label inheritance assumption wrong",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Confirmed: Tabs.css:480-481 sets only box-shadow+background; CT asserts the active-label color in both bare `.tabs` and `.tabbar` scopes"
+      }
+    ],
+    "specialist_consultation": [
+      {
+        "specialist": "architect",
+        "sub_question": "Layer map, design decisions, contrast values (original /plan run)",
+        "input_summary": "Authored the original plan tables; its `--text-secondary` proposal was superseded by the token-staleness correction",
+        "verdict": "modified",
+        "cites": "own-reasoning; superseded by design/styles.css:19-20,62"
+      },
+      {
+        "specialist": "design-auditor",
+        "sub_question": "Contrast math / ramp ordering (requested at original run)",
+        "input_summary": "No response relayed; contrast re-derived + verified locally",
+        "verdict": "no-response",
+        "cites": "own-reasoning"
+      }
+    ],
+    "dependencies": [
+      "None \u2014 no packages, services, or environment variables. Pure renderer token/CSS change."
+    ]
+  }
+}

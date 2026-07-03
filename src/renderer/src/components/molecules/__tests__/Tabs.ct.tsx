@@ -47,7 +47,9 @@ import {
   TabsClosableRemoveTwoPhase,
   TabbarFidelityFixture,
   TabbarInShellTabsFixture,
-  TabbarLongTitleFidelityFixture
+  TabbarLongTitleFidelityFixture,
+  TabbarBadgeFidelityFixture,
+  TabsBadgeFidelityFixture
 } from './Tabs.stories'
 
 // ---------------------------------------------------------------------------
@@ -1342,5 +1344,224 @@ test.describe('Tabs — [feat-005] AC-22 bare-consumer non-regression (.tabbar s
 
     const maxWidth = await wrapper.evaluate((el) => window.getComputedStyle(el).maxWidth)
     expect(maxWidth).toBe('none')
+  })
+
+  test('[013] bare .tabs active-tab label: color resolves to --text (rgb(24,24,27))', async ({
+    mount,
+    page
+  }) => {
+    // The shared .tabs__tab--active { color: var(--text) } rule governs both
+    // bare .tabs and .tabbar. Task 002 changed this rule; the [013] suite above
+    // asserts it only via .tabbar-scoped fixtures. Spec Risk R3 required both
+    // scopes — this test covers the bare-scope parity for the active-label color.
+    // Light theme only is sufficient for the bare-scope parity R3 asked for.
+    // No theme change here, so the .tabs__tab `transition: color 80ms` is not
+    // triggered and the mount-time (final) color is read directly.
+    await mount(<TabsClosableFixture initialActiveId="params" />)
+    const activeColor = await page
+      .locator('.tabs__tab--active')
+      .evaluate((el) => window.getComputedStyle(el).color)
+    expect(activeColor).toBe('rgb(24, 24, 27)')
+  })
+
+  test('[013] bare .tabs active-tab badge: color resolves to --text (rgb(24,24,27))', async ({
+    mount,
+    page
+  }) => {
+    // The shared .tabs__tab--active .tabs__badge { color: var(--text) } rule is
+    // tested in the [013] suite only via TabbarBadgeFidelityFixture (.tabbar scope).
+    // This bare-scope test covers spec Risk R3's second surface via
+    // TabsBadgeFidelityFixture (bare .tabs, no className, no closable).
+    await mount(<TabsBadgeFidelityFixture />)
+    const badgeColor = await page
+      .locator('.tabs__tab--active .tabs__badge')
+      .evaluate((el) => window.getComputedStyle(el).color)
+    expect(badgeColor).toBe('rgb(24, 24, 27)')
+  })
+
+  test('[013] bare .tabs active-tab label (dark): color resolves to --text (rgb(244,244,245))', async ({
+    mount,
+    page
+  }) => {
+    // Bare-scope dark-mode parity with the .tabbar dark suite: the shared
+    // .tabs__tab--active { color: var(--text) } rule must resolve to the dark
+    // --text (#f4f4f5) in bare .tabs too. data-theme is set after mount and
+    // cleared afterward so later tests start in light (isolation).
+    // Emulate reduced motion so the .tabs__tab `transition: color 80ms` does not
+    // yield a mid-transition read when data-theme flips --text (mirrors the
+    // [013] .tabbar suite's beforeEach).
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await mount(<TabsClosableFixture initialActiveId="params" />)
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = 'dark'
+    })
+    const activeColor = await page
+      .locator('.tabs__tab--active')
+      .evaluate((el) => window.getComputedStyle(el).color)
+    await page.evaluate(() => {
+      delete document.documentElement.dataset.theme
+    })
+    expect(activeColor).toBe('rgb(244, 244, 245)')
+  })
+
+  test('[013] bare .tabs active-tab badge (dark): color resolves to --text (rgb(244,244,245))', async ({
+    mount,
+    page
+  }) => {
+    // Bare-scope dark-mode parity for the active-badge color (R3 second surface).
+    // Reduced motion for consistency with the label dark test (the badge itself
+    // carries no color transition, but this keeps both dark reads settle-safe).
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await mount(<TabsBadgeFidelityFixture />)
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = 'dark'
+    })
+    const badgeColor = await page
+      .locator('.tabs__tab--active .tabs__badge')
+      .evaluate((el) => window.getComputedStyle(el).color)
+    await page.evaluate(() => {
+      delete document.documentElement.dataset.theme
+    })
+    expect(badgeColor).toBe('rgb(244, 244, 245)')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// [013] Tabs — WCAG contrast: fixed text-site colors (light + dark)
+//
+// Feature-013 fixed the Tabs strip's sub-AA text roles two ways:
+//   - Task 001 synced the muted/faint tokens to the darkened design-source values
+//     (inactive label → --text-muted, close icon + dirty dot → --text-faint).
+//   - Task 002 swapped the two accent-on-light TEXT sites (active label, active
+//     badge text) to --text.
+// These are computed-color EQUALITY assertions (getComputedStyle().color /
+// .backgroundColor === the resolved token rgb) — NOT a WCAG ratio calc; the
+// resolved-value equality is the authoritative proof the correct token is bound.
+// Both themes are covered: default (light) and data-theme='dark'.
+//
+// Token → rgb map (post-feature-013 tokens.css):
+//   --text        light #18181b → rgb(24, 24, 27)    | dark #f4f4f5 → rgb(244, 244, 245)
+//   --text-muted  light #6c6c75 → rgb(108, 108, 117) | dark #a1a1aa → rgb(161, 161, 170)
+//   --text-faint  light #6e6e77 → rgb(110, 110, 119) | dark #787881 → rgb(120, 120, 129)
+//
+// Fixtures: TabbarFidelityFixture (active head-tab, inactive dirty/clean tabs,
+// closable → close buttons, dirty-tab → dirty dot) covers AC-5/7/8/9/3;
+// TabbarBadgeFidelityFixture (active tab with badge=3) covers AC-6 — no other
+// fixture renders a badge. .tabbar scope + tokens.css (playwright/index.tsx) +
+// data-mstyle='soft' reproduce the production cascade (repo memory: CT fidelity
+// fixture scoping).
+// ---------------------------------------------------------------------------
+
+test.describe('[013] Tabs — WCAG contrast: fixed text-site colors (light + dark)', () => {
+  const TEXT_LIGHT = 'rgb(24, 24, 27)'
+  const TEXT_DARK = 'rgb(244, 244, 245)'
+  const MUTED_LIGHT = 'rgb(108, 108, 117)'
+  const MUTED_DARK = 'rgb(161, 161, 170)'
+  const FAINT_LIGHT = 'rgb(110, 110, 119)'
+  const FAINT_DARK = 'rgb(120, 120, 129)'
+
+  test.beforeEach(async ({ page }) => {
+    // soft mstyle keeps the cascade consistent with the fidelity suite; reduced
+    // motion so the .tabs__tab `transition: color 80ms` never yields a
+    // mid-transition color read. Default to light — dark tests set data-theme.
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.evaluate(() => {
+      document.documentElement.dataset.mstyle = 'soft'
+      delete document.documentElement.dataset.theme
+    })
+  })
+
+  test.afterEach(async ({ page }) => {
+    // Isolation: clear the dark attribute so a later test starts in light.
+    await page.evaluate(() => {
+      delete document.documentElement.dataset.theme
+    })
+  })
+
+  test('AC-5/7/8/9/3 (light): fixed Tabs text sites resolve to the synced tokens', async ({
+    mount,
+    page
+  }) => {
+    await mount(<TabbarFidelityFixture />)
+    const v = await page.evaluate(() => {
+      const active = document.querySelector('.tabbar .tabs__tab--active') as HTMLElement
+      const inactive = document.querySelector(
+        '.tabbar .tabs__tab:not(.tabs__tab--active)'
+      ) as HTMLElement
+      const close = document.querySelector('.tabbar .tabs__tab-close') as HTMLElement
+      const dirty = document.querySelector('.tabbar .tabs__tab-dirty') as HTMLElement
+      return {
+        active: window.getComputedStyle(active).color,
+        inactive: window.getComputedStyle(inactive).color,
+        close: window.getComputedStyle(close).color,
+        dirty: window.getComputedStyle(dirty).backgroundColor
+      }
+    })
+    expect(v.active).toBe(TEXT_LIGHT) // AC-5 active label → --text (was --accent, sub-AA)
+    expect(v.inactive).toBe(MUTED_LIGHT) // AC-7 inactive label → synced --text-muted
+    expect(v.close).toBe(FAINT_LIGHT) // AC-8 close icon → synced --text-faint
+    expect(v.dirty).toBe(FAINT_LIGHT) // AC-9 dirty dot bg → synced --text-faint
+    expect(v.active).not.toBe(v.inactive) // AC-3 active vs inactive stay distinct
+  })
+
+  test('AC-5/7/8/9/3 (dark): fixed Tabs text sites resolve to the synced dark tokens', async ({
+    mount,
+    page
+  }) => {
+    await mount(<TabbarFidelityFixture />)
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = 'dark'
+    })
+    const v = await page.evaluate(() => {
+      const active = document.querySelector('.tabbar .tabs__tab--active') as HTMLElement
+      const inactive = document.querySelector(
+        '.tabbar .tabs__tab:not(.tabs__tab--active)'
+      ) as HTMLElement
+      const close = document.querySelector('.tabbar .tabs__tab-close') as HTMLElement
+      const dirty = document.querySelector('.tabbar .tabs__tab-dirty') as HTMLElement
+      return {
+        active: window.getComputedStyle(active).color,
+        inactive: window.getComputedStyle(inactive).color,
+        close: window.getComputedStyle(close).color,
+        dirty: window.getComputedStyle(dirty).backgroundColor
+      }
+    })
+    expect(v.active).toBe(TEXT_DARK) // AC-5
+    expect(v.inactive).toBe(MUTED_DARK) // AC-7
+    expect(v.close).toBe(FAINT_DARK) // AC-8
+    expect(v.dirty).toBe(FAINT_DARK) // AC-9
+    expect(v.active).not.toBe(v.inactive) // AC-3
+  })
+
+  test('AC-6 (light): active-tab badge text resolves to --text and differs from its background', async ({
+    mount,
+    page
+  }) => {
+    await mount(<TabbarBadgeFidelityFixture />)
+    const v = await page.locator('.tabs__tab--active .tabs__badge').evaluate((el) => {
+      const s = window.getComputedStyle(el)
+      return { color: s.color, background: s.backgroundColor }
+    })
+    expect(v.color).toBe(TEXT_LIGHT)
+    // Guard against a white-on-white / clashing badge (cf. method-mstyle-background
+    // -override-chip): the badge text color must differ from its own background so
+    // the count stays legible on the --accent-soft pill.
+    expect(v.color).not.toBe(v.background)
+  })
+
+  test('AC-6 (dark): active-tab badge text resolves to --text and differs from its background', async ({
+    mount,
+    page
+  }) => {
+    await mount(<TabbarBadgeFidelityFixture />)
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = 'dark'
+    })
+    const v = await page.locator('.tabs__tab--active .tabs__badge').evaluate((el) => {
+      const s = window.getComputedStyle(el)
+      return { color: s.color, background: s.backgroundColor }
+    })
+    expect(v.color).toBe(TEXT_DARK)
+    expect(v.color).not.toBe(v.background)
   })
 })
