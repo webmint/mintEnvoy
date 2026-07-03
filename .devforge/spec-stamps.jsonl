@@ -7,3 +7,6 @@
 {"git_sha": "11bbde2ee33c17291fb821cc72aff8076dffd28a", "spec_path": "specs/010-request-bar-fidelity/spec.md", "stamped_at": "2026-06-28T19:10:46Z"}
 {"git_sha": "f072056da21bc87cd1d6e986a3694bc2d6e1a041", "spec_path": "specs/011-tab-width-cap/spec.md", "stamped_at": "2026-06-29T22:08:09Z"}
 {"git_sha": "4155f3ef0adc2fd7f5477b86b0c3197cca559f8a", "spec_path": "specs/012-requestbar-element-fidelity/spec.md", "stamped_at": "2026-06-30T21:35:26Z"}
+{"git_sha": "6c3f9f6b63fdeffb6de646dcea559f62cfd9c39e", "spec_path": "specs/013-tabs-contrast-wcag/spec.md", "stamped_at": "2026-07-02T07:52:00Z"}
+{"git_sha": "4cfa254778591151e230483ee969da2fe2dc4d60", "spec_path": "specs/013-tabs-contrast-wcag/spec.md", "stamped_at": "2026-07-02T09:53:08Z"}
+{"git_sha": "4cfa254778591151e230483ee969da2fe2dc4d60", "spec_path": "specs/013-tabs-contrast-wcag/spec.md", "stamped_at": "2026-07-02T09:54:51Z"}

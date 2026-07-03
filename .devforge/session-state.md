@@ -1,17 +1,17 @@
 # Session State — /implement
 
-**Feature**: 012-requestbar-element-fidelity
-**Progress**: 4/4 tasks complete
-**Updated**: 2026-07-01T09:21:02Z
+**Feature**: 013-tabs-contrast-wcag
+**Progress**: 3/3 tasks complete
+**Updated**: 2026-07-03T08:34:41Z
 
 ## Recent Task Modifications
 
-- [002] rebind requestbar css fidelity (Complete)
-- [003] rebind shared dropdown open-panel css (Complete)
-- [004] computed-style fidelity ct suite (Complete)
+- [001] Sync drifted muted and faint token values (?)
+- [002] Swap active-tab accent-on-light sites to text token (?)
+- [003] Add Tabs contrast CT assertions and re-baseline screenshots (?)
 
 ## Recent Decisions
 
-- {'task': '002', 'decision': 'kept height:100% on URL input (dead click-zones)'}
-- {'task': '003', 'decision': '1px inter-item gap incl separators; 004 verifies'}
-- {'task': '004', 'decision': 'chip 7-method computed-color block is the >=2 mstyle variant guard'}
+- Force-regenerated 3 baselines (darkening was within screenshot tolerance but baselines were stale)
+- Added TabbarBadgeFidelityFixture for AC-6 (no existing badge fixture)
+- Kept equality-not-ratio CT (ratio fragile vs semi-transparent accent-soft); qa re-reviewed ADEQUATE
