@@ -74,6 +74,30 @@ test.describe('Shell — Tabs molecule in tabs slot (content-decoupling proof)',
 })
 
 // ---------------------------------------------------------------------------
+// Shell — <main> landmark (WCAG 2.1 SC 2.4.1, bug 008 regression guard)
+// ---------------------------------------------------------------------------
+
+test.describe('Shell — main landmark (bug 008)', () => {
+  test('exactly one <main> landmark is present in the shell', async ({ mount, page }) => {
+    await mount(<ShellWithTabsFixture />)
+
+    // A single main landmark must exist so screen-reader users can skip to
+    // primary content. Two mains would be an a11y violation; zero is bug 008.
+    await expect(page.getByRole('main')).toHaveCount(1)
+    await expect(page.getByRole('main')).toBeVisible()
+  })
+
+  test('the <main> landmark wraps the tabs strip (primary content)', async ({ mount, page }) => {
+    await mount(<ShellWithTabsFixture />)
+
+    // The tabs strip is inside the workspace <main>; assert containment so the
+    // landmark cannot silently regress to wrapping the wrong region.
+    const tablist = page.getByRole('main').getByRole('tablist')
+    await expect(tablist).toBeVisible()
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Shell — collapse/expand; separator presence
 // ---------------------------------------------------------------------------
 

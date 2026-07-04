@@ -1,12 +1,12 @@
 # Bug 008: missing main landmark
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning
 **Source**: manual
 **Feature**: N/A
 **AC**: N/A
 **Reported**: 2026-06-30
-**Fixed**:
+**Fixed**: 2026-07-04
 
 ## Description
 
@@ -36,4 +36,11 @@ _None — standalone bug._
 
 ## Fix Notes
 
-_Filled in after resolution._
+Resolved by manual change in `src/renderer/src/components/organisms/shell/Shell.tsx:359`: the
+workspace wrapper was changed from `<div className="shell__workspace">` to
+`<main className="shell__workspace">`. The `<main>` renders unconditionally on the live path
+(`App.tsx:23` → `<Shell>` → workspace `<main>`), wrapping the primary content (tabs strip +
+request/response PaneSplit) and excluding Titlebar / Sidebar / Statusbar. One `<main>` landmark
+now ships (the only other `<main>`, `PrimitivesDemo.tsx:656`, has no callers and is not in the
+App tree), closing the WCAG 2.1 SC 2.4.1 (Level A) skip-to-content gap. Regression guard added:
+`Shell.ct.tsx` asserts exactly one `<main>` landmark wraps the workspace content.

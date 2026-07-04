@@ -356,13 +356,13 @@ export function Shell({ sidebar, tabs, panes, modals, className }: ShellProps): 
         <Sidebar>{sidebar}</Sidebar>
 
         {/* Right column: workspace — tabs strip above, pane split below */}
-        <div className="shell__workspace">
+        <main className="shell__workspace">
           {/* Tabs slot: tab-strip region; absent when no tabs content is provided */}
           {tabs != null && <div className="shell__tabs">{tabs}</div>}
 
           {/* Pane split: request / response workspace */}
           <PaneSplit request={panes?.request} response={panes?.response} />
-        </div>
+        </main>
       </div>
 
       {/* ---- Statusbar row ---- */}

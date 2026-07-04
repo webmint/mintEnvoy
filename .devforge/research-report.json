@@ -1,7 +1,7 @@
 {
-  "topic": "Bug 005: active-tab label color fails WCAG contrast and diverges from design contract",
-  "date": "2026-07-01",
-  "mode": "bug",
+  "topic": "Verify bug 008 (missing <main> landmark in app-shell) still valid after a manual change",
+  "date": "2026-07-04",
+  "mode": null,
   "symptom_snapshot": {
     "symptom": null,
     "affected_area": null,
@@ -10,213 +10,36 @@
     "scope": null,
     "unchanged_behavior": null
   },
-  "summary": "Bug 005 is confirmed: the active-tab label uses the decorative --accent token as text color (Tabs.css:149), measuring 2.29:1 on --bg-sunken and 2.54:1 on the #fff active wrapper \u2014 both fail WCAG 2.1 AA SC 1.4.3 and diverge from the contract idiom of promoting selected text to var(--text). A standalone probe reproduced every reported ratio and validated the fix (var(--text) = 15.98/17.72:1). The root cause is partly systemic: the palette has no AA-safe muted text step, so --text-muted (4.36:1) and --text-faint (~2.3:1) are used as text/icon across ~9 components (siblings 006/007 are the Tabs instances), and contract \u00a75 itself prescribes these sub-AA tokens. Recommended fix is scoped: point the active label at var(--text) (contract-aligned), add an additive --text-secondary token for the inactive label (006), and promote the close icon to --text-muted (007) \u2014 deferring the project-wide token-ramp remediation and the required contract \u00a75 amendment to a follow-up.",
-  "findings": [
-    {
-      "surface": "Token def: --text-muted (systemic ramp gap)",
-      "file_line": "src/renderer/styles/tokens.css:28",
-      "relevance": "--text-muted #71717a = 4.36:1 on --bg-sunken, below WCAG AA 4.5:1; no token exists between --text-muted and --text, so no AA-safe muted text step in the ramp",
-      "framing": "primary"
-    },
-    {
-      "surface": "005 symptom: active-tab label color",
-      "file_line": "src/renderer/src/components/molecules/Tabs.css:149",
-      "relevance": "active label color:var(--accent)#10b981 = 2.29:1 / 2.54:1, fails 1.4.3; .tabbar override (480-481) sets only box-shadow+bg so inherits this color -> one fix covers both variants",
-      "framing": "primary"
-    },
-    {
-      "surface": "006 sibling: inactive-tab label color",
-      "file_line": "src/renderer/src/components/molecules/Tabs.css:97",
-      "relevance": "inactive label color:var(--text-muted) = 4.36:1, marginally fails 1.4.3; contract \u00a75 line 130 prescribes this same sub-AA token",
-      "framing": "primary"
-    },
-    {
-      "surface": "007 sibling: close-button icon color",
-      "file_line": "src/renderer/src/components/molecules/Tabs.css:326",
-      "relevance": "close icon color:var(--text-faint) = 2.31/2.56:1, fails 1.4.11 (3:1 non-text); contract \u00a75 line 133 prescribes this same sub-AA token",
-      "framing": "primary"
-    },
-    {
-      "surface": "Token def: --text-faint",
-      "file_line": "src/renderer/styles/tokens.css:29",
-      "relevance": "--text-faint #a1a1aa ~2.31:1; used as text/icon in ~7 sites; only clears 3:1 when promoted, never 4.5:1 text",
-      "framing": "primary"
-    },
-    {
-      "surface": "Canonical AA-safe idiom: promote interactive text to --text",
-      "file_line": "src/renderer/src/components/molecules/Tabs.css:120",
-      "relevance": "canonical pattern \u2014 reusable: existing hover rule promotes tab text to color:var(--text)#18181b (AA-safe ~14:1); 005 active label should reuse this token idiom rather than inventing a value",
-      "framing": "primary"
-    },
-    {
-      "surface": "Runner-up falsifier (REFUTED): project-wide muted-as-text",
-      "file_line": "src/renderer/src/components/molecules/Modal.css:117",
-      "relevance": "refutes component-local framing: --text-muted used as text color in ~18 sites across 9 components (Modal, Toast, Dropdown, TabBar, RequestBar, Statusbar, Titlebar, PrimitivesDemo, Tabs) \u2014 the sub-AA failure is systemic, not Tabs-local",
-      "framing": "runner-up"
-    }
-  ],
-  "hypotheses": [
-    {
-      "label": "A",
-      "cause": "Systemic: active-tab label assigns the decorative --accent token to text (Tabs.css:149), and the palette provides no AA-safe muted text step \u2014 --text-muted (4.36:1) and --text-faint (~2.3:1) are both defined below AA yet used as text across ~9 components.",
-      "falsifier": "If --accent #10b981 measured >=4.5:1 on --bg-sunken/#fff, or if --text-muted/--text-faint were used only decoratively (never color:), there would be no text-contrast violation.",
-      "runtime_probe_needed": false
-    },
-    {
-      "label": "B",
-      "cause": "Component-local: only Tabs.css picked wrong tokens; an isolated 3-rule swap in Tabs.css fully resolves it with no token-file change.",
-      "falsifier": "Other components using --text-muted/--text-faint as color: (text) \u2014 a project-wide grep shows ~18 muted + ~7 faint text sites, refuting Tabs-locality.",
-      "runtime_probe_needed": false
-    }
-  ],
-  "root_cause_hypothesis": "Active-tab label sets color:var(--accent) (Tabs.css:149), a decorative green token that is not an AA-safe text color (2.29:1 / 2.54:1). Systemically, the token palette has no AA-verified muted text step: --text-muted (4.36:1) and --text-faint (~2.3:1) are below AA for text yet used as text/icon color across ~9 components, and design-contract \u00a75 itself prescribes these sub-AA tokens.",
-  "confidence": "Confirmed",
-  "structured_root_cause": {
-    "trigger": "Active-tab rule Tabs.css:149 assigns color:var(--accent) (green decorative token) to 12.5px label text.",
-    "root_cause_systemic": "Design-token palette provides no AA-verified muted text ramp: --text-muted #71717a (4.36:1) and --text-faint #a1a1aa (~2.3:1) are both below AA for text but used as text/icon across ~9 components; the contract \u00a75 prescribes these sub-AA tokens, so there is no AA-safe intermediate token for muted label text.",
-    "contributing_factors": [
-      "Design-fidelity-contract \u00a75 prescribes the failing tokens (base tab --text-muted, close --text-faint), so the implementation faithfully reproduced a sub-AA design.",
-      "No automated WCAG-contrast gate in CT/design-fidelity tests; the violations surfaced only via design-auditor during feature 011 review.",
-      "No token exists between --text-muted and --text, so there was no obvious AA-safe token for muted label text (006)."
-    ]
-  },
+  "summary": null,
+  "findings": [],
+  "hypotheses": [],
+  "root_cause_hypothesis": null,
+  "confidence": null,
+  "structured_root_cause": null,
   "verify_step": null,
-  "approaches": [
-    {
-      "name": "Scoped Tabs fix + additive --text-secondary token",
-      "description": "Point the active-label color at var(--text) (Tabs.css:149, contract-aligned). For 007, promote the close icon to var(--text-muted) (Tabs.css:326), which clears the 3:1 non-text bar (4.36/4.83:1). For 006, add a NEW additive token --text-secondary (light #52525b ~6.97:1, dark parity) in tokens.css and use it for the inactive label (Tabs.css:97); being additive it touches no existing consumer. The .tabbar variant inherits Tabs.css:149 so no extra site is needed.",
-      "addresses_hypotheses": [
-        "A"
-      ],
-      "does_not_cover": [
-        "B"
-      ],
-      "pros": [
-        "005 is contract-aligned and self-contained",
-        "new token is additive: zero regression to the ~17 other --text-muted consumers",
-        "reuses the existing promote-to-var(--text) idiom (Tabs.css:120)",
-        "keeps active vs inactive distinction (--text vs --text-secondary)"
-      ],
-      "cons": [
-        "006/007 diverge from contract \u00a75 which prescribes the sub-AA tokens -> needs a contract amendment",
-        "leaves the project-wide sub-AA --text-muted/--text-faint text usage unfixed",
-        "introduces a new token that must be documented + dark-theme tuned"
-      ],
-      "complexity": "Low"
-    },
-    {
-      "name": "Global token-ramp remediation in tokens.css",
-      "description": "Redefine --text-muted from #71717a to an AA-safe value (~#52525b) plus dark parity, fixing all ~18 text consumers at once, and stop using --text-faint as text. Single source of truth for the muted text step.",
-      "addresses_hypotheses": [
-        "A"
-      ],
-      "does_not_cover": [],
-      "pros": [
-        "fixes the systemic root, every component benefits",
-        "single source of truth for the text ramp"
-      ],
-      "cons": [
-        "changes visual weight across 9 components",
-        "needs full design review + CT screenshot re-baseline",
-        "scope explosion far beyond ticket 005",
-        "risks regressing the intended muted hierarchy",
-        "still requires contract \u00a75 amendment"
-      ],
-      "complexity": "High"
-    }
-  ],
-  "recommended_approach": {
-    "name": "Scoped Tabs fix + additive --text-secondary token",
-    "rationale": "This is the confirmed 005 fix and stays contract-aligned: give the active label an AA-safe foreground (var(--text)), matching the contract idiom for selected text, and reuse the existing promote-to-foreground hover pattern rather than inventing a value \u2014 satisfying Search Before Building. An additive secondary-foreground variable fixes 006 with zero impact on the ~17 other muted-text consumers, honoring unchanged_behavior: the active versus inactive distinction is preserved (var(--text) beside var(--text-secondary)) and dark-theme parity is kept. Project-wide ramp remediation and the \u00a75 amendment for 006/007 are deferred to a follow-up so this ticket stays within its endorsed scope.",
-    "hypotheses_addressed": [
-      "A"
-    ],
-    "hypotheses_not_covered": [
-      "B"
-    ],
-    "single_layer_justification": "The symptom and its fix are genuinely local to the renderer styling layer: the color values live in tokens.css and are consumed by component CSS rules; there is no application/domain layer to cross for a static presentation-token defect. The single Electron-renderer package (src/renderer) holds both the definitions and the consumers.",
-    "cites": [
-      "Tabs.css .tabs__tab--active color rule"
-    ],
-    "proposed_call_shape": "var(--text)"
-  },
-  "constitution_constraints": [
-    {
-      "rule": "\u00a76.3 Search Before Building",
-      "impact": "Reuse the existing AA-safe idiom at Tabs.css:120 (promote interactive text to var(--text)) for the 005 active-label fix instead of inventing a color; no new helper needed for 005."
-    },
-    {
-      "rule": "Design Fidelity (contract \u00a75)",
-      "impact": "005 fix aligns with contract \u00a75's active-text-promotes-to-var(--text) idiom. 006/007 fixes DIVERGE from \u00a75 (which prescribes --text-muted/--text-faint) and therefore require a contract \u00a75 amendment before implementation."
-    }
-  ],
-  "complexity": {
-    "codebase_changes": "Low",
-    "codebase_notes": "3 CSS declarations in Tabs.css + 1 additive token (light+dark) in tokens.css; ~5 lines",
-    "risk": "Med",
-    "risk_notes": "must preserve active/inactive distinction (avoid 006 collapsing to --text) and verify dark-theme parity; 006/007 need contract \u00a75 amendment first",
-    "verify_cost": "Low",
-    "verify_notes": "executable contrast probe already validates all pairs; CT/design-fidelity screenshot re-baseline for Tabs"
-  },
+  "approaches": [],
+  "recommended_approach": null,
+  "constitution_constraints": [],
+  "complexity": null,
   "open_uncertainties": [],
-  "verdict": "Root cause confirmed",
-  "next_step_text": "## Next step\n\nCopy the block below into a new `/specify` session manually. No automation \u2014 user controls when (or if) `/specify` runs.\n\n~~~\n/specify \"Active-tab label renders var(--accent)#10b981 = 2.29:1 on --bg-sunken and 2.54:1 on #fff active wrapper; both fail WCAG 2.1 AA SC 1.4.3 (4.5:1 for 12.5px). Also diverges from design-fidelity-contract \u00a75 which prescribes active-tab color: var(--text) #18181b. \u2014 005 (this ticket): active-tab label color var(--accent)#10b981 -> var(--text)#18181b, meets WCAG AA 1.4.3 (~14:1) and design-contract \u00a75. Combined-pass siblings: 007 close-icon var(--text-faint)#a1a1aa -> var(--text-muted)#71717a (clears 3:1 non-text 1.4.11); 006 inactive label var(--text-muted)#71717a -> needs >=4.5:1 but no existing token sits between --text-muted and --text, so likely a new mid token (~#52525b) to keep active/inactive distinction.\"\n\nResearch reference: research/2026-07-01-bug-005-active-tab.md\nKey facts:\n- Mode: Bug\n- Symptom: Active-tab label renders var(--accent)#10b981 = 2.29:1 on --bg-sunken and 2.54:1 on #fff active wrapper; both fail WCAG 2.1 AA SC 1.4.3 (4.5:1 for 12.5px). Also diverges from design-fidelity-contract \u00a75 which prescribes active-tab color: var(--text) #18181b.\n- Desired: 005 (this ticket): active-tab label color var(--accent)#10b981 -> var(--text)#18181b, meets WCAG AA 1.4.3 (~14:1) and design-contract \u00a75. Combined-pass siblings: 007 close-icon var(--text-faint)#a1a1aa -> var(--text-muted)#71717a (clears 3:1 non-text 1.4.11); 006 inactive label var(--text-muted)#71717a -> needs >=4.5:1 but no existing token sits between --text-muted and --text, so likely a new mid token (~#52525b) to keep active/inactive distinction.\n- Recommended approach: Scoped Tabs fix + additive --text-secondary token\n- Hypothesis addressed: A\n- Hypotheses NOT covered: B\n- Open uncertainties: 0 (see research doc \u00a7Open Uncertainties)\n~~~\n",
-  "runner_up_framing": {
-    "frame": "Component-local mis-token: only Tabs.css picks wrong color tokens; fix is a purely local 3-rule swap in Tabs.css with no token-file change.",
-    "falsifier": "Other components also use --text-muted/--text-faint in text roles (color:) \u2014 if they do, the sub-AA failure is project-wide/systemic, not Tabs-local.",
-    "confidence_vs_primary": "lower"
-  },
-  "fix_path_helpers": [
-    {
-      "qn": "--text-muted (token)",
-      "file_line": "src/renderer/styles/tokens.css:28"
-    }
-  ],
-  "inbound_callers": [
-    {
-      "helper_qn": "--text-muted (token)",
-      "caller_qn": "Tabs.css .tabs__tab inactive-label rule",
-      "file_line": "src/renderer/src/components/molecules/Tabs.css:97"
-    },
-    {
-      "helper_qn": "--text-muted (token)",
-      "caller_qn": "Modal.css muted-text rule (one of ~18 project-wide consumers)",
-      "file_line": "src/renderer/src/components/molecules/Modal.css:117"
-    }
-  ],
+  "verdict": null,
+  "next_step_text": null,
+  "runner_up_framing": null,
+  "fix_path_helpers": [],
+  "inbound_callers": [],
   "dead_siblings": [],
-  "consumer_chain": [
-    {
-      "value": "active-tab-label-color",
-      "consumer_qn": "Tabs.css .tabs__tab--active color rule",
-      "file_line": "src/renderer/src/components/molecules/Tabs.css:149",
-      "role": "renders the active-tab label text \u2014 the visible 005 symptom surface"
-    }
-  ],
+  "consumer_chain": [],
   "value_semantics": [],
   "helper_rejection_log": [],
   "data_flow_chain": null,
   "value_production_sites": [],
   "literal_archaeology": [],
   "probe_feasibility": {
-    "data_shape_only": true,
-    "auth_required": false,
-    "network_dependent": false,
-    "timing_dependent": false,
-    "is_test_code": false
+    "data_shape_only": null,
+    "auth_required": null,
+    "network_dependent": null,
+    "timing_dependent": null,
+    "is_test_code": null
   },
-  "probe_scripts": [
-    {
-      "script_path": "research/2026-07-01-bug-005-active-tab/probe-script.mjs",
-      "runtime": "node",
-      "inlines_from": [
-        "src/renderer/styles/tokens.css:28",
-        "src/renderer/styles/tokens.css:29",
-        "src/renderer/src/components/molecules/Tabs.css:149",
-        "src/renderer/src/components/molecules/Tabs.css:97",
-        "src/renderer/src/components/molecules/Tabs.css:326"
-      ],
-      "recorded_at": "2026-07-02T06:04:48+00:00"
-    }
-  ]
+  "probe_scripts": []
 }
