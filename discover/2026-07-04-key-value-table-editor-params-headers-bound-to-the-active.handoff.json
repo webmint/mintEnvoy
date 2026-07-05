@@ -283,7 +283,10 @@
       "verify_cost": "Med"
     },
     "recommended_option_id": "A",
-    "recommended_option_rationale": "It is the only option that satisfies the no-local-copy + external-mutation-race requirements by construction rather than by careful reconciliation \u2014 the cURL-import race (Option B's fatal flaw) simply cannot occur because there is no local buffer to go stale. It reuses the existing updateActiveSpec write path (spec 004) with zero new store surface, where Option C adds four actions and leaks KV specifics into the generic tab store for no functional gain. The never-zero guard and the 'empty row has no delete affordance' rule fall out of the virtual trailing row for free. The only real cost \u2014 a store write per keystroke \u2014 is a non-issue at the confirmed <50-row scale (virtualization is explicitly out of scope). Focus management (the genuine risk) is addressed the same way in any option and is pinned as a required CT scenario."
+    "recommended_option_rationale": "It is the only option that satisfies the no-local-copy + external-mutation-race requirements by construction rather than by careful reconciliation \u2014 the cURL-import race (Option B's fatal flaw) simply cannot occur because there is no local buffer to go stale. It reuses the existing updateActiveSpec write path (spec 004) with zero new store surface, where Option C adds four actions and leaks KV specifics into the generic tab store for no functional gain. The never-zero guard and the 'empty row has no delete affordance' rule fall out of the virtual trailing row for free. The only real cost \u2014 a store write per keystroke \u2014 is a non-issue at the confirmed <50-row scale (virtualization is explicitly out of scope). Focus management (the genuine risk) is addressed the same way in any option and is pinned as a required CT scenario.",
+    "_effort_estimate": "Low",
+    "_overall_fit": "Good",
+    "_derisk_count": 3
   },
   "discovery_block": {
     "overall_fit": "Good",
@@ -398,7 +401,7 @@
     ]
   },
   "downstream_links": {
-    "spec_path": null,
+    "spec_path": "specs/014-key-value-table-editor-params-headers-bound-to-the-active/spec.md",
     "plan_path": null,
     "execute_task_commit_shas": []
   },

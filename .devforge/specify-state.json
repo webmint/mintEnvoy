@@ -1,337 +1,348 @@
 {
   "topic": null,
   "topic_slug": null,
-  "date": "2026-07-02",
-  "spec_number": "013",
-  "feature_name": "tabs-contrast-wcag",
-  "feature_slug": "tabs-contrast-wcag",
-  "spec_type": "bug_fix",
-  "spec_type_rationale": "existing Tabs.css renders accent-as-text (real) plus stale design tokens; fix = token sync + 2 accent swaps",
-  "spec_type_seeded_by_upstream": false,
+  "date": "2026-07-04",
+  "spec_number": "014",
+  "feature_name": "kv-table-editor",
+  "feature_slug": "kv-table-editor",
+  "spec_type": "greenfield_feature",
+  "spec_type_rationale": "KVTable is net-new code \u2014 0 internal implementations of the key-value-editor capability; scaffolds a new organisms/request/ component + lib/ validVars selector, reusing the existing tabsStore/tokens.css substrate (discover 2026-07-04).",
+  "spec_type_seeded_by_upstream": true,
   "status": "Draft",
   "design_source": "html:design/reference.html",
-  "current_branch": null,
-  "default_branch": null,
-  "branch_decision": null,
-  "branch_created": null,
+  "current_branch": "spec/014-kv-table-editor",
+  "default_branch": "main",
+  "branch_decision": "keep",
+  "branch_created": false,
   "input_reads": [
     {
       "path": "constitution.md",
       "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:47Z"
-    },
-    {
-      "path": "CLAUDE.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:47Z"
-    },
-    {
-      "path": "docs/architecture.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:48Z"
-    },
-    {
-      "path": "docs/glossary.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:48Z"
-    },
-    {
-      "path": ".devforge/memory.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:48Z"
+      "read_timestamp": "2026-07-04T17:50:53Z"
     },
     {
       "path": ".claude/memory/MEMORY.md",
       "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:48Z"
+      "read_timestamp": "2026-07-04T17:50:53Z"
     },
     {
-      "path": "design/styles.css",
+      "path": "CLAUDE.md",
       "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:48Z"
+      "read_timestamp": "2026-07-04T17:50:53Z"
     },
     {
-      "path": "src/renderer/styles/tokens.css",
+      "path": "docs/architecture.md",
       "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:48Z"
+      "read_timestamp": "2026-07-04T17:50:54Z"
     },
     {
-      "path": "src/renderer/src/components/molecules/Tabs.css",
+      "path": "docs/renderer/index.md",
       "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:48Z"
+      "read_timestamp": "2026-07-04T17:50:54Z"
     },
     {
-      "path": "design/design-fidelity-contract.md",
+      "path": ".devforge/memory.md",
       "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:48Z"
+      "read_timestamp": "2026-07-04T17:50:54Z"
     },
     {
-      "path": "research/2026-07-01-bug-005-active-tab.md",
-      "source_origin": "research",
-      "read_timestamp": "2026-07-02T09:32:49Z"
+      "path": "specs/004-working-tabs-state-machine/spec.md",
+      "source_origin": "prior_spec",
+      "read_timestamp": "2026-07-04T17:50:54Z"
     },
     {
-      "path": "bugs/005-active-tab-text-contrast.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:49Z"
-    },
-    {
-      "path": "bugs/006-inactive-tab-text-contrast.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:49Z"
-    },
-    {
-      "path": "bugs/007-close-button-icon-contrast.md",
-      "source_origin": "context",
-      "read_timestamp": "2026-07-02T09:32:49Z"
+      "path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
+      "source_origin": "discover",
+      "read_timestamp": "2026-07-04T17:50:54Z"
     }
   ],
   "phase1_finalized": true,
   "findings": [
     {
-      "finding_id": "F-styles-1",
-      "source_path": "design/styles.css",
-      "source_section": "tokens",
-      "content": "Design source declares AA-darkened light tokens: --text-muted #6c6c75, --text-faint #6e6e77 (already fixed at source).",
-      "landed_in": "AC",
-      "landed_ref": "AC-7"
-    },
-    {
-      "finding_id": "F-styles-2",
-      "source_path": "design/styles.css",
-      "source_section": "dark",
-      "content": "Design source dark --text-faint #787881; dark --text-muted #a1a1aa unchanged (already matched app).",
-      "landed_in": "AC",
-      "landed_ref": "AC-1"
-    },
-    {
-      "finding_id": "F-styles-3",
-      "source_path": "design/styles.css",
-      "source_section": "SoT",
-      "content": "design/styles.css is the design source of truth; both tokens.css and design-fidelity-contract \u00a75 derive from it \u2014 sync target, do not hand-edit derivatives.",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-4"
-    },
-    {
-      "finding_id": "F-tokens-1",
-      "source_path": "src/renderer/styles/tokens.css",
-      "source_section": "stale-light",
-      "content": "App light tokens are STALE: --text-muted #71717a (should be #6c6c75), --text-faint #a1a1aa (should be #6e6e77).",
-      "landed_in": "AC",
-      "landed_ref": "AC-1"
-    },
-    {
-      "finding_id": "F-tokens-2",
-      "source_path": "src/renderer/styles/tokens.css",
-      "source_section": "stale-dark",
-      "content": "App dark --text-faint #71717a is stale (should be #787881); dark --text-muted #a1a1aa already correct.",
-      "landed_in": "AC",
-      "landed_ref": "AC-1"
-    },
-    {
-      "finding_id": "F-tokens-3",
-      "source_path": "src/renderer/styles/tokens.css",
-      "source_section": "scope",
-      "content": "Full token diff: ONLY these 3 color values drifted; every other token matches design/styles.css \u2014 the fix is a 3-value sync, nothing more.",
-      "landed_in": "OOS",
-      "landed_ref": "OOS-2"
-    },
-    {
-      "finding_id": "F-tabs-1",
-      "source_path": "src/renderer/src/components/molecules/Tabs.css",
-      "source_section": "active",
-      "content": "Tabs.css:149 active label color:var(--accent) = 2.29/2.54:1 \u2014 genuine fail, independent of token drift; needs var(--text).",
-      "landed_in": "AC",
-      "landed_ref": "AC-5"
-    },
-    {
-      "finding_id": "F-tabs-2",
-      "source_path": "src/renderer/src/components/molecules/Tabs.css",
-      "source_section": "badge",
-      "content": "Tabs.css:233 active-badge text color:var(--accent) on var(--accent-soft) \u2014 genuine accent-as-text fail; needs var(--text).",
-      "landed_in": "AC",
-      "landed_ref": "AC-6"
-    },
-    {
-      "finding_id": "F-tabs-3",
-      "source_path": "src/renderer/src/components/molecules/Tabs.css",
-      "source_section": "sync-fixed",
-      "content": "Tabs.css:97 inactive (var(--text-muted)), :326 close (var(--text-faint)), :388 dirty-dot bg (var(--text-faint)) all reach AA via the token sync \u2014 no per-site swap needed.",
-      "landed_in": "AC",
-      "landed_ref": "AC-8"
-    },
-    {
-      "finding_id": "F-tabs-4",
-      "source_path": "src/renderer/src/components/molecules/Tabs.css",
-      "source_section": "tabbar",
-      "content": "Tabs.css:480-481 .tabbar active override sets only box-shadow+background -> inherits line 149 color; one active-label swap covers both variants.",
-      "landed_in": "Risk",
-      "landed_ref": "Risk-3"
-    },
-    {
-      "finding_id": "F-2026-07-01-bug-005-active-tab-1",
-      "source_path": "research/2026-07-01-bug-005-active-tab.md",
-      "source_section": "root-cause",
-      "content": "Confirmed root cause for the active label: decorative --accent used as text (2.29/2.54:1); probe validated var(--text) passes.",
-      "landed_in": "AC",
-      "landed_ref": "AC-5"
-    },
-    {
-      "finding_id": "F-2026-07-01-bug-005-active-tab-2",
-      "source_path": "research/2026-07-01-bug-005-active-tab.md",
-      "source_section": "superseded",
-      "content": "SUPERSEDED premise: research assumed no token between --text-muted and --text and proposed a new --text-secondary; the design source already darkened --text-muted/--text-faint, so no new token is needed.",
-      "landed_in": "AC",
-      "landed_ref": "AC-2"
-    },
-    {
-      "finding_id": "F-2026-07-01-bug-005-active-tab-3",
-      "source_path": "research/2026-07-01-bug-005-active-tab.md",
-      "source_section": "systemic-resolved",
-      "content": "Research's systemic finding (--text-muted used as text in ~18 sites) is RESOLVED by the token sync here, not deferred to a follow-up ramp spec.",
-      "landed_in": "Risk",
-      "landed_ref": "Risk-2"
-    },
-    {
       "finding_id": "F-constitution-1",
       "source_path": "constitution.md",
-      "source_section": "reuse",
-      "content": "\u00a76.3 Search Before Building \u2014 sync existing tokens; invent no new token.",
+      "source_section": "\u00a72.2/\u00a75.2",
+      "content": "requestSpec is a pure data module imported by tabsStore, NEVER by components. KVTable must obtain the Row type WITHOUT a value import of requestSpec \u2014 type-only import chosen (DP-data_flow_state-2).",
       "landed_in": "Constraint",
-      "landed_ref": "Constraint-2"
+      "landed_ref": ""
     },
     {
       "finding_id": "F-constitution-2",
       "source_path": "constitution.md",
-      "source_section": "tokens",
-      "content": "Prefer design tokens over literals; never inline styles \u2014 changes are token values + var() refs only.",
+      "source_section": "\u00a73.2/\u00a74",
+      "content": "Boundary lookups degrade gracefully instead of throwing (resolveIcon fallback). validVars lookup is a boundary read \u2192 \u2205-default selector when env store absent; never flag-everything-missing on a project with no environment.",
       "landed_in": "Constraint",
-      "landed_ref": "Constraint-3"
+      "landed_ref": ""
     },
     {
       "finding_id": "F-constitution-3",
       "source_path": "constitution.md",
-      "source_section": "tier",
-      "content": "\u00a72.2 renderer tier: tokens live in styles/tokens.css; molecule CSS under molecules/.",
+      "source_section": "\u00a74 Never Do",
+      "content": "Never use inline styles \u2014 class-based via cx(); prefer tokens.css custom properties over literal values. Forbids the design-export cruft (data-om-*, __OmT, inline styles, tweaks-panel).",
       "landed_in": "Constraint",
-      "landed_ref": "Constraint-5"
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-constitution-4",
+      "source_path": "constitution.md",
+      "source_section": "\u00a73.3 Naming",
+      "content": "Components PascalCase one-per-file + sibling .css; stores/lib camelCase; tests co-located __tests__ split .test.tsx (Vitest) / .ct.tsx (Playwright CT).",
+      "landed_in": "Constraint",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-constitution-5",
+      "source_path": "constitution.md",
+      "source_section": "\u00a74 Always/\u00a75.2",
+      "content": "Mutate zustand state only through store actions; consume via per-field selectors. KVTable writes via updateActiveSpec, reads via selector \u2014 no ad-hoc mutation.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-constitution-6",
+      "source_path": "constitution.md",
+      "source_section": "\u00a73.1 Type Safety",
+      "content": "Strict mode, no implicit any; prefer unknown + type guard at boundaries. Tokeniser, Row[] transforms, and the 'params'|'headers' field-prop union fully typed.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-constitution-7",
+      "source_path": "constitution.md",
+      "source_section": "\u00a73.6/\u00a76.3 Reuse",
+      "content": "SOLID/DRY/KISS; reuse updateActiveSpec, tokens.css, cx(), adopted radix-ui \u2014 no new runtime dependency for v1.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-claude-1",
+      "source_path": "CLAUDE.md",
+      "source_section": "Build/Type/Lint",
+      "content": "typecheck = npm run typecheck:node && npm run typecheck:web; lint = eslint --cache .; build = npm run typecheck && electron-vite build.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-claude-2",
+      "source_path": "CLAUDE.md",
+      "source_section": "Renderer structure",
+      "content": "components/{atoms,molecules,organisms}/ + lib/ + styles/tokens.css. Domain-bound components \u2192 organisms/<domain>/ (>=2 \u2192 subfolder).",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-claude-3",
+      "source_path": "CLAUDE.md",
+      "source_section": "Constitution-is-law",
+      "content": "constitution.md overrides; every change minimal; never modify code outside task scope; read before write; document new code.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
     },
     {
       "finding_id": "F-architecture-1",
       "source_path": "docs/architecture.md",
-      "source_section": "ssot",
-      "content": "tokens.css is the renderer design-token SSOT \u2014 the correct single edit point for a value sync.",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-4"
+      "source_section": "Working-tabs state machine",
+      "content": "tabsStore.updateActiveSpec(patch) shallow-merges Partial<RequestSpec> with a strict-=== no-op guard. RequestBar is the spec-edit subscriber precedent (per-field selectors + updateActiveSpec). KVTable follows this pattern.",
+      "landed_in": "AC",
+      "landed_ref": ""
     },
     {
       "finding_id": "F-architecture-2",
       "source_path": "docs/architecture.md",
-      "source_section": "styling",
-      "content": "Styling: semantic classes bound to tokens; no inline styles.",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-3"
-    },
-    {
-      "finding_id": "F-architecture-3",
-      "source_path": "docs/architecture.md",
-      "source_section": "a11y",
-      "content": "Tabs is accessibility-conscious (hand-rolled WAI-ARIA to pass axe) \u2014 a contrast fix is in-character; color-only, engine untouched.",
-      "landed_in": "Constraint",
-      "landed_ref": "Constraint-6"
-    },
-    {
-      "finding_id": "F-memory-1",
-      "source_path": ".claude/memory/MEMORY.md",
-      "source_section": "ct-scope",
-      "content": "CT fidelity tests must reproduce full styling context (tokens.css import + data-theme + production className scope).",
-      "landed_in": "Risk",
-      "landed_ref": "Risk-1"
-    },
-    {
-      "finding_id": "F-memory-2",
-      "source_path": ".claude/memory/MEMORY.md",
-      "source_section": "borderbox",
-      "content": "Do not global-import base.css in CT (breaks screenshot baselines); scope box-sizing to the fixture.",
-      "landed_in": "Risk",
-      "landed_ref": "Risk-1"
-    },
-    {
-      "finding_id": "F-memory-3",
-      "source_path": ".claude/memory/MEMORY.md",
-      "source_section": "variants",
-      "content": "Single-variant CT lets others ship broken \u2014 cover BOTH light and dark themes.",
-      "landed_in": "Risk",
-      "landed_ref": "Risk-1"
-    },
-    {
-      "finding_id": "F-design-fidelity-contract-1",
-      "source_path": "design/design-fidelity-contract.md",
-      "source_section": "prescribes",
-      "content": "Contract \u00a75 (lines 130,133) prescribes var(--text-muted)/var(--text-faint) \u2014 already correct once tokens sync; no amendment needed.",
+      "source_section": "Overlay substrate",
+      "content": "radix-ui unified package owns overlays (Dropdown/Modal/Toast); project adds only what Radix lacks. Deferred autocomplete would compose Radix Popover \u2014 no new library.",
       "landed_in": "OOS",
       "landed_ref": ""
     },
     {
-      "finding_id": "F-design-fidelity-contract-2",
-      "source_path": "design/design-fidelity-contract.md",
-      "source_section": "derives",
-      "content": "Contract derives from design/styles.css; hand-editing \u00a75 would desync it from its source.",
+      "finding_id": "F-architecture-3",
+      "source_path": "docs/architecture.md",
+      "source_section": "CT hazard \u2014 Radix dismiss",
+      "content": "Radix overlay click-outside CTs must gate on DismissableLayer's setTimeout(0) pointerdown listener (await animations + yield macrotask). Relevant only if the deferred autocomplete Popover ships; v1 grid has no overlay.",
       "landed_in": "OOS",
-      "landed_ref": "OOS-3"
+      "landed_ref": ""
     },
     {
-      "finding_id": "F-design-fidelity-contract-3",
-      "source_path": "design/design-fidelity-contract.md",
-      "source_section": "active-idiom",
-      "content": "Contract idiom promotes selected/active text to var(--text) (body-radio.active) \u2014 grounds the active-label + badge swaps.",
+      "finding_id": "F-architecture-4",
+      "source_path": "docs/architecture.md",
+      "source_section": "Styling + test stack",
+      "content": "Semantic classes bound to tokens.css, sibling .css, no inline. Tests: Vitest+testing-library (jsdom); Playwright experimental-ct-react (Chromium); globs .test/.spec/.ct .ts/.tsx.",
       "landed_in": "AC",
-      "landed_ref": "AC-5"
+      "landed_ref": ""
     },
     {
-      "finding_id": "F-005-active-tab-text-contrast-1",
-      "source_path": "bugs/005-active-tab-text-contrast.md",
-      "source_section": "desc",
-      "content": "005: active-tab label var(--accent) fails 1.4.3 (2.29/2.54:1) \u2014 the genuine accent swap.",
+      "finding_id": "F-index-1",
+      "source_path": "docs/renderer/index.md",
+      "source_section": "File tree + placement",
+      "content": "Organisms are domain singletons (RequestBar/TabBar/Sidebar); molecules domain-agnostic. KVTable is request-domain-bound \u2192 organisms/request/ subfolder (DP-scope_boundaries-1); one reusable file instanced twice.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-index-2",
+      "source_path": "docs/renderer/index.md",
+      "source_section": "requestSpec exports",
+      "content": "requestSpec.ts exports RequestSpec, Row, Auth union, isBearerAuth guard, makeBlankRequest factory; method typed HttpMethod. Row is the KVTable row shape.",
       "landed_in": "Constraint",
-      "landed_ref": "Constraint-1"
+      "landed_ref": ""
     },
     {
-      "finding_id": "F-005-active-tab-text-contrast-2",
-      "source_path": "bugs/005-active-tab-text-contrast.md",
-      "source_section": "origin",
-      "content": "Pre-existing; surfaced by design-auditor during feature 011; file Tabs.css.",
+      "finding_id": "F-index-3",
+      "source_path": "docs/renderer/index.md",
+      "source_section": "RequestBar precedent",
+      "content": "RequestBar.tsx is the pattern to mirror: organism reading active-tab spec via per-field selectors, writing via updateActiveSpec + markClean, styled via tokens-bound sibling .css.",
       "landed_in": "AC",
-      "landed_ref": "AC-5"
+      "landed_ref": ""
     },
     {
-      "finding_id": "F-005-active-tab-text-contrast-3",
-      "source_path": "bugs/005-active-tab-text-contrast.md",
-      "source_section": "status",
-      "content": "Severity Warning, Status Open.",
+      "finding_id": "F-spec-1",
+      "source_path": "specs/004-working-tabs-state-machine/spec.md",
+      "source_section": "Row shape + serializable",
+      "content": "Row = {enabled:boolean,key:string,value:string,description:string}; params/headers: Row[]. RequestSpec is plain serializable (JSON round-trips, no class instances/Symbols) \u2014 KVTable writes plain Row objects (004 Q-2).",
+      "landed_in": "Constraint",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-spec-2",
+      "source_path": "specs/004-working-tabs-state-machine/spec.md",
+      "source_section": "\u00a76 deferred editor + no-interpolation",
+      "content": "004 \u00a76 explicitly defers 'request-editing panels that bind to the active tab RequestSpec' AND '{{...}} variable resolution \u2014 stored/displayed verbatim, no resolution'. THIS is that editor; its {{var}} work is DISPLAY-ONLY highlight+missing-flag, NOT resolution (resolution stays out of scope).",
+      "landed_in": "OOS",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-spec-3",
+      "source_path": "specs/004-working-tabs-state-machine/spec.md",
+      "source_section": "Seed header row",
+      "content": "makeBlankRequest seeds headers=[{enabled:true,key:'Accept',value:'application/json',description:''}] and params=[]. Headers mount opens with 1 real row + trailing empty; params mount only the trailing empty.",
       "landed_in": "AC",
-      "landed_ref": "AC-5"
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-spec-4",
+      "source_path": "specs/004-working-tabs-state-machine/spec.md",
+      "source_section": "design/reference.html look-only",
+      "content": "004 established: reproduce design via tokens-bound semantic classes, NEVER the generated cruft. Same rule binds KVTable fidelity.",
+      "landed_in": "Constraint",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-2026-07-04-key-value-table-editor-params-headers-bound-to-the-active-1",
+      "source_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
+      "source_section": "Recommended Option A",
+      "content": "Controlled grid, derived virtual trailing row, direct updateActiveSpec writes; zero component-local row state; external cURL-import mutation re-renders for free (no local copy, no stale-edit race). Rejected: local-draft-buffer, granular store row-actions.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-2026-07-04-key-value-table-editor-params-headers-bound-to-the-active-2",
+      "source_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
+      "source_section": "Build vs Buy",
+      "content": "v1 grid = Build (hand-roll); table libs rejected (fight fidelity + no-cruft). {{var}} value-field autocomplete DEFERRED out of v1, its own post-T14 build-vs-buy (buy-a-hook + reuse Radix Popover).",
+      "landed_in": "OOS",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-2026-07-04-key-value-table-editor-params-headers-bound-to-the-active-3",
+      "source_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
+      "source_section": "Tolerated-absent deps",
+      "content": "Two unbuilt deps mitigated: env store validVars (T14) \u2192 \u2205-defaulting selector; parent pane-tabs container absent \u2192 KVTable independently-mountable + isolation-testable (CT with mock rows). Neither blocks v1.",
+      "landed_in": "OOS",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-2026-07-04-key-value-table-editor-params-headers-bound-to-the-active-4",
+      "source_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
+      "source_section": "Fidelity + tokeniser edge rules",
+      "content": "Fidelity (design/styles.css .kv block): grid 22px 1fr 1fr 1fr 24px, .kv-header height 30px, .kv-row min-height 32px, checkbox 12px accent-color:var(--accent), .kv-cell mono 12px padding 6px 10px, .var color var(--accent), .var.missing var(--m-delete)+line-through dotted, .kv-actions hidden\u2192flex on :hover, .kv-row.disabled opacity 0.55. Tokeniser: non-greedy shortest {{...}}, empty {{}}/unclosed = plain text, trimmed key vs validVars (unicode/dot/dash allowed, NOT w-only), key vs value independent, multi-line paste \u2192spaces, rapid paste = one trailing row.",
+      "landed_in": "AC",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-2026-07-04-key-value-table-editor-params-headers-bound-to-the-active-5",
+      "source_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
+      "source_section": "Derisk plan",
+      "content": "Spike Option A isolated (edit\u2192updateActiveSpec\u2192re-render + external-mutation no-stale); pre-extract fidelity computed-style targets (var\u2192token) before coding; land \u2205-default validVars selector as stable seam; lock tokeniser edge rules with unit tests first.",
+      "landed_in": "Risk",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-memory-1",
+      "source_path": ".devforge/memory.md",
+      "source_section": "Fidelity CT locks",
+      "content": "Every fidelity value MUST get a computed-style CT assertion locking it across ALL variants, or it silently regresses; static passes miss px/weight drift \u2014 runtime design-auditor is load-bearing for fidelity features.",
+      "landed_in": "Risk",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-memory-2",
+      "source_path": ".devforge/memory.md",
+      "source_section": "Hygiene false-positives",
+      "content": "check-hygiene commented_code_block detector over-fires on comment-dense CT files (advisory, non-blocking); AC verification commands that scan for a forbidden pattern self-match JSDoc quoting that pattern \u2014 strip comment lines or verify behaviorally.",
+      "landed_in": "Risk",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-memory-3",
+      "source_path": ".devforge/memory.md",
+      "source_section": "fix-then-rereview-before-verify",
+      "content": "After /fix, re-run /review BEFORE /verify so folded findings aren't stale (avoids false NEEDS-WORK). Populate the design-manifest so runtime design-auditor has per-element MATCH/DEVIATE targets.",
+      "landed_in": "Risk",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-memory-4",
+      "source_path": ".claude/memory/MEMORY.md",
+      "source_section": "CT fidelity fixture scoping",
+      "content": "CT fidelity tests must reproduce full styling context (tokens.css import + data-mstyle + production className scope, e.g. a wrapper class); scope box-sizing:border-box to the fixture inline \u2014 don't global-import base.css (breaks screenshot baselines).",
+      "landed_in": "Risk",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-memory-5",
+      "source_path": ".claude/memory/MEMORY.md",
+      "source_section": "CT-run watchdog stall",
+      "content": "Long silent CT commands (npm run test:ct) stall /implement subagents at the 600s watchdog; run the long CT command in the main thread, apply edits inline, then re-fan the no-tools panel.",
+      "landed_in": "Risk",
+      "landed_ref": ""
+    },
+    {
+      "finding_id": "F-memory-6",
+      "source_path": ".claude/memory/MEMORY.md",
+      "source_section": "CT baseline staleness",
+      "content": "Sub-1% color change stays within Playwright threshold so snapshot-update leaves baselines stale; remove the PNGs then regenerate. Cover all data-mstyle variants in CT.",
+      "landed_in": "Risk",
+      "landed_ref": ""
     }
   ],
-  "source_no_items_relevant": {
-    "CLAUDE.md": true,
-    "docs/glossary.md": true,
-    ".devforge/memory.md": true,
-    "bugs/006-inactive-tab-text-contrast.md": true,
-    "bugs/007-close-button-icon-contrast.md": true
-  },
+  "source_no_items_relevant": {},
   "findings_finalized": true,
   "decision_points": [
     {
       "dp_id": "DP-scope_boundaries-1",
       "category": "scope_boundaries",
-      "description": "Mechanism: new token vs token sync vs per-site swaps",
+      "description": "Component file placement in the renderer tier",
       "valid_implementations": [
-        "sync 3 stale token values + 2 accent swaps",
-        "add new --text-secondary + 5 swaps + amend contract"
+        "organisms/request/ subfolder",
+        "organisms/ flat",
+        "molecules/"
       ],
       "status": "answered",
-      "user_answer": "Sync the 3 drifted token values in tokens.css to design/styles.css (fixes muted/faint app-wide) plus swap the 2 genuine accent-on-light sites (active label 149, badge 233) to var(--text). No new token, no contract amendment (user correction: the tokens were merely stale).",
+      "user_answer": "organisms/request/ subfolder \u2014 domain group for the incoming request-pane editors (KVTable + future BodyEditor/AuthEditor/snippet). Files: organisms/request/KVTable.tsx + KVTable.css + __tests__/.",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-scope_boundaries-2",
+      "category": "scope_boundaries",
+      "description": "Does v1 mount KVTable into the running app, or ship it built + isolation-tested only?",
+      "valid_implementations": [
+        "Built + CT-isolation only; not mounted",
+        "Mount into an interim parent now"
+      ],
+      "status": "answered",
+      "user_answer": "Built + CT-isolation-tested only; NOT mounted into the running app. Parent pane-tabs container is a separate task; KVTable ships independently-mountable and verified via CT with mock Row[].",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
@@ -339,13 +350,27 @@
     {
       "dp_id": "DP-data_flow_state-1",
       "category": "data_flow_state",
-      "description": "Source of the corrected token values",
+      "description": "validVars seam \u2014 where the \u2205-defaulting active-environment selector lives",
       "valid_implementations": [
-        "design/styles.css (design source of truth)",
-        "hand-picked values"
+        "New thin lib/ selector module",
+        "Inline in the component"
       ],
       "status": "answered",
-      "user_answer": "Values come verbatim from design/styles.css: light --text-muted #6c6c75, light --text-faint #6e6e77, dark --text-faint #787881. tokens.css mirrors the design source; values are not hand-picked.",
+      "user_answer": "New thin lib/ selector module (lib/envVars.ts) returning an empty validVars set until env store T14 lands \u2014 stable seam KVTable binds to.",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-data_flow_state-2",
+      "category": "data_flow_state",
+      "description": "Row-type import route honoring \u00a75.2",
+      "valid_implementations": [
+        "Type-only import from requestSpec",
+        "Re-export Row via tabsStore"
+      ],
+      "status": "answered",
+      "user_answer": "Type-only import: import type { Row } from requestSpec \u2014 no runtime coupling, honors \u00a75.2.",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
@@ -353,38 +378,13 @@
     {
       "dp_id": "DP-edge_cases-1",
       "category": "edge_cases",
-      "description": "Dirty-dot (388) and disabled-tab (174/183) handling",
+      "description": "Which edit to the trailing empty row triggers auto-promote?",
       "valid_implementations": [
-        "dirty-dot rides synced faint (no swap); disabled left faint (WCAG-exempt)",
-        "explicitly swap dirty-dot"
+        "key or value text only",
+        "any interaction incl checkbox/description"
       ],
       "status": "answered",
-      "user_answer": "Dirty-dot (388, background var(--text-faint)) needs no swap \u2014 post-sync #6e6e77 = 4.55:1 clears the 3:1 non-text bar. Disabled-tab label (174/183, var(--text-faint)) left unchanged \u2014 WCAG exempts disabled UI from the contrast minimum.",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
-    },
-    {
-      "dp_id": "DP-ui_ux_details-1",
-      "category": "ui_ux_details",
-      "description": "Dark-theme AA parity",
-      "valid_implementations": [
-        "both themes (dark --text-faint synced too)",
-        "light-only"
-      ],
-      "status": "answered",
-      "user_answer": "Both themes. The dark --text-faint sync (#787881 = 4.58:1) plus unchanged dark --text-muted (#a1a1aa = 7.81:1) and dark --text (18.21:1) clear AA in dark too; ACs verify both themes.",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
-    },
-    {
-      "dp_id": "DP-breaking_changes-1",
-      "category": "breaking_changes",
-      "description": "no relevant decision point for breaking_changes",
-      "valid_implementations": [],
-      "status": "no_DP_in_category",
-      "user_answer": "",
+      "user_answer": "Only a content edit to key OR value promotes the trailing empty row (and spawns a new trailing empty). Toggling the checkbox or editing description alone on an otherwise-empty row does NOT promote \u2014 avoids enabled-but-keyless junk rows.",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
@@ -393,6 +393,28 @@
       "dp_id": "DP-existing_behavior-1",
       "category": "existing_behavior",
       "description": "no relevant decision point for existing_behavior",
+      "valid_implementations": [],
+      "status": "no_DP_in_category",
+      "user_answer": "",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-ui_ux_details-1",
+      "category": "ui_ux_details",
+      "description": "no relevant decision point for ui_ux_details",
+      "valid_implementations": [],
+      "status": "no_DP_in_category",
+      "user_answer": "",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-breaking_changes-1",
+      "category": "breaking_changes",
+      "description": "no relevant decision point for breaking_changes",
       "valid_implementations": [],
       "status": "no_DP_in_category",
       "user_answer": "",
@@ -416,62 +438,88 @@
   "mode": "interactive",
   "mandatory_reads": [
     {
-      "spec_type": "bug_fix",
-      "read_path": "src/renderer/styles/tokens.css",
-      "slot_pattern": "__buggy_files__",
-      "n_a_reason": ""
-    },
-    {
-      "spec_type": "bug_fix",
-      "read_path": "src/renderer/src/components/molecules/Tabs.css",
-      "slot_pattern": "__buggy_files__",
-      "n_a_reason": ""
-    },
-    {
-      "spec_type": "bug_fix",
-      "read_path": "design/styles.css",
-      "slot_pattern": "__direct_deps__",
-      "n_a_reason": ""
-    },
-    {
-      "spec_type": "bug_fix",
+      "spec_type": "greenfield_feature",
       "read_path": "",
-      "slot_pattern": "__direct_callers__",
-      "n_a_reason": "CSS/token-only change; consuming components apply class tokens unchanged \u2014 no caller code touched by a token-value sync or a color-property swap."
+      "slot_pattern": "constitution.md#scaffolding-guide",
+      "n_a_reason": "constitution.md is Existing-Codebase mode with no Section 7 scaffolding guide (ends at \u00a76). Placement derived from \u00a72.2 renderer tier org + DP-scope_boundaries-1 (organisms/request/)."
     },
     {
-      "spec_type": "bug_fix",
+      "spec_type": "greenfield_feature",
       "read_path": "",
-      "slot_pattern": "__recent_git_log__",
-      "n_a_reason": "git log on Tabs.css consulted inline earlier: defect pre-existing since 002-tabs-primitive; token staleness predates the contrast tickets."
+      "slot_pattern": "__framework_docs__",
+      "n_a_reason": "React controlled-component + CSS-grid editable-table pattern already surveyed in the discover prior-art (Postman/Insomnia/Bruno; TanStack/Material rejected). No new framework doc needed."
+    },
+    {
+      "spec_type": "greenfield_feature",
+      "read_path": ".claude/memory/MEMORY.md",
+      "slot_pattern": "",
+      "n_a_reason": ""
+    },
+    {
+      "spec_type": "greenfield_feature",
+      "read_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
+      "slot_pattern": "discover/*.md",
+      "n_a_reason": ""
     }
   ],
   "discretionary_reads": [],
   "phase3_finalized": true,
-  "overview": "The working-tabs strip renders two accent-colored roles below WCAG 2.1 AA, and separately the app's design tokens are STALE relative to design/styles.css (their declared source of truth): the muted and faint text tokens were already darkened for AA at the source but never synced into src/renderer/styles/tokens.css. This spec (1) syncs the three drifted token values to design/styles.css \u2014 which brings every --text-muted / --text-faint text consumer app-wide to AA in one edit \u2014 and (2) swaps the two genuine accent-on-light sites in Tabs.css to var(--text). No new token and no contract amendment are needed.",
-  "current_state": "The app tokens in src/renderer/styles/tokens.css have drifted from design/styles.css (the design source of truth): light --text-muted is #71717a but the source declares #6c6c75; light --text-faint is #a1a1aa but the source declares #6e6e77; dark --text-faint is #71717a but the source declares #787881 (dark --text-muted #a1a1aa already matches). This staleness is why the inactive-tab label (Tabs.css:97, var(--text-muted)) measures 4.36:1 and the close-button icon (Tabs.css:326, var(--text-faint)) measures 2.31:1 \u2014 both sub-AA. Two failures are independent of the token drift: the active-tab label (Tabs.css:149, color:var(--accent) #10b981) at 2.29:1 / 2.54:1 and the active-tab badge text (Tabs.css:233, color:var(--accent) on var(--accent-soft)); accent fails as text regardless of the muted/faint values. The dirty-dot indicator (Tabs.css:388, background:var(--text-faint)) also rides on the faint token. The .tabbar active override (Tabs.css:480-481) sets only box-shadow + background, so it inherits the active-label color from line 149. design-fidelity-contract \u00a75 (lines 130, 133) prescribes var(--text-muted) / var(--text-faint) \u2014 already correct once the tokens sync. Pre-existing; surfaced by design-auditor during feature 011 review.",
-  "desired_behavior": "Sync the three drifted token values in src/renderer/styles/tokens.css to design/styles.css: light --text-muted -> #6c6c75, light --text-faint -> #6e6e77, dark --text-faint -> #787881 (dark --text-muted stays #a1a1aa). Post-sync, the inactive-tab label reads 4.69:1, the close-button icon 4.55:1 light / 4.58:1 dark, and the dirty-dot 4.55:1 \u2014 all clearing their WCAG AA thresholds in both themes, and every other --text-muted / --text-faint text consumer app-wide is simultaneously brought to AA. Separately, swap the two accent-on-light sites in Tabs.css to var(--text): active-tab label (149) and active-tab badge text (233); the .tabbar variant inherits line 149. No new token is introduced (no --text-secondary), the existing token names and semantics are preserved, and design-fidelity-contract \u00a75 is NOT hand-edited \u2014 it already matches the synced tokens, and editing it would desync it from design/styles.css.",
+  "overview": "Build KVTable, a hand-rolled controlled key-value grid that edits the active request tab's RequestSpec params[] and headers[] (both Row[] of {enabled,key,value,description}). A single reusable component is instanced twice \u2014 once bound to params, once to headers \u2014 via a 'params'|'headers' field prop. It renders an enabled checkbox, key/value/description mono cells, a hover-revealed delete affordance, and an auto-promoting trailing empty row, and highlights {{variable}} tokens in the key and value cells, flagging unknown ones against the active environment. It reads and writes exclusively through the existing tabsStore.updateActiveSpec action (no local copy), matches design/styles.css to pixel fidelity, and ships built + component-tested in isolation \u2014 it is NOT mounted into the running app (the parent pane-tabs container is a separate task). Autocomplete on the value field and any {{variable}} RESOLUTION are out of scope.",
+  "current_state": "Greenfield for the request-editor UI. codebase-memory-mcp returns no KVTable, no editable-grid component, and no {{variable}} tokeniser anywhere in src/renderer (0 hits for validVars/envSlice/activeEnv/interpolat). The substrate KVTable consumes exists and is built: (1) the RequestSpec domain model \u2014 src/renderer/src/lib/requestSpec.ts:32 exports Row = {enabled:boolean,key:string,value:string,description:string} and RequestSpec.params/headers: Row[] (feature 004), a plain JSON-serializable shape; (2) the tabsStore write path \u2014 src/renderer/src/lib/tabsStore.ts exposes updateActiveSpec(patch: Partial<RequestSpec>) which shallow-merges with a strict-=== no-op guard (feature 009), the same seam RequestBar.tsx uses via per-field selectors; (3) design tokens at src/renderer/styles/tokens.css with authoritative resolved values in design/styles.css (.kv block, lines 951-1035) and the fidelity contract at design/design-fidelity-contract.md section 7 Key-Value editor; (4) the renderer test stack \u2014 Vitest (jsdom) + Playwright experimental-ct-react (Chromium), tests co-located under __tests__ split .test.tsx/.ct.tsx (feature 001); (5) the adopted radix-ui unified package. Feature 004 \u00a76 explicitly deferred BOTH 'request-editing panels that bind to the active tab RequestSpec' and '{{...}} variable resolution' \u2014 this spec builds the former with DISPLAY-ONLY {{variable}} highlighting (never resolution). The env store (validVars, task T14) and the parent pane-tabs container do NOT exist yet.",
+  "desired_behavior": "Deliver one renderer-only component KVTable at src/renderer/src/components/organisms/request/KVTable.tsx with a sibling KVTable.css, plus a thin \u2205-defaulting environment selector at src/renderer/src/lib/envVars.ts. KVTable takes a field prop of 'params' | 'headers'; it reads the active tab's Row[] for that field via a per-field tabsStore selector and, on every edit, computes a fresh Row[] and writes it back via tabsStore.updateActiveSpec({ [field]: nextRows }) \u2014 it holds NO local copy, so an external mutation of the array (import-from-cURL replacing params/headers) re-renders reactively without resurrecting stale edits. Rendering (Option A \u2014 controlled grid, derived virtual trailing row): a .kv-header label row, then one .kv-row per Row, then exactly one derived virtual trailing empty .kv-row.empty. Each row shows a real input type=checkbox (12px, accent-color var(--accent)) toggling Row.enabled (row gets .disabled at opacity 0.55 when unchecked); three .kv-cell mono inputs for key, value, description; and a hover-revealed 24px .kv-actions slot holding a real button delete control. Auto-promote: typing into the key OR value cell of the virtual trailing row appends a real Row and a new virtual trailing row spawns; toggling the checkbox or editing description alone on the otherwise-empty row does NOT promote. Delete removes that Row via updateActiveSpec; the virtual trailing row has no delete affordance and can never be removed. {{variable}} tokenising is DISPLAY-ONLY: key and value text is parsed for non-greedy shortest {{...}} tokens (trimmed inner text; empty {{}} and unclosed {{ are plain text; keys may contain unicode/dots/dashes, NOT constrained to word chars); each token renders as a .var span (color var(--accent)); a token whose trimmed name is absent from the active validVars set renders .var.missing (color var(--m-delete), line-through dotted) \u2014 but ONLY when validVars is non-empty; when validVars is \u2205 (env store absent) every token is neutral .var and none are .missing. validVars comes from the new lib/envVars.ts selector, which returns \u2205 until env store T14 lands. Keyboard: Tab/Shift-Tab traverse checkbox\u2192key\u2192value\u2192description\u2192next row; Enter in the trailing row's value or description commits and auto-promotes with focus landing in the new row's corresponding cell; focus is NEVER lost on auto-promote or delete (it moves to an adjacent row, never document body). Row type is obtained via a type-only import (import type { Row } from requestSpec) to honor \u00a75.2. Styling is semantic classes bound to tokens.css (values from design/styles.css .kv block) with NO inline styles and none of the design-export cruft (data-om-*, __OmT, inline styles, tweaks-panel). The Row objects written stay plain and JSON-serializable. Paste: a single-line paste is inserted verbatim; a multi-line paste collapses newlines to spaces (no row explosion); a rapid/large paste into the trailing row spawns exactly ONE new trailing row. KVTable is verified by Playwright CT with mock Row[] and is NOT mounted into the app in this feature.",
   "affected_areas": [
     {
-      "area": "Design tokens",
+      "area": "KVTable component",
+      "files": [
+        "src/renderer/src/components/organisms/request/KVTable.tsx",
+        "src/renderer/src/components/organisms/request/KVTable.css"
+      ],
+      "impact": "Create new \u2014 the controlled key-value grid (Option A) + its sibling token-bound stylesheet; takes a field:'params'|'headers' prop, instanced twice."
+    },
+    {
+      "area": "Variable tokeniser helper",
+      "files": [
+        "src/renderer/src/lib/varTokens.ts"
+      ],
+      "impact": "Create new \u2014 pure non-greedy {{...}} tokeniser (empty/unclosed = plain text; unicode/dot/dash keys) returning token spans for display-only highlighting; unit-testable in isolation."
+    },
+    {
+      "area": "Environment validVars selector",
+      "files": [
+        "src/renderer/src/lib/envVars.ts"
+      ],
+      "impact": "Create new \u2014 thin \u2205-defaulting selector returning the active environment's validVars set; returns \u2205 until env store T14 lands (stable seam)."
+    },
+    {
+      "area": "KVTable + helper tests",
+      "files": [
+        "src/renderer/src/components/organisms/request/__tests__/KVTable.ct.tsx",
+        "src/renderer/src/components/organisms/request/__tests__/KVTable.stories.tsx",
+        "src/renderer/src/lib/__tests__/varTokens.test.ts",
+        "src/renderer/src/lib/__tests__/envVars.test.ts"
+      ],
+      "impact": "Create new \u2014 Playwright CT (mock Row[] fixtures) for grid behaviour + fidelity computed-style asserts; Vitest unit suites for the tokeniser edge rules and the \u2205-default selector."
+    },
+    {
+      "area": "tabsStore (consumed, unchanged)",
+      "files": [
+        "src/renderer/src/lib/tabsStore.ts"
+      ],
+      "impact": "No change \u2014 KVTable reads active-tab Row[] via a per-field selector and writes via the existing updateActiveSpec action; no new store action added."
+    },
+    {
+      "area": "requestSpec (type-only import, unchanged)",
+      "files": [
+        "src/renderer/src/lib/requestSpec.ts"
+      ],
+      "impact": "No change \u2014 KVTable does a type-only import of Row (honors \u00a75.2: requestSpec never value-imported by components)."
+    },
+    {
+      "area": "Design tokens (consumed, unchanged)",
       "files": [
         "src/renderer/styles/tokens.css"
       ],
-      "impact": "Sync 3 drifted values to design/styles.css: light --text-muted->#6c6c75, light --text-faint->#6e6e77, dark --text-faint->#787881"
-    },
-    {
-      "area": "Tabs molecule styles",
-      "files": [
-        "src/renderer/src/components/molecules/Tabs.css"
-      ],
-      "impact": "Two accent-on-light swaps: active-tab label (149) and active-tab badge text (233) var(--accent)->var(--text); .tabbar inherits 149. Lines 97/326/388 unchanged (fixed by token sync)"
-    },
-    {
-      "area": "App-wide muted/faint text consumers (tests)",
-      "files": [
-        "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx"
-      ],
-      "impact": "Token darkening shifts every --text-muted/--text-faint consumer visually (Modal, Toast, Dropdown, RequestBar, TabBar, Titlebar, Statusbar, PrimitivesDemo) \u2014 affected CT screenshot baselines re-based across light+dark; Tabs CT gains contrast assertions"
+      "impact": "No change \u2014 KVTable.css binds semantic .kv classes to existing token custom properties; resolved fidelity values sourced from design/styles.css .kv block."
     }
   ],
   "acceptance_criteria": [
@@ -479,61 +527,61 @@
       "ac_id": "AC-1",
       "subsection": "tooling_artifact_presence",
       "ears_variant": "ubiquitous",
-      "statement": "The design-token stylesheet shall define the muted and faint text tokens at the darkened values from the design source.",
-      "verification_command": "grep -q -- '--text-muted: #6c6c75' src/renderer/styles/tokens.css && grep -q -- '--text-faint: #6e6e77' src/renderer/styles/tokens.css && grep -q -- '--text-faint: #787881' src/renderer/styles/tokens.css",
+      "statement": "The KVTable component shall exist as a single-file component with a sibling token-bound stylesheet under the organisms request directory.",
+      "verification_command": "test -f src/renderer/src/components/organisms/request/KVTable.tsx && test -f src/renderer/src/components/organisms/request/KVTable.css",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-2",
-      "subsection": "behavior_preservation",
+      "subsection": "tooling_artifact_presence",
       "ears_variant": "ubiquitous",
-      "statement": "The system shall preserve the existing token names and semantics, introducing no new color token.",
-      "verification_command": "",
+      "statement": "The renderer shall provide a pure variable-tokeniser module under the lib directory.",
+      "verification_command": "test -f src/renderer/src/lib/varTokens.ts",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-3",
-      "subsection": "behavior_preservation",
-      "ears_variant": "state_driven",
-      "statement": "WHILE either theme is active, the Tabs strip shall keep the active-tab and inactive-tab labels visually distinct.",
-      "verification_command": "",
+      "subsection": "tooling_artifact_presence",
+      "ears_variant": "ubiquitous",
+      "statement": "The renderer shall provide an environment validVars selector module under the lib directory.",
+      "verification_command": "test -f src/renderer/src/lib/envVars.ts",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-4",
-      "subsection": "behavior_change",
+      "subsection": "tooling_artifact_presence",
       "ears_variant": "ubiquitous",
-      "statement": "The system shall bring every muted and faint text role to the WCAG AA contrast minimum by syncing the token values to the design source.",
-      "verification_command": "",
+      "statement": "The build shall introduce no new table, combobox, or autocomplete runtime dependency.",
+      "verification_command": "! grep -qE '(@tanstack/react-table|downshift|react-aria|@react-aria|ariakit|material-react-table|rsuite)' package.json",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-5",
-      "subsection": "behavior_change",
+      "subsection": "behavior_preservation",
       "ears_variant": "state_driven",
-      "statement": "WHILE either theme is active, the active-tab label shall meet the WCAG AA contrast minimum for normal text by using var(--text), which the tabbar variant inherits.",
+      "statement": "WHILE KVTable is not mounted into the application shell this feature, the running application behavior shall remain unchanged.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-6",
-      "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE a tab is active, the active-tab badge text shall meet the WCAG AA contrast minimum for normal text on the accent-soft background by using var(--text).",
+      "subsection": "behavior_preservation",
+      "ears_variant": "event_driven",
+      "statement": "WHEN KVTable writes an edited array via updateActiveSpec with a fresh array reference, the tabsStore shall flip the active tab dirty flag through its existing no-op-guarded merge without modification to the store.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-7",
-      "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE either theme is active, the inactive-tab label shall meet the WCAG AA contrast minimum for normal text via the synced var(--text-muted).",
+      "subsection": "behavior_preservation",
+      "ears_variant": "ubiquitous",
+      "statement": "The KVTable feature shall add no new tabsStore action and shall not modify the tabsStore or requestSpec modules.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -541,8 +589,8 @@
     {
       "ac_id": "AC-8",
       "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE either theme is active, the close-button icon shall meet the WCAG AA non-text contrast minimum via the synced var(--text-faint).",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the user types text into the key or value cell of the trailing empty row, KVTable shall append a real row and render a fresh trailing empty row.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -550,92 +598,359 @@
     {
       "ac_id": "AC-9",
       "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE a tab is marked dirty, the dirty-state indicator shall meet the WCAG AA non-text contrast minimum via the synced var(--text-faint).",
+      "ears_variant": "ubiquitous",
+      "statement": "The KVTable tokeniser shall match the shortest non-greedy delimited token and shall treat an empty token or an unclosed opener as plain text.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-10",
+      "subsection": "behavior_change",
+      "ears_variant": "ubiquitous",
+      "statement": "The KVTable component shall be authored once and instanced twice through a field prop selecting params or headers.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-11",
+      "subsection": "behavior_change",
+      "ears_variant": "ubiquitous",
+      "statement": "The KVTable component shall highlight variable tokens in the key and value cells only and not in the description cell.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-12",
+      "subsection": "behavior_change",
+      "ears_variant": "ubiquitous",
+      "statement": "The KVTable component shall not resolve or substitute variable values and shall render all cell text verbatim.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-13",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN a row is deleted or the trailing empty row auto-promotes, KVTable shall keep focus on an adjacent cell and shall never move focus to the document body.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-14",
+      "subsection": "behavior_change",
+      "ears_variant": "ubiquitous",
+      "statement": "The KVTable row enabled toggle shall be a real checkbox input and the row delete control shall be a real button element.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-15",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the user edits any cell, the KVTable component shall write a new row array for the bound field through updateActiveSpec.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-16",
+      "subsection": "behavior_change",
+      "ears_variant": "state_driven",
+      "statement": "WHILE a row enabled toggle is off, the KVTable component shall render that row with the disabled styling and an unchecked checkbox.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-17",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the user toggles a row checkbox, the KVTable component shall flip that row enabled flag and write the change through updateActiveSpec.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-18",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the user activates a real row delete control, the KVTable component shall remove that row through updateActiveSpec and move focus to an adjacent row.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-19",
+      "subsection": "behavior_change",
+      "ears_variant": "state_driven",
+      "statement": "WHILE the active validVars set is non-empty, the KVTable component shall mark a variable token absent from validVars as a missing-variable token and a present one as a known token.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-20",
+      "subsection": "behavior_change",
+      "ears_variant": "state_driven",
+      "statement": "WHILE the active validVars set is empty, the KVTable component shall render every variable token as a neutral token and mark none as missing.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-21",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the bound array is replaced externally, the KVTable component shall re-render from the new array and shall not retain stale local edits.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-22",
+      "subsection": "behavior_change",
+      "ears_variant": "optional",
+      "statement": "WHERE a variable token name contains dots dashes or unicode characters, the KVTable component shall compare its trimmed name verbatim against validVars without a word-character restriction.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-23",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the user pastes multi-line text into a cell, the KVTable component shall collapse the newlines to spaces and shall not create additional rows.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-24",
+      "subsection": "behavior_change",
+      "ears_variant": "unwanted",
+      "statement": "IF a rapid or large paste enters the trailing empty row, THEN the KVTable component shall spawn exactly one new trailing empty row.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-25",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the user presses Tab within a row, the KVTable component shall move focus from checkbox to key to value to description and then onward to the next row.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-26",
+      "subsection": "behavior_change",
+      "ears_variant": "unwanted",
+      "statement": "IF the user toggles the checkbox or edits the description of an otherwise-empty trailing row, THEN the KVTable component shall not promote that row to a real row.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-27",
+      "subsection": "documentation",
+      "ears_variant": "ubiquitous",
+      "statement": "The exported KVTable props the varTokens tokeniser and the envVars selector shall each carry documentation comments.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-28",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
-      "statement": "The system shall pass lint and type-check on all changed files.",
-      "verification_command": "npm run lint && npm run typecheck",
+      "statement": "The renderer source shall pass strict web type-checking.",
+      "verification_command": "npm run typecheck:web",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-29",
+      "subsection": "hygiene",
+      "ears_variant": "ubiquitous",
+      "statement": "The codebase shall pass ESLint without new errors.",
+      "verification_command": "npm run lint",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-30",
+      "subsection": "hygiene",
+      "ears_variant": "ubiquitous",
+      "statement": "The project shall build cleanly.",
+      "verification_command": "npm run build",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-31",
+      "subsection": "hygiene",
+      "ears_variant": "ubiquitous",
+      "statement": "The new KVTable source shall contain no inline style attributes.",
+      "verification_command": "! grep -REn 'style=[{][{]' src/renderer/src/components/organisms/request/KVTable.tsx | grep -vqE ':[[:space:]]*(\\*|//|/\\*)'",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-32",
+      "subsection": "hygiene",
+      "ears_variant": "ubiquitous",
+      "statement": "The new renderer modules shall not import electron or node built-in modules directly.",
+      "verification_command": "! grep -REn \"from '(electron|node:)\" src/renderer/src/components/organisms/request/KVTable.tsx src/renderer/src/lib/varTokens.ts src/renderer/src/lib/envVars.ts",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-33",
+      "subsection": "hygiene",
+      "ears_variant": "ubiquitous",
+      "statement": "The KVTable component and lib unit suites shall pass.",
+      "verification_command": "npx playwright test src/renderer/src/components/organisms/request/__tests__/KVTable.ct.tsx && npx vitest run src/renderer/src/lib/__tests__/varTokens.test.ts src/renderer/src/lib/__tests__/envVars.test.ts",
       "test_anchor": "",
       "n_a_reason": ""
     }
   ],
   "ac_subsection_na": {
-    "ci_pipeline": "No CI or pipeline change; renderer token/CSS fix verified by existing lint/type-check/CT.",
-    "hooks_gates": "No git hooks or quality gates added or changed.",
-    "documentation": "design-fidelity-contract \u00a75 already matches the synced tokens (its source is design/styles.css); no doc edit \u2014 hand-editing \u00a75 would desync it from its source."
+    "ci_pipeline": "No CI pipeline changes; tests run via existing npm scripts (vitest/playwright), not a new pipeline stage.",
+    "hooks_gates": "No new git hooks or commit gates; the project's existing forge gates apply unchanged."
   },
   "out_of_scope": [
     {
-      "content": "Disabled-tab label color (Tabs.css:174/183, var(--text-faint)) \u2014 WCAG exempts disabled UI from the contrast minimum; left as-is (rides the synced faint anyway).",
+      "content": "Variable RESOLUTION / {{...}} substitution \u2014 highlighting is display-only; resolving or substituting variable values stays out of scope (continues feature 004 \u00a76 no-interpolation deferral).",
       "finding_ref": ""
     },
     {
-      "content": "Any token drift beyond the three contrast-relevant values (e.g. the app-only dark --m-head token absent from design/styles.css) \u2014 not reconciled here.",
-      "finding_ref": "F-tokens-3"
+      "content": "Value-field {{variable}} autocomplete \u2014 deferred to its own post-T14 follow-up task that runs the Radix/Downshift/React-Aria build-vs-buy; v1 ships highlight + missing-flag only.",
+      "finding_ref": ""
     },
     {
-      "content": "Hand-editing design-fidelity-contract \u00a75 \u2014 the contract derives from design/styles.css and is already correct post-sync; editing it would desync it from its source.",
-      "finding_ref": "F-design-fidelity-contract-2"
+      "content": "The environment model / validVars store (task T14) \u2014 consumed via the thin \u2205-defaulting selector, NOT built here.",
+      "finding_ref": ""
+    },
+    {
+      "content": "The parent pane-tabs container (RequestSubTabs / Params-Auth-Headers-Body-Tests-Code strip) \u2014 a separate task; KVTable ships independently-mountable and is NOT wired into the running app this feature.",
+      "finding_ref": ""
+    },
+    {
+      "content": "Row reorder / drag handle and bulk enable-disable / select-all \u2014 no design surface in the reference; deferred.",
+      "finding_ref": ""
+    },
+    {
+      "content": "Multi-line / expandable value cells, per-row content-type or file-upload values, value masking / secret-hiding, bulk multi-line paste-to-rows, and header/param NAME validation (wire-level validity is the http-engine T10 concern).",
+      "finding_ref": ""
+    },
+    {
+      "content": "The import-from-cURL parse path itself \u2014 lives with RequestBar / command-palette; KVTable only renders + edits the arrays correctly when populated externally.",
+      "finding_ref": ""
     }
   ],
   "constraints": [
     {
-      "kind": "follow",
-      "content": "Must follow WCAG 2.1 AA \u2014 SC 1.4.3 (normal text) and SC 1.4.11 (non-text UI), in both light and dark themes."
-    },
-    {
       "kind": "constitution_anchor",
-      "content": "Search for an existing utility/token before building \u2014 sync the existing muted/faint tokens rather than inventing a new one.",
-      "constitution_ref": "3.6"
-    },
-    {
-      "kind": "follow",
-      "content": "Prefer design tokens over literal style values; never use inline styles \u2014 changes are token values plus var() references only."
-    },
-    {
-      "kind": "follow",
-      "content": "tokens.css must mirror design/styles.css (the design source of truth); token values are synced from it, not hand-picked, and derived docs (contract \u00a75) are not hand-edited."
-    },
-    {
-      "kind": "constitution_anchor",
-      "content": "Renderer tier: design tokens live in styles/tokens.css; molecule CSS under molecules/.",
+      "content": "requestSpec is a pure data module imported by tabsStore, never by components \u2014 KVTable obtains the Row type via a type-only import, never a value import.",
       "constitution_ref": "2.2"
     },
     {
+      "kind": "constitution_anchor",
+      "content": "Domain invariant: requestSpec stays a pure data module (imported by tabsStore, never by components); KVTable must not value-import it.",
+      "constitution_ref": "5.2"
+    },
+    {
+      "kind": "constitution_anchor",
+      "content": "Strict mode, no implicit any \u2014 the tokeniser, Row[] transforms, and the params-or-headers field-prop union are fully typed; untyped boundaries narrow rather than cast.",
+      "constitution_ref": "3.1"
+    },
+    {
+      "kind": "constitution_anchor",
+      "content": "Naming: KVTable.tsx PascalCase one-per-file + sibling KVTable.css; the lib helpers varTokens/envVars are camelCase modules; tests co-located under __tests__ split .test.tsx/.ct.tsx.",
+      "constitution_ref": "3.3"
+    },
+    {
+      "kind": "constitution_anchor",
+      "content": "Renderer-only: no Node or electron imports in KVTable, varTokens, or envVars.",
+      "constitution_ref": "2.1"
+    },
+    {
+      "kind": "constitution_anchor",
+      "content": "Resolve cross-module imports via the @renderer alias, not deep relative paths; lib/ must not import components/.",
+      "constitution_ref": "2.3"
+    },
+    {
+      "kind": "constitution_anchor",
+      "content": "Boundary lookups degrade gracefully \u2014 the validVars selector returns \u2205 (never throws) when the env store is absent, and KVTable renders neutral tokens rather than flagging everything missing.",
+      "constitution_ref": "3.2"
+    },
+    {
+      "kind": "follow",
+      "content": "Reproduce design/reference.html via semantic classes bound to tokens.css; never use inline styles (constitution \u00a74 Never Do) and never import the design-export cruft (data-om-* attrs, __OmT wrappers, inline styles, tweaks-panel). Take exact resolved values from design/styles.css (.kv block), NOT tokens.json (reference-only, can drift)."
+    },
+    {
       "kind": "not_break",
-      "content": "The active-tab badge and Tabs WAI-ARIA engine must remain intact; the fix is color/token-only."
+      "content": "RequestSpec must stay a plain JSON-serializable object (feature 004 Q-2) \u2014 KVTable writes plain Row objects only (no class instances, Symbols, or functions on the data shape)."
+    },
+    {
+      "kind": "follow",
+      "content": "Pixel fidelity to design/styles.css .kv block (0px deviation; treat var(--token) as resolves-to-token, not literal hex), verified by computed-style CT assertions: grid-template-columns 22px 1fr 1fr 1fr 24px; .kv-header height 30px, font 10.5px uppercase letter-spacing 0.04em color var(--text-faint) weight 600; .kv-row min-height 32px border-bottom var(--border-faint) color var(--text); checkbox 12px accent-color var(--accent); .kv-cell padding 6px 10px mono font 12px; .kv-cell.value color var(--text-muted); .var color var(--accent); .var.missing color var(--m-delete) + line-through dotted; .kv-actions display none then flex on :hover; .kv-row.disabled opacity 0.55."
     }
   ],
-  "open_questions": [],
+  "open_questions": [
+    {
+      "question_id": "Q-1",
+      "content": "The exact {{variable}} autocomplete combobox composition (reuse the adopted Radix Popover + which headless hook \u2014 Downshift useCombobox vs React-Aria useComboBox) is deferred to the post-T14 autocomplete follow-up task; it is data-starved until the env store lands and out of scope here.",
+      "category_no_dp_reason": ""
+    }
+  ],
   "risks": [
     {
-      "risk": "Token sync darkens muted/faint text across ~9 other components (Modal, Toast, Dropdown, RequestBar, TabBar, Titlebar, Statusbar, PrimitivesDemo); their CT screenshot baselines shift, not just Tabs.",
-      "likelihood": "High",
-      "impact": "Med",
-      "mitigation": "Enumerate all --text-muted/--text-faint consumers; re-baseline every affected CT across light+dark. These are design-source-authoritative changes (intended), not regressions."
+      "risk": "Fidelity drift (px, weight, color, letter-spacing) slips past static CSS-vs-styles.css review \u2014 the memory lesson is that only runtime getComputedStyle catches it.",
+      "likelihood": "Med",
+      "impact": "High",
+      "mitigation": "Add a computed-style CT assertion locking every pinned .kv value across states (default/disabled/hover/var/var-missing); run the runtime design-auditor against the live component; do NOT trust a green static pass."
     },
     {
-      "risk": "CT single-variant baseline misses the dark theme; a color-only shortcut could leave other drift.",
+      "risk": "Controlled-input focus/caret management: writing through the store on every keystroke re-renders and can jump the caret or drop focus on auto-promote or delete.",
+      "likelihood": "High",
+      "impact": "High",
+      "mitigation": "Spike Option A in isolation first; use stable React keys per row; pin 'focus never lost on auto-promote/delete' + Tab traversal order as required CT scenarios."
+    },
+    {
+      "risk": "External-array mutation (import-from-cURL replacing params/headers while a cell is focused) resurrects stale edits or crashes the render.",
       "likelihood": "Med",
       "impact": "Med",
-      "mitigation": "Cover BOTH themes in CT; verify at runtime via design-auditor, not just static/CT."
+      "mitigation": "Option A holds no local copy \u2014 derive rows from the store each render; add a CT that replaces the bound array mid-edit and asserts a clean reactive re-render."
     },
     {
-      "risk": ".tabbar active-label inheritance assumption wrong (line 149 not inherited by the tabbar variant).",
+      "risk": "The validVars \u2205-default degradation mis-fires \u2014 every {{token}} rendered as missing on a project with no environment.",
+      "likelihood": "Med",
+      "impact": "Med",
+      "mitigation": "Explicit CT: validVars \u2205 \u2192 all tokens neutral .var, zero .var.missing; the selector returns \u2205 (never undefined/throw) when the env store is absent."
+    },
+    {
+      "risk": "CT fidelity fixture omits the full styling context (tokens.css import, box-sizing, className scope), producing false pass/fail.",
+      "likelihood": "Med",
+      "impact": "Med",
+      "mitigation": "Reproduce the full styling context in the fixture (import tokens.css, scope box-sizing:border-box inline, wrap in the production className) per the CT-fixture-scoping memory lesson; do not global-import base.css."
+    },
+    {
+      "risk": "Long CT runs stall an /implement subagent at the 600s watchdog.",
       "likelihood": "Low",
       "impact": "Med",
-      "mitigation": "Confirmed: Tabs.css:480-481 sets only box-shadow+background; CT must assert the active-label color in both bare .tabs and .tabbar scopes."
+      "mitigation": "Run npm run test:ct in the main thread (background bash), apply edits inline, then re-fan the no-tools review panel (implement-CT-watchdog memory lesson)."
     }
   ],
-  "approval_summary": null,
-  "plan_handoff_block": null,
+  "approval_summary": "I've created the specification at `specs/014-kv-table-editor/spec.md`. Key points:\n- **What changes**: Build KVTable, a hand-rolled controlled key-value grid that edits the active request tab's RequestSpec params[] and headers[] (both Row[] of {enabled,key,value,description}). A single reusable component is instanced twice \u2014 once bound to...\n- **Files affected**: 11 files across 7 areas\n- **Acceptance criteria**: 33 testable criteria across 5 AC categories\n- **Out of scope**: Variable RESOLUTION / {{...}} substitution \u2014 highlighting is display-only; resol; Value-field {{variable}} autocomplete \u2014 deferred to its own post-T14 follow-up t; The environment model / validVars store (task T14) \u2014 consumed via the thin \u2205-def; \u2026\n\nPlease review and either approve or request changes. Once approved, run `/plan` to create the technical implementation plan.",
+  "plan_handoff_block": "## Manual next step \u2014 run /plan\n\nA structured handoff (specs/014-kv-table-editor/handoff.json) is written for /plan. /plan auto-discovers it on its first run and reads the upstream plan-seeds \u2014 but you still launch /plan manually (there is no auto-dispatch from /specify). Restart Claude Code (exit and relaunch the CLI/app so the newly installed command is picked up), then run the command below in this repo. The spec path is explicit so /plan does not need most-recent-spec discovery:\n\n~~~\n/plan specs/014-kv-table-editor/spec.md\n~~~\n\nMinimum handoff data:\n- Spec status: Draft\n- Spec type: greenfield_feature\n- AC count: 33 across 5 subsections (5.1: 4, 5.2: 3, 5.3: 19, 5.4: 0, 5.5: 0, 5.6: 1, 5.7: 6)\n- Decision-point coverage: 5 answered, 0 default-applied, 0 deferred-OOS, 0 deferred-open-question\n- Affected areas: 7 across src\n- Out-of-scope items: 7\n- Open questions: 1\n- Constraints: 10\n- Risks: 6\n- Phase 1.5 finding coverage: 100% (all findings landed)\n\nReference: specs/014-kv-table-editor/spec.md",
   "open_question_resolutions": [],
   "conflicts": [],
   "source": {
