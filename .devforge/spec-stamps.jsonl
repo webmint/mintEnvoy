@@ -10,3 +10,5 @@
 {"git_sha": "6c3f9f6b63fdeffb6de646dcea559f62cfd9c39e", "spec_path": "specs/013-tabs-contrast-wcag/spec.md", "stamped_at": "2026-07-02T07:52:00Z"}
 {"git_sha": "4cfa254778591151e230483ee969da2fe2dc4d60", "spec_path": "specs/013-tabs-contrast-wcag/spec.md", "stamped_at": "2026-07-02T09:53:08Z"}
 {"git_sha": "4cfa254778591151e230483ee969da2fe2dc4d60", "spec_path": "specs/013-tabs-contrast-wcag/spec.md", "stamped_at": "2026-07-02T09:54:51Z"}
+{"git_sha": "6f18b667b593d64d20607154109a75bbe4d3e93a", "spec_path": "specs/014-kv-table-editor/spec.md", "stamped_at": "2026-07-04T18:03:05Z"}
+{"git_sha": "a4398bbd6886dddb09c106b4b9b924827687b6e1", "spec_path": "specs/014-kv-table-editor/spec.md", "stamped_at": "2026-07-04T19:34:42Z"}

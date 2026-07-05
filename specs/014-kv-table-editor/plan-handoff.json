@@ -1,0 +1,211 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/014-kv-table-editor/plan.md",
+  "plan_completed_at": "2026-07-04T19:27:36Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/014-kv-table-editor/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/014-kv-table-editor/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "organisms (flat)",
+        "what": "KVTable \u2014 controlled key-value grid; props `{ field:'params'\\",
+        "files": "'headers'; validVars?: ReadonlySet<string> }` (`validVars` defaults to `envVars()`); per-field selector in, `updateActiveSpec` out; derives virtual trailing row; renders checkbox + 3 mono cells + hover-delete; calls varTokens for key/value highlight + applies the missing-flag from `validVars`"
+      },
+      {
+        "layer": "styles (component)",
+        "what": "Token-bound `.kv*` semantic classes reproducing the design/styles.css `.kv` block (grid 22px 1fr 1fr 1fr 24px; header/row/cell/checkbox/var/disabled) \u2014 no inline styles",
+        "files": "src/renderer/src/components/organisms/KVTable.css (new)"
+      },
+      {
+        "layer": "lib (leaf, pure)",
+        "what": "varTokens \u2014 pure non-greedy `{{\u2026}}` tokeniser; ordered plain/var segment list; empty/unclosed = plain text; unicode/dot/dash names; no renderer-external import",
+        "files": "src/renderer/src/lib/varTokens.ts (new)"
+      },
+      {
+        "layer": "lib (leaf, boundary selector)",
+        "what": "envVars \u2014 thin \u2205-defaulting active-environment validVars selector; frozen empty `ReadonlySet<string>` until env store T14 lands; never throws/undefined; consumed as the KVTable `validVars` prop default",
+        "files": "src/renderer/src/lib/envVars.ts (new)"
+      },
+      {
+        "layer": "lib (consumed, type-only)",
+        "what": "`Row` type source \u2014 `import type { Row }` only, never a value import",
+        "files": "src/renderer/src/lib/requestSpec.ts (unchanged)"
+      },
+      {
+        "layer": "lib (consumed, unchanged)",
+        "what": "Active-tab `Row[]` read + write seam \u2014 existing `updateActiveSpec`; no new action",
+        "files": "src/renderer/src/lib/tabsStore.ts (unchanged)"
+      },
+      {
+        "layer": "styles (consumed)",
+        "what": "Existing design-token custom properties bound by KVTable.css",
+        "files": "src/renderer/styles/tokens.css (unchanged)"
+      },
+      {
+        "layer": "tests (co-located)",
+        "what": "Playwright CT (mock Row[] + fidelity computed-style asserts; injects a non-empty `validVars` AND asserts the \u2205-default neutral path) + stories fixtures; Vitest unit suites for tokeniser edges + \u2205-default selector",
+        "files": "organisms/__tests__/KVTable.ct.tsx, organisms/__tests__/KVTable.stories.tsx, lib/__tests__/varTokens.test.ts, lib/__tests__/envVars.test.ts (new)"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "(a) State ownership",
+        "chosen_approach": "Controlled grid \u2014 derive rows from the store each render, write fresh `Row[]` via `updateActiveSpec`; NO local copy",
+        "why": "Matches the RequestBar controlled-input precedent; external cURL array-replace re-renders cleanly (AC-21); satisfies \"mutate only via store actions\" without a new action (AC-7). In-scope: AC-6/AC-15/AC-21",
+        "alternatives_rejected": "local-draft-buffer (resurrects stale edits \u2192 violates AC-21); store-row-actions (adds new tabsStore actions \u2192 violates AC-7)"
+      },
+      {
+        "decision": "(b) Trailing empty row",
+        "chosen_approach": "Derived VIRTUAL trailing row (render-time), not stored",
+        "why": "Keeps `Row[]` free of a phantom row that would serialize into the wire spec; delete/promote become pure functions of data. In-scope: AC-8/AC-26",
+        "alternatives_rejected": "stored empty row (pollutes the array; promote/delete bookkeeping bugs)"
+      },
+      {
+        "decision": "(c) Tokeniser placement",
+        "chosen_approach": "Separate pure `lib/varTokens.ts` module",
+        "why": "Unit-testable in isolation (\u00a73.6, AC-2/AC-9/AC-22); no React/DOM dependency; single responsibility",
+        "alternatives_rejected": "inline in KVTable (untestable in isolation \u2192 fails AC-2)"
+      },
+      {
+        "decision": "(d) One component / two mounts \u2014 **DEPARTURE**",
+        "chosen_approach": "Single KVTable.tsx with props `{ field:'params'\\",
+        "why": "'headers'; validVars?: ReadonlySet<string> }` (`validVars` defaults to `envVars()`); per-field selector `s => activeTab?.spec[field] ?? EMPTY_ROWS` returning a module-level frozen sentinel",
+        "alternatives_rejected": "DRY single authoring, two mounts (AC-10); the optional `validVars` prop is the F1 injection seam \u2014 a CT passes a non-empty set, production callers omit it and get the \u2205-default. Adding a defaulted prop is standard React, NOT a departure. **DEPARTURE (unchanged)**: RequestBar selects primitives (`?? ''`); this selects an array, so the array fallback MUST be a hoisted frozen constant \u2014 a fresh `[]` per call breaks zustand `Object.is` and loops (R7)"
+      },
+      {
+        "decision": "(e) Caret / focus preservation \u2014 **DEPARTURE**",
+        "chosen_approach": "Stable numeric row keys `key={index}`; virtual trailing row keyed at its FUTURE index (`key={rows.length}`) so promotion reuses the same DOM node and native caret preservation holds mid-type; a per-cell ref registry drives IMPERATIVE focus via `useLayoutEffect` + a pending-focus ref ONLY on discrete delete (refocus adjacent) and Enter-commit (focus new row's cell)",
+        "why": "Per-keystroke typing never reorders indices \u2192 same key \u2192 same node \u2192 React preserves caret natively. Refocus runs in `useLayoutEffect` (pre-paint), not `useEffect` \u2014 else a painted frame lands focus on `document.body` (AC-13 fail); Enter-commit needs a pending-focus `{rowIndex,column}` ref because the new row's node exists only after the post-write render. **DEPARTURE**: establishes the grid-caret convention. In-scope: AC-8/AC-13/AC-18/AC-25",
+        "alternatives_rejected": "array-index keys with no future-index trick (promote remounts \u2192 caret jump); synthetic per-row uuid on Row (mutates the serializable shape \u2192 forbidden \u00a72.2/\u00a75.2); fully-imperative caret every keystroke (fragile)"
+      },
+      {
+        "decision": "(f) \u2205-default validVars via defaulted prop",
+        "chosen_approach": "KVTable accepts `validVars?: ReadonlySet<string>` defaulting to `envVars()`; render `.var.missing` ONLY when `validVars.size > 0` AND name absent, else neutral `.var`. States: neutral `.var` exercised by AC-20 (\u2205-default); `.var.missing` exercised by AC-19 (CT injects a non-empty set)",
+        "why": "Graceful boundary degrade (\u00a73.2) \u2014 production omits the prop \u2192 `envVars()` frozen `EMPTY_SET` \u2192 the `size > 0` gate keeps every token neutral (AC-20 preserved); the prop lets a CT render a non-empty set to lock `.var` vs `.var.missing` computed styles (AC-19, spec \u00a77 fidelity + \u00a79.1). NOT a departure \u2014 defaulted optional prop is standard React. In-scope: AC-19/AC-20",
+        "alternatives_rejected": "internal-only `envVars()` call with no prop (F1: `.var.missing` unreachable under CT \u2192 AC-19 + fidelity assertion untestable \u2014 the defect being fixed); returning undefined/null (null-checks); throwing (\u00a73.2); fresh `new Set()` per call (identity loop)"
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "src/renderer/src/components/organisms/KVTable.tsx",
+        "action": "Create",
+        "what_changes": "The controlled grid organism (`{ field, validVars? }` props, selector-in/updateActiveSpec-out, virtual trailing row, index keys + layout-effect refocus, varTokens/envVars calls)."
+      },
+      {
+        "file": "src/renderer/src/components/organisms/KVTable.css",
+        "action": "Create",
+        "what_changes": "Semantic `.kv*` classes bound to tokens.css reproducing the design/styles.css `.kv` block."
+      },
+      {
+        "file": "src/renderer/src/lib/varTokens.ts",
+        "action": "Create",
+        "what_changes": "Pure non-greedy `{{\u2026}}` tokeniser returning ordered plain/var segments."
+      },
+      {
+        "file": "src/renderer/src/lib/envVars.ts",
+        "action": "Create",
+        "what_changes": "\u2205-defaulting validVars selector (frozen empty `ReadonlySet`); serves as the KVTable `validVars` prop default."
+      },
+      {
+        "file": "src/renderer/src/components/organisms/__tests__/KVTable.ct.tsx",
+        "action": "Create",
+        "what_changes": "Playwright CT: grid behaviour + fidelity computed-style asserts; injects a non-empty `validVars` to exercise `.var` vs `.var.missing` (AC-19) AND omits it to assert the \u2205-default all-neutral path (AC-20)."
+      },
+      {
+        "file": "src/renderer/src/components/organisms/__tests__/KVTable.stories.tsx",
+        "action": "Create",
+        "what_changes": "CT fixture components (full styling context: tokens.css import + border-box scope)."
+      },
+      {
+        "file": "src/renderer/src/lib/__tests__/varTokens.test.ts",
+        "action": "Create",
+        "what_changes": "Vitest unit suite for the tokeniser edge rules."
+      },
+      {
+        "file": "src/renderer/src/lib/__tests__/envVars.test.ts",
+        "action": "Create",
+        "what_changes": "Vitest unit suite for the \u2205-default selector."
+      }
+    ],
+    "doc_impact": [
+      {
+        "doc_file": "docs/renderer/index.md",
+        "action": "Update",
+        "what_changes": "Add KVTable to the flat `organisms/` concern tree and the two lib modules (varTokens, envVars)."
+      }
+    ],
+    "risks": [
+      {
+        "risk": "(spec \u00a79.2, refined) Controlled-input caret jump or focus lost to `document.body` on re-render / delete / auto-promote",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "Index keys with the virtual row keyed at its future index; imperative refocus via `useLayoutEffect` + pending-focus ref on delete + Enter-commit ONLY; pin AC-13/AC-18/AC-25 as required CT scenarios."
+      },
+      {
+        "risk": "(spec \u00a79.1) Fidelity drift slips past static review",
+        "likelihood": "Med",
+        "impact": "High",
+        "mitigation": "Computed-style CT assertions locking every pinned `.kv` value across states (incl. the now-reachable `.var.missing` via injected `validVars`); runtime design-auditor; never trust a green static pass."
+      },
+      {
+        "risk": "R7 \u2014 Array selector identity loop: `spec[field] ?? []` returns a fresh reference each call \u2192 zustand `Object.is` mismatch \u2192 infinite re-render loop",
+        "likelihood": "High",
+        "impact": "Med",
+        "mitigation": "Select the RAW stored array ref with a module-level frozen `EMPTY_ROWS` fallback; derive the virtual trailing row in the render body, NEVER inside the selector."
+      },
+      {
+        "risk": "R8 \u2014 Type-only-import erosion (\u00a72.2 sharp): a later value-import of a runtime member from `requestSpec` breaks the pure-data-module invariant",
+        "likelihood": "Med",
+        "impact": "High",
+        "mitigation": "Pin `import type { Row }`; add an ESLint `no-restricted-imports` guard so a value import of `requestSpec` from `components/` fails lint/build."
+      },
+      {
+        "risk": "R9 \u2014 Paste double-promote: an `onPaste` (newline-collapse) plus the subsequent `onChange` each trigger a promote \u2192 two trailing rows (AC-24)",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Make promote a pure function of the RESULTING rows, not of event count; collapse newlines before the single write."
+      },
+      {
+        "risk": "R10 \u2014 Description-cell tokenise leak: a shared cell renderer accidentally tokenises the description cell (AC-11)",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Gate the varTokens call by cell kind \u2014 key/value only; description renders verbatim."
+      },
+      {
+        "risk": "R11 \u2014 Injection seam masks an AC-20 regression: a CT that only tests the injected non-empty `validVars` path never exercises the production \u2205-default, so a broken `size > 0` gate (flag-everything) could ship green",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "The KVTable CT MUST assert BOTH paths: (1) non-empty `validVars` \u2192 `.var` vs `.var.missing` computed styles (AC-19); (2) prop omitted / `envVars()` \u2205-default \u2192 every token neutral `.var`, zero `.var.missing` (AC-20). Pin both as required CT scenarios in `/breakdown`."
+      },
+      {
+        "risk": "R12 \u2014 Default drift: a production caller passing an explicit `validVars` before env store T14 lands would render live missing-flags outside the \u2205-default contract",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "KVTable's two production mounts (params/headers) MUST omit `validVars` in v1 so the `envVars()` default holds; `/breakdown` note \u2014 no caller supplies the prop until T14."
+      }
+    ],
+    "specialist_consultation": [
+      {
+        "specialist": "architect",
+        "sub_question": "Integrate the `validVars` prop seam + flat placement into the plan tables; re-check \u00a72.2/\u00a75.2/\u00a76",
+        "input_summary": "Both deltas integrate cleanly; `validVars` is a defaulted optional prop (not a departure); flat `organisms/KVTable.tsx` is the exact \u00a72.2 remediation; new risks R11 (CT must assert both injected + \u2205-default paths) + R12 (prod omits prop until T14); no \u00a76 reach",
+        "verdict": "accepted",
+        "cites": "own-reasoning; constitution.md \u00a72.2/\u00a75.2; specs/014-kv-table-editor/grill.md"
+      },
+      {
+        "specialist": "frontend-engineer",
+        "sub_question": "(prior run) Is the index-key + future-index virtual-row + imperative-refocus caret strategy sufficient (AC-8/13/18/21/25)?",
+        "input_summary": "SOUND-WITH-REFINEMENT \u2014 imperative refocus must use `useLayoutEffect` + a pending-focus ref; carried forward unchanged",
+        "verdict": "modified",
+        "cites": "src/renderer/src/components/organisms/RequestBar.tsx; spec \u00a75 AC-13/AC-18/AC-25"
+      }
+    ],
+    "dependencies": [
+      "None new. Reuses installed `zustand`, `radix-ui` (not needed for v1 grid), React 19, and the Vitest + Playwright CT stack. No package to install, no service, no environment variable."
+    ]
+  }
+}

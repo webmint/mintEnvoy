@@ -1,0 +1,409 @@
+{
+  "schema_version": "1.1",
+  "handoff_kind": "discover",
+  "report_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
+  "discover_completed_at": "2026-07-04T15:30:34+00:00",
+  "intent": {
+    "feature_concept": "Key-value table editor (params + headers) bound to the active request tab's RequestSpec, with {{variable}} token highlighting/validation against the active environment; hand-rolled editable grid, build-vs-buy only on {{variable}} value-field autocomplete; pixel-fidelity to design/reference.html",
+    "topic": "Key-value table editor (params + headers) bound to the active request tab's RequestSpec, with {{variable}} token highlighting/validation against the active environment; hand-rolled editable grid, build-vs-buy only on {{variable}} value-field autocomplete; pixel-fidelity to design/reference.html",
+    "topic_slug": "key-value-table-editor-params-headers-bound-to-the-active",
+    "scope_summary": "Hand-rolled editable key-value grid, one component instanced twice (params + headers). Per row: enabled checkbox (12px accent; .disabled row \u2192 opacity 0.55), key / value / description as three mono cells (description = plain editable text, no extra behaviour). Trailing always-empty row (.kv-row.empty + placeholder) auto-promotes to real row on first edit. Row delete via trailing 24px .kv-actions slot hidden by default, revealed on .kv-row:hover. {{variable}} tokens highlighted in key+value cells (.kv-cell .var), unknown ones flagged (.var.missing) vs active environment. Cell-to-cell focus movement is internal grid mechanics. Grid template 22px 1fr 1fr 1fr 24px. (Deferred/excluded mechanics enumerated in non_goals.)",
+    "verbatim_prompt": "A key-value table editor used for both query params and request headers in an HTTP client. Each row: an enabled checkbox, a key field, a value field, and an optional description field. A trailing always-empty row auto-promotes to a real row on edit. Key and value fields highlight {{variable}} tokens and flag unknown ones against the active environment. It binds to the active request tab's RequestSpec (the params or headers array) already present in the renderer's tab state store \u2014 read and write that existing shape, do not invent a new one. The editable-grid mechanics (rows, auto-promote, focus movement) are simple enough to hand-roll, but if {{variable}} autocomplete is desired, evaluate a headless combobox/autocomplete primitive (Radix, React Aria, Downshift) for the value field rather than hand-rolling the listbox/keyboard behavior; if the UI primitives in specs/001-ui-primitives already adopted a headless library, reuse it rather than adding another. Build-vs-buy on the autocomplete only, the grid itself stays hand-rolled. The same component instanced twice with different bound data; do not split into two. Visual fidelity is MANDATORY: design/reference.html is the VISUAL TARGET to match to pixel parity, and the exact resolved values are pre-extracted in design/styles.css (:root + [data-theme=\"dark\"]) and design/mintenvoy-design-fidelity-contract.md (sections \"Key-Value editor\" and \"Pane tabs\") \u2014 use those exact computed-style values (grid template, row height, cell mono font/size, header casing, padding, colour) as fidelity AC targets, treating var(--token) as resolves-to-token (not a literal hex). Copy the VALUES, never the CODE: the export carries generated cruft (data-om-* attributes, __OmT wrappers, inline styles, a tweaks-panel) that must NOT enter the build \u2014 rebuild with semantic class names bound to tokens.css. (Do NOT read tokens.json for values \u2014 it is reference-only and can drift; design/styles.css is authoritative.)"
+  },
+  "spec_seeds": {
+    "spec_type_hint": "greenfield_feature",
+    "constraints": [
+      {
+        "kind": "nfr",
+        "content": "Graceful degradation on absent env store (T14 unshipped): {{variable}} tokenising/highlighting ALWAYS works (pure local text parsing); known-vs-missing validation only activates once env store lands. Default when validVars empty \u2192 render every {{var}} as neutral .var, NOT .missing (do not flag everything unknown on a project with no environment). Env-model is NOT a hard prerequisite; T6 tolerates its absence. Reactive over shared state: read/write through existing RequestSpec store, re-render when array mutated externally (import-from-cURL), no local copy. Visual fidelity MANDATORY \u2014 exact computed-style values from design/styles.css (grid template 22px 1fr 1fr 1fr 24px, row height, mono cell font/size, header casing, padding, colour) as fidelity AC targets; var(--token) treated as resolves-to-token not literal hex. Semantic class names bound to tokens.css \u2014 NO export cruft (data-om-* attrs, __OmT wrappers, inline styles, tweaks-panel). Do NOT read tokens.json (reference-only, can drift).",
+        "quantifier": "see discovery report constraints dimension",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "nfr",
+        "content": "Out of scope: Autocomplete on {{variable}} value field: DEFERRED, OUT of v1 \u2014 v1 ships tokenising + highlight + missing-flag only (validVars via selector, default \u2205). Autocomplete is hardest part (live combobox positioning/keyboard-nav/filtering/focus) AND data-starved until env store T14 exists; becomes its own follow-up task post-T14 that runs the Radix/Downshift/React-Aria build-vs-buy. Do NOT build now. Also OUT of v1: multi-line/expandable value cells (reference .kv-cell is single-line mono <input>; long values scroll, no textarea); per-row content-type/file-upload values (file values belong to form-data BodyEditor T7); value masking/secret-hiding (no \u2022\u2022\u2022 for tokens); bulk/multi-line paste-to-rows (paste k:v block exploding into rows \u2014 deferred convenience); header/param NAME validation (illegal chars etc. \u2014 v1 accepts any text, wire-level validity is http-engine T10's job). Confirmed OUT: row reorder/drag, bulk enable-disable/select-all, cURL parse/import (RequestBar/palette), env-model T14 itself (consumed not built), parent pane-tabs container (separate task T5d), telemetry.",
+        "quantifier": "non-goal boundary from scoping session",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.2 Error Handling \u2014 boundary lookups degrade gracefully",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a75.2 Domain Invariant \u2014 requestSpec imported by tabsStore, never by components",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a74 Never Do \u2014 never use inline styles; Prefer design tokens over literal values",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.3 Naming Conventions",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.1 Type Safety \u2014 strict mode, no any",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.6 Simplicity & Reuse \u2014 search before building",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "RequestSpec tab store (updateActiveSpec)",
+        "files": [
+          "src/renderer/src/lib/tabsStore.ts"
+        ],
+        "impact": "Mutation path: read activeTab.spec.params/.headers via zustand selector; write via updateActiveSpec({params|headers: nextRows}). New array ref defeats the ===\u200b no-op guard so dirty flips + re-render fires. No new store action needed.",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "RequestSpec Row shape",
+        "files": [
+          "src/renderer/src/lib/requestSpec.ts"
+        ],
+        "impact": "Existing Row = {enabled:boolean, key:string, value:string, description:string}; params: Row[] / headers: Row[]. Bind to this exact shape \u2014 do NOT invent a new one (user constraint confirmed by code).",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "Radix primitives (radix-ui, spec 001)",
+        "files": [
+          "src/renderer/src/components/molecules/Dropdown.tsx"
+        ],
+        "impact": "radix-ui already imported here + Modal.tsx + Toast.tsx. For DEFERRED autocomplete, compose Radix Popover \u2014 no new UI library. Not needed for v1 grid.",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "Design tokens (tokens.css)",
+        "files": [
+          "src/renderer/styles/tokens.css"
+        ],
+        "impact": "Semantic KV classes bind here; resolved values authoritative in design/styles.css. No kv-*.css exists yet \u2014 greenfield styling surface, no conflict.",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "Environment store validVars (T14)",
+        "files": [
+          "(unverified)"
+        ],
+        "impact": "unverified path \u2014 env store / envSlice does NOT exist in src/ (zero hits for validVars|envSlice|activeEnv). Read validVars via a thin selector defaulting to \u2205; T6 tolerates absence.",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "Pane-tabs container (RequestSubTabs)",
+        "files": [
+          "(unverified)"
+        ],
+        "impact": "unverified path \u2014 no RequestSubTabs / pane-tab component in build (only top-level Tabs molecule + TabBar organism exist). Parent that would mount T6 is absent; T6 must be independently mountable. Generic molecules/Tabs.tsx is a reuse candidate for the future container.",
+        "is_internal_extension_candidate": false
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Spike Option A in isolation (CT with mock Row[]): prove the edit\u2192updateActiveSpec\u2192re-render cycle AND that an external array replacement (simulated cURL import) re-renders with no stale local edits",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Pre-extract the computed-style fidelity targets from design/styles.css (grid template, row height, mono cell font/size, header casing/padding/colour) and resolve every var(--token)\u2192token BEFORE coding, so fidelity ACs are exact",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Decide the Row-type import route that honors the \u00a75.2 invariant (requestSpec imported by tabsStore, never by components) \u2014 type-only import vs a store type re-export \u2014 before writing any import",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Land the thin validVars selector now (returns \u2205 when the env store is absent) so T6 binds to a stable seam and never hard-depends on T14",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Lock the {{...}} tokeniser edge rules with unit tests first: non-greedy nesting, empty {{}}/unclosed {{ = plain text, trimmed unicode/dot/dash keys, key vs value tokenised independently",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Radix lacks a native combobox \u2014 deferred autocomplete needs Popover+hook composition, decided in the follow-up task",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      },
+      {
+        "risk": "env store T14 unbuilt \u2014 mitigated by empty-set-default selector, not a blocker for v1",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      },
+      {
+        "risk": "parent pane-tabs container unbuilt \u2014 mitigated by self-contained/isolation-testable design, separate task owns the shell",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      }
+    ],
+    "open_questions": [
+      {
+        "question": "user-supplied mechanism guess (confirm via Phase 2 fit-check): if specs/001-ui-primitives already adopted a headless combobox/autocomplete library, reuse it rather than adding another",
+        "blocking": true
+      }
+    ]
+  },
+  "plan_seeds": {
+    "design_options": [
+      {
+        "id": "A",
+        "name": "Controlled grid, derived virtual trailing row, direct store writes",
+        "shape": "Zero component-local row state. Rows rendered = activeTab.spec.<field> (read via zustand selector) PLUS one synthetic virtual empty row at index length. Every edit computes a fresh Row[] and calls updateActiveSpec({<field>: nextRows}) immediately; first edit on the virtual row appends a real Row (auto-promote) so a new virtual trailing row appears. Delete = filter + updateActiveSpec. <field> is a 'params'|'headers' prop \u2192 one component, two mounts. {{var}} tokenised at render, compared to a validVars selector (\u2205-default).",
+        "pros": [
+          "Honors no-local-copy natively \u2014 external cURL-import mutation re-renders for free, no stale-edit race",
+          "Reuses the existing updateActiveSpec action \u2014 zero new store surface to test",
+          "Virtual trailing row makes never-zero + empty-row-not-deletable fall out by construction",
+          "Simplest to reason about; fewest moving parts"
+        ],
+        "cons": [
+          "Every keystroke writes through the store (fires the ===\u200b no-op guard + a re-render); fine at <50 rows, not virtualization-scale",
+          "Cursor/focus must be managed carefully since the input is fully controlled by store-derived value"
+        ],
+        "complexity": "Low"
+      },
+      {
+        "id": "B",
+        "name": "Local draft buffer, commit on blur/debounce",
+        "shape": "Component holds a local copy of the rows; edits mutate local state; changes are flushed to updateActiveSpec on blur or debounced. A reconciliation effect syncs the local buffer when the store array changes underneath.",
+        "pros": [
+          "Fewer store writes; typing never touches the store until commit",
+          "Cursor/focus trivially stable (input is locally controlled)"
+        ],
+        "cons": [
+          "VIOLATES the no-local-copy constraint \u2014 the external cURL-import mutation race is exactly the failure this reintroduces (stale local edits resurrecting or clobbering an import)",
+          "Reconciliation effect is subtle and easy to get wrong (the classic controlled/uncontrolled sync bug)",
+          "More state, more tests, for a grid that does not need the write-batching"
+        ],
+        "complexity": "Med"
+      },
+      {
+        "id": "C",
+        "name": "Granular row actions on tabsStore",
+        "shape": "Extend tabsStore with KV-specific actions \u2014 updateRow(field,index,patch), addRow(field), removeRow(field,index), toggleRow(field,index) \u2014 that own the array algebra + auto-promote. KVTable becomes a thin view calling these actions; the trailing-empty-row and never-zero logic lives in the store.",
+        "pros": [
+          "Row algebra is unit-testable at the store level, independent of the component",
+          "Component shrinks to pure presentation"
+        ],
+        "cons": [
+          "Adds four new store actions + their tests for logic that Option A expresses as small pure array ops in the component \u2014 more surface for little gain",
+          "Couples generic tabsStore to KV-editor specifics (params/headers), leaking a component concern into the tab state machine",
+          "updateActiveSpec already covers the write; this is redundant machinery"
+        ],
+        "complexity": "Med"
+      }
+    ],
+    "build_vs_buy": {
+      "recommendation": "Build",
+      "build_path": "Hand-roll the 4-column CSS-grid editor (grid-template 22px 1fr 1fr 1fr 24px) with semantic classes bound to tokens.css, real <input type=checkbox> + real <button> delete, a small non-greedy {{...}} tokeniser, and direct updateActiveSpec writes. Grid mechanics (rows, auto-promote, focus movement) are simple enough that a table library is net-negative.",
+      "buy_path": "For the GRID: adopt TanStack Table / Material React Table / rsuite editable table. Rejected \u2014 overkill for 4 columns/<50 rows, and their DOM/styling fights pixel-fidelity + the semantic-class/tokens.css + no-cruft constraints. For the DEFERRED autocomplete only (out of v1): buy a headless combobox hook (Downshift useCombobox or React-Aria useComboBox) composed inside the already-adopted Radix Popover \u2014 decided in its own post-T14 follow-up task, not now.",
+      "reasoning": "The v1 scope (grid + highlight + missing-flag) is pure Build: every 'buy' table library trades away the fidelity and no-cruft constraints that are mandatory here, for row-management convenience the grid does not need. The single legitimate buy question \u2014 the value-field autocomplete \u2014 is deferred out of v1 (data-starved until T14) and will run its own build-vs-buy then, leaning buy-a-hook + reuse-Radix-Popover to honor 'no new UI library'."
+    },
+    "cited_canonical_patterns": [
+      {
+        "reference": "Postman / Insomnia / Bruno key-value param+header editors",
+        "kind": "product",
+        "source": "https://muhimasri.com/blogs/react-editable-table/",
+        "relevance": "Canonical behavioural reference for the hand-rolled grid: enabled/key/value/description columns + trailing auto-promoting empty row. Confirms the pattern is standard and hand-rollable.",
+        "is_internal": false
+      },
+      {
+        "reference": "TanStack Table / Material React Table / rsuite Editable Table",
+        "kind": "library",
+        "source": "https://tanstack.com/table/latest/docs/framework/react/examples/editable-data",
+        "relevance": "Heavyweight editable-grid libs. Overkill for a 4-column <50-row grid bound to existing store; fight the semantic-class + pixel-fidelity + no-cruft constraint. Evidence FOR hand-rolling the grid, not adopting a table lib.",
+        "is_internal": false
+      },
+      {
+        "reference": "Downshift useCombobox",
+        "kind": "library",
+        "source": "https://www.downshift-js.com/use-combobox",
+        "relevance": "Headless combobox hook, total styling control \u2014 candidate for the DEFERRED {{var}} value-field autocomplete (out of v1). Composes inside a Radix Popover.",
+        "is_internal": false
+      },
+      {
+        "reference": "React Aria useComboBox",
+        "kind": "library",
+        "source": "https://react-spectrum.adobe.com/react-aria/useComboBox.html",
+        "relevance": "Adobe headless combobox hook \u2014 alt candidate for deferred autocomplete. Adds a second headless dependency the repo doesn't have; disfavoured vs reusing adopted Radix.",
+        "is_internal": false
+      },
+      {
+        "reference": "radix-ui Popover \u2014 already adopted in-repo (Dropdown/Modal/Toast import radix-ui)",
+        "kind": "library",
+        "source": "https://www.radix-ui.com/primitives/docs/components/popover",
+        "relevance": "Repo already imports radix-ui in molecules/Dropdown.tsx, Modal.tsx, Toast.tsx. For the DEFERRED autocomplete, compose Radix Popover + a combobox hook rather than adding a new UI library \u2014 satisfies 'reuse 001 primitives, no new library'. Not a capability implementation; a reuse dependency.",
+        "is_internal": false
+      }
+    ],
+    "complexity": {
+      "changes": "Low",
+      "risk": "Low",
+      "verify_cost": "Med"
+    },
+    "recommended_option_id": "A",
+    "recommended_option_rationale": "It is the only option that satisfies the no-local-copy + external-mutation-race requirements by construction rather than by careful reconciliation \u2014 the cURL-import race (Option B's fatal flaw) simply cannot occur because there is no local buffer to go stale. It reuses the existing updateActiveSpec write path (spec 004) with zero new store surface, where Option C adds four actions and leaks KV specifics into the generic tab store for no functional gain. The never-zero guard and the 'empty row has no delete affordance' rule fall out of the virtual trailing row for free. The only real cost \u2014 a store write per keystroke \u2014 is a non-issue at the confirmed <50-row scale (virtualization is explicitly out of scope). Focus management (the genuine risk) is addressed the same way in any option and is pinned as a required CT scenario.",
+    "_effort_estimate": "Low",
+    "_overall_fit": "Good",
+    "_derisk_count": 3
+  },
+  "discovery_block": {
+    "overall_fit": "Good",
+    "effort_estimate": "Low",
+    "fit_rationale": "Excellent fit. The core binding lands cleanly on existing, built infrastructure: the RequestSpec Row shape (requestSpec.ts) and the tabsStore.updateActiveSpec mutation path (spec 004) require zero adaptation \u2014 read a Row[] via selector, write a fresh array back through the existing action, and reactive re-render on external cURL-import mutation is a free consequence of the zustand subscription (no local copy). Styling drops onto the established semantic-class + tokens.css pattern; KV classes are net-new so there is no collision. The two dependencies the user's belief pointed at that do NOT yet exist \u2014 the env store's validVars (T14) and the parent pane-tabs container \u2014 are the only friction, and both are already de-risked in scope: validVars is read through a thin \u2205-defaulting selector (highlight always works; missing-flag activates when T14 lands), and the component is built independently-mountable and isolation-testable so no parent is required. Neither absence blocks v1; effort is Low. The one genuinely deferred piece \u2014 {{var}} value-field autocomplete \u2014 is out of v1 and carries its own follow-up build-vs-buy once T14 provides data.",
+    "fit_assessments": [
+      {
+        "touchpoint": "RequestSpec tab store (updateActiveSpec)",
+        "user_expected": "params/headers arrays already present in renderer tab state store \u2014 read/write existing shape",
+        "reality": "CONFIRMED. tabsStore (zustand, spec 004) exposes updateActiveSpec(patch: Partial<RequestSpec>). Belief matches reality exactly. Write path = updateActiveSpec({params|headers: nextRows}) with a fresh array. No new action, no new shape.",
+        "effort": "Low",
+        "blockers": []
+      },
+      {
+        "touchpoint": "RequestSpec Row shape",
+        "user_expected": "bind to existing params/headers Row[]; do not invent new shape",
+        "reality": "CONFIRMED. Row interface exists verbatim in requestSpec.ts with the 4 fields. Zero adaptation needed.",
+        "effort": "Low",
+        "blockers": []
+      },
+      {
+        "touchpoint": "Radix primitives (radix-ui, spec 001)",
+        "user_expected": "reuse the Radix headless library adopted in 001 for {{var}} autocomplete; no new library",
+        "reality": "PARTIALLY CONFIRMED. radix-ui is adopted (DropdownMenu/Dialog/Toast). But no Combobox/Popover-combobox is built yet, and Radix has no first-class combobox primitive \u2014 the deferred autocomplete composes Popover + a combobox hook (Downshift/React-Aria) or Ariakit. Moot for v1 (autocomplete deferred).",
+        "effort": "Medium",
+        "blockers": [
+          "Radix lacks a native combobox \u2014 deferred autocomplete needs Popover+hook composition, decided in the follow-up task"
+        ]
+      },
+      {
+        "touchpoint": "Design tokens (tokens.css)",
+        "user_expected": "pixel-fidelity via tokens.css bound to design/styles.css values",
+        "reality": "CONFIRMED. tokens.css exists at src/renderer/styles/tokens.css; design/styles.css is authoritative. Established semantic-class + tokens pattern across atoms/molecules (Icon/Tabs/Dropdown). KV classes are net-new, no collision.",
+        "effort": "Low",
+        "blockers": []
+      },
+      {
+        "touchpoint": "Environment store validVars (T14)",
+        "user_expected": "validVars from an env store to flag unknown {{var}}",
+        "reality": "MISFIT (tolerated by design). No env store exists (zero hits validVars|envSlice|activeEnv). Requirement already de-risked: read via thin selector defaulting to \u2205, highlight always works, missing-flag activates only once T14 lands. NOT a hard prerequisite.",
+        "effort": "Low",
+        "blockers": [
+          "env store T14 unbuilt \u2014 mitigated by empty-set-default selector, not a blocker for v1"
+        ]
+      },
+      {
+        "touchpoint": "Pane-tabs container (RequestSubTabs)",
+        "user_expected": "parent Params/Headers pane mounts the component",
+        "reality": "MISFIT (tolerated by design). No pane-tabs container in build; RequestBar sits alone. T6 scoped as independently-mountable (CT with mock rows), so parent absence is not a blocker. Generic Tabs molecule available to build the container in a separate task.",
+        "effort": "Low",
+        "blockers": [
+          "parent pane-tabs container unbuilt \u2014 mitigated by self-contained/isolation-testable design, separate task owns the shell"
+        ]
+      }
+    ],
+    "verdict": "Worth pursuing",
+    "override_recorded": false,
+    "memo_dimensions": {
+      "functional_scope": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Hand-rolled editable key-value grid, one component instanced twice (params + headers). Per row: enabled checkbox (12px accent; .disabled row \u2192 opacity 0.55), key / value / description as three mono cells (description = plain editable text, no extra behaviour). Trailing always-empty row (.kv-row.empty + placeholder) auto-promotes to real row on first edit. Row delete via trailing 24px .kv-actions slot hidden by default, revealed on .kv-row:hover. {{variable}} tokens highlighted in key+value cells (.kv-cell .var), unknown ones flagged (.var.missing) vs active environment. Cell-to-cell focus movement is internal grid mechanics. Grid template 22px 1fr 1fr 1fr 24px. (Deferred/excluded mechanics enumerated in non_goals.)"
+      },
+      "users": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Single end-user: developer editing params/headers on active request tab via keyboard+mouse \u2014 no role tiers, no collab. Developer-as-consumer: one component authored once, two mount points (params pane, headers pane). Second data-writer to acknowledge: params[]/headers[] arrays are ALSO populated programmatically by the import-from-cURL path (paste-cURL in URL bar + 'Import from cURL' command-palette action) which parses cURL into RequestSpec directly. KVTable is NOT sole writer \u2014 it is an editor-view over shared state mutable externally, so it must read/write through the existing RequestSpec store and re-render reactively when the array changes underneath it, NOT own a local copy. The cURL parse/import path itself is OUT of scope (lives with RequestBar/command-palette); this component only renders + edits the arrays correctly including when populated externally."
+      },
+      "inputs_outputs": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "IN: (1) a bound Row[] (params or headers) from the active tab's RequestSpec store \u2014 Row = {enabled:boolean, key:string, value:string, description:string} (exact existing shape, src/renderer/src/lib/requestSpec.ts); (2) active-environment validVars set \u2014 sourced from the environment store (envSlice: activeEnvId + derived validVars) owned by env-model task T14 which is NOT yet built, so T6 reads validVars through a thin selector returning EMPTY set when the env store is absent, and degrades gracefully; (3) design tokens from tokens.css (resolved values authoritative in design/styles.css). OUT: store mutations ONLY \u2014 edit cell \u2192 update Row; first edit on empty row \u2192 append Row + spawn new trailing empty; hover-\u2715 \u2192 remove Row; checkbox \u2192 flip enabled. No telemetry (local-only app), no outward focus/keyboard events (cell-to-cell focus is internal grid mechanics). Missing-flag is view-local (.var.missing CSS class at render), consumed by nobody."
+      },
+      "integration_points": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Confirmed BUILT + reused: (1) RequestSpec store (spec 004) \u2014 bind to existing params[]/headers[] Row[], store actions are the mutation path; (2) Radix primitives (spec 001-ui-primitives) \u2014 reuse the adopted Radix Popover/combobox IF the deferred value-field completion feature is later built, no new library; (3) tokens.css \u2014 styling source. TOLERATED-ABSENT: (4) env store (T14, unshipped) \u2014 read validVars via thin selector defaulting to \u2205. TWO not-yet-built deps, not one: validVars (T14) AND the parent pane-tabs container. Parent = request-pane sub-tabs strip (Params/Auth/Headers/Body/Tests/Code), reference .pane-tab strip (contract \u00a76 'Pane tabs') / RequestSubTabs-style container \u2014 NOT in build yet (built = 001\u2013005 + request-bar 009 + tab-contrast 011/013). So build KVTable as a SELF-CONTAINED, independently-mountable component: bound to RequestSpec params/headers arrays, testable in isolation (CT with mock rows), NOT assuming a parent exists to mount it. The pane-tabs container is a separate concern shared by T6/T7(body)/T8(auth)/T9(snippet) \u2014 own task or first task needing the shell. Phase 2 to confirm whether request-bar 009 left any sub-tab scaffold or RequestBar sits alone. T6 must NOT depend on that container being present."
+      },
+      "constraints": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Graceful degradation on absent env store (T14 unshipped): {{variable}} tokenising/highlighting ALWAYS works (pure local text parsing); known-vs-missing validation only activates once env store lands. Default when validVars empty \u2192 render every {{var}} as neutral .var, NOT .missing (do not flag everything unknown on a project with no environment). Env-model is NOT a hard prerequisite; T6 tolerates its absence. Reactive over shared state: read/write through existing RequestSpec store, re-render when array mutated externally (import-from-cURL), no local copy. Visual fidelity MANDATORY \u2014 exact computed-style values from design/styles.css (grid template 22px 1fr 1fr 1fr 24px, row height, mono cell font/size, header casing, padding, colour) as fidelity AC targets; var(--token) treated as resolves-to-token not literal hex. Semantic class names bound to tokens.css \u2014 NO export cruft (data-om-* attrs, __OmT wrappers, inline styles, tweaks-panel). Do NOT read tokens.json (reference-only, can drift)."
+      },
+      "non_goals": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Autocomplete on {{variable}} value field: DEFERRED, OUT of v1 \u2014 v1 ships tokenising + highlight + missing-flag only (validVars via selector, default \u2205). Autocomplete is hardest part (live combobox positioning/keyboard-nav/filtering/focus) AND data-starved until env store T14 exists; becomes its own follow-up task post-T14 that runs the Radix/Downshift/React-Aria build-vs-buy. Do NOT build now. Also OUT of v1: multi-line/expandable value cells (reference .kv-cell is single-line mono <input>; long values scroll, no textarea); per-row content-type/file-upload values (file values belong to form-data BodyEditor T7); value masking/secret-hiding (no \u2022\u2022\u2022 for tokens); bulk/multi-line paste-to-rows (paste k:v block exploding into rows \u2014 deferred convenience); header/param NAME validation (illegal chars etc. \u2014 v1 accepts any text, wire-level validity is http-engine T10's job). Confirmed OUT: row reorder/drag, bulk enable-disable/select-all, cURL parse/import (RequestBar/palette), env-model T14 itself (consumed not built), parent pane-tabs container (separate task T5d), telemetry."
+      },
+      "success_criteria": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "FIDELITY: rendered grid matches design/styles.css computed values (grid template 22px 1fr 1fr 1fr 24px, row height, mono cell font/size, header casing/padding/colour) verified as fidelity ACs (var\u2192token, not literal hex). BEHAVIOUR: auto-promote on first edit; hover-\u2715 delete; checkbox flips enabled + .disabled opacity; {{var}} highlight; .var.missing when validVars non-empty and token absent; neutral .var when validVars \u2205. BINDING: reads/writes existing Row[] through store; re-renders reactively on external mutation (cURL import); no local copy. REUSE: one component, two mounts; testable in isolation (CT mock rows). NO export cruft: semantic classes bound to tokens.css; no data-om-*, __OmT, inline styles, tweaks-panel. THREE HARD BARS: (1) Keyboard traversal (CORE UX, not a11y polish) \u2014 Tab/Shift-Tab across cells (checkbox\u2192key\u2192value\u2192description\u2192next row); Enter in last row's value/description commits + auto-promotes with focus landing in new row; focus NEVER lost on auto-promote or delete (moves to adjacent row, not <body>). (2) Semantic form elements (powers #1) \u2014 real <input type=checkbox> (accent-color, Space-toggle free); delete-\u2715 a real <button> (Enter/Space focusable), NOT div-onClick. (3) CT coverage as required SCENARIOS not a %-threshold \u2014 each a CT: auto-promote on first edit; hover-\u2715 delete + correct focus; checkbox\u2192enabled flip + .disabled; {{var}} known=.var/unknown=.var.missing when validVars non-empty; degradation validVars \u2205 \u2192 all {{var}} neutral .var, zero .missing (assert explicitly); external array mutation (simulated cURL import) \u2192 reactive re-render no local copy; both mounts (params+headers) independent; fidelity computed-style asserts (var\u2192token). Line-% threshold is NOT a hard bar. SOFT (not a hard bar): full screen-reader ARIA-grid roles / row labels / aria-rowindex \u2014 over-engineering for a local few-devs tool with no SR users; semantic elements (#2) give baseline a11y."
+      },
+      "edge_cases": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "EMPTY STATE: params [] \u2192 only trailing empty row renders; deleting last real row leaves the empty row (never zero rows). TRAILING-EMPTY ROW has NO delete affordance \u2014 \u2715 appears only on promoted (real) rows; empty row can't be deleted (never-zero guard). PASTE into a cell: single-line paste = literal text; multi-line paste (\\n in clipboard) must NOT explode into rows (bulk-paste OUT of v1) \u2014 collapse newlines to spaces (don't lose text, don't spawn rows). {{var}} TOKENISER: captures everything between {{ and }}, trimmed ({{ x }} \u2192 key 'x'), compares exact trimmed string against validVars keys. Do NOT constrain name to \\w+ \u2014 env keys may contain dots/dashes/unicode ({{user.id}}, {{user-id}}); \\w-only regex would false-flag them missing. Known \u27fa trimmed \u2208 validVars. Empty {{}} and unclosed {{abc (no closing }}) = plain text, neither .var nor .missing (requires both delimiters + non-empty key). Nested {{a{{b}}}}: non-greedy \u2014 shortest {{...}} match, locked. Key vs value tokenised independently. DUPLICATE KEYS (same name twice): allowed, no merge/warn (wire-level is T10). LONG VALUES: single-line scroll, no wrap/no grid reflow. EXTERNAL MUTATION RACES: cURL import replaces array while a cell is focused/mid-edit \u2192 reactive re-render must not crash or resurrect stale local edits (no-local-copy is the guard). DELETE-WHILE-FOCUSED ordering: move focus to adjacent row (same column; previous row, or next if deleting first) BEFORE removing, so focus never falls to <body>. RAPID AUTO-PROMOTE incl paste: fast typing OR large paste into empty row spawns exactly ONE new trailing row (promote fires on first non-empty state, idempotent), never N. validVars TOGGLING: env store lands or activeEnv switches mid-session \u2192 highlight re-evaluates reactively. NOT edge-cases for v1: virtualization for huge row counts (params/headers realistically <50); cross-mount races (params + headers separate arrays, can't collide)."
+      }
+    },
+    "references": [
+      "design/reference.html + extracted request.jsx (Claude Design export KVTable \u2014 VISUAL/BEHAVIOURAL reference, NOT importable repo code)",
+      "design/styles.css (authoritative resolved token values) + design/mintenvoy-design-fidelity-contract.md (Key-Value editor + Pane tabs sections)",
+      "specs/001-ui-primitives Radix-backed primitives (Radix Popover/combobox \u2014 reuse for {{variable}} autocomplete if added, no new library)",
+      "specs/004 RequestSpec tab store (bind to existing params/headers arrays; do not invent new shape)",
+      "Postman / Insomnia / Bruno params-and-headers editor (behavioural reference: checkbox/key/value/description rows, auto-promoting trailing empty row)"
+    ],
+    "gaps": [
+      {
+        "dimension": "integration_points",
+        "description": "user-supplied mechanism guess (confirm via Phase 2 fit-check): if specs/001-ui-primitives already adopted a headless combobox/autocomplete library, reuse it rather than adding another"
+      }
+    ]
+  },
+  "downstream_links": {
+    "spec_path": "specs/014-key-value-table-editor-params-headers-bound-to-the-active/spec.md",
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}

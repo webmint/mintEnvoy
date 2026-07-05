@@ -1,0 +1,74 @@
+.kv { width: 100%; font-size: 12.5px; }
+.kv-header, .kv-row { display: grid; grid-template-columns: 22px 1fr 1fr 1fr 24px; align-items: center; }
+.kv-header { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-faint); font-weight: 600; border-bottom: 1px solid var(--border-faint); height: 30px; }
+.kv-header > div { padding: 0 10px; }
+.kv-row { border-bottom: 1px solid var(--border-faint); min-height: 32px; color: var(--text); }
+.kv-row:hover { background: var(--bg-hover); }
+.kv-row.disabled { opacity: 0.55; }
+.kv-check { display: grid; place-items: center; padding-left: 8px; }
+.kv-row input[type="checkbox"] { accent-color: var(--accent); width: 12px; height: 12px; }
+.kv-cell { padding: 6px 10px; display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 12px; min-width: 0; }
+.kv-cell input { flex: 1; background: transparent; font-family: var(--font-mono); font-size: 12px; min-width: 0; border: none; color: inherit; outline: none; }
+.kv-cell input::placeholder { color: var(--text-faint); }
+.kv-cell.key { color: var(--text); }
+.kv-cell.value { color: var(--text-muted); }
+.kv-cell .var { color: var(--accent); }
+.kv-cell .var.missing { color: var(--m-delete); text-decoration: line-through dotted; }
+.kv-actions { display: none; justify-content: center; }
+.kv-row:hover .kv-actions { display: flex; }
+.kv-actions button { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 0; font-size: 12px; }
+.kv-row.empty .kv-cell input::placeholder { color: var(--text-faint); }
+
+/* ── Overlay structure for {{var}} token highlighting in key / value cells ── */
+
+/* Wrapper fills the cell horizontally; height is driven by .kv-highlight content. */
+.kv-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* The aria-hidden highlight layer — visually rendered text with token colours. */
+.kv-input-wrap .kv-highlight {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 20px;
+  min-height: 20px;
+  color: inherit;
+  white-space: pre;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
+}
+
+/*
+ * The overlay input sits on top of the highlight layer.
+ * color: transparent hides the duplicate text; caret-color keeps the cursor
+ * visible. Specificity (0,2,1) intentionally overrides .kv-cell input (0,1,1).
+ */
+.kv-cell .kv-input-wrap input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  flex: none;
+  color: transparent;
+  caret-color: inherit;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 20px;
+  padding: 0;
+  margin: 0;
+}
+
+/* Restore placeholder visibility despite transparent text colour on overlay inputs. */
+.kv-cell .kv-input-wrap input::placeholder {
+  color: var(--text-faint);
+}

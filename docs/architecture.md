@@ -28,7 +28,7 @@ The renderer process has a three-sublayer structure beneath feature components:
 | Presentation — atoms     | Inline SVG `Icon` component + typed `IconName` string-literal union over the project-owned 40-icon set                                                                                                                                                                                                                                                                       | `src/renderer/src/components/atoms/`     |
 | Presentation — molecules | `Dropdown`, `Modal`, `Toast` — thin wrappers over Radix UI primitives, styled via semantic classes. `Tabs` — controlled selection-only tab-strip; hand-rolled WAI-ARIA engine (see Patterns § below for the departure rationale). `Divider` — hand-rolled WAI-ARIA splitter (domain-agnostic; used by `PaneSplit`).                                                          | `src/renderer/src/components/molecules/` |
 | Presentation — organisms | `Shell` (root composition layer), `Titlebar`, `Statusbar`, and `PaneSplit` — grouped under `organisms/shell/` (app-shell domain). `Sidebar`, `TabBar`, and `RequestBar` — flat domain singletons directly under `organisms/`. Organisms compose molecules/atoms; they never import across the same tier.                                                                     | `src/renderer/src/components/organisms/` |
-| Support — lib/ (thin)    | `toastStore` (zustand queue + imperative `toast()` API), `settingsStore` (zustand SSOT for theme/accent/mstyle/sidebarWidth/paneRatio/sidebarCollapsed + clamp helpers), `icons-glue` (Icon lookup/fallback), shared `cx()` className helper, `httpMethods` (ordered `METHODS` tuple + `HttpMethod` union — method SSOT consumed by `requestSpec`, `RequestBar`, and `Tabs`) | `src/renderer/src/lib/`                  |
+| Support — lib/ (thin)    | `toastStore` (zustand queue + imperative `toast()` API), `settingsStore` (zustand SSOT for theme/accent/mstyle/sidebarWidth/paneRatio/sidebarCollapsed + clamp helpers), `icons-glue` (Icon lookup/fallback), shared `cx()` className helper, `httpMethods` (ordered `METHODS` tuple + `HttpMethod` union — method SSOT consumed by `requestSpec`, `RequestBar`, and `Tabs`), `varTokens` (pure display-only `{{var}}` tokeniser — stateless, renderer-isolated, no resolution), `envVars` (∅-default frozen-sentinel selector for the active environment's valid variable names — T14 seam; see Patterns §) | `src/renderer/src/lib/`                  |
 
 **Dependency direction**: organisms import from molecules and atoms; molecules and atoms import from lib/; `lib/` must NOT import from `components/`. No sibling-tier imports (organisms must not import other organisms). All intra-renderer imports use the `@renderer` alias — no deep relative paths across sublayer boundaries.
 
@@ -76,7 +76,7 @@ await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)))
 
 mintEnvoy is structured around Electron's three-process security model. The **main** process (Node.js) owns the application lifecycle and creates the single BrowserWindow with sandbox-friendly webPreferences and a preload script attached. The **preload** bridge runs with context isolation and is the only place permitted to expose privileged Electron APIs to the UI, doing so through contextBridge under a process.contextIsolated guard. The **renderer** is a React 19 single-page UI that must never import Node or Electron modules — it talks to the platform exclusively through the globals the preload bridge exposes on window.
 
-Within the renderer, the code is organized as a small design-system with three atomic-design tiers: an Icon atom; Dropdown/Modal/Toast/Tabs/Divider molecules (Dropdown/Modal/Toast wrap Radix; Tabs hand-rolls its WAI-ARIA engine and also supports opt-in closable, method-chip, and dirty-state affordances — see Patterns §; Divider is a hand-rolled WAI-ARIA splitter); and organisms — Shell, Titlebar, Statusbar, and PaneSplit (grouped under organisms/shell/) plus flat singletons Sidebar, TabBar (the working-tabs strip), and RequestBar (the method-dropdown + URL-input + Send/Save/Share bar for the active tab) — that compose the single-window app shell. A shared lib layer provides className merge, safe icon resolution, three module-level zustand stores (toastStore for the toast queue; settingsStore as the view-state SSOT; tabsStore as the working-tabs lifecycle state machine), `httpMethods` (ordered `METHODS` tuple + `HttpMethod` union — the method SSOT), and the requestSpec domain model (RequestSpec types + makeBlankRequest factory). UI styling is driven by CSS custom-property design tokens rather than inline styles. A dev-only PrimitivesDemo gallery is dynamically imported behind import.meta.env.DEV so it is tree-shaken out of production builds.
+Within the renderer, the code is organized as a small design-system with three atomic-design tiers: an Icon atom; Dropdown/Modal/Toast/Tabs/Divider molecules (Dropdown/Modal/Toast wrap Radix; Tabs hand-rolls its WAI-ARIA engine and also supports opt-in closable, method-chip, and dirty-state affordances — see Patterns §; Divider is a hand-rolled WAI-ARIA splitter); and organisms — Shell, Titlebar, Statusbar, and PaneSplit (grouped under organisms/shell/) plus flat singletons Sidebar, TabBar (the working-tabs strip), and RequestBar (the method-dropdown + URL-input + Send/Save/Share bar for the active tab), and KVTable (a controlled key-value grid for editing a request's params/headers — built and CT-tested in isolation; not yet mounted into the running app) — that compose the single-window app shell. A shared lib layer provides className merge, safe icon resolution, three module-level zustand stores (toastStore for the toast queue; settingsStore as the view-state SSOT; tabsStore as the working-tabs lifecycle state machine), `httpMethods` (ordered `METHODS` tuple + `HttpMethod` union — the method SSOT), the requestSpec domain model (RequestSpec types + makeBlankRequest factory), the display-only `{{var}}` tokeniser (`varTokens`), and the ∅-default environment-variable selector (`envVars` — T14 seam; see Patterns §). UI styling is driven by CSS custom-property design tokens rather than inline styles. A dev-only PrimitivesDemo gallery is dynamically imported behind import.meta.env.DEV so it is tree-shaken out of production builds.
 
 The toolchain is electron-vite (three build targets: main, preload, renderer) for bundling and electron-builder for OS packaging, with Vitest + Playwright component tests covering the primitive library.
 
@@ -98,7 +98,7 @@ src/
         │   │   ├── Sidebar.tsx
         │   │   └── TabBar.tsx   # working-tabs strip
         │   └── PrimitivesDemo.tsx  # dev-only gallery
-        ├── lib/    # cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec, httpMethods
+        ├── lib/    # cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec, httpMethods, varTokens, envVars
         └── styles/ # tokens.css design tokens
 ```
 
@@ -323,6 +323,22 @@ The method-selector button uses an ancestor-scoped rule `.request-bar .request-b
 
 **Note: shared Dropdown open-panel reference values (feature 012).** `Dropdown.css` sets `.dropdown-content` to `box-shadow: var(--shadow-lg)` (not `--shadow-md`), a `1px` inter-item `gap`, and `.dropdown-item` padding of `6px 8px`. These values match `design/reference.html` and apply to all Dropdown consumers (currently the RequestBar method menu and the dev-only PrimitivesDemo gallery). Callers that need a different shadow or item density must scope their own override rather than editing the shared molecule.
 
+### KVTable — prop-injectable ∅-default seam for a future environment store (T14 seam pattern)
+
+**Applies in**: `src/renderer/src/lib/envVars.ts` (the seam module), `src/renderer/src/components/organisms/KVTable.tsx` (the consumer)
+
+`KVTable` accepts a `validVars?: ReadonlySet<string>` prop that defaults to `envVars()`. `envVars()` always returns the same module-level frozen empty set — the ∅ sentinel — so `{{var}}` token highlighting degrades to neutral (all tokens styled `.var`, none `.missing`) until the environment store (T14) wires in the real selector. When T14 ships, it replaces the `envVars()` body with a real selector; any mounted `KVTable` that uses the default prop receives the live variable set without a prop change. The pattern is also used by `varTokens.ts` callers: the tokeniser itself is pure and stateless (no store access), so the seam sits exclusively in `envVars`.
+
+**Hazard: stable-identity contract — do NOT return `new Set()` from `envVars()`.** `envVars()` must return the SAME `EMPTY_SET` object reference on every call. Zustand selectors use `Object.is` to detect changes; a fresh `Set()` per call — even an empty one — produces a new reference each render and triggers an infinite re-render loop. When T14 wires in the real selector, the replacement must similarly return a stable reference (e.g. a selector that returns the same `Set` object identity when contents are unchanged).
+
+<!-- src/renderer/src/lib/envVars.ts:16 -->
+
+```typescript
+const EMPTY_SET: ReadonlySet<string> = Object.freeze(new Set<string>())
+```
+
+**Rule for future implementors of T14**: the env store selector that replaces `envVars()` must satisfy: (1) same frozen/stable reference returned when the variable-name set is logically unchanged, (2) `KVTable`'s `validVars` prop default can remain `envVars()` — no call-site change needed, (3) `envVars` remains the sole injection seam (do not add a second path that bypasses this module).
+
 ## Conventions
 
 **Naming**
@@ -401,7 +417,7 @@ function App(): React.JSX.Element {
 - preload is the only bridge — it exposes APIs to the renderer via contextBridge and depends on neither renderer UI nor main internals
 - renderer depends only on browser/React APIs and preload-exposed window globals — never on Node, Electron, or main
 - renderer component tiers flow downward only: organisms → molecules → atoms; no sibling-tier or upward imports
-- renderer lib (cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec, httpMethods) is leaf-level: components depend on lib, lib depends on nothing renderer-external; requestSpec is imported by tabsStore but is still a pure data module (no component imports); httpMethods is imported by requestSpec, RequestBar, and Tabs — it imports nothing itself
+- renderer lib (cx, icons-glue, toastStore, settingsStore, tabsStore, requestSpec, httpMethods, varTokens, envVars) is leaf-level: components depend on lib, lib depends on nothing renderer-external; requestSpec is imported by tabsStore but is still a pure data module (no component imports); httpMethods is imported by requestSpec, RequestBar, and Tabs — it imports nothing itself; varTokens is a pure stateless tokeniser (no imports beyond TypeScript types); envVars is a seam module that currently imports nothing and returns a module-level frozen sentinel (see Patterns § for the T14 seam contract)
 
 ## Dependency Overview
 
