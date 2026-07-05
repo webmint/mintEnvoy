@@ -1,0 +1,14 @@
+{
+  "seed_version": "1",
+  "source": "grill",
+  "target_stage": "plan",
+  "feature": "specs/014-kv-table-editor",
+  "prior_conclusion": "KVTable exposes only a field ('params'|'headers') prop and calls envVars() internally with no validVars injection seam; and KVTable is placed in a new single-component organisms/request/ subfolder while the sibling RequestBar stays flat at organisms/RequestBar.tsx.",
+  "invalidating_evidence": "F1 (High): the plan mandates a computed-style CT locking the .var.missing state across states, but envVars is hardwired to return an empty set in v1 (env store T14 is spec §6 out-of-scope) and KVTable has no seam to inject a non-empty validVars set, so AC-19 and the .var.missing fidelity assertion are structurally unreachable at runtime. F2 (Med): organisms/request/ holds exactly one component (KVTable) while RequestBar sits un-foldered at organisms/RequestBar.tsx, violating constitution §2.2's >=2-components / no-empty-future-domain-folders placement gate.",
+  "must_satisfy": "(1) Add a validVars prop to KVTable defaulting to envVars() so a CT can inject a non-empty set and actually exercise AC-19 + the .var.missing computed-style assertion. (2) Resolve component placement to satisfy constitution §2.2: EITHER place KVTable flat at organisms/KVTable.tsx (matching Sidebar/TabBar), OR co-migrate RequestBar into organisms/request/ so the subfolder holds >=2 components at creation. Do NOT ship a single-component domain subfolder.",
+  "cycle_count": 1,
+  "carried_findings": [
+    "F1 .var.missing computed-style CT unreachable (no validVars injection seam); F2 single-component organisms/request/ subfolder violates constitution §2.2 >=2-component gate"
+  ],
+  "provenance": "specs/014-kv-table-editor/grill.md"
+}

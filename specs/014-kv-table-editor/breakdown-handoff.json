@@ -1,0 +1,185 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/014-kv-table-editor/tasks",
+  "breakdown_completed_at": "2026-07-04T19:40:44Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/014-kv-table-editor/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/014-kv-table-editor/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/014-kv-table-editor/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "varTokens tokeniser",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/src/lib/varTokens.ts",
+        "src/renderer/src/lib/__tests__/varTokens.test.ts"
+      ],
+      "expects": [
+        "`src/renderer/src/lib/` exists (renderer lib leaf dir \u2014 established by feature 001).",
+        "The Vitest + jsdom test stack is configured (feature 001; `*.test.ts` under `__tests__`)."
+      ],
+      "produces": [
+        "`varTokens.ts` exports `type VarSegment = { kind: 'plain'; text: string } | { kind: 'var'; name: string }` and `function tokenizeVars(text: string): VarSegment[]`.",
+        "`tokenizeVars` treats empty `{{}}` and an unclosed `{{` as plain text, and trims the inner name of a valid `{{ name }}` token.",
+        "`varTokens.test.ts` exercises empty/unclosed/nested-shortest/unicode/dot/dash + key-vs-value-independent cases and passes under `npx vitest run`."
+      ],
+      "ac_addressed": [
+        "AC-2",
+        "AC-9",
+        "AC-12",
+        "AC-22",
+        "AC-27",
+        "AC-32",
+        "AC-33"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "002",
+      "title": "envVars validVars selector",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/src/lib/envVars.ts",
+        "src/renderer/src/lib/__tests__/envVars.test.ts"
+      ],
+      "expects": [
+        "`src/renderer/src/lib/` exists (renderer lib leaf dir).",
+        "The Vitest test stack is configured (feature 001)."
+      ],
+      "produces": [
+        "`envVars.ts` exports `function envVars(): ReadonlySet<string>` returning a module-level frozen empty set in v1.",
+        "Repeated calls return the SAME set reference (`envVars() === envVars()`).",
+        "`envVars.test.ts` asserts empty + stable-identity + frozen and passes under `npx vitest run`."
+      ],
+      "ac_addressed": [
+        "AC-3",
+        "AC-20",
+        "AC-27",
+        "AC-32",
+        "AC-33"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "003",
+      "title": "KVTable component + styles",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001",
+        "002"
+      ],
+      "blocks": [
+        "004"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/KVTable.tsx",
+        "src/renderer/src/components/organisms/KVTable.css"
+      ],
+      "expects": [
+        "`varTokens.ts` exports `tokenizeVars(text: string): VarSegment[]` and `type VarSegment = { kind: 'plain'; text: string } | { kind: 'var'; name: string }` (task 001).",
+        "`envVars.ts` exports `envVars(): ReadonlySet<string>` returning a frozen empty set (task 002).",
+        "`requestSpec.ts` exports the `Row` type `{ enabled: boolean; key: string; value: string; description: string }` (feature 004, existing).",
+        "`tabsStore` exposes `updateActiveSpec(patch: Partial<RequestSpec>)` and a subscribable active-tab spec (feature 004/009, existing)."
+      ],
+      "produces": [
+        "`KVTable.tsx` exports `KVTable` with props `{ field: 'params' | 'headers'; validVars?: ReadonlySet<string> }`, `validVars` defaulting to `envVars()`.",
+        "`KVTable.tsx` imports `Row` via `import type` only (no value import of `requestSpec`), reads rows via a per-field selector with a frozen `EMPTY_ROWS` fallback, and writes via `updateActiveSpec` (no new store action).",
+        "`KVTable.css` defines `.kv`, `.kv-header`, `.kv-row`, `.kv-cell`, `.var`, `.var.missing`, `.kv-actions`, `.kv-row.disabled` bound to `tokens.css` custom properties, with no inline `style={{` in `KVTable.tsx`."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-10",
+        "AC-11",
+        "AC-12",
+        "AC-13",
+        "AC-14",
+        "AC-15",
+        "AC-16",
+        "AC-17",
+        "AC-18",
+        "AC-19",
+        "AC-20",
+        "AC-21",
+        "AC-23",
+        "AC-24",
+        "AC-25",
+        "AC-26",
+        "AC-27",
+        "AC-28",
+        "AC-29",
+        "AC-30",
+        "AC-31",
+        "AC-32"
+      ],
+      "doc_refs": [
+        "docs/renderer/index.md"
+      ],
+      "review_checkpoint": true
+    },
+    {
+      "number": "004",
+      "title": "KVTable component tests + fixtures",
+      "agent": "qa-engineer",
+      "depends_on": [
+        "003"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/organisms/__tests__/KVTable.ct.tsx",
+        "src/renderer/src/components/organisms/__tests__/KVTable.stories.tsx"
+      ],
+      "expects": [
+        "`KVTable.tsx` exports `KVTable` with props `{ field: 'params' | 'headers'; validVars?: ReadonlySet<string> }` (task 003).",
+        "`KVTable.css` defines the `.kv*`/`.var`/`.var.missing`/`.disabled` classes bound to `tokens.css` (task 003).",
+        "The Playwright `@playwright/experimental-ct-react` stack is configured (feature 001)."
+      ],
+      "produces": [
+        "`KVTable.stories.tsx` exports fixture components reproducing the full styling context (tokens.css import + border-box scope) and injecting `field` + `validVars`.",
+        "`KVTable.ct.tsx` asserts the auto-promote, delete-focus, checkbox, variable-highlight (BOTH injected non-empty AND \u2205-default neutral), description-no-tokenise, paste (multi-line + rapid), external-mutation, two-mount-independence, Tab-traversal, and fidelity computed-style scenarios.",
+        "The CT suite passes under `npm run test:ct` (KVTable spec)."
+      ],
+      "ac_addressed": [
+        "AC-8",
+        "AC-10",
+        "AC-11",
+        "AC-13",
+        "AC-14",
+        "AC-18",
+        "AC-19",
+        "AC-20",
+        "AC-21",
+        "AC-23",
+        "AC-24",
+        "AC-25",
+        "AC-26",
+        "AC-33"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    }
+  ],
+  "additions": [
+    "- **Spec path reconciliation (applied during breakdown)**: the grill-revision flattened placement to `organisms/KVTable.tsx`, but the spec's \u00a73/\u00a74 + AC-1/31/32/33 verification commands still hard-coded the pre-grill `organisms/request/` paths. The architect flagged this as a `/verify` blocker (a correct flat build would fail those ACs on path miss). The 7 stale `organisms/request/` paths were corrected to `organisms/` in `spec.md`, and the spec re-stamped. Tasks were authored flat from the start.",
+    "- **Empty design-manifest**: the feature declares `design source: html:design/reference.html`, but `design_helper resolve-reference` found 0 `data-ref`-anchored elements (the export uses `data-om-*` attrs the build bars, not `data-ref`), so `design-manifest.json` is empty-but-valid. The per-element runtime fidelity contract is therefore NOT machine-populated; fidelity enforcement rests on task 004's CT computed-style asserts (var\u2192token, across states) \u2014 treated as the fidelity vehicle per the runtime-design-auditor + CT-lock memory lessons."
+  ],
+  "dependency_graph": "001 (varTokens tokeniser) \u2500\u2500\u2510\n                            \u251c\u2500\u2500\u2192 003 (KVTable component + styles) \u2500\u2500\u2192 004 (KVTable CT + fixtures)\n002 (envVars selector) \u2500\u2500\u2500\u2500\u2500\u2518"
+}

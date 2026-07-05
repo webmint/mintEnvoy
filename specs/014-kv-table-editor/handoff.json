@@ -1,0 +1,541 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/014-kv-table-editor/spec.md",
+  "specify_completed_at": "2026-07-04T18:44:18Z",
+  "classification": {
+    "spec_number": "014",
+    "feature_name": "kv-table-editor",
+    "feature_slug": "kv-table-editor",
+    "spec_type": "greenfield_feature",
+    "spec_type_rationale": "KVTable is net-new code \u2014 0 internal implementations of the key-value-editor capability; scaffolds a new organisms/request/ component + lib/ validVars selector, reusing the existing tabsStore/tokens.css substrate (discover 2026-07-04).",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "Build KVTable, a hand-rolled controlled key-value grid that edits the active request tab's RequestSpec params[] and headers[] (both Row[] of {enabled,key,value,description}). A single reusable component is instanced twice \u2014 once bound to params, once to headers \u2014 via a 'params'|'headers' field prop. It renders an enabled checkbox, key/value/description mono cells, a hover-revealed delete affordance, and an auto-promoting trailing empty row, and highlights {{variable}} tokens in the key and value cells, flagging unknown ones against the active environment. It reads and writes exclusively through the existing tabsStore.updateActiveSpec action (no local copy), matches design/styles.css to pixel fidelity, and ships built + component-tested in isolation \u2014 it is NOT mounted into the running app (the parent pane-tabs container is a separate task). Autocomplete on the value field and any {{variable}} RESOLUTION are out of scope.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The KVTable component shall exist as a single-file component with a sibling token-bound stylesheet under the organisms request directory.",
+        "verification_command": "test -f src/renderer/src/components/organisms/request/KVTable.tsx && test -f src/renderer/src/components/organisms/request/KVTable.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide a pure variable-tokeniser module under the lib directory.",
+        "verification_command": "test -f src/renderer/src/lib/varTokens.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide an environment validVars selector module under the lib directory.",
+        "verification_command": "test -f src/renderer/src/lib/envVars.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The build shall introduce no new table, combobox, or autocomplete runtime dependency.",
+        "verification_command": "! grep -qE '(@tanstack/react-table|downshift|react-aria|@react-aria|ariakit|material-react-table|rsuite)' package.json",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE KVTable is not mounted into the application shell this feature, the running application behavior shall remain unchanged.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "behavior_preservation",
+        "ears_variant": "event_driven",
+        "statement": "WHEN KVTable writes an edited array via updateActiveSpec with a fresh array reference, the tabsStore shall flip the active tab dirty flag through its existing no-op-guarded merge without modification to the store.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The KVTable feature shall add no new tabsStore action and shall not modify the tabsStore or requestSpec modules.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user types text into the key or value cell of the trailing empty row, KVTable shall append a real row and render a fresh trailing empty row.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The KVTable tokeniser shall match the shortest non-greedy delimited token and shall treat an empty token or an unclosed opener as plain text.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The KVTable component shall be authored once and instanced twice through a field prop selecting params or headers.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-11",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The KVTable component shall highlight variable tokens in the key and value cells only and not in the description cell.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-12",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The KVTable component shall not resolve or substitute variable values and shall render all cell text verbatim.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-13",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN a row is deleted or the trailing empty row auto-promotes, KVTable shall keep focus on an adjacent cell and shall never move focus to the document body.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-14",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The KVTable row enabled toggle shall be a real checkbox input and the row delete control shall be a real button element.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-15",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user edits any cell, the KVTable component shall write a new row array for the bound field through updateActiveSpec.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-16",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a row enabled toggle is off, the KVTable component shall render that row with the disabled styling and an unchecked checkbox.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-17",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user toggles a row checkbox, the KVTable component shall flip that row enabled flag and write the change through updateActiveSpec.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-18",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user activates a real row delete control, the KVTable component shall remove that row through updateActiveSpec and move focus to an adjacent row.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-19",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the active validVars set is non-empty, the KVTable component shall mark a variable token absent from validVars as a missing-variable token and a present one as a known token.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-20",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the active validVars set is empty, the KVTable component shall render every variable token as a neutral token and mark none as missing.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-21",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the bound array is replaced externally, the KVTable component shall re-render from the new array and shall not retain stale local edits.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-22",
+        "subsection": "behavior_change",
+        "ears_variant": "optional",
+        "statement": "WHERE a variable token name contains dots dashes or unicode characters, the KVTable component shall compare its trimmed name verbatim against validVars without a word-character restriction.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-23",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user pastes multi-line text into a cell, the KVTable component shall collapse the newlines to spaces and shall not create additional rows.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-24",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF a rapid or large paste enters the trailing empty row, THEN the KVTable component shall spawn exactly one new trailing empty row.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-25",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user presses Tab within a row, the KVTable component shall move focus from checkbox to key to value to description and then onward to the next row.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-26",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF the user toggles the checkbox or edits the description of an otherwise-empty trailing row, THEN the KVTable component shall not promote that row to a real row.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-27",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The exported KVTable props the varTokens tokeniser and the envVars selector shall each carry documentation comments.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-28",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer source shall pass strict web type-checking.",
+        "verification_command": "npm run typecheck:web",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-29",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The codebase shall pass ESLint without new errors.",
+        "verification_command": "npm run lint",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-30",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The project shall build cleanly.",
+        "verification_command": "npm run build",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-31",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The new KVTable source shall contain no inline style attributes.",
+        "verification_command": "! grep -REn 'style=[{][{]' src/renderer/src/components/organisms/request/KVTable.tsx | grep -vqE ':[[:space:]]*(\\*|//|/\\*)'",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-32",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The new renderer modules shall not import electron or node built-in modules directly.",
+        "verification_command": "! grep -REn \"from '(electron|node:)\" src/renderer/src/components/organisms/request/KVTable.tsx src/renderer/src/lib/varTokens.ts src/renderer/src/lib/envVars.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-33",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The KVTable component and lib unit suites shall pass.",
+        "verification_command": "npx playwright test src/renderer/src/components/organisms/request/__tests__/KVTable.ct.tsx && npx vitest run src/renderer/src/lib/__tests__/varTokens.test.ts src/renderer/src/lib/__tests__/envVars.test.ts",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "ci_pipeline": "No CI pipeline changes; tests run via existing npm scripts (vitest/playwright), not a new pipeline stage.",
+      "hooks_gates": "No new git hooks or commit gates; the project's existing forge gates apply unchanged."
+    },
+    "constraints": [
+      {
+        "kind": "constitution_anchor",
+        "content": "requestSpec is a pure data module imported by tabsStore, never by components \u2014 KVTable obtains the Row type via a type-only import, never a value import.",
+        "quantifier": null,
+        "constitution_ref": "2.2",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Domain invariant: requestSpec stays a pure data module (imported by tabsStore, never by components); KVTable must not value-import it.",
+        "quantifier": null,
+        "constitution_ref": "5.2",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Strict mode, no implicit any \u2014 the tokeniser, Row[] transforms, and the params-or-headers field-prop union are fully typed; untyped boundaries narrow rather than cast.",
+        "quantifier": null,
+        "constitution_ref": "3.1",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Naming: KVTable.tsx PascalCase one-per-file + sibling KVTable.css; the lib helpers varTokens/envVars are camelCase modules; tests co-located under __tests__ split .test.tsx/.ct.tsx.",
+        "quantifier": null,
+        "constitution_ref": "3.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Renderer-only: no Node or electron imports in KVTable, varTokens, or envVars.",
+        "quantifier": null,
+        "constitution_ref": "2.1",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Resolve cross-module imports via the @renderer alias, not deep relative paths; lib/ must not import components/.",
+        "quantifier": null,
+        "constitution_ref": "2.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Boundary lookups degrade gracefully \u2014 the validVars selector returns \u2205 (never throws) when the env store is absent, and KVTable renders neutral tokens rather than flagging everything missing.",
+        "quantifier": null,
+        "constitution_ref": "3.2",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Reproduce design/reference.html via semantic classes bound to tokens.css; never use inline styles (constitution \u00a74 Never Do) and never import the design-export cruft (data-om-* attrs, __OmT wrappers, inline styles, tweaks-panel). Take exact resolved values from design/styles.css (.kv block), NOT tokens.json (reference-only, can drift).",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "RequestSpec must stay a plain JSON-serializable object (feature 004 Q-2) \u2014 KVTable writes plain Row objects only (no class instances, Symbols, or functions on the data shape).",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Pixel fidelity to design/styles.css .kv block (0px deviation; treat var(--token) as resolves-to-token, not literal hex), verified by computed-style CT assertions: grid-template-columns 22px 1fr 1fr 1fr 24px; .kv-header height 30px, font 10.5px uppercase letter-spacing 0.04em color var(--text-faint) weight 600; .kv-row min-height 32px border-bottom var(--border-faint) color var(--text); checkbox 12px accent-color var(--accent); .kv-cell padding 6px 10px mono font 12px; .kv-cell.value color var(--text-muted); .var color var(--accent); .var.missing color var(--m-delete) + line-through dotted; .kv-actions display none then flex on :hover; .kv-row.disabled opacity 0.55.",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "KVTable component",
+        "files": [
+          "src/renderer/src/components/organisms/request/KVTable.tsx",
+          "src/renderer/src/components/organisms/request/KVTable.css"
+        ],
+        "impact": "Create new \u2014 the controlled key-value grid (Option A) + its sibling token-bound stylesheet; takes a field:'params'|'headers' prop, instanced twice."
+      },
+      {
+        "area": "Variable tokeniser helper",
+        "files": [
+          "src/renderer/src/lib/varTokens.ts"
+        ],
+        "impact": "Create new \u2014 pure non-greedy {{...}} tokeniser (empty/unclosed = plain text; unicode/dot/dash keys) returning token spans for display-only highlighting; unit-testable in isolation."
+      },
+      {
+        "area": "Environment validVars selector",
+        "files": [
+          "src/renderer/src/lib/envVars.ts"
+        ],
+        "impact": "Create new \u2014 thin \u2205-defaulting selector returning the active environment's validVars set; returns \u2205 until env store T14 lands (stable seam)."
+      },
+      {
+        "area": "KVTable + helper tests",
+        "files": [
+          "src/renderer/src/components/organisms/request/__tests__/KVTable.ct.tsx",
+          "src/renderer/src/components/organisms/request/__tests__/KVTable.stories.tsx",
+          "src/renderer/src/lib/__tests__/varTokens.test.ts",
+          "src/renderer/src/lib/__tests__/envVars.test.ts"
+        ],
+        "impact": "Create new \u2014 Playwright CT (mock Row[] fixtures) for grid behaviour + fidelity computed-style asserts; Vitest unit suites for the tokeniser edge rules and the \u2205-default selector."
+      },
+      {
+        "area": "tabsStore (consumed, unchanged)",
+        "files": [
+          "src/renderer/src/lib/tabsStore.ts"
+        ],
+        "impact": "No change \u2014 KVTable reads active-tab Row[] via a per-field selector and writes via the existing updateActiveSpec action; no new store action added."
+      },
+      {
+        "area": "requestSpec (type-only import, unchanged)",
+        "files": [
+          "src/renderer/src/lib/requestSpec.ts"
+        ],
+        "impact": "No change \u2014 KVTable does a type-only import of Row (honors \u00a75.2: requestSpec never value-imported by components)."
+      },
+      {
+        "area": "Design tokens (consumed, unchanged)",
+        "files": [
+          "src/renderer/styles/tokens.css"
+        ],
+        "impact": "No change \u2014 KVTable.css binds semantic .kv classes to existing token custom properties; resolved fidelity values sourced from design/styles.css .kv block."
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Variable RESOLUTION / {{...}} substitution \u2014 highlighting is display-only; resolving or substituting variable values stays out of scope (continues feature 004 \u00a76 no-interpolation deferral).",
+        "finding_ref": ""
+      },
+      {
+        "content": "Value-field {{variable}} autocomplete \u2014 deferred to its own post-T14 follow-up task that runs the Radix/Downshift/React-Aria build-vs-buy; v1 ships highlight + missing-flag only.",
+        "finding_ref": ""
+      },
+      {
+        "content": "The environment model / validVars store (task T14) \u2014 consumed via the thin \u2205-defaulting selector, NOT built here.",
+        "finding_ref": ""
+      },
+      {
+        "content": "The parent pane-tabs container (RequestSubTabs / Params-Auth-Headers-Body-Tests-Code strip) \u2014 a separate task; KVTable ships independently-mountable and is NOT wired into the running app this feature.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Row reorder / drag handle and bulk enable-disable / select-all \u2014 no design surface in the reference; deferred.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Multi-line / expandable value cells, per-row content-type or file-upload values, value masking / secret-hiding, bulk multi-line paste-to-rows, and header/param NAME validation (wire-level validity is the http-engine T10 concern).",
+        "finding_ref": ""
+      },
+      {
+        "content": "The import-from-cURL parse path itself \u2014 lives with RequestBar / command-palette; KVTable only renders + edits the arrays correctly when populated externally.",
+        "finding_ref": ""
+      }
+    ],
+    "open_questions": [
+      {
+        "question_id": "Q-1",
+        "content": "The exact {{variable}} autocomplete combobox composition (reuse the adopted Radix Popover + which headless hook \u2014 Downshift useCombobox vs React-Aria useComboBox) is deferred to the post-T14 autocomplete follow-up task; it is data-starved until the env store lands and out of scope here.",
+        "category_no_dp_reason": ""
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Fidelity drift (px, weight, color, letter-spacing) slips past static CSS-vs-styles.css review \u2014 the memory lesson is that only runtime getComputedStyle catches it.",
+        "likelihood": "Med",
+        "impact": "High",
+        "mitigation": "Add a computed-style CT assertion locking every pinned .kv value across states (default/disabled/hover/var/var-missing); run the runtime design-auditor against the live component; do NOT trust a green static pass."
+      },
+      {
+        "risk": "Controlled-input focus/caret management: writing through the store on every keystroke re-renders and can jump the caret or drop focus on auto-promote or delete.",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "Spike Option A in isolation first; use stable React keys per row; pin 'focus never lost on auto-promote/delete' + Tab traversal order as required CT scenarios."
+      },
+      {
+        "risk": "External-array mutation (import-from-cURL replacing params/headers while a cell is focused) resurrects stale edits or crashes the render.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Option A holds no local copy \u2014 derive rows from the store each render; add a CT that replaces the bound array mid-edit and asserts a clean reactive re-render."
+      },
+      {
+        "risk": "The validVars \u2205-default degradation mis-fires \u2014 every {{token}} rendered as missing on a project with no environment.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Explicit CT: validVars \u2205 \u2192 all tokens neutral .var, zero .var.missing; the selector returns \u2205 (never undefined/throw) when the env store is absent."
+      },
+      {
+        "risk": "CT fidelity fixture omits the full styling context (tokens.css import, box-sizing, className scope), producing false pass/fail.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Reproduce the full styling context in the fixture (import tokens.css, scope box-sizing:border-box inline, wrap in the production className) per the CT-fixture-scoping memory lesson; do not global-import base.css."
+      },
+      {
+        "risk": "Long CT runs stall an /implement subagent at the 600s watchdog.",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Run npm run test:ct in the main thread (background bash), apply edits inline, then re-fan the no-tools review panel (implement-CT-watchdog memory lesson)."
+      }
+    ]
+  },
+  "provenance": {
+    "upstream_handoff_path": null,
+    "upstream_handoff_kind": null,
+    "upstream_completed_at": null
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}
