@@ -1,218 +1,192 @@
 {
-  "topic": "Key-value table editor (params + headers) bound to the active request tab's RequestSpec, with {{variable}} token highlighting/validation against the active environment; hand-rolled editable grid, build-vs-buy only on {{variable}} value-field autocomplete; pixel-fidelity to design/reference.html",
-  "date": "2026-07-04",
-  "topic_slug": "key-value-table-editor-params-headers-bound-to-the-active",
-  "summary": "A hand-rolled key-value grid editing the active tab's RequestSpec params[]/headers[] \u2014 enabled/key/value/description rows, an auto-promoting trailing empty row, hover-\u2715 delete, and {{variable}} highlighting with an unknown-flag against the active environment \u2014 built once and mounted twice (params + headers), to pixel-fidelity against design/styles.css. Internal search found NO existing implementation of this capability (genuinely greenfield), but the two things it binds to are already built and require zero adaptation: the Row shape (requestSpec.ts) and the tabsStore.updateActiveSpec write path (spec 004), giving an overall Good fit at Low effort. Prior art confirms the pattern is standard (Postman/Insomnia/Bruno) and that heavyweight table libraries (TanStack/Material) are the wrong tool for a 4-column, <50-row, token-styled grid \u2014 hand-roll it. The two dependencies the request assumed \u2014 the env store's validVars (T14) and a parent pane-tabs container \u2014 do NOT exist yet, but both are already de-risked in scope (a \u2205-defaulting selector; an independently-mountable component), so neither blocks v1. Primary risk is fidelity drift and focus-management correctness (keyboard traversal, focus-never-lost on auto-promote/delete), both pinned as required CT scenarios rather than a coverage percentage.",
+  "topic": "Request-pane sub-tabs container: a per-request-tab switcher strip (Params, Auth, Headers, Body, Tests, Code) with count/indicator badges derived from the active RequestSpec; renders the selected panel into a slot but implements no panel itself.",
+  "date": "2026-07-05",
+  "topic_slug": "request-pane-sub-tabs-container-a-per-request-tab-switcher",
+  "summary": "T5d (RequestSubTabs) is a per-request-tab container/switcher rendering the 6 fixed sub-tabs (Params, Auth, Headers, Body, Tests, Code) with RequestSpec-derived badges, mounting one slotted panel at a time. Internal-prior-art search found the capability already exists in pieces: molecules/Tabs.tsx (002) is a strip-only controlled switcher with badge + full WAI-ARIA keyboard nav, KVTable (014) is the Params/Headers panel, and requestSpec (004) is the badge data source \u2014 so T5d is a thin composition organism, not a fresh build. Fit is Good and effort Low: the only net-new code is a per-tab activeSubTab enum field + setActiveSubTab action on tabsStore, a 6-slot mount-all container that toggles visibility (not unmount) to preserve KVTable edit state, and the tabpanel aria-wiring Tabs does not render. Primary risk is a lazy-mount regression silently breaking panel-state preservation \u2014 pinned by a focus-survives-switch CT. Recommended direction: build by composition with zero new dependencies.",
   "prior_art": [
     {
-      "reference": "Postman / Insomnia / Bruno key-value param+header editors",
-      "kind": "product",
-      "relevance": "Canonical behavioural reference for the hand-rolled grid: enabled/key/value/description columns + trailing auto-promoting empty row. Confirms the pattern is standard and hand-rollable.",
-      "source": "https://muhimasri.com/blogs/react-editable-table/"
+      "reference": "molecules/Tabs.tsx (002 tabs-primitive)",
+      "kind": "pattern",
+      "relevance": "internal \u2014 existing tab/sub-tab switcher primitive: TabDescriptor already carries a badge field, roving tabindex, arrow/Home/End keyboard nav, underline active state, badge-fidelity CTs. This IS the switcher+badge capability; T5d composes it, does not rebuild it.",
+      "source": "internal:src/renderer/src/components/molecules/Tabs.tsx"
     },
     {
-      "reference": "TanStack Table / Material React Table / rsuite Editable Table",
-      "kind": "library",
-      "relevance": "Heavyweight editable-grid libs. Overkill for a 4-column <50-row grid bound to existing store; fight the semantic-class + pixel-fidelity + no-cruft constraint. Evidence FOR hand-rolling the grid, not adopting a table lib.",
-      "source": "https://tanstack.com/table/latest/docs/framework/react/examples/editable-data"
+      "reference": "lib/tabsStore.ts",
+      "kind": "pattern",
+      "relevance": "internal \u2014 per-tab state store; Tab record {id,collectionRequestId,spec,dirty} is where the new activeSubTab enum field lands (no such field today). setActiveSubTab action is added here.",
+      "source": "internal:src/renderer/src/lib/tabsStore.ts"
     },
     {
-      "reference": "Downshift useCombobox",
-      "kind": "library",
-      "relevance": "Headless combobox hook, total styling control \u2014 candidate for the DEFERRED {{var}} value-field autocomplete (out of v1). Composes inside a Radix Popover.",
-      "source": "https://www.downshift-js.com/use-combobox"
+      "reference": "organisms/KVTable.tsx (014)",
+      "kind": "pattern",
+      "relevance": "internal \u2014 the Params/Headers key-value editor panel that mounts into 2 of T5d's 6 slots; already built, passed in as a slot prop.",
+      "source": "internal:src/renderer/src/components/organisms/KVTable.tsx"
     },
     {
-      "reference": "React Aria useComboBox",
-      "kind": "library",
-      "relevance": "Adobe headless combobox hook \u2014 alt candidate for deferred autocomplete. Adds a second headless dependency the repo doesn't have; disfavoured vs reusing adopted Radix.",
-      "source": "https://react-spectrum.adobe.com/react-aria/useComboBox.html"
+      "reference": "lib/requestSpec.ts (004)",
+      "kind": "pattern",
+      "relevance": "internal \u2014 RequestSpec + Auth types; read-only badge data source (params/headers count, auth-set). Badge values derive from here.",
+      "source": "internal:src/renderer/src/lib/requestSpec.ts"
     },
     {
-      "reference": "radix-ui Popover \u2014 already adopted in-repo (Dropdown/Modal/Toast import radix-ui)",
+      "reference": "WAI-ARIA Authoring Practices \u2014 Tabs pattern",
+      "kind": "pattern",
+      "relevance": "Canonical tablist/tab/tabpanel semantics: hide inactive tabpanels via hidden/CSS display:none (not unmount), aria-selected/controls/labelledby wiring. Matches T5d's mount-all + toggle-visibility + a11y-wiring plan; Tabs (002) already implements the roles/keyboard.",
+      "source": "https://www.w3.org/WAI/ARIA/apg/patterns/tabs/"
+    },
+    {
+      "reference": "react-tabs / Radix Tabs (forceMount / mountMode discussions)",
       "kind": "library",
-      "relevance": "Repo already imports radix-ui in molecules/Dropdown.tsx, Modal.tsx, Toast.tsx. For the DEFERRED autocomplete, compose Radix Popover + a combobox hook rather than adding a new UI library \u2014 satisfies 'reuse 001 primitives, no new library'. Not a capability implementation; a reuse dependency.",
-      "source": "https://www.radix-ui.com/primitives/docs/components/popover"
+      "relevance": "Default tab libs UNMOUNT inactive panels (Radix discussion #855 requests opt-in forceMount; react-tabs forceRenderTabPanel). Default behavior would remount KVTable and lose in-progress edit state \u2014 evidence AGAINST adopting a tab lib and FOR the custom mount-all container.",
+      "source": "https://github.com/radix-ui/primitives/discussions/855"
     }
   ],
   "integration_touchpoints": [
     {
-      "name": "RequestSpec tab store (updateActiveSpec)",
+      "name": "molecules/Tabs.tsx",
+      "module_path": "src/renderer/src/components/molecules/Tabs.tsx",
+      "reason": "existing switcher+badge primitive \u2014 candidate for reuse over fresh build; T5d composes it for the HOW (a11y/keyboard/badge render)"
+    },
+    {
+      "name": "lib/tabsStore.ts",
       "module_path": "src/renderer/src/lib/tabsStore.ts",
-      "reason": "Mutation path: read activeTab.spec.params/.headers via zustand selector; write via updateActiveSpec({params|headers: nextRows}). New array ref defeats the ===\u200b no-op guard so dirty flips + re-render fires. No new store action needed."
+      "reason": "existing per-tab store \u2014 add activeSubTab enum field + setActiveSubTab action to the Tab record; T5d reads/writes here"
     },
     {
-      "name": "RequestSpec Row shape",
+      "name": "organisms/KVTable.tsx",
+      "module_path": "src/renderer/src/components/organisms/KVTable.tsx",
+      "reason": "existing Params/Headers panel \u2014 passed into 2 of 6 slots as a prop; T5d never imports it directly per structural non-goal"
+    },
+    {
+      "name": "lib/requestSpec.ts",
       "module_path": "src/renderer/src/lib/requestSpec.ts",
-      "reason": "Existing Row = {enabled:boolean, key:string, value:string, description:string}; params: Row[] / headers: Row[]. Bind to this exact shape \u2014 do NOT invent a new one (user constraint confirmed by code)."
-    },
-    {
-      "name": "Radix primitives (radix-ui, spec 001)",
-      "module_path": "src/renderer/src/components/molecules/Dropdown.tsx",
-      "reason": "radix-ui already imported here + Modal.tsx + Toast.tsx. For DEFERRED autocomplete, compose Radix Popover \u2014 no new UI library. Not needed for v1 grid."
-    },
-    {
-      "name": "Design tokens (tokens.css)",
-      "module_path": "src/renderer/styles/tokens.css",
-      "reason": "Semantic KV classes bind here; resolved values authoritative in design/styles.css. No kv-*.css exists yet \u2014 greenfield styling surface, no conflict."
-    },
-    {
-      "name": "Environment store validVars (T14)",
-      "module_path": "(unverified)",
-      "reason": "unverified path \u2014 env store / envSlice does NOT exist in src/ (zero hits for validVars|envSlice|activeEnv). Read validVars via a thin selector defaulting to \u2205; T6 tolerates absence."
-    },
-    {
-      "name": "Pane-tabs container (RequestSubTabs)",
-      "module_path": "(unverified)",
-      "reason": "unverified path \u2014 no RequestSubTabs / pane-tab component in build (only top-level Tabs molecule + TabBar organism exist). Parent that would mount T6 is absent; T6 must be independently mountable. Generic molecules/Tabs.tsx is a reuse candidate for the future container."
+      "reason": "existing RequestSpec/Auth types \u2014 read-only badge data source"
     }
   ],
   "fit_assessments": [
     {
-      "touchpoint": "RequestSpec tab store (updateActiveSpec)",
-      "user_expected": "params/headers arrays already present in renderer tab state store \u2014 read/write existing shape",
-      "reality": "CONFIRMED. tabsStore (zustand, spec 004) exposes updateActiveSpec(patch: Partial<RequestSpec>). Belief matches reality exactly. Write path = updateActiveSpec({params|headers: nextRows}) with a fresh array. No new action, no new shape.",
+      "touchpoint": "molecules/Tabs.tsx",
+      "user_expected": "Reuse the 002 tab/sub-tab primitive (active state, keyboard nav, underline) by composition, not a new tab mechanism",
+      "reality": "Tabs is a strip-only, CONTROLLED primitive: renders role=tablist + role=tab buttons with roving tabindex + arrow/Home/End nav, emits onChange(id), caller owns activeId. TabDescriptor already supports badge/disabled/dirty. It renders NO tabpanels \u2014 T5d owns the 6 panels + aria-controls/labelledby wiring. JSDoc example literally uses id='params'. Exact match to the composition plan; controlled-only fits tabsStore-backed state with zero fork.",
       "effort": "Low",
       "blockers": []
     },
     {
-      "touchpoint": "RequestSpec Row shape",
-      "user_expected": "bind to existing params/headers Row[]; do not invent new shape",
-      "reality": "CONFIRMED. Row interface exists verbatim in requestSpec.ts with the 4 fields. Zero adaptation needed.",
+      "touchpoint": "lib/tabsStore.ts",
+      "user_expected": "activeSubTab enum field lives on the per-tab record, like the title field; add setActiveSubTab action",
+      "reality": "Tab record is {id, collectionRequestId, spec, dirty} \u2014 no activeSubTab field and no setActiveSubTab action today. Additive change: add one enum field (default 'params') + one action. No migration needed (no persistence yet, T23).",
       "effort": "Low",
       "blockers": []
     },
     {
-      "touchpoint": "Radix primitives (radix-ui, spec 001)",
-      "user_expected": "reuse the Radix headless library adopted in 001 for {{var}} autocomplete; no new library",
-      "reality": "PARTIALLY CONFIRMED. radix-ui is adopted (DropdownMenu/Dialog/Toast). But no Combobox/Popover-combobox is built yet, and Radix has no first-class combobox primitive \u2014 the deferred autocomplete composes Popover + a combobox hook (Downshift/React-Aria) or Ariakit. Moot for v1 (autocomplete deferred).",
-      "effort": "Medium",
-      "blockers": [
-        "Radix lacks a native combobox \u2014 deferred autocomplete needs Popover+hook composition, decided in the follow-up task"
-      ]
-    },
-    {
-      "touchpoint": "Design tokens (tokens.css)",
-      "user_expected": "pixel-fidelity via tokens.css bound to design/styles.css values",
-      "reality": "CONFIRMED. tokens.css exists at src/renderer/styles/tokens.css; design/styles.css is authoritative. Established semantic-class + tokens pattern across atoms/molecules (Icon/Tabs/Dropdown). KV classes are net-new, no collision.",
+      "touchpoint": "organisms/KVTable.tsx",
+      "user_expected": "KVTable mounts into the Params/Headers slots, passed by parent",
+      "reality": "KVTable (014) exists as a standalone organism; passed into 2 of 6 slots as a prop. T5d never imports it directly (structural non-goal #8). Clean slot boundary.",
       "effort": "Low",
       "blockers": []
     },
     {
-      "touchpoint": "Environment store validVars (T14)",
-      "user_expected": "validVars from an env store to flag unknown {{var}}",
-      "reality": "MISFIT (tolerated by design). No env store exists (zero hits validVars|envSlice|activeEnv). Requirement already de-risked: read via thin selector defaulting to \u2205, highlight always works, missing-flag activates only once T14 lands. NOT a hard prerequisite.",
+      "touchpoint": "lib/requestSpec.ts",
+      "user_expected": "Badges derive read-only from the active RequestSpec (params/headers count, auth-set)",
+      "reality": "requestSpec.ts (004) exposes RequestSpec + Auth (isBearerAuth, params/headers arrays). Badge derivation is trivial read (spec.params?.length, auth kind). Defensive optional-chaining covers malformed-spec edge case.",
       "effort": "Low",
-      "blockers": [
-        "env store T14 unbuilt \u2014 mitigated by empty-set-default selector, not a blocker for v1"
-      ]
-    },
-    {
-      "touchpoint": "Pane-tabs container (RequestSubTabs)",
-      "user_expected": "parent Params/Headers pane mounts the component",
-      "reality": "MISFIT (tolerated by design). No pane-tabs container in build; RequestBar sits alone. T6 scoped as independently-mountable (CT with mock rows), so parent absence is not a blocker. Generic Tabs molecule available to build the container in a separate task.",
-      "effort": "Low",
-      "blockers": [
-        "parent pane-tabs container unbuilt \u2014 mitigated by self-contained/isolation-testable design, separate task owns the shell"
-      ]
+      "blockers": []
     }
   ],
   "overall_fit": "Good",
   "effort_estimate": "Low",
-  "fit_rationale": "Excellent fit. The core binding lands cleanly on existing, built infrastructure: the RequestSpec Row shape (requestSpec.ts) and the tabsStore.updateActiveSpec mutation path (spec 004) require zero adaptation \u2014 read a Row[] via selector, write a fresh array back through the existing action, and reactive re-render on external cURL-import mutation is a free consequence of the zustand subscription (no local copy). Styling drops onto the established semantic-class + tokens.css pattern; KV classes are net-new so there is no collision. The two dependencies the user's belief pointed at that do NOT yet exist \u2014 the env store's validVars (T14) and the parent pane-tabs container \u2014 are the only friction, and both are already de-risked in scope: validVars is read through a thin \u2205-defaulting selector (highlight always works; missing-flag activates when T14 lands), and the component is built independently-mountable and isolation-testable so no parent is required. Neither absence blocks v1; effort is Low. The one genuinely deferred piece \u2014 {{var}} value-field autocomplete \u2014 is out of v1 and carries its own follow-up build-vs-buy once T14 provides data.",
+  "fit_rationale": "T5d is a thin composition organism over already-built primitives. Tabs (002) supplies the switcher HOW (a11y/keyboard/badge render, controlled) with an exact-match API; KVTable (014) supplies the Params/Headers panels; requestSpec (004) supplies badge data; tabsStore holds per-tab state. The only net-new code is the wiring: an activeSubTab enum field + setActiveSubTab action on the Tab record, a 6-slot mount-all container that toggles visibility (not unmount) to preserve panel state, and aria-controls/labelledby tabpanel linkage Tabs does not render. Zero new deps, no fork of any primitive, no migration. Belief and reality align on every touchpoint.",
   "design_options": [
     {
-      "name": "Controlled grid, derived virtual trailing row, direct store writes",
-      "shape": "Zero component-local row state. Rows rendered = activeTab.spec.<field> (read via zustand selector) PLUS one synthetic virtual empty row at index length. Every edit computes a fresh Row[] and calls updateActiveSpec({<field>: nextRows}) immediately; first edit on the virtual row appends a real Row (auto-promote) so a new virtual trailing row appears. Delete = filter + updateActiveSpec. <field> is a 'params'|'headers' prop \u2192 one component, two mounts. {{var}} tokenised at render, compared to a validVars selector (\u2205-default).",
+      "name": "Store field on Tab record + mount-all container",
+      "shape": "activeSubTab: SubTabKey enum ('params'|'auth'|'headers'|'body'|'tests'|'code', default 'params') as one field on the Tab record in tabsStore, with a setActiveSubTab(tabId,key) action. RequestSubTabs (organism) composes Tabs (molecule) for the strip, and renders all 6 tabpanels mounted, toggling visibility via CSS; reads activeSubTab[activeTabId] as Tabs' controlled activeId.",
       "pros": [
-        "Honors no-local-copy natively \u2014 external cURL-import mutation re-renders for free, no stale-edit race",
-        "Reuses the existing updateActiveSpec action \u2014 zero new store surface to test",
-        "Virtual trailing row makes never-zero + empty-row-not-deletable fall out by construction",
-        "Simplest to reason about; fewest moving parts"
+        "Rides future persistence (T23) for free \u2014 field is on the persisted Tab record",
+        "Survives tab switches A->B->A by construction (state co-located with the request)",
+        "Reacts to external setActiveSubTab writes (open-on-specific-sub-tab flows) with no extra wiring",
+        "Single source of per-tab truth; matches the existing tab title/dirty field pattern",
+        "Zero new deps; composes Tabs/KVTable/requestSpec"
       ],
       "cons": [
-        "Every keystroke writes through the store (fires the ===\u200b no-op guard + a re-render); fine at <50 rows, not virtualization-scale",
-        "Cursor/focus must be managed carefully since the input is fully controlled by store-derived value"
+        "Touches the shared Tab record type (additive, but a public-shape change)",
+        "Mount-all keeps all 6 panels in the DOM (acceptable: 2 KVTables + 4 empty)"
       ],
       "complexity": "Low"
     },
     {
-      "name": "Local draft buffer, commit on blur/debounce",
-      "shape": "Component holds a local copy of the rows; edits mutate local state; changes are flushed to updateActiveSpec on blur or debounced. A reconciliation effect syncs the local buffer when the store array changes underneath.",
+      "name": "Parallel sub-tab store keyed by tabId",
+      "shape": "A dedicated store holding Record<tabId, SubTabKey> separate from the Tab record; RequestSubTabs reads/writes it. Tab record stays untouched.",
       "pros": [
-        "Fewer store writes; typing never touches the store until commit",
-        "Cursor/focus trivially stable (input is locally controlled)"
+        "Does not modify the Tab record type",
+        "Isolates sub-tab concern in its own store"
       ],
       "cons": [
-        "VIOLATES the no-local-copy constraint \u2014 the external cURL-import mutation race is exactly the failure this reintroduces (stale local edits resurrecting or clobbering an import)",
-        "Reconciliation effect is subtle and easy to get wrong (the classic controlled/uncontrolled sync bug)",
-        "More state, more tests, for a grid that does not need the write-batching"
+        "Two sources of per-tab truth \u2014 lifecycle must sync (clean up entries on tab close, or leak)",
+        "Does NOT ride T23 persistence for free \u2014 separate store needs its own persist path",
+        "External open-on-sub-tab flows must know about a second store",
+        "More moving parts for no functional gain over the field approach"
       ],
       "complexity": "Med"
     },
     {
-      "name": "Granular row actions on tabsStore",
-      "shape": "Extend tabsStore with KV-specific actions \u2014 updateRow(field,index,patch), addRow(field), removeRow(field,index), toggleRow(field,index) \u2014 that own the array algebra + auto-promote. KVTable becomes a thin view calling these actions; the trailing-empty-row and never-zero logic lives in the store.",
+      "name": "Local component state keyed by tabId",
+      "shape": "RequestSubTabs holds useState<Record<tabId,SubTabKey>> internally; no store change at all.",
       "pros": [
-        "Row algebra is unit-testable at the store level, independent of the component",
-        "Component shrinks to pure presentation"
+        "Zero store/type changes",
+        "Simplest to write in isolation"
       ],
       "cons": [
-        "Adds four new store actions + their tests for logic that Option A expresses as small pure array ops in the component \u2014 more surface for little gain",
-        "Couples generic tabsStore to KV-editor specifics (params/headers), leaking a component concern into the tab state machine",
-        "updateActiveSpec already covers the write; this is redundant machinery"
+        "Loses all sub-tab state on component unmount (pane collapse / remount)",
+        "No external driver \u2014 the users-dimension setActiveSubTab programmatic path (open-on-sub-tab) is impossible",
+        "No persistence path ever (T23 cannot restore it)",
+        "Violates the integration_points decision that state lives in tabsStore"
       ],
-      "complexity": "Med"
+      "complexity": "Low"
     }
   ],
   "recommended_option": {
-    "name": "Controlled grid, derived virtual trailing row, direct store writes",
-    "rationale": "It is the only option that satisfies the no-local-copy + external-mutation-race requirements by construction rather than by careful reconciliation \u2014 the cURL-import race (Option B's fatal flaw) simply cannot occur because there is no local buffer to go stale. It reuses the existing updateActiveSpec write path (spec 004) with zero new store surface, where Option C adds four actions and leaks KV specifics into the generic tab store for no functional gain. The never-zero guard and the 'empty row has no delete affordance' rule fall out of the virtual trailing row for free. The only real cost \u2014 a store write per keystroke \u2014 is a non-issue at the confirmed <50-row scale (virtualization is explicitly out of scope). Focus management (the genuine risk) is addressed the same way in any option and is pinned as a required CT scenario."
+    "name": "Store field on Tab record + mount-all container",
+    "rationale": "Matches every scoped decision: state co-located on the Tab record in internal:src/renderer/src/lib/tabsStore.ts (rides T23 persistence + survives switches for free), reacts to the external setActiveSubTab driver the users dimension requires, and composes the existing internal:src/renderer/src/components/molecules/Tabs.tsx controlled switcher rather than rebuilding it \u2014 so the switcher/badge/keyboard capability is EXTENDED via composition, not fresh-built. The one capability none of the internal hits cover is the per-request-tab active-sub-tab selection + the 6-slot mount-all/toggle-visibility panel container with tabpanel aria-wiring \u2014 that is the genuine net-new code. Accepted tradeoff: an additive change to the shared Tab record type and all-6-panels mounted (2 KVTables + 4 empty, DOM cost acceptable). Rejected the parallel store (two truths + no free persistence) and local state (loses state on unmount, no external driver)."
   },
   "build_vs_buy": {
-    "build": "Hand-roll the 4-column CSS-grid editor (grid-template 22px 1fr 1fr 1fr 24px) with semantic classes bound to tokens.css, real <input type=checkbox> + real <button> delete, a small non-greedy {{...}} tokeniser, and direct updateActiveSpec writes. Grid mechanics (rows, auto-promote, focus movement) are simple enough that a table library is net-negative.",
-    "buy": "For the GRID: adopt TanStack Table / Material React Table / rsuite editable table. Rejected \u2014 overkill for 4 columns/<50 rows, and their DOM/styling fights pixel-fidelity + the semantic-class/tokens.css + no-cruft constraints. For the DEFERRED autocomplete only (out of v1): buy a headless combobox hook (Downshift useCombobox or React-Aria useComboBox) composed inside the already-adopted Radix Popover \u2014 decided in its own post-T14 follow-up task, not now.",
+    "build": "Compose molecules/Tabs.tsx (002) for the strip + a new organisms RequestSubTabs owning the 6 mounted tabpanels + an activeSubTab field/action on tabsStore. No new dependency.",
+    "buy": "Adopt a third-party tab library (react-tabs, Radix Tabs) for the switcher + panel management.",
     "recommendation": "Build",
-    "reasoning": "The v1 scope (grid + highlight + missing-flag) is pure Build: every 'buy' table library trades away the fidelity and no-cruft constraints that are mandatory here, for row-management convenience the grid does not need. The single legitimate buy question \u2014 the value-field autocomplete \u2014 is deferred out of v1 (data-starved until T14) and will run its own build-vs-buy then, leaning buy-a-hook + reuse-Radix-Popover to honor 'no new UI library'."
+    "reasoning": "Buy is a net loss here: (1) default tab libs UNMOUNT inactive panels (Radix discussion #855 requests opt-in forceMount; react-tabs needs forceRenderTabPanel), which would remount KVTable on every switch and destroy in-progress edit state \u2014 the exact constraint T5d must protect; (2) a new runtime dependency directly violates the zero-new-deps constraint and signals Tabs was not reused; (3) the switcher + WAI-ARIA keyboard + badge capability already exists internally in Tabs (002). Building by composition is both cheaper and constitution-aligned (\u00a73.6 reuse-before-build, \u00a74 prefer composition)."
   },
   "derisk_plan": [
-    "Spike Option A in isolation (CT with mock Row[]): prove the edit\u2192updateActiveSpec\u2192re-render cycle AND that an external array replacement (simulated cURL import) re-renders with no stale local edits",
-    "Pre-extract the computed-style fidelity targets from design/styles.css (grid template, row height, mono cell font/size, header casing/padding/colour) and resolve every var(--token)\u2192token BEFORE coding, so fidelity ACs are exact",
-    "Decide the Row-type import route that honors the \u00a75.2 invariant (requestSpec imported by tabsStore, never by components) \u2014 type-only import vs a store type re-export \u2014 before writing any import",
-    "Land the thin validVars selector now (returns \u2205 when the env store is absent) so T6 binds to a stable seam and never hard-depends on T14",
-    "Lock the {{...}} tokeniser edge rules with unit tests first: non-greedy nesting, empty {{}}/unclosed {{ = plain text, trimmed unicode/dot/dash keys, key vs value tokenised independently"
+    "Spike the state-preservation CT first: focus a KVTable cell / type a partial row in Params, switch to Headers and back, assert the same DOM node keeps focus/value \u2014 this is the go/no-go proof that mount-all+toggle-visibility works before wiring all 6 panels",
+    "Confirm Tabs (002) controlled activeId + onChange + badge render cleanly drives 6 tabs with per-theme fidelity (assert computed styles vs contract \u00a76 in BOTH light and data-theme=dark) before committing the strip",
+    "Re-read the \u00a76 Pane tabs values from design/styles.css at CT-writing time (not the spec snapshot) to avoid a stale-baseline fidelity assertion",
+    "Confirm the additive Tab-record change (activeSubTab field + setActiveSubTab action) does not break existing tabsStore consumers (TabBar, RequestBar) \u2014 type-check + run their CTs"
   ],
   "constitution_constraints": [
     {
-      "rule": "\u00a73.2 Error Handling \u2014 boundary lookups degrade gracefully",
-      "impact": "Directly enables the design: the validVars lookup is a boundary read that must return a \u2205 fallback (like resolveIcon's fallback entry) when the env store is absent \u2014 the \u2205-defaulting selector IS this rule applied. Never throw / never flag-everything-missing on a project with no environment."
+      "rule": "\u00a72.2 Renderer Tier Organization",
+      "impact": "RequestSubTabs is a single-domain organism composing the Tabs molecule \u2014 downward organism->molecule import is correct. Place as an organisms domain singleton (like TabBar); create organisms/<domain>/ subfolder only when the request-pane domain reaches >=2 components."
     },
     {
-      "rule": "\u00a75.2 Domain Invariant \u2014 requestSpec imported by tabsStore, never by components",
-      "impact": "Constrains how KVTable obtains the Row type. It must NOT import requestSpec.ts for values/logic; resolve the Row type via a type-only import or a store type re-export. A derisk item pins this decision before imports are written."
+      "rule": "\u00a74 Never mutate zustand state outside a store action",
+      "impact": "The activeSubTab write MUST be a tabsStore action (setActiveSubTab), not a direct state mutation from the component \u2014 enforces the store-field design and the external-driver path."
     },
     {
-      "rule": "\u00a74 Never Do \u2014 never use inline styles; Prefer design tokens over literal values",
-      "impact": "Forbids the Claude Design export's cruft (data-om-* attrs, __OmT wrappers, inline styles, tweaks-panel) from entering the build. All KV styling via semantic BEM-ish classes in a sibling .css bound to tokens.css custom properties; conditional classes via cx()."
+      "rule": "\u00a74 Never use inline styles / Prefer design tokens (tokens.css)",
+      "impact": "Fidelity must be delivered via semantic class names composed with cx() bound to tokens.css \u2014 the exported cruft (inline styles, data-om-*, __OmT, tweaks-panel) is explicitly barred from the build; token provenance backs the fidelity ACs."
     },
     {
-      "rule": "\u00a73.3 Naming Conventions",
-      "impact": "KVTable.tsx (PascalCase, one component per file) + sibling KVTable.css + co-located __tests__/KVTable.ct.tsx. The 'params'|'headers' field prop keeps it one component, two mounts \u2014 not two files."
+      "rule": "\u00a72.2 Never write documentElement vars/attrs except Shell.tsx",
+      "impact": "T5d only READS theme tokens (resolved per data-theme set by Shell); it never sets data-theme itself \u2014 the per-theme fidelity contract binds T5d's resolved colors, not theme control."
     },
     {
-      "rule": "\u00a73.1 Type Safety \u2014 strict mode, no any",
-      "impact": "The {{...}} tokeniser, Row[] transforms, and the field prop union ('params'|'headers') are fully typed; untyped boundaries (validVars selector output) narrow rather than cast."
-    },
-    {
-      "rule": "\u00a73.6 Simplicity & Reuse \u2014 search before building",
-      "impact": "Justifies hand-rolling the grid over a table lib and reusing existing infrastructure (updateActiveSpec, tokens.css, adopted radix-ui) rather than adding new dependencies; the internal canonical-pattern search (0 hits) is this rule discharged."
+      "rule": "\u00a73.6 Search Before Building / Prefer composition",
+      "impact": "Composing Tabs (002) + KVTable (014) + requestSpec (004) instead of a new switcher/tab-lib satisfies reuse-before-build; a new runtime dep would violate it."
     }
   ],
   "verdict": "Worth pursuing",
   "recommendation": {
-    "action": "/specify the v1 KVTable: a hand-rolled controlled key-value grid (Option A) bound to RequestSpec params[]/headers[] via updateActiveSpec, {{var}} highlight + \u2205-defaulting missing-flag, one component / two mounts, pixel-fidelity to design/styles.css \u2014 autocomplete and the pane-tabs container explicitly out of scope.",
-    "next": "Run /specify with the distilled topic to author the spec + acceptance criteria."
+    "action": "Proceed to /specify for RequestSubTabs (T5d): build by composition \u2014 activeSubTab enum field + setActiveSubTab action on tabsStore, a new organisms RequestSubTabs composing molecules/Tabs.tsx, 6 mount-all tabpanels toggling visibility, badges read from RequestSpec, fidelity bound to tokens.css per contract \u00a76 in both themes.",
+    "next": "Author the T5d spec with the AC set from success_criteria (per-tab-state CT, reactive badges, state-preservation CT, per-theme fidelity, a11y wiring, empty-slot-full-tab, negative RequestSpec-mutation AC, structural no-import AC)."
   },
-  "next_step_text": "/specify \"Hand-rolled key-value grid editing the active tab's RequestSpec params/headers via updateActiveSpec: enabled/key/value/description rows, auto-promoting trailing row, hover-delete, {{var}} highlight + env missing-flag (\u2205-default), one component two mounts, pixel-fidelity to design/styles.css. No autocomplete, no pane-tabs container.\"\n\nDiscovery reference: discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md\nKey facts:\n- Functional scope: Hand-rolled editable key-value grid, one component instanced twice (params + headers). Per row: enabled checkbox (12px accent; .disabled row \u2192 opacity 0.55), key / value / description as three mono cells (description = plain editable text, no extra behaviour). Trailing always-empty row (.kv-row.empty + placeholder) auto-promotes to real row on first edit. Row delete via trailing 24px .kv-actions slot hidden by default, revealed on .kv-row:hover. {{variable}} tokens highlighted in key+value cells (.kv-cell .var), unknown ones flagged (.var.missing) vs active environment. Cell-to-cell focus movement is internal grid mechanics. Grid template 22px 1fr 1fr 1fr 24px. (Deferred/excluded mechanics enumerated in non_goals.)\n- Users: Single end-user: developer editing params/headers on active request tab via keyboard+mouse \u2014 no role tiers, no collab. Developer-as-consumer: one component authored once, two mount points (params pane, headers pane). Second data-writer to acknowledge: params[]/headers[] arrays are ALSO populated programmatically by the import-from-cURL path (paste-cURL in URL bar + 'Import from cURL' command-palette action) which parses cURL into RequestSpec directly. KVTable is NOT sole writer \u2014 it is an editor-view over shared state mutable externally, so it must read/write through the existing RequestSpec store and re-render reactively when the array changes underneath it, NOT own a local copy. The cURL parse/import path itself is OUT of scope (lives with RequestBar/command-palette); this component only renders + edits the arrays correctly including when populated externally.\n- Success criteria: FIDELITY: rendered grid matches design/styles.css computed values (grid template 22px 1fr 1fr 1fr 24px, row height, mono cell font/size, header casing/padding/colour) verified as fidelity ACs (var\u2192token, not literal hex). BEHAVIOUR: auto-promote on first edit; hover-\u2715 delete; checkbox flips enabled + .disabled opacity; {{var}} highlight; .var.missing when validVars non-empty and token absent; neutral .var when validVars \u2205. BINDING: reads/writes existing Row[] through store; re-renders reactively on external mutation (cURL import); no local copy. REUSE: one component, two mounts; testable in isolation (CT mock rows). NO export cruft: semantic classes bound to tokens.css; no data-om-*, __OmT, inline styles, tweaks-panel. THREE HARD BARS: (1) Keyboard traversal (CORE UX, not a11y polish) \u2014 Tab/Shift-Tab across cells (checkbox\u2192key\u2192value\u2192description\u2192next row); Enter in last row's value/description commits + auto-promotes with focus landing in new row; focus NEVER lost on auto-promote or delete (moves to adjacent row, not <body>). (2) Semantic form elements (powers #1) \u2014 real <input type=checkbox> (accent-color, Space-toggle free); delete-\u2715 a real <button> (Enter/Space focusable), NOT div-onClick. (3) CT coverage as required SCENARIOS not a %-threshold \u2014 each a CT: auto-promote on first edit; hover-\u2715 delete + correct focus; checkbox\u2192enabled flip + .disabled; {{var}} known=.var/unknown=.var.missing when validVars non-empty; degradation validVars \u2205 \u2192 all {{var}} neutral .var, zero .missing (assert explicitly); external array mutation (simulated cURL import) \u2192 reactive re-render no local copy; both mounts (params+headers) independent; fidelity computed-style asserts (var\u2192token). Line-% threshold is NOT a hard bar. SOFT (not a hard bar): full screen-reader ARIA-grid roles / row labels / aria-rowindex \u2014 over-engineering for a local few-devs tool with no SR users; semantic elements (#2) give baseline a11y.\n- Recommended option: Controlled grid, derived virtual trailing row, direct store writes\n- Open uncertainties: 1 (see discovery doc \u00a7Open uncertainties)",
+  "next_step_text": "/specify \"RequestSubTabs (T5d): a per-request-tab sub-tabs container/switcher composing Tabs (002) with RequestSpec-derived badges and 6 mount-all slotted panels, backed by an activeSubTab field on tabsStore; pixel-fidelity to reference.html contract section 6.\"\n\nDiscovery reference: discover/2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher.md\nKey facts:\n- Functional scope: Per-request-tab container/switcher rendering all 6 fixed sub-tabs (Params, Auth, Headers, Body, Tests, Code) in a strip from day one \u2014 visible, switchable, keyboard-nav, per contract \u00a76; matches reference (unbuilt ones NOT hidden). Each sub-tab is ONE slot-condition: mounts the panel if provided, else a neutral empty-state (not four throwaway 'coming soon' components). Params/Headers slots receive KVTable (from 014); Auth/Body/Tests/Code slots empty until T8/T7/Tests/T9 land and pass their panel into the slot with zero T5d change. Badges are independent of panel existence: they read the active RequestSpec (params count, headers count, auth-set indicator) \u2014 data already carried by 004/014 \u2014 so e.g. Auth badge can show 'set' before AuthPanel exists. Net: 6 sub-tabs always visible; 2 slots wired (KVTable x2); 4 empty-state; panels self-insert later.\n- Users: Human end-user (developer building/testing HTTP requests) is the SOLE interactive consumer \u2014 click/keyboard switch, read badges. Downstream panels (T7 Body/T8 Auth/T9 Code) + 003 shell are COMPOSITION consumers (supply slots / host T5d), not runtime drivers. BUT one programmatic driver in v1: the setActiveSubTab store action. active-sub-tab lives in tabsStore as a PUBLIC action, so selection can be driven programmatically, not only by a click in T5d. Realistic v1 caller: 'open request in tab' flows (collections-tree/history/command-palette, T18/T19/T20) may open a request on a specific sub-tab by writing setActiveSubTab directly. So T5d is NOT the sole writer of its own state \u2014 it's a VIEW over a store field that can change externally, and must REACT to external setActiveSubTab (strip + visible panel update) exactly as to its own click (same invariant as KVTable reacting to external RequestSpec mutation). Scope line: T5d IN for reacting to ANY activeSubTab change (own click OR external write); OUT for implementing the jump-flows themselves (live in T18/T19/T20). Explicitly OUT of v1: deep-links/URL-scheme sub-tab nav (no URL routing in local app); command-palette 'jump to Auth tab' action (future consumer, would just call setActiveSubTab \u2014 T5d reactivity ready but doesn't build it); any test-harness/automation API (local few-devs app, CTs drive component directly).\n- Success criteria: (1) all 6 sub-tabs render + switch via click AND keyboard (arrows/Home/End), active state per-request-tab. Split out: 'survives A->B->A' gets own CT with explicit assert (two tabs, A on Headers, B on Body, switch A->B->A, assert A's activeSubTab==='headers') \u2014 catches per-tab-vs-global-state bug. (2) badges reflect live RequestSpec counts (params/headers/auth-set); hard AC = mutate RequestSpec (add a param) -> badge count updates REACTIVELY without a sub-tab switch (not read-once-on-mount). (3) CRITICAL: Params/Headers show KVTable, other 4 empty-state, switch preserves KVTable state proven by: focus a cell/type partial row in Params -> switch Headers -> back -> assert focus/input survived (same DOM node) \u2014 defends mount-all vs lazy-mount regression. (4) visual fidelity: computed-style CT vs contract \u00a76 values, EXACT equality for discrete tokens (color/weight/radius = token-resolved exact, \u00b11px only for subpixel), in BOTH themes (assert under data-theme='dark' too); read \u00a76 numbers from styles.css at CT-writing time not spec snapshot (staleness). (5) a11y: axe zero-violations on mounted T5d, PLUS CT axe can't catch: aria-selected tracks activeSubTab on switch, aria-controls/aria-labelledby point to real ids. (6) empty-slot sub-tabs are FULL tabs NOT disabled \u2014 assert all 6 reachable/focusable and unbuilt 4 render valid empty-state tabpanel (guards \u00a76 fixed-6-set vs 'disable unbuilt' shortcut). (7) NEGATIVE AC: sub-tab interaction mutates RequestSpec zero times (spy updateActiveSpec; only write is setActiveSubTab). (8) STRUCTURAL AC: T5d imports no unbuilt panel component; slots are props (grep/lint assert) \u2014 lets T5d build now while T7/T8/T9 don't exist.\n- Recommended option: Store field on Tab record + mount-all container\n- Open uncertainties: 1 (see discovery doc \u00a7Open uncertainties)",
   "open_uncertainties": []
 }

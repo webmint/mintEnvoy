@@ -1,16 +1,16 @@
 {
   "topic": null,
   "topic_slug": null,
-  "date": "2026-07-04",
-  "spec_number": "014",
-  "feature_name": "kv-table-editor",
-  "feature_slug": "kv-table-editor",
-  "spec_type": "greenfield_feature",
-  "spec_type_rationale": "KVTable is net-new code \u2014 0 internal implementations of the key-value-editor capability; scaffolds a new organisms/request/ component + lib/ validVars selector, reusing the existing tabsStore/tokens.css substrate (discover 2026-07-04).",
-  "spec_type_seeded_by_upstream": true,
+  "date": "2026-07-06",
+  "spec_number": "015",
+  "feature_name": "request-sub-tabs",
+  "feature_slug": "request-sub-tabs",
+  "spec_type": "feature_addition",
+  "spec_type_rationale": "Extends an existing mature renderer: composes the Tabs molecule, adds an activeSubTab field + setActiveSubTab action to the existing tabsStore, mounts into the existing Shell request pane. Similar features (TabBar, RequestBar, KVTable) + type defs (RequestSpec, Tab) exist \u2014 not greenfield scaffolding.",
+  "spec_type_seeded_by_upstream": false,
   "status": "Draft",
   "design_source": "html:design/reference.html",
-  "current_branch": "spec/014-kv-table-editor",
+  "current_branch": "spec/015-request-sub-tabs",
   "default_branch": "main",
   "branch_decision": "keep",
   "branch_created": false,
@@ -18,42 +18,47 @@
     {
       "path": "constitution.md",
       "source_origin": "context",
-      "read_timestamp": "2026-07-04T17:50:53Z"
+      "read_timestamp": "2026-07-06T09:04:20Z"
     },
     {
       "path": ".claude/memory/MEMORY.md",
       "source_origin": "context",
-      "read_timestamp": "2026-07-04T17:50:53Z"
+      "read_timestamp": "2026-07-06T09:04:20Z"
     },
     {
       "path": "CLAUDE.md",
       "source_origin": "context",
-      "read_timestamp": "2026-07-04T17:50:53Z"
+      "read_timestamp": "2026-07-06T09:04:20Z"
     },
     {
       "path": "docs/architecture.md",
       "source_origin": "context",
-      "read_timestamp": "2026-07-04T17:50:54Z"
+      "read_timestamp": "2026-07-06T09:04:20Z"
     },
     {
-      "path": "docs/renderer/index.md",
+      "path": "docs/glossary.md",
       "source_origin": "context",
-      "read_timestamp": "2026-07-04T17:50:54Z"
+      "read_timestamp": "2026-07-06T09:04:20Z"
     },
     {
-      "path": ".devforge/memory.md",
+      "path": "design/design-fidelity-contract.md",
       "source_origin": "context",
-      "read_timestamp": "2026-07-04T17:50:54Z"
+      "read_timestamp": "2026-07-06T09:04:20Z"
     },
     {
-      "path": "specs/004-working-tabs-state-machine/spec.md",
+      "path": "design/styles.css",
+      "source_origin": "context",
+      "read_timestamp": "2026-07-06T09:04:20Z"
+    },
+    {
+      "path": "specs/002-tabs-primitive/spec.md",
       "source_origin": "prior_spec",
-      "read_timestamp": "2026-07-04T17:50:54Z"
+      "read_timestamp": "2026-07-06T09:04:20Z"
     },
     {
-      "path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
+      "path": "discover/2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher.md",
       "source_origin": "discover",
-      "read_timestamp": "2026-07-04T17:50:54Z"
+      "read_timestamp": "2026-07-06T09:04:20Z"
     }
   ],
   "phase1_finalized": true,
@@ -61,330 +66,274 @@
     {
       "finding_id": "F-constitution-1",
       "source_path": "constitution.md",
-      "source_section": "\u00a72.2/\u00a75.2",
-      "content": "requestSpec is a pure data module imported by tabsStore, NEVER by components. KVTable must obtain the Row type WITHOUT a value import of requestSpec \u2014 type-only import chosen (DP-data_flow_state-2).",
+      "source_section": "\u00a72.2",
+      "content": "organisms->molecules downward import only; domain-bound components in organisms/, subfolder only at >=2 components. RequestSubTabs is a lone organism singleton (like TabBar) composing the Tabs molecule.",
       "landed_in": "Constraint",
-      "landed_ref": ""
+      "landed_ref": "Constraint-1"
     },
     {
       "finding_id": "F-constitution-2",
       "source_path": "constitution.md",
-      "source_section": "\u00a73.2/\u00a74",
-      "content": "Boundary lookups degrade gracefully instead of throwing (resolveIcon fallback). validVars lookup is a boundary read \u2192 \u2205-default selector when env store absent; never flag-everything-missing on a project with no environment.",
+      "source_section": "\u00a74 Never Do",
+      "content": "Never mutate zustand state outside a store action -> the activeSubTab write MUST be a tabsStore action (setActiveSubTab).",
       "landed_in": "Constraint",
-      "landed_ref": ""
+      "landed_ref": "Constraint-7"
     },
     {
       "finding_id": "F-constitution-3",
       "source_path": "constitution.md",
-      "source_section": "\u00a74 Never Do",
-      "content": "Never use inline styles \u2014 class-based via cx(); prefer tokens.css custom properties over literal values. Forbids the design-export cruft (data-om-*, __OmT, inline styles, tweaks-panel).",
-      "landed_in": "Constraint",
-      "landed_ref": ""
+      "source_section": "\u00a74/\u00a7Prefer",
+      "content": "Never use inline styles; prefer design tokens (tokens.css) over literals; compose classes with cx(). Fidelity via semantic classes bound to tokens.css.",
+      "landed_in": "AC",
+      "landed_ref": "AC-22"
     },
     {
       "finding_id": "F-constitution-4",
       "source_path": "constitution.md",
-      "source_section": "\u00a73.3 Naming",
-      "content": "Components PascalCase one-per-file + sibling .css; stores/lib camelCase; tests co-located __tests__ split .test.tsx (Vitest) / .ct.tsx (Playwright CT).",
+      "source_section": "\u00a72.1/\u00a72.3",
+      "content": "renderer-only: no Node/Electron imports; cross-module imports via @renderer alias.",
       "landed_in": "Constraint",
-      "landed_ref": ""
+      "landed_ref": "Constraint-2"
     },
     {
       "finding_id": "F-constitution-5",
       "source_path": "constitution.md",
-      "source_section": "\u00a74 Always/\u00a75.2",
-      "content": "Mutate zustand state only through store actions; consume via per-field selectors. KVTable writes via updateActiveSpec, reads via selector \u2014 no ad-hoc mutation.",
-      "landed_in": "AC",
-      "landed_ref": ""
-    },
-    {
-      "finding_id": "F-constitution-6",
-      "source_path": "constitution.md",
-      "source_section": "\u00a73.1 Type Safety",
-      "content": "Strict mode, no implicit any; prefer unknown + type guard at boundaries. Tokeniser, Row[] transforms, and the 'params'|'headers' field-prop union fully typed.",
+      "source_section": "\u00a73.4 Testing",
+      "content": "co-located tests under __tests__/: .test.tsx (Vitest) + .ct.tsx (Playwright CT); cover ACs incl edge/error paths.",
       "landed_in": "Constraint",
-      "landed_ref": ""
+      "landed_ref": "Constraint-4"
     },
     {
-      "finding_id": "F-constitution-7",
-      "source_path": "constitution.md",
-      "source_section": "\u00a73.6/\u00a76.3 Reuse",
-      "content": "SOLID/DRY/KISS; reuse updateActiveSpec, tokens.css, cx(), adopted radix-ui \u2014 no new runtime dependency for v1.",
+      "finding_id": "F-memory-1",
+      "source_path": ".claude/memory/MEMORY.md",
+      "source_section": "fidelity-fix-structural",
+      "content": "A CSS shortcut (justify-content) masked height+color drift; structural fix was the real one. T5d pane-tab fidelity must fix structurally, not paper over with layout hacks.",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-1"
+    },
+    {
+      "finding_id": "F-memory-2",
+      "source_path": ".claude/memory/MEMORY.md",
+      "source_section": "ct-fidelity-fixture-scoping",
+      "content": "CT fidelity tests must reproduce full styling context: tokens.css import + data-theme/data-mstyle + production className scope (e.g. .tabbar). T5d CT needs the .pane-tabs production scope + tokens + both themes.",
       "landed_in": "AC",
-      "landed_ref": ""
+      "landed_ref": "AC-27"
+    },
+    {
+      "finding_id": "F-memory-3",
+      "source_path": ".claude/memory/MEMORY.md",
+      "source_section": "ct-baseline-stale",
+      "content": "Sub-1% color changes stay within Playwright threshold so --update-snapshots leaves baselines stale; prefer computed-style equality over screenshot pixels for discrete tokens.",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-3"
     },
     {
       "finding_id": "F-claude-1",
       "source_path": "CLAUDE.md",
-      "source_section": "Build/Type/Lint",
-      "content": "typecheck = npm run typecheck:node && npm run typecheck:web; lint = eslint --cache .; build = npm run typecheck && electron-vite build.",
-      "landed_in": "AC",
-      "landed_ref": ""
+      "source_section": "Design Fidelity / breakdown",
+      "content": "design/reference.html -> /breakdown emits design-manifest.json + per-element fidelity disposition; /implement runs a static design-token provenance check. T5d has a design source so the manifest + token-provenance gate apply.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-11"
     },
     {
       "finding_id": "F-claude-2",
       "source_path": "CLAUDE.md",
-      "source_section": "Renderer structure",
-      "content": "components/{atoms,molecules,organisms}/ + lib/ + styles/tokens.css. Domain-bound components \u2192 organisms/<domain>/ (>=2 \u2192 subfolder).",
+      "source_section": "Commands",
+      "content": "typecheck = typecheck:node + typecheck:web; lint = eslint --cache; renderer tests = Vitest (.test.tsx) + Playwright CT (.ct.tsx). Verification commands draw from these.",
       "landed_in": "AC",
-      "landed_ref": ""
+      "landed_ref": "AC-21"
     },
     {
       "finding_id": "F-claude-3",
       "source_path": "CLAUDE.md",
-      "source_section": "Constitution-is-law",
-      "content": "constitution.md overrides; every change minimal; never modify code outside task scope; read before write; document new code.",
+      "source_section": "Atomic-design placement",
+      "content": "organisms are domain singletons; molecules are shared. RequestSubTabs (request-domain) is an organism; Tabs (shared) the molecule it composes.",
       "landed_in": "Constraint",
-      "landed_ref": ""
+      "landed_ref": "Constraint-5"
     },
     {
       "finding_id": "F-architecture-1",
       "source_path": "docs/architecture.md",
       "source_section": "Working-tabs state machine",
-      "content": "tabsStore.updateActiveSpec(patch) shallow-merges Partial<RequestSpec> with a strict-=== no-op guard. RequestBar is the spec-edit subscriber precedent (per-field selectors + updateActiveSpec). KVTable follows this pattern.",
+      "content": "tabsStore owns tabs: Tab[], activeTabId, lifecycle; updateActiveSpec shallow-merges a partial RequestSpec, no-op when unchanged (dirty never flips spuriously). Tab record: {id, collectionRequestId, spec, dirty}. TabBar=lifecycle subscriber; RequestBar=spec-edit subscriber.",
       "landed_in": "AC",
-      "landed_ref": ""
+      "landed_ref": "AC-26"
     },
     {
       "finding_id": "F-architecture-2",
       "source_path": "docs/architecture.md",
-      "source_section": "Overlay substrate",
-      "content": "radix-ui unified package owns overlays (Dropdown/Modal/Toast); project adds only what Radix lacks. Deferred autocomplete would compose Radix Popover \u2014 no new library.",
-      "landed_in": "OOS",
-      "landed_ref": ""
+      "source_section": "Tabs WAI-ARIA departure",
+      "content": "Tabs is hand-rolled WAI-ARIA (role=tablist/tab, roving tabindex, Arrow/Home/End wrap, disabled-skip), controlled (activeId+onChange), selection-only \u2014 NEVER renders panels. TabDescriptor supports badge (string|number), method, dirty, disabled. T5d composes it and owns the tabpanels.",
+      "landed_in": "AC",
+      "landed_ref": "AC-14"
     },
     {
       "finding_id": "F-architecture-3",
       "source_path": "docs/architecture.md",
-      "source_section": "CT hazard \u2014 Radix dismiss",
-      "content": "Radix overlay click-outside CTs must gate on DismissableLayer's setTimeout(0) pointerdown listener (await animations + yield macrotask). Relevant only if the deferred autocomplete Popover ships; v1 grid has no overlay.",
-      "landed_in": "OOS",
-      "landed_ref": ""
+      "source_section": ".tabbar two-CSS-file contract",
+      "content": "TabBar passes className='tabbar'; Tabs.css carries a .tabbar-scoped override block re-treating geometry/active/hover. Precedent for T5d styling: pass className='pane-tabs' + a .pane-tabs-scoped override to hit \u00a76 pane-tab fidelity values.",
+      "landed_in": "AC",
+      "landed_ref": "AC-2"
     },
     {
       "finding_id": "F-architecture-4",
       "source_path": "docs/architecture.md",
-      "source_section": "Styling + test stack",
-      "content": "Semantic classes bound to tokens.css, sibling .css, no inline. Tests: Vitest+testing-library (jsdom); Playwright experimental-ct-react (Chromium); globs .test/.spec/.ct .ts/.tsx.",
+      "source_section": "KVTable seam",
+      "content": "KVTable reads tabsStore directly via a field:'params'|'headers' prop (self-subscribing; not passed rows); validVars defaults to envVars() sentinel. T5d Params/Headers slot is <KVTable field='params'/> / field='headers'/> \u2014 the slot is the component instance; mounting keeps its own focus/edit state.",
       "landed_in": "AC",
-      "landed_ref": ""
+      "landed_ref": "AC-11"
     },
     {
-      "finding_id": "F-index-1",
-      "source_path": "docs/renderer/index.md",
-      "source_section": "File tree + placement",
-      "content": "Organisms are domain singletons (RequestBar/TabBar/Sidebar); molecules domain-agnostic. KVTable is request-domain-bound \u2192 organisms/request/ subfolder (DP-scope_boundaries-1); one reusable file instanced twice.",
-      "landed_in": "AC",
-      "landed_ref": ""
+      "finding_id": "F-architecture-5",
+      "source_path": "docs/architecture.md",
+      "source_section": "App composition root",
+      "content": "App.tsx renders <Shell tabs={<TabBar/>} panes={{request:<RequestBar/>}}/>; ShellProps.panes forwards to PaneSplit request?:ReactNode (single slot, rendered without inspection). Mounting T5d = App.tsx replaces panes.request with the composed pane.",
+      "landed_in": "Risk",
+      "landed_ref": "Risk-5"
     },
     {
-      "finding_id": "F-index-2",
-      "source_path": "docs/renderer/index.md",
-      "source_section": "requestSpec exports",
-      "content": "requestSpec.ts exports RequestSpec, Row, Auth union, isBearerAuth guard, makeBlankRequest factory; method typed HttpMethod. Row is the KVTable row shape.",
+      "finding_id": "F-design-fidelity-contract-1",
+      "source_path": "design/design-fidelity-contract.md",
+      "source_section": "\u00a76 .pane-tab",
+      "content": ".pane-tab: height 36px, gap 6px, color var(--text-muted), font-size 12.5px, font-weight 500, margin-right 14px. Active tab color var(--text).",
+      "landed_in": "AC",
+      "landed_ref": "AC-27"
+    },
+    {
+      "finding_id": "F-design-fidelity-contract-2",
+      "source_path": "design/design-fidelity-contract.md",
+      "source_section": "\u00a76 badge",
+      "content": ".pane-tab .badge: font-size 10px, background var(--bg-active), color var(--text-muted), border-radius 999px, padding 1px 6px, font-weight 600.",
+      "landed_in": "AC",
+      "landed_ref": "AC-27"
+    },
+    {
+      "finding_id": "F-design-fidelity-contract-3",
+      "source_path": "design/design-fidelity-contract.md",
+      "source_section": "\u00a76 active badge",
+      "content": ".pane-tab.active .badge: background var(--accent-soft), color var(--accent) \u2014 active-state badge recolor is a distinct fidelity target.",
+      "landed_in": "AC",
+      "landed_ref": "AC-27"
+    },
+    {
+      "finding_id": "F-styles-1",
+      "source_path": "design/styles.css",
+      "source_section": ".pane-tabs container",
+      "content": ".pane-tabs: display flex, align-items center, gap 2px, padding 0 16px, border-bottom 1px solid var(--border-faint), height 36px, position relative.",
+      "landed_in": "AC",
+      "landed_ref": "AC-27"
+    },
+    {
+      "finding_id": "F-styles-2",
+      "source_path": "design/styles.css",
+      "source_section": ".pane-tab.active::after",
+      "content": "Active indicator = .pane-tab.active::after: absolute, left0/right0, bottom -1px, height 1.5px, background var(--accent). Scoped override, static (not animated).",
+      "landed_in": "AC",
+      "landed_ref": "AC-27"
+    },
+    {
+      "finding_id": "F-styles-3",
+      "source_path": "design/styles.css",
+      "source_section": "token resolutions both themes",
+      "content": "var(--token) resolves-to-token: --accent #10b981; --accent-soft=color-mix(in oklab, accent 14%, transparent); --bg-active #e8e6e3/#25252a; --text-muted #6c6c75/#a1a1aa; --text #18181b/#f4f4f5; --border-faint #f0efed/#1c1c1f. Per-theme assertion required.",
       "landed_in": "Constraint",
-      "landed_ref": ""
-    },
-    {
-      "finding_id": "F-index-3",
-      "source_path": "docs/renderer/index.md",
-      "source_section": "RequestBar precedent",
-      "content": "RequestBar.tsx is the pattern to mirror: organism reading active-tab spec via per-field selectors, writing via updateActiveSpec + markClean, styled via tokens-bound sibling .css.",
-      "landed_in": "AC",
-      "landed_ref": ""
+      "landed_ref": "Constraint-10"
     },
     {
       "finding_id": "F-spec-1",
-      "source_path": "specs/004-working-tabs-state-machine/spec.md",
-      "source_section": "Row shape + serializable",
-      "content": "Row = {enabled:boolean,key:string,value:string,description:string}; params/headers: Row[]. RequestSpec is plain serializable (JSON round-trips, no class instances/Symbols) \u2014 KVTable writes plain Row objects (004 Q-2).",
-      "landed_in": "Constraint",
-      "landed_ref": ""
+      "source_path": "specs/002-tabs-primitive/spec.md",
+      "source_section": "\u00a73 API",
+      "content": "Tabs API: controlled activeId + onChange(id) once on click/keyboard; flat descriptor array (id,label,badge?,disabled?); Arrow/Home/End wrap, skip disabled; optional right actions slot; aria-selected + tablist/tab roles + roving tabindex.",
+      "landed_in": "AC",
+      "landed_ref": "AC-13"
     },
     {
       "finding_id": "F-spec-2",
-      "source_path": "specs/004-working-tabs-state-machine/spec.md",
-      "source_section": "\u00a76 deferred editor + no-interpolation",
-      "content": "004 \u00a76 explicitly defers 'request-editing panels that bind to the active tab RequestSpec' AND '{{...}} variable resolution \u2014 stored/displayed verbatim, no resolution'. THIS is that editor; its {{var}} work is DISPLAY-ONLY highlight+missing-flag, NOT resolution (resolution stays out of scope).",
-      "landed_in": "OOS",
-      "landed_ref": ""
+      "source_path": "specs/002-tabs-primitive/spec.md",
+      "source_section": "\u00a72",
+      "content": "002 explicitly anticipated the request-pane six-tab and response-pane four-tab consumers. T5d IS the request-pane six-tab consumer 002 was built for.",
+      "landed_in": "Constraint",
+      "landed_ref": "Constraint-5"
     },
     {
       "finding_id": "F-spec-3",
-      "source_path": "specs/004-working-tabs-state-machine/spec.md",
-      "source_section": "Seed header row",
-      "content": "makeBlankRequest seeds headers=[{enabled:true,key:'Accept',value:'application/json',description:''}] and params=[]. Headers mount opens with 1 real row + trailing empty; params mount only the trailing empty.",
+      "source_path": "specs/002-tabs-primitive/spec.md",
+      "source_section": "\u00a76 OOS",
+      "content": "002 leaves panels out (selection-only, never renders panels) and ships no animated sliding underline (static). T5d owns tabpanels + aria wiring; active underline is a static scoped ::after.",
       "landed_in": "AC",
-      "landed_ref": ""
+      "landed_ref": "AC-5"
     },
     {
-      "finding_id": "F-spec-4",
-      "source_path": "specs/004-working-tabs-state-machine/spec.md",
-      "source_section": "design/reference.html look-only",
-      "content": "004 established: reproduce design via tokens-bound semantic classes, NEVER the generated cruft. Same rule binds KVTable fidelity.",
-      "landed_in": "Constraint",
-      "landed_ref": ""
-    },
-    {
-      "finding_id": "F-2026-07-04-key-value-table-editor-params-headers-bound-to-the-active-1",
-      "source_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
-      "source_section": "Recommended Option A",
-      "content": "Controlled grid, derived virtual trailing row, direct updateActiveSpec writes; zero component-local row state; external cURL-import mutation re-renders for free (no local copy, no stale-edit race). Rejected: local-draft-buffer, granular store row-actions.",
+      "finding_id": "F-2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher-1",
+      "source_path": "discover/2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher.md",
+      "source_section": "Recommended option",
+      "content": "Store field on Tab record + mount-all container: activeSubTab enum (default 'params') on the Tab record + setActiveSubTab(tabId,key) action in tabsStore.",
       "landed_in": "AC",
-      "landed_ref": ""
+      "landed_ref": "AC-8"
     },
     {
-      "finding_id": "F-2026-07-04-key-value-table-editor-params-headers-bound-to-the-active-2",
-      "source_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
-      "source_section": "Build vs Buy",
-      "content": "v1 grid = Build (hand-roll); table libs rejected (fight fidelity + no-cruft). {{var}} value-field autocomplete DEFERRED out of v1, its own post-T14 build-vs-buy (buy-a-hook + reuse Radix Popover).",
+      "finding_id": "F-2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher-2",
+      "source_path": "discover/2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher.md",
+      "source_section": "Constraint(c)/Buy",
+      "content": "Mount-all + toggle-visibility (CSS), NOT unmount, to preserve KVTable edit state (focus/scroll/half-typed row). Buy rejected: react-tabs/Radix unmount inactive. Zero new deps.",
       "landed_in": "OOS",
-      "landed_ref": ""
+      "landed_ref": "OOS-5"
     },
     {
-      "finding_id": "F-2026-07-04-key-value-table-editor-params-headers-bound-to-the-active-3",
-      "source_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
-      "source_section": "Tolerated-absent deps",
-      "content": "Two unbuilt deps mitigated: env store validVars (T14) \u2192 \u2205-defaulting selector; parent pane-tabs container absent \u2192 KVTable independently-mountable + isolation-testable (CT with mock rows). Neither blocks v1.",
-      "landed_in": "OOS",
-      "landed_ref": ""
-    },
-    {
-      "finding_id": "F-2026-07-04-key-value-table-editor-params-headers-bound-to-the-active-4",
-      "source_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
-      "source_section": "Fidelity + tokeniser edge rules",
-      "content": "Fidelity (design/styles.css .kv block): grid 22px 1fr 1fr 1fr 24px, .kv-header height 30px, .kv-row min-height 32px, checkbox 12px accent-color:var(--accent), .kv-cell mono 12px padding 6px 10px, .var color var(--accent), .var.missing var(--m-delete)+line-through dotted, .kv-actions hidden\u2192flex on :hover, .kv-row.disabled opacity 0.55. Tokeniser: non-greedy shortest {{...}}, empty {{}}/unclosed = plain text, trimmed key vs validVars (unicode/dot/dash allowed, NOT w-only), key vs value independent, multi-line paste \u2192spaces, rapid paste = one trailing row.",
+      "finding_id": "F-2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher-3",
+      "source_path": "discover/2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher.md",
+      "source_section": "Users/external driver",
+      "content": "T5d is a VIEW over a store field: must react to EXTERNAL setActiveSubTab writes (open-on-sub-tab flows T18/T19/T20), not just its own click. IN: react to any activeSubTab change; OUT: implement the jump-flows.",
       "landed_in": "AC",
-      "landed_ref": ""
+      "landed_ref": "AC-24"
     },
     {
-      "finding_id": "F-2026-07-04-key-value-table-editor-params-headers-bound-to-the-active-5",
-      "source_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
-      "source_section": "Derisk plan",
-      "content": "Spike Option A isolated (edit\u2192updateActiveSpec\u2192re-render + external-mutation no-stale); pre-extract fidelity computed-style targets (var\u2192token) before coding; land \u2205-default validVars selector as stable seam; lock tokeniser edge rules with unit tests first.",
+      "finding_id": "F-2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher-4",
+      "source_path": "discover/2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher.md",
+      "source_section": "Derisk/SC",
+      "content": "State-preservation CT is go/no-go (focus Params cell -> switch Headers -> back -> same DOM node keeps focus). Read \u00a76 numbers from styles.css at CT-writing time. Empty-slot sub-tabs are FULL tabs, not disabled.",
       "landed_in": "Risk",
-      "landed_ref": ""
+      "landed_ref": "Risk-1"
     },
     {
-      "finding_id": "F-memory-1",
-      "source_path": ".devforge/memory.md",
-      "source_section": "Fidelity CT locks",
-      "content": "Every fidelity value MUST get a computed-style CT assertion locking it across ALL variants, or it silently regresses; static passes miss px/weight drift \u2014 runtime design-auditor is load-bearing for fidelity features.",
-      "landed_in": "Risk",
-      "landed_ref": ""
-    },
-    {
-      "finding_id": "F-memory-2",
-      "source_path": ".devforge/memory.md",
-      "source_section": "Hygiene false-positives",
-      "content": "check-hygiene commented_code_block detector over-fires on comment-dense CT files (advisory, non-blocking); AC verification commands that scan for a forbidden pattern self-match JSDoc quoting that pattern \u2014 strip comment lines or verify behaviorally.",
-      "landed_in": "Risk",
-      "landed_ref": ""
-    },
-    {
-      "finding_id": "F-memory-3",
-      "source_path": ".devforge/memory.md",
-      "source_section": "fix-then-rereview-before-verify",
-      "content": "After /fix, re-run /review BEFORE /verify so folded findings aren't stale (avoids false NEEDS-WORK). Populate the design-manifest so runtime design-auditor has per-element MATCH/DEVIATE targets.",
-      "landed_in": "Risk",
-      "landed_ref": ""
-    },
-    {
-      "finding_id": "F-memory-4",
-      "source_path": ".claude/memory/MEMORY.md",
-      "source_section": "CT fidelity fixture scoping",
-      "content": "CT fidelity tests must reproduce full styling context (tokens.css import + data-mstyle + production className scope, e.g. a wrapper class); scope box-sizing:border-box to the fixture inline \u2014 don't global-import base.css (breaks screenshot baselines).",
-      "landed_in": "Risk",
-      "landed_ref": ""
-    },
-    {
-      "finding_id": "F-memory-5",
-      "source_path": ".claude/memory/MEMORY.md",
-      "source_section": "CT-run watchdog stall",
-      "content": "Long silent CT commands (npm run test:ct) stall /implement subagents at the 600s watchdog; run the long CT command in the main thread, apply edits inline, then re-fan the no-tools panel.",
-      "landed_in": "Risk",
-      "landed_ref": ""
-    },
-    {
-      "finding_id": "F-memory-6",
-      "source_path": ".claude/memory/MEMORY.md",
-      "source_section": "CT baseline staleness",
-      "content": "Sub-1% color change stays within Playwright threshold so snapshot-update leaves baselines stale; remove the PNGs then regenerate. Cover all data-mstyle variants in CT.",
-      "landed_in": "Risk",
-      "landed_ref": ""
+      "finding_id": "F-2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher-5",
+      "source_path": "discover/2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher.md",
+      "source_section": "Edge cases",
+      "content": "Absent/invalid activeSubTab -> VALID_KEYS.includes(v)?v:'params'; no active tab -> neutral render no crash; huge badge count -> '99+'; malformed spec -> defensive reads (spec.params?.length ?? 0).",
+      "landed_in": "AC",
+      "landed_ref": "AC-17"
     }
   ],
-  "source_no_items_relevant": {},
+  "source_no_items_relevant": {
+    "docs/glossary.md": true
+  },
   "findings_finalized": true,
   "decision_points": [
     {
       "dp_id": "DP-scope_boundaries-1",
       "category": "scope_boundaries",
-      "description": "Component file placement in the renderer tier",
+      "description": "Does T5d wire into the running app now (mounted in Shell's request pane below RequestBar) or ship built + CT-tested in isolation like KVTable/014?",
       "valid_implementations": [
-        "organisms/request/ subfolder",
-        "organisms/ flat",
-        "molecules/"
+        "mount-into-app-now",
+        "isolated-CT-only"
       ],
       "status": "answered",
-      "user_answer": "organisms/request/ subfolder \u2014 domain group for the incoming request-pane editors (KVTable + future BodyEditor/AuthEditor/snippet). Files: organisms/request/KVTable.tsx + KVTable.css + __tests__/.",
+      "user_answer": "Mount into the running app now: App.tsx replaces panes.request (<RequestBar/>) with a composed request pane (RequestBar + RequestSubTabs below it); Params/Headers slots -> <KVTable field=.../>, other 4 -> shared empty-state. This ALSO lands KVTable/014's deferred app-mount in the same step (KVTable goes live through T5d's slots). Rationale: breaks the defer-forever isolate-first chain \u2014 T5d is the first point where mounting is meaningful (the container that makes the request pane whole).",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
     },
     {
-      "dp_id": "DP-scope_boundaries-2",
-      "category": "scope_boundaries",
-      "description": "Does v1 mount KVTable into the running app, or ship it built + isolation-tested only?",
+      "dp_id": "DP-ui_ux_details-1",
+      "category": "ui_ux_details",
+      "description": "Empty-state presentation for the 4 unbuilt-panel slots (Auth/Body/Tests/Code)",
       "valid_implementations": [
-        "Built + CT-isolation only; not mounted",
-        "Mount into an interim parent now"
+        "neutral-not-yet-available-text",
+        "blank-region",
+        "minimal-placeholder"
       ],
       "status": "answered",
-      "user_answer": "Built + CT-isolation-tested only; NOT mounted into the running app. Parent pane-tabs container is a separate task; KVTable ships independently-mountable and verified via CT with mock Row[].",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
-    },
-    {
-      "dp_id": "DP-data_flow_state-1",
-      "category": "data_flow_state",
-      "description": "validVars seam \u2014 where the \u2205-defaulting active-environment selector lives",
-      "valid_implementations": [
-        "New thin lib/ selector module",
-        "Inline in the component"
-      ],
-      "status": "answered",
-      "user_answer": "New thin lib/ selector module (lib/envVars.ts) returning an empty validVars set until env store T14 lands \u2014 stable seam KVTable binds to.",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
-    },
-    {
-      "dp_id": "DP-data_flow_state-2",
-      "category": "data_flow_state",
-      "description": "Row-type import route honoring \u00a75.2",
-      "valid_implementations": [
-        "Type-only import from requestSpec",
-        "Re-export Row via tabsStore"
-      ],
-      "status": "answered",
-      "user_answer": "Type-only import: import type { Row } from requestSpec \u2014 no runtime coupling, honors \u00a75.2.",
-      "default_applied": "",
-      "deferral_reason": "",
-      "turns": 0
-    },
-    {
-      "dp_id": "DP-edge_cases-1",
-      "category": "edge_cases",
-      "description": "Which edit to the trailing empty row triggers auto-promote?",
-      "valid_implementations": [
-        "key or value text only",
-        "any interaction incl checkbox/description"
-      ],
-      "status": "answered",
-      "user_answer": "Only a content edit to key OR value promotes the trailing empty row (and spawns a new trailing empty). Toggling the checkbox or editing description alone on an otherwise-empty row does NOT promote \u2014 avoids enabled-but-keyless junk rows.",
+      "user_answer": "Neutral 'not yet available' text: ONE shared empty-state tabpanel with muted text ('Panel not yet available') styled via --text-muted, the SAME for all 4 unbuilt slots (not personalized). Satisfies valid-non-empty-ARIA-tabpanel; zero design debt; no deletion when panels arrive (slot ?? empty-state is one condition). NOT blank (reads as breakage), NOT icon+label placeholder (the throwaway 'coming soon' barred by non-goals).",
       "default_applied": "",
       "deferral_reason": "",
       "turns": 0
@@ -401,9 +350,20 @@
       "turns": 0
     },
     {
-      "dp_id": "DP-ui_ux_details-1",
-      "category": "ui_ux_details",
-      "description": "no relevant decision point for ui_ux_details",
+      "dp_id": "DP-data_flow_state-1",
+      "category": "data_flow_state",
+      "description": "no relevant decision point for data_flow_state",
+      "valid_implementations": [],
+      "status": "no_DP_in_category",
+      "user_answer": "",
+      "default_applied": "",
+      "deferral_reason": "",
+      "turns": 0
+    },
+    {
+      "dp_id": "DP-edge_cases-1",
+      "category": "edge_cases",
+      "description": "no relevant decision point for edge_cases",
       "valid_implementations": [],
       "status": "no_DP_in_category",
       "user_answer": "",
@@ -438,88 +398,130 @@
   "mode": "interactive",
   "mandatory_reads": [
     {
-      "spec_type": "greenfield_feature",
-      "read_path": "",
-      "slot_pattern": "constitution.md#scaffolding-guide",
-      "n_a_reason": "constitution.md is Existing-Codebase mode with no Section 7 scaffolding guide (ends at \u00a76). Placement derived from \u00a72.2 renderer tier org + DP-scope_boundaries-1 (organisms/request/)."
-    },
-    {
-      "spec_type": "greenfield_feature",
-      "read_path": "",
-      "slot_pattern": "__framework_docs__",
-      "n_a_reason": "React controlled-component + CSS-grid editable-table pattern already surveyed in the discover prior-art (Postman/Insomnia/Bruno; TanStack/Material rejected). No new framework doc needed."
-    },
-    {
-      "spec_type": "greenfield_feature",
-      "read_path": ".claude/memory/MEMORY.md",
-      "slot_pattern": "",
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/App.tsx",
+      "slot_pattern": "__entry__",
       "n_a_reason": ""
     },
     {
-      "spec_type": "greenfield_feature",
-      "read_path": "discover/2026-07-04-key-value-table-editor-params-headers-bound-to-the-active.md",
-      "slot_pattern": "discover/*.md",
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/components/organisms/shell/Shell.tsx",
+      "slot_pattern": "__entry__",
+      "n_a_reason": ""
+    },
+    {
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/components/organisms/shell/PaneSplit.tsx",
+      "slot_pattern": "__entry__",
+      "n_a_reason": ""
+    },
+    {
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/lib/tabsStore.ts",
+      "slot_pattern": "__entry__",
+      "n_a_reason": ""
+    },
+    {
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/components/organisms/TabBar.tsx",
+      "slot_pattern": "__similar_feature__",
+      "n_a_reason": ""
+    },
+    {
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/components/organisms/KVTable.tsx",
+      "slot_pattern": "__similar_feature__",
+      "n_a_reason": ""
+    },
+    {
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/lib/requestSpec.ts",
+      "slot_pattern": "__type_defs__",
+      "n_a_reason": ""
+    },
+    {
+      "spec_type": "feature_addition",
+      "read_path": "",
+      "slot_pattern": "__api_ops__",
+      "n_a_reason": "Local desktop UI feature \u2014 no REST/GraphQL API operations; data flows through the in-renderer tabsStore/RequestSpec."
+    },
+    {
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/components/organisms/__tests__/TabBar.test.tsx",
+      "slot_pattern": "__test_files__",
+      "n_a_reason": ""
+    },
+    {
+      "spec_type": "feature_addition",
+      "read_path": "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx",
+      "slot_pattern": "__test_files__",
       "n_a_reason": ""
     }
   ],
   "discretionary_reads": [],
   "phase3_finalized": true,
-  "overview": "Build KVTable, a hand-rolled controlled key-value grid that edits the active request tab's RequestSpec params[] and headers[] (both Row[] of {enabled,key,value,description}). A single reusable component is instanced twice \u2014 once bound to params, once to headers \u2014 via a 'params'|'headers' field prop. It renders an enabled checkbox, key/value/description mono cells, a hover-revealed delete affordance, and an auto-promoting trailing empty row, and highlights {{variable}} tokens in the key and value cells, flagging unknown ones against the active environment. It reads and writes exclusively through the existing tabsStore.updateActiveSpec action (no local copy), matches design/styles.css to pixel fidelity, and ships built + component-tested in isolation \u2014 it is NOT mounted into the running app (the parent pane-tabs container is a separate task). Autocomplete on the value field and any {{variable}} RESOLUTION are out of scope.",
-  "current_state": "Greenfield for the request-editor UI. codebase-memory-mcp returns no KVTable, no editable-grid component, and no {{variable}} tokeniser anywhere in src/renderer (0 hits for validVars/envSlice/activeEnv/interpolat). The substrate KVTable consumes exists and is built: (1) the RequestSpec domain model \u2014 src/renderer/src/lib/requestSpec.ts:32 exports Row = {enabled:boolean,key:string,value:string,description:string} and RequestSpec.params/headers: Row[] (feature 004), a plain JSON-serializable shape; (2) the tabsStore write path \u2014 src/renderer/src/lib/tabsStore.ts exposes updateActiveSpec(patch: Partial<RequestSpec>) which shallow-merges with a strict-=== no-op guard (feature 009), the same seam RequestBar.tsx uses via per-field selectors; (3) design tokens at src/renderer/styles/tokens.css with authoritative resolved values in design/styles.css (.kv block, lines 951-1035) and the fidelity contract at design/design-fidelity-contract.md section 7 Key-Value editor; (4) the renderer test stack \u2014 Vitest (jsdom) + Playwright experimental-ct-react (Chromium), tests co-located under __tests__ split .test.tsx/.ct.tsx (feature 001); (5) the adopted radix-ui unified package. Feature 004 \u00a76 explicitly deferred BOTH 'request-editing panels that bind to the active tab RequestSpec' and '{{...}} variable resolution' \u2014 this spec builds the former with DISPLAY-ONLY {{variable}} highlighting (never resolution). The env store (validVars, task T14) and the parent pane-tabs container do NOT exist yet.",
-  "desired_behavior": "Deliver one renderer-only component KVTable at src/renderer/src/components/organisms/request/KVTable.tsx with a sibling KVTable.css, plus a thin \u2205-defaulting environment selector at src/renderer/src/lib/envVars.ts. KVTable takes a field prop of 'params' | 'headers'; it reads the active tab's Row[] for that field via a per-field tabsStore selector and, on every edit, computes a fresh Row[] and writes it back via tabsStore.updateActiveSpec({ [field]: nextRows }) \u2014 it holds NO local copy, so an external mutation of the array (import-from-cURL replacing params/headers) re-renders reactively without resurrecting stale edits. Rendering (Option A \u2014 controlled grid, derived virtual trailing row): a .kv-header label row, then one .kv-row per Row, then exactly one derived virtual trailing empty .kv-row.empty. Each row shows a real input type=checkbox (12px, accent-color var(--accent)) toggling Row.enabled (row gets .disabled at opacity 0.55 when unchecked); three .kv-cell mono inputs for key, value, description; and a hover-revealed 24px .kv-actions slot holding a real button delete control. Auto-promote: typing into the key OR value cell of the virtual trailing row appends a real Row and a new virtual trailing row spawns; toggling the checkbox or editing description alone on the otherwise-empty row does NOT promote. Delete removes that Row via updateActiveSpec; the virtual trailing row has no delete affordance and can never be removed. {{variable}} tokenising is DISPLAY-ONLY: key and value text is parsed for non-greedy shortest {{...}} tokens (trimmed inner text; empty {{}} and unclosed {{ are plain text; keys may contain unicode/dots/dashes, NOT constrained to word chars); each token renders as a .var span (color var(--accent)); a token whose trimmed name is absent from the active validVars set renders .var.missing (color var(--m-delete), line-through dotted) \u2014 but ONLY when validVars is non-empty; when validVars is \u2205 (env store absent) every token is neutral .var and none are .missing. validVars comes from the new lib/envVars.ts selector, which returns \u2205 until env store T14 lands. Keyboard: Tab/Shift-Tab traverse checkbox\u2192key\u2192value\u2192description\u2192next row; Enter in the trailing row's value or description commits and auto-promotes with focus landing in the new row's corresponding cell; focus is NEVER lost on auto-promote or delete (it moves to an adjacent row, never document body). Row type is obtained via a type-only import (import type { Row } from requestSpec) to honor \u00a75.2. Styling is semantic classes bound to tokens.css (values from design/styles.css .kv block) with NO inline styles and none of the design-export cruft (data-om-*, __OmT, inline styles, tweaks-panel). The Row objects written stay plain and JSON-serializable. Paste: a single-line paste is inserted verbatim; a multi-line paste collapses newlines to spaces (no row explosion); a rapid/large paste into the trailing row spawns exactly ONE new trailing row. KVTable is verified by Playwright CT with mock Row[] and is NOT mounted into the app in this feature.",
+  "overview": "RequestSubTabs is a per-request-tab container/switcher for the request pane: a horizontal strip of 6 fixed sub-tabs (Params, Auth, Headers, Body, Tests, Code) with RequestSpec-derived badges that switches which editor panel is visible below. It composes the existing Tabs molecule (002) for the switcher (a11y/keyboard/badge render), owns the 6 mounted tabpanels (mount-all + toggle-visibility to preserve panel state), and is backed by a new activeSubTab field + setActiveSubTab action on tabsStore. It implements no panel body itself \u2014 Params/Headers slots receive the existing KVTable (014); the other 4 slots show one shared empty-state until their panels land. This feature also mounts the composed request pane (RequestBar + RequestSubTabs) into the Shell, taking KVTable live through the Params/Headers slots. Visual fidelity to design/reference.html section 6 (Pane tabs) is mandatory.",
+  "current_state": "The request pane currently renders only the RequestBar. App.tsx (src/renderer/src/App.tsx:6) composes the shell as Shell tabs={TabBar} panes={{ request: RequestBar }}; Shell (src/renderer/src/components/organisms/shell/Shell.tsx:110 ShellProps.panes) forwards panes to PaneSplit, whose request slot (src/renderer/src/components/organisms/shell/PaneSplit.tsx:49 PaneSplitProps.request?: ReactNode) renders its content without inspection. The Tabs molecule (src/renderer/src/components/molecules/Tabs.tsx:382; TabDescriptor at :135) is a hand-rolled WAI-ARIA, controlled (activeId + onChange), selection-only strip that never renders panels; TabDescriptor already supports badge (string|number), disabled, method, dirty, plus an optional right-aligned actions slot. TabBar (src/renderer/src/components/organisms/TabBar.tsx:112) is the canonical composition template: per-field tabsStore selectors -> useMemo(descriptors) -> Tabs activeId onChange className='tabbar' actions; Tabs.css carries a .tabbar-scoped override block. tabsStore (src/renderer/src/lib/tabsStore.ts) owns tabs: Tab[], activeTabId, and lifecycle actions (openFromCollection, newBlank, close, selectActive, markClean, updateActiveSpec \u2014 shallow-merge, no-op when unchanged so dirty never flips spuriously); the Tab record is {id, collectionRequestId, spec, dirty} (makeBlankTab at tabsStore.ts:138) with NO activeSubTab field today. requestSpec (src/renderer/src/lib/requestSpec.ts:70 RequestSpec; Auth union at :63; makeBlankRequest at :124) is a pure data module exposing method/url/params/headers/body/auth. KVTable (src/renderer/src/components/organisms/KVTable.tsx:26) is a self-subscribing organism: KVTable({ field: 'params'|'headers' }) reads the active tab's spec[field] from tabsStore directly and writes via updateActiveSpec; it is built + CT-tested but not yet mounted into the running app. Design tokens live in tokens.css; fidelity targets are pre-resolved in design/styles.css (.pane-tabs / .pane-tab / .badge) and design/design-fidelity-contract.md section 6.",
+  "desired_behavior": "Add a new RequestSubTabs organism at src/renderer/src/components/organisms/RequestSubTabs.tsx (+ sibling RequestSubTabs.css) that composes the Tabs molecule for a 6-sub-tab strip (Params, Auth, Headers, Body, Tests, Code \u2014 fixed order, all always visible and switchable, none disabled/hidden). The active sub-tab is per-request-tab state: add activeSubTab (enum 'params'|'auth'|'headers'|'body'|'tests'|'code', default 'params') to the Tab record and a setActiveSubTab(tabId, key) action to tabsStore. RequestSubTabs reads activeTabId + that tab's activeSubTab and renders Tabs activeId={activeSubTab} onChange={key => setActiveSubTab(activeTabId, key)} className='pane-tabs'; it never mutates the RequestSpec. Badges derive read-only from the active RequestSpec (params count, headers count, auth-set) and update reactively when the spec changes; a badge shows only where the spec carries a value (Body/Tests/Code typically none); counts above 99 display as 99+. All 6 tabpanels are mounted at once and hidden via CSS (display toggle), never unmounted, so panel state (KVTable focus/scroll/half-typed row, open inline edits) survives a sub-tab switch. Params and Headers panels are KVTable field='params' and KVTable field='headers'; the other 4 slots show ONE shared neutral empty-state (muted 'Panel not yet available' text via --text-muted) \u2014 the same empty-state for all four, not personalized. Each tabpanel carries role='tabpanel' with aria-controls/aria-labelledby linking it to its tab and aria-selected mirroring activeSubTab. RequestSubTabs reacts identically to its own click and to an external setActiveSubTab write. Invalid or absent activeSubTab reads back as 'params' (VALID_KEYS.includes(v) ? v : 'params'); with no active tab the strip renders a neutral empty region without crashing. Visual fidelity matches design/styles.css section 6 exactly in both light and dark themes. Finally, wire the composed request pane into the app: App.tsx replaces panes.request (RequestBar) with the composed pane (RequestBar + RequestSubTabs below it), taking KVTable live through the Params/Headers slots.",
   "affected_areas": [
     {
-      "area": "KVTable component",
+      "area": "RequestSubTabs component (new)",
       "files": [
-        "src/renderer/src/components/organisms/request/KVTable.tsx",
-        "src/renderer/src/components/organisms/request/KVTable.css"
+        "src/renderer/src/components/organisms/RequestSubTabs.tsx",
+        "src/renderer/src/components/organisms/RequestSubTabs.css"
       ],
-      "impact": "Create new \u2014 the controlled key-value grid (Option A) + its sibling token-bound stylesheet; takes a field:'params'|'headers' prop, instanced twice."
+      "impact": "Create new \u2014 the container/switcher organism composing Tabs; owns the 6 mounted tabpanels + the shared empty-state; sibling CSS carries the .pane-tabs-scoped fidelity override"
     },
     {
-      "area": "Variable tokeniser helper",
-      "files": [
-        "src/renderer/src/lib/varTokens.ts"
-      ],
-      "impact": "Create new \u2014 pure non-greedy {{...}} tokeniser (empty/unclosed = plain text; unicode/dot/dash keys) returning token spans for display-only highlighting; unit-testable in isolation."
-    },
-    {
-      "area": "Environment validVars selector",
-      "files": [
-        "src/renderer/src/lib/envVars.ts"
-      ],
-      "impact": "Create new \u2014 thin \u2205-defaulting selector returning the active environment's validVars set; returns \u2205 until env store T14 lands (stable seam)."
-    },
-    {
-      "area": "KVTable + helper tests",
-      "files": [
-        "src/renderer/src/components/organisms/request/__tests__/KVTable.ct.tsx",
-        "src/renderer/src/components/organisms/request/__tests__/KVTable.stories.tsx",
-        "src/renderer/src/lib/__tests__/varTokens.test.ts",
-        "src/renderer/src/lib/__tests__/envVars.test.ts"
-      ],
-      "impact": "Create new \u2014 Playwright CT (mock Row[] fixtures) for grid behaviour + fidelity computed-style asserts; Vitest unit suites for the tokeniser edge rules and the \u2205-default selector."
-    },
-    {
-      "area": "tabsStore (consumed, unchanged)",
+      "area": "tabsStore + Tab record",
       "files": [
         "src/renderer/src/lib/tabsStore.ts"
       ],
-      "impact": "No change \u2014 KVTable reads active-tab Row[] via a per-field selector and writes via the existing updateActiveSpec action; no new store action added."
+      "impact": "Add a SubTabKey enum + activeSubTab field (default 'params') to the Tab record (makeBlankTab), and a setActiveSubTab(tabId,key) store action"
     },
     {
-      "area": "requestSpec (type-only import, unchanged)",
+      "area": "App composition root",
+      "files": [
+        "src/renderer/src/App.tsx"
+      ],
+      "impact": "Replace panes.request (<RequestBar/>) with the composed request pane (RequestBar + RequestSubTabs); this takes KVTable live through the Params/Headers slots"
+    },
+    {
+      "area": "Tabs molecule (reused, no change)",
+      "files": [
+        "src/renderer/src/components/molecules/Tabs.tsx"
+      ],
+      "impact": "Composed as-is via activeId/onChange/badge/actions API \u2014 no modification; consumed by RequestSubTabs"
+    },
+    {
+      "area": "KVTable (mounted live)",
+      "files": [
+        "src/renderer/src/components/organisms/KVTable.tsx"
+      ],
+      "impact": "Mounted into the Params/Headers slots as <KVTable field='params'/> / field='headers'/>; no component change \u2014 it goes live through T5d"
+    },
+    {
+      "area": "requestSpec (read-only badge source)",
       "files": [
         "src/renderer/src/lib/requestSpec.ts"
       ],
-      "impact": "No change \u2014 KVTable does a type-only import of Row (honors \u00a75.2: requestSpec never value-imported by components)."
+      "impact": "Read-only source for badge derivation (params/headers count, auth-set); no change"
     },
     {
-      "area": "Design tokens (consumed, unchanged)",
+      "area": "Design tokens",
       "files": [
-        "src/renderer/styles/tokens.css"
+        "src/renderer/src/styles/tokens.css"
       ],
-      "impact": "No change \u2014 KVTable.css binds semantic .kv classes to existing token custom properties; resolved fidelity values sourced from design/styles.css .kv block."
+      "impact": "Consumed by RequestSubTabs.css for the \u00a76 pane-tab fidelity values (--text-muted/--text/--accent/--accent-soft/--bg-active/--border-faint); verify tokens present, no new token expected"
+    },
+    {
+      "area": "Tests (new)",
+      "files": [
+        "src/renderer/src/components/organisms/__tests__/RequestSubTabs.test.tsx",
+        "src/renderer/src/components/organisms/__tests__/RequestSubTabs.ct.tsx",
+        "src/renderer/src/lib/__tests__/tabsStore.test.ts"
+      ],
+      "impact": "Create new \u2014 Vitest interaction + Playwright CT (switch/keyboard/per-tab-state/state-preservation/per-theme fidelity/a11y) and a tabsStore setActiveSubTab unit test"
     }
   ],
   "acceptance_criteria": [
@@ -527,8 +529,8 @@
       "ac_id": "AC-1",
       "subsection": "tooling_artifact_presence",
       "ears_variant": "ubiquitous",
-      "statement": "The KVTable component shall exist as a single-file component with a sibling token-bound stylesheet under the organisms request directory.",
-      "verification_command": "test -f src/renderer/src/components/organisms/request/KVTable.tsx && test -f src/renderer/src/components/organisms/request/KVTable.css",
+      "statement": "The renderer shall provide a RequestSubTabs container component module under the organisms directory.",
+      "verification_command": "test -f src/renderer/src/components/organisms/RequestSubTabs.tsx",
       "test_anchor": "",
       "n_a_reason": ""
     },
@@ -536,8 +538,8 @@
       "ac_id": "AC-2",
       "subsection": "tooling_artifact_presence",
       "ears_variant": "ubiquitous",
-      "statement": "The renderer shall provide a pure variable-tokeniser module under the lib directory.",
-      "verification_command": "test -f src/renderer/src/lib/varTokens.ts",
+      "statement": "The RequestSubTabs component shall ship a sibling token-bound stylesheet.",
+      "verification_command": "test -f src/renderer/src/components/organisms/RequestSubTabs.css",
       "test_anchor": "",
       "n_a_reason": ""
     },
@@ -545,43 +547,43 @@
       "ac_id": "AC-3",
       "subsection": "tooling_artifact_presence",
       "ears_variant": "ubiquitous",
-      "statement": "The renderer shall provide an environment validVars selector module under the lib directory.",
-      "verification_command": "test -f src/renderer/src/lib/envVars.ts",
+      "statement": "The build shall add no third-party tab library dependency.",
+      "verification_command": "! grep -qE 'react-tabs|@radix-ui/react-tabs' package.json",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-4",
-      "subsection": "tooling_artifact_presence",
-      "ears_variant": "ubiquitous",
-      "statement": "The build shall introduce no new table, combobox, or autocomplete runtime dependency.",
-      "verification_command": "! grep -qE '(@tanstack/react-table|downshift|react-aria|@react-aria|ariakit|material-react-table|rsuite)' package.json",
+      "subsection": "behavior_preservation",
+      "ears_variant": "state_driven",
+      "statement": "WHILE the new activeSubTab field is present on the Tab record, the existing tabsStore consumers TabBar and RequestBar shall continue to behave as before.",
+      "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-5",
       "subsection": "behavior_preservation",
-      "ears_variant": "state_driven",
-      "statement": "WHILE KVTable is not mounted into the application shell this feature, the running application behavior shall remain unchanged.",
+      "ears_variant": "ubiquitous",
+      "statement": "The RequestSubTabs component shall compose the Tabs molecule through its existing public API without modifying the Tabs selection-only contract.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-6",
-      "subsection": "behavior_preservation",
+      "subsection": "behavior_change",
       "ears_variant": "event_driven",
-      "statement": "WHEN KVTable writes an edited array via updateActiveSpec with a fresh array reference, the tabsStore shall flip the active tab dirty flag through its existing no-op-guarded merge without modification to the store.",
+      "statement": "WHEN the user selects a sub-tab by click or by Arrow/Home/End keyboard navigation, the RequestSubTabs component shall make that sub-tab active and show its tabpanel while hiding the others.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-7",
-      "subsection": "behavior_preservation",
-      "ears_variant": "ubiquitous",
-      "statement": "The KVTable feature shall add no new tabsStore action and shall not modify the tabsStore or requestSpec modules.",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN a sub-tab is activated, the RequestSubTabs component shall persist the selection only through the setActiveSubTab store action.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -589,8 +591,8 @@
     {
       "ac_id": "AC-8",
       "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the user types text into the key or value cell of the trailing empty row, KVTable shall append a real row and render a fresh trailing empty row.",
+      "ears_variant": "state_driven",
+      "statement": "WHILE two request tabs hold different active sub-tabs, the RequestSubTabs component shall restore each request tab's own active sub-tab when the user switches away and back.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -598,8 +600,8 @@
     {
       "ac_id": "AC-9",
       "subsection": "behavior_change",
-      "ears_variant": "ubiquitous",
-      "statement": "The KVTable tokeniser shall match the shortest non-greedy delimited token and shall treat an empty token or an unclosed opener as plain text.",
+      "ears_variant": "state_driven",
+      "statement": "WHILE the user switches between sub-tabs, the RequestSubTabs component shall keep all 6 tabpanels mounted and toggle their visibility with CSS so panel state such as input focus, scroll position, and a half-typed row is preserved.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -607,8 +609,8 @@
     {
       "ac_id": "AC-10",
       "subsection": "behavior_change",
-      "ears_variant": "ubiquitous",
-      "statement": "The KVTable component shall be authored once and instanced twice through a field prop selecting params or headers.",
+      "ears_variant": "event_driven",
+      "statement": "WHEN setActiveSubTab is written externally rather than by a click inside RequestSubTabs, the RequestSubTabs component shall update the strip and the visible tabpanel identically to a local click.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -617,7 +619,7 @@
       "ac_id": "AC-11",
       "subsection": "behavior_change",
       "ears_variant": "ubiquitous",
-      "statement": "The KVTable component shall highlight variable tokens in the key and value cells only and not in the description cell.",
+      "statement": "The Params and Headers sub-tabs shall render the KVTable bound to the respective RequestSpec field.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -625,8 +627,8 @@
     {
       "ac_id": "AC-12",
       "subsection": "behavior_change",
-      "ears_variant": "ubiquitous",
-      "statement": "The KVTable component shall not resolve or substitute variable values and shall render all cell text verbatim.",
+      "ears_variant": "state_driven",
+      "statement": "WHILE a sub-tab has no panel supplied, the RequestSubTabs component shall render one shared neutral empty-state tabpanel using muted text so all 4 unbuilt sub-tabs share the same empty-state.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -634,8 +636,8 @@
     {
       "ac_id": "AC-13",
       "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN a row is deleted or the trailing empty row auto-promotes, KVTable shall keep focus on an adjacent cell and shall never move focus to the document body.",
+      "ears_variant": "ubiquitous",
+      "statement": "The RequestSubTabs component shall render all 6 sub-tabs as reachable, focusable tabs with none disabled or hidden.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -643,8 +645,8 @@
     {
       "ac_id": "AC-14",
       "subsection": "behavior_change",
-      "ears_variant": "ubiquitous",
-      "statement": "The KVTable row enabled toggle shall be a real checkbox input and the row delete control shall be a real button element.",
+      "ears_variant": "state_driven",
+      "statement": "WHILE mounted, the RequestSubTabs component shall give each tabpanel role tabpanel with aria-controls and aria-labelledby linking it to its tab and aria-selected mirroring the active sub-tab.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -653,7 +655,7 @@
       "ac_id": "AC-15",
       "subsection": "behavior_change",
       "ears_variant": "event_driven",
-      "statement": "WHEN the user edits any cell, the KVTable component shall write a new row array for the bound field through updateActiveSpec.",
+      "statement": "WHEN a sub-tab badge count exceeds 99, the RequestSubTabs component shall display the badge as 99+.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -661,8 +663,8 @@
     {
       "ac_id": "AC-16",
       "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE a row enabled toggle is off, the KVTable component shall render that row with the disabled styling and an unchecked checkbox.",
+      "ears_variant": "unwanted",
+      "statement": "IF the stored active sub-tab value is absent or not a valid sub-tab key, THEN the RequestSubTabs component shall treat the active sub-tab as params.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -670,8 +672,8 @@
     {
       "ac_id": "AC-17",
       "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the user toggles a row checkbox, the KVTable component shall flip that row enabled flag and write the change through updateActiveSpec.",
+      "ears_variant": "unwanted",
+      "statement": "IF there is no active request tab, THEN the RequestSubTabs component shall render a neutral empty region without throwing.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
@@ -679,104 +681,32 @@
     {
       "ac_id": "AC-18",
       "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the user activates a real row delete control, the KVTable component shall remove that row through updateActiveSpec and move focus to an adjacent row.",
+      "ears_variant": "ubiquitous",
+      "statement": "The App shall mount the composed request pane of RequestBar above RequestSubTabs into the request pane slot.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-19",
-      "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE the active validVars set is non-empty, the KVTable component shall mark a variable token absent from validVars as a missing-variable token and a present one as a known token.",
+      "subsection": "documentation",
+      "ears_variant": "ubiquitous",
+      "statement": "The exported RequestSubTabs component, the SubTabKey type, and the setActiveSubTab action shall carry documentation comments.",
       "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
       "ac_id": "AC-20",
-      "subsection": "behavior_change",
-      "ears_variant": "state_driven",
-      "statement": "WHILE the active validVars set is empty, the KVTable component shall render every variable token as a neutral token and mark none as missing.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-21",
-      "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the bound array is replaced externally, the KVTable component shall re-render from the new array and shall not retain stale local edits.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-22",
-      "subsection": "behavior_change",
-      "ears_variant": "optional",
-      "statement": "WHERE a variable token name contains dots dashes or unicode characters, the KVTable component shall compare its trimmed name verbatim against validVars without a word-character restriction.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-23",
-      "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the user pastes multi-line text into a cell, the KVTable component shall collapse the newlines to spaces and shall not create additional rows.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-24",
-      "subsection": "behavior_change",
-      "ears_variant": "unwanted",
-      "statement": "IF a rapid or large paste enters the trailing empty row, THEN the KVTable component shall spawn exactly one new trailing empty row.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-25",
-      "subsection": "behavior_change",
-      "ears_variant": "event_driven",
-      "statement": "WHEN the user presses Tab within a row, the KVTable component shall move focus from checkbox to key to value to description and then onward to the next row.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-26",
-      "subsection": "behavior_change",
-      "ears_variant": "unwanted",
-      "statement": "IF the user toggles the checkbox or edits the description of an otherwise-empty trailing row, THEN the KVTable component shall not promote that row to a real row.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-27",
-      "subsection": "documentation",
-      "ears_variant": "ubiquitous",
-      "statement": "The exported KVTable props the varTokens tokeniser and the envVars selector shall each carry documentation comments.",
-      "verification_command": "",
-      "test_anchor": "",
-      "n_a_reason": ""
-    },
-    {
-      "ac_id": "AC-28",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
-      "statement": "The renderer source shall pass strict web type-checking.",
+      "statement": "The renderer source shall pass strict type-checking.",
       "verification_command": "npm run typecheck:web",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
-      "ac_id": "AC-29",
+      "ac_id": "AC-21",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
       "statement": "The codebase shall pass ESLint without new errors.",
@@ -785,172 +715,192 @@
       "n_a_reason": ""
     },
     {
-      "ac_id": "AC-30",
+      "ac_id": "AC-22",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
-      "statement": "The project shall build cleanly.",
-      "verification_command": "npm run build",
+      "statement": "The RequestSubTabs source shall contain no inline style attributes.",
+      "verification_command": "! grep -rEn 'style=[{][{]' src/renderer/src/components/organisms/RequestSubTabs.tsx",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
-      "ac_id": "AC-31",
+      "ac_id": "AC-23",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
-      "statement": "The new KVTable source shall contain no inline style attributes.",
-      "verification_command": "! grep -REn 'style=[{][{]' src/renderer/src/components/organisms/request/KVTable.tsx | grep -vqE ':[[:space:]]*(\\*|//|/\\*)'",
+      "statement": "The RequestSubTabs source shall not import the electron or node modules.",
+      "verification_command": "! grep -rEn \"from '(electron|node:)\" src/renderer/src/components/organisms/RequestSubTabs.tsx",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
-      "ac_id": "AC-32",
+      "ac_id": "AC-24",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
-      "statement": "The new renderer modules shall not import electron or node built-in modules directly.",
-      "verification_command": "! grep -REn \"from '(electron|node:)\" src/renderer/src/components/organisms/request/KVTable.tsx src/renderer/src/lib/varTokens.ts src/renderer/src/lib/envVars.ts",
+      "statement": "The RequestSubTabs source shall not call updateActiveSpec, keeping sub-tab interaction free of any RequestSpec mutation.",
+      "verification_command": "! grep -q updateActiveSpec src/renderer/src/components/organisms/RequestSubTabs.tsx",
       "test_anchor": "",
       "n_a_reason": ""
     },
     {
-      "ac_id": "AC-33",
+      "ac_id": "AC-25",
       "subsection": "hygiene",
       "ears_variant": "ubiquitous",
-      "statement": "The KVTable component and lib unit suites shall pass.",
-      "verification_command": "npx playwright test src/renderer/src/components/organisms/request/__tests__/KVTable.ct.tsx && npx vitest run src/renderer/src/lib/__tests__/varTokens.test.ts src/renderer/src/lib/__tests__/envVars.test.ts",
+      "statement": "The RequestSubTabs source shall import no unbuilt panel component, receiving all panels as slot props.",
+      "verification_command": "! grep -rEn 'AuthPanel|BodyEditor|CodePanel|TestsPanel' src/renderer/src/components/organisms/RequestSubTabs.tsx",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-26",
+      "subsection": "behavior_change",
+      "ears_variant": "event_driven",
+      "statement": "WHEN the active RequestSpec changes its params headers or auth data, the RequestSubTabs component shall update the corresponding sub-tab badge reactively without a sub-tab switch.",
+      "verification_command": "",
+      "test_anchor": "",
+      "n_a_reason": ""
+    },
+    {
+      "ac_id": "AC-27",
+      "subsection": "behavior_change",
+      "ears_variant": "state_driven",
+      "statement": "WHILE rendered under the light theme or the dark theme, the RequestSubTabs strip shall match the section 6 pane tab computed style targets for both themes.",
+      "verification_command": "",
       "test_anchor": "",
       "n_a_reason": ""
     }
   ],
   "ac_subsection_na": {
-    "ci_pipeline": "No CI pipeline changes; tests run via existing npm scripts (vitest/playwright), not a new pipeline stage.",
-    "hooks_gates": "No new git hooks or commit gates; the project's existing forge gates apply unchanged."
+    "ci_pipeline": "No CI pipeline changes; tests run via existing npm scripts, not a new pipeline stage.",
+    "hooks_gates": "No new git hooks or commit gates introduced by this feature."
   },
   "out_of_scope": [
     {
-      "content": "Variable RESOLUTION / {{...}} substitution \u2014 highlighting is display-only; resolving or substituting variable values stays out of scope (continues feature 004 \u00a76 no-interpolation deferral).",
+      "content": "Implementing the Auth, Body, Tests, or Code panel bodies \u2014 those are separate features; T5d only provides their slots + shared empty-state",
       "finding_ref": ""
     },
     {
-      "content": "Value-field {{variable}} autocomplete \u2014 deferred to its own post-T14 follow-up task that runs the Radix/Downshift/React-Aria build-vs-buy; v1 ships highlight + missing-flag only.",
+      "content": "Reorderable / closable / addable sub-tabs, overflow menus, and per-sub-tab context actions \u2014 the 6-tab set is fixed",
       "finding_ref": ""
     },
     {
-      "content": "The environment model / validVars store (task T14) \u2014 consumed via the thin \u2205-defaulting selector, NOT built here.",
+      "content": "Any RequestSpec mutation from sub-tab interaction \u2014 badges are read-only; the only write is setActiveSubTab",
       "finding_ref": ""
     },
     {
-      "content": "The parent pane-tabs container (RequestSubTabs / Params-Auth-Headers-Body-Tests-Code strip) \u2014 a separate task; KVTable ships independently-mountable and is NOT wired into the running app this feature.",
+      "content": "Persistence of activeSubTab across app restart \u2014 that is T23's job; T5d only puts the field on the Tab record",
       "finding_ref": ""
     },
     {
-      "content": "Row reorder / drag handle and bulk enable-disable / select-all \u2014 no design surface in the reference; deferred.",
+      "content": "Lazy / on-demand / code-split panel mounting \u2014 decision is mount-all + toggle-visibility to preserve panel state",
+      "finding_ref": "F-2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher-2"
+    },
+    {
+      "content": "Sub-tab overflow / responsive collapse \u2014 the fixed 6 tabs shrink or scroll via the Tabs molecule's existing behavior; no responsive re-layout",
       "finding_ref": ""
     },
     {
-      "content": "Multi-line / expandable value cells, per-row content-type or file-upload values, value masking / secret-hiding, bulk multi-line paste-to-rows, and header/param NAME validation (wire-level validity is the http-engine T10 concern).",
+      "content": "Implementing the external open-on-specific-sub-tab jump-flows (collections-tree / history / command-palette, T18/T19/T20) \u2014 T5d only reacts to setActiveSubTab writes",
       "finding_ref": ""
     },
     {
-      "content": "The import-from-cURL parse path itself \u2014 lives with RequestBar / command-palette; KVTable only renders + edits the arrays correctly when populated externally.",
+      "content": "Deep-links / URL-scheme sub-tab navigation, a command-palette 'jump to Auth tab' action, and any test-harness/automation API",
+      "finding_ref": ""
+    },
+    {
+      "content": "Reproducing design/reference.html generated cruft (data-om-* attributes, __OmT wrappers, inline styles, tweaks-panel)",
       "finding_ref": ""
     }
   ],
   "constraints": [
     {
       "kind": "constitution_anchor",
-      "content": "requestSpec is a pure data module imported by tabsStore, never by components \u2014 KVTable obtains the Row type via a type-only import, never a value import.",
+      "content": "renderer component tiers flow downward only: organisms to molecules to atoms; no sibling-tier or upward imports",
       "constitution_ref": "2.2"
     },
     {
       "kind": "constitution_anchor",
-      "content": "Domain invariant: requestSpec stays a pure data module (imported by tabsStore, never by components); KVTable must not value-import it.",
-      "constitution_ref": "5.2"
-    },
-    {
-      "kind": "constitution_anchor",
-      "content": "Strict mode, no implicit any \u2014 the tokeniser, Row[] transforms, and the params-or-headers field-prop union are fully typed; untyped boundaries narrow rather than cast.",
-      "constitution_ref": "3.1"
-    },
-    {
-      "kind": "constitution_anchor",
-      "content": "Naming: KVTable.tsx PascalCase one-per-file + sibling KVTable.css; the lib helpers varTokens/envVars are camelCase modules; tests co-located under __tests__ split .test.tsx/.ct.tsx.",
-      "constitution_ref": "3.3"
-    },
-    {
-      "kind": "constitution_anchor",
-      "content": "Renderer-only: no Node or electron imports in KVTable, varTokens, or envVars.",
+      "content": "renderer depends only on browser/React APIs and preload-exposed window globals \u2014 never on Node, Electron, or main",
       "constitution_ref": "2.1"
     },
     {
       "kind": "constitution_anchor",
-      "content": "Resolve cross-module imports via the @renderer alias, not deep relative paths; lib/ must not import components/.",
+      "content": "renderer imports cross-module code via the @renderer path alias rather than deep relative paths",
       "constitution_ref": "2.3"
     },
     {
       "kind": "constitution_anchor",
-      "content": "Boundary lookups degrade gracefully \u2014 the validVars selector returns \u2205 (never throws) when the env store is absent, and KVTable renders neutral tokens rather than flagging everything missing.",
-      "constitution_ref": "3.2"
+      "content": "co-located tests under __tests__/ next to the code, split .test.tsx (Vitest) and .ct.tsx (Playwright CT)",
+      "constitution_ref": "3.4"
+    },
+    {
+      "kind": "constitution_anchor",
+      "content": "search the codebase for an existing utility/helper/component before writing anything generic",
+      "constitution_ref": "3.6"
     },
     {
       "kind": "follow",
-      "content": "Reproduce design/reference.html via semantic classes bound to tokens.css; never use inline styles (constitution \u00a74 Never Do) and never import the design-export cruft (data-om-* attrs, __OmT wrappers, inline styles, tweaks-panel). Take exact resolved values from design/styles.css (.kv block), NOT tokens.json (reference-only, can drift)."
+      "content": "Introduce no new runtime dependency: compose the existing Tabs molecule, KVTable, and tabsStore rather than adding a tab library"
+    },
+    {
+      "kind": "follow",
+      "content": "Never mutate zustand state outside a store action: the activeSubTab write goes through the setActiveSubTab tabsStore action"
+    },
+    {
+      "kind": "follow",
+      "content": "Keep all 6 tabpanels mounted and toggle visibility via CSS; never unmount inactive panels, so KVTable edit state survives a sub-tab switch"
+    },
+    {
+      "kind": "follow",
+      "content": "Wire the tabpanel WAI-ARIA relationships: role tabpanel, aria-controls, aria-labelledby, and aria-selected mirroring activeSubTab; do not re-implement the tablist keyboard engine Tabs already provides"
+    },
+    {
+      "kind": "follow",
+      "content": "Author fidelity CTs by reading the section 6 pane-tab values from design/styles.css at test-writing time, and assert resolved computed styles (not screenshot pixels) so a sub-1-percent color change is caught"
+    },
+    {
+      "kind": "follow",
+      "content": "Visual fidelity is backed by the design-token provenance gate (design/reference.html present -> /breakdown design-manifest + /implement static token-provenance check)"
     },
     {
       "kind": "not_break",
-      "content": "RequestSpec must stay a plain JSON-serializable object (feature 004 Q-2) \u2014 KVTable writes plain Row objects only (no class instances, Symbols, or functions on the data shape)."
-    },
-    {
-      "kind": "follow",
-      "content": "Pixel fidelity to design/styles.css .kv block (0px deviation; treat var(--token) as resolves-to-token, not literal hex), verified by computed-style CT assertions: grid-template-columns 22px 1fr 1fr 1fr 24px; .kv-header height 30px, font 10.5px uppercase letter-spacing 0.04em color var(--text-faint) weight 600; .kv-row min-height 32px border-bottom var(--border-faint) color var(--text); checkbox 12px accent-color var(--accent); .kv-cell padding 6px 10px mono font 12px; .kv-cell.value color var(--text-muted); .var color var(--accent); .var.missing color var(--m-delete) + line-through dotted; .kv-actions display none then flex on :hover; .kv-row.disabled opacity 0.55."
+      "content": "The additive activeSubTab field on the Tab record must not break the existing tabsStore consumers TabBar and RequestBar"
     }
   ],
-  "open_questions": [
-    {
-      "question_id": "Q-1",
-      "content": "The exact {{variable}} autocomplete combobox composition (reuse the adopted Radix Popover + which headless hook \u2014 Downshift useCombobox vs React-Aria useComboBox) is deferred to the post-T14 autocomplete follow-up task; it is data-starved until the env store lands and out of scope here.",
-      "category_no_dp_reason": ""
-    }
-  ],
+  "open_questions": [],
   "risks": [
     {
-      "risk": "Fidelity drift (px, weight, color, letter-spacing) slips past static CSS-vs-styles.css review \u2014 the memory lesson is that only runtime getComputedStyle catches it.",
+      "risk": "A lazy-mount regression silently breaks panel-state preservation (KVTable remounts on switch, losing focus/edits)",
       "likelihood": "Med",
       "impact": "High",
-      "mitigation": "Add a computed-style CT assertion locking every pinned .kv value across states (default/disabled/hover/var/var-missing); run the runtime design-auditor against the live component; do NOT trust a green static pass."
+      "mitigation": "The focus-survives-switch CT (focus a Params cell, switch to Headers and back, assert same DOM node keeps focus/value) is the go/no-go gate before wiring all 6 panels"
     },
     {
-      "risk": "Controlled-input focus/caret management: writing through the store on every keystroke re-renders and can jump the caret or drop focus on auto-promote or delete.",
-      "likelihood": "High",
-      "impact": "High",
-      "mitigation": "Spike Option A in isolation first; use stable React keys per row; pin 'focus never lost on auto-promote/delete' + Tab traversal order as required CT scenarios."
-    },
-    {
-      "risk": "External-array mutation (import-from-cURL replacing params/headers while a cell is focused) resurrects stale edits or crashes the render.",
+      "risk": "A shared/global active-sub-tab index leaks across request tabs (per-tab state bug)",
       "likelihood": "Med",
       "impact": "Med",
-      "mitigation": "Option A holds no local copy \u2014 derive rows from the store each render; add a CT that replaces the bound array mid-edit and asserts a clean reactive re-render."
+      "mitigation": "Dedicated A->B->A CT: A on Headers, B on Body, switch A->B->A, assert A's activeSubTab is still headers"
     },
     {
-      "risk": "The validVars \u2205-default degradation mis-fires \u2014 every {{token}} rendered as missing on a project with no environment.",
+      "risk": "Fidelity baselines drift (a sub-1-percent color change stays within screenshot tolerance and passes stale)",
       "likelihood": "Med",
       "impact": "Med",
-      "mitigation": "Explicit CT: validVars \u2205 \u2192 all tokens neutral .var, zero .var.missing; the selector returns \u2205 (never undefined/throw) when the env store is absent."
+      "mitigation": "Assert resolved computed styles vs section 6 values in both themes, reading the numbers from design/styles.css at CT-writing time"
     },
     {
-      "risk": "CT fidelity fixture omits the full styling context (tokens.css import, box-sizing, className scope), producing false pass/fail.",
-      "likelihood": "Med",
-      "impact": "Med",
-      "mitigation": "Reproduce the full styling context in the fixture (import tokens.css, scope box-sizing:border-box inline, wrap in the production className) per the CT-fixture-scoping memory lesson; do not global-import base.css."
-    },
-    {
-      "risk": "Long CT runs stall an /implement subagent at the 600s watchdog.",
+      "risk": "The additive Tab-record field breaks existing tabsStore consumers",
       "likelihood": "Low",
+      "impact": "High",
+      "mitigation": "Type-check both configs and run the TabBar and RequestBar CTs after the store change"
+    },
+    {
+      "risk": "Mounting the composed pane into App.tsx and taking KVTable live introduces integration regressions in the running shell",
+      "likelihood": "Med",
       "impact": "Med",
-      "mitigation": "Run npm run test:ct in the main thread (background bash), apply edits inline, then re-fan the no-tools review panel (implement-CT-watchdog memory lesson)."
+      "mitigation": "Add a mount/smoke test for the composed request pane and run the full existing suite"
     }
   ],
-  "approval_summary": "I've created the specification at `specs/014-kv-table-editor/spec.md`. Key points:\n- **What changes**: Build KVTable, a hand-rolled controlled key-value grid that edits the active request tab's RequestSpec params[] and headers[] (both Row[] of {enabled,key,value,description}). A single reusable component is instanced twice \u2014 once bound to...\n- **Files affected**: 11 files across 7 areas\n- **Acceptance criteria**: 33 testable criteria across 5 AC categories\n- **Out of scope**: Variable RESOLUTION / {{...}} substitution \u2014 highlighting is display-only; resol; Value-field {{variable}} autocomplete \u2014 deferred to its own post-T14 follow-up t; The environment model / validVars store (task T14) \u2014 consumed via the thin \u2205-def; \u2026\n\nPlease review and either approve or request changes. Once approved, run `/plan` to create the technical implementation plan.",
-  "plan_handoff_block": "## Manual next step \u2014 run /plan\n\nA structured handoff (specs/014-kv-table-editor/handoff.json) is written for /plan. /plan auto-discovers it on its first run and reads the upstream plan-seeds \u2014 but you still launch /plan manually (there is no auto-dispatch from /specify). Restart Claude Code (exit and relaunch the CLI/app so the newly installed command is picked up), then run the command below in this repo. The spec path is explicit so /plan does not need most-recent-spec discovery:\n\n~~~\n/plan specs/014-kv-table-editor/spec.md\n~~~\n\nMinimum handoff data:\n- Spec status: Draft\n- Spec type: greenfield_feature\n- AC count: 33 across 5 subsections (5.1: 4, 5.2: 3, 5.3: 19, 5.4: 0, 5.5: 0, 5.6: 1, 5.7: 6)\n- Decision-point coverage: 5 answered, 0 default-applied, 0 deferred-OOS, 0 deferred-open-question\n- Affected areas: 7 across src\n- Out-of-scope items: 7\n- Open questions: 1\n- Constraints: 10\n- Risks: 6\n- Phase 1.5 finding coverage: 100% (all findings landed)\n\nReference: specs/014-kv-table-editor/spec.md",
+  "approval_summary": "I've created the specification at `specs/015-request-sub-tabs/spec.md`. Key points:\n- **What changes**: RequestSubTabs is a per-request-tab container/switcher for the request pane: a horizontal strip of 6 fixed sub-tabs (Params, Auth, Headers, Body, Tests, Code) with RequestSpec-derived badges that switches which editor panel is visible be...\n- **Files affected**: 11 files across 8 areas\n- **Acceptance criteria**: 27 testable criteria across 5 AC categories\n- **Out of scope**: Implementing the Auth, Body, Tests, or Code panel bodies \u2014 those are separate fe; Reorderable / closable / addable sub-tabs, overflow menus, and per-sub-tab conte; Any RequestSpec mutation from sub-tab interaction \u2014 badges are read-only; the on; \u2026\n\nPlease review and either approve or request changes. Once approved, run `/plan` to create the technical implementation plan.",
+  "plan_handoff_block": "## Manual next step \u2014 run /plan\n\nA structured handoff (specs/015-request-sub-tabs/handoff.json) is written for /plan. /plan auto-discovers it on its first run and reads the upstream plan-seeds \u2014 but you still launch /plan manually (there is no auto-dispatch from /specify). Restart Claude Code (exit and relaunch the CLI/app so the newly installed command is picked up), then run the command below in this repo. The spec path is explicit so /plan does not need most-recent-spec discovery:\n\n~~~\n/plan specs/015-request-sub-tabs/spec.md\n~~~\n\nMinimum handoff data:\n- Spec status: Draft\n- Spec type: feature_addition\n- AC count: 27 across 5 subsections (5.1: 3, 5.2: 2, 5.3: 15, 5.4: 0, 5.5: 0, 5.6: 1, 5.7: 6)\n- Decision-point coverage: 2 answered, 0 default-applied, 0 deferred-OOS, 0 deferred-open-question\n- Affected areas: 8 across src\n- Out-of-scope items: 9\n- Open questions: 0\n- Constraints: 12\n- Risks: 5\n- Phase 1.5 finding coverage: 100% (all findings landed)\n\nReference: specs/015-request-sub-tabs/spec.md",
   "open_question_resolutions": [],
   "conflicts": [],
   "source": {

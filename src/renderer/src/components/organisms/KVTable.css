@@ -47,8 +47,10 @@
 
 /*
  * The overlay input sits on top of the highlight layer.
- * color: transparent hides the duplicate text; caret-color keeps the cursor
- * visible. Specificity (0,2,1) intentionally overrides .kv-cell input (0,1,1).
+ * color: transparent hides the duplicate text; caret-color is set to a real
+ * token (NOT `inherit`, which resolves to the parent's `auto` → the input's own
+ * transparent color → an invisible caret) so the text cursor stays visible.
+ * Specificity (0,2,1) intentionally overrides .kv-cell input (0,1,1).
  */
 .kv-cell .kv-input-wrap input {
   position: absolute;
@@ -57,7 +59,7 @@
   height: 100%;
   flex: none;
   color: transparent;
-  caret-color: inherit;
+  caret-color: var(--text);
   background: transparent;
   border: none;
   outline: none;

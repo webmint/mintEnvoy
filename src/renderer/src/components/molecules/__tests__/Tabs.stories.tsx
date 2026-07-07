@@ -23,6 +23,8 @@
  *   TabbarBadgeFidelityFixture     — active tab with badge=3 in .tabbar scope, for [013] AC-6
  *   TabsBadgeFidelityFixture       — active tab with badge=3 in bare .tabs scope, for [013] R3 bare-scope parity
  *   TabbarInShellTabsFixture       — TabbarFidelityFixture inside .shell__tabs wrapper for AC-17 Shell-context assertion
+ *   TabsLinkPanelsFixture          — non-closable strip with linkPanels=true (AC-14 on-path)
+ *   TabsLinkPanelsClosableFixture  — closable strip with linkPanels=true (AC-14 on-path, closable branch)
  */
 
 import { useEffect, useState } from 'react'
@@ -748,5 +750,79 @@ export function TabbarInShellTabsFixture(): React.JSX.Element {
         onClose={() => {}}
       />
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TabsLinkPanelsFixture — non-closable strip with linkPanels=true (AC-14)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fixture for linkPanels on-path assertions in the closable=false (default) branch.
+ *
+ * Renders a simple 3-tab strip with `linkPanels` set so each `role="tab"` button
+ * emits `id="tab-<id>"` and `aria-controls="panel-<id>"`. CT tests verify that
+ * both attributes are present with the correct values.
+ *
+ * Tab layout:
+ *   0 — "params"   enabled (active)
+ *   1 — "headers"  enabled
+ *   2 — "body"     enabled
+ */
+export function TabsLinkPanelsFixture(): React.JSX.Element {
+  const [activeId, setActiveId] = useState('params')
+
+  const tabs: TabDescriptor[] = [
+    { id: 'params', label: 'Params' },
+    { id: 'headers', label: 'Headers' },
+    { id: 'body', label: 'Body' }
+  ]
+
+  return (
+    <Tabs
+      aria-label="Link panels tabs"
+      tabs={tabs}
+      activeId={activeId}
+      onChange={setActiveId}
+      linkPanels
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TabsLinkPanelsClosableFixture — closable strip with linkPanels=true (AC-14)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fixture for linkPanels on-path assertions in the closable=true branch.
+ *
+ * Identical tab set to TabsLinkPanelsFixture but rendered with `closable` so
+ * the closable=true button branch is exercised. CT tests verify that both
+ * `id` and `aria-controls` are emitted in this branch too.
+ *
+ * Tab layout:
+ *   0 — "params"   enabled (active)
+ *   1 — "headers"  enabled
+ *   2 — "body"     enabled
+ */
+export function TabsLinkPanelsClosableFixture(): React.JSX.Element {
+  const [activeId, setActiveId] = useState('params')
+
+  const tabs: TabDescriptor[] = [
+    { id: 'params', label: 'Params' },
+    { id: 'headers', label: 'Headers' },
+    { id: 'body', label: 'Body' }
+  ]
+
+  return (
+    <Tabs
+      aria-label="Link panels closable tabs"
+      tabs={tabs}
+      activeId={activeId}
+      onChange={setActiveId}
+      closable
+      onClose={() => {}}
+      linkPanels
+    />
   )
 }

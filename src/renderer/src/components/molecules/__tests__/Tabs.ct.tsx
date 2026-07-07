@@ -30,6 +30,10 @@
  *                   change aria-selected (confirmed via ct-tabs-last-change).
  *   - AC-10:        No-match activeId and all-disabled strips render with zero
  *                   aria-selected="true" tabs.
+ *   - AC-14 (linkPanels): opt-in panel-linkage prop emits id/aria-controls
+ *                   on tab buttons (on-path); absent/false leaves the button
+ *                   byte-identical to the selection-only contract (off-path, AC-5).
+ *                   Both the closable=false and closable=true branches are asserted.
  *
  * Fixture components are imported from Tabs.stories.tsx (Playwright CT requires
  * components to be defined outside the test file).
@@ -49,7 +53,9 @@ import {
   TabbarInShellTabsFixture,
   TabbarLongTitleFidelityFixture,
   TabbarBadgeFidelityFixture,
-  TabsBadgeFidelityFixture
+  TabsBadgeFidelityFixture,
+  TabsLinkPanelsFixture,
+  TabsLinkPanelsClosableFixture
 } from './Tabs.stories'
 
 // ---------------------------------------------------------------------------
@@ -1563,5 +1569,153 @@ test.describe('[013] Tabs — WCAG contrast: fixed text-site colors (light + dar
     })
     expect(v.color).toBe(TEXT_DARK)
     expect(v.color).not.toBe(v.background)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AC-14 — linkPanels prop: opt-in id/aria-controls emission on tab buttons
+//
+// Two on-path describes (closable=false and closable=true) prove that when
+// `linkPanels` is set, each role="tab" button carries:
+//   id="tab-<id>"             — consumed by aria-labelledby on the panel side
+//   aria-controls="panel-<id>" — consumed by AT to navigate to the panel
+//
+// One off-path describe (default — no prop) proves byte-identical output:
+//   no `id` attribute (null)
+//   no `aria-controls` attribute (null)
+//
+// This mirrors the existing "NO tab button has an aria-controls attribute"
+// test (AC-7), which now becomes the off-path guard for linkPanels=false.
+// The off-path assert uses TabsFixture (non-closable, no linkPanels) so the
+// existing AC-7 test and this describe independently confirm the same guarantee
+// from two different angles.
+// ---------------------------------------------------------------------------
+
+test.describe('Tabs — AC-14 linkPanels prop: on-path (closable=false branch)', () => {
+  test('with linkPanels: tab button has id="tab-<id>" and aria-controls="panel-<id>"', async ({
+    mount,
+    page
+  }) => {
+    // TabsLinkPanelsFixture: non-closable strip with linkPanels=true.
+    // Assert on the "params" tab — a known descriptor id.
+    await mount(<TabsLinkPanelsFixture />)
+
+    const paramsTab = page.getByRole('tab', { name: 'Params' })
+    await expect(paramsTab).toHaveAttribute('id', 'tab-params')
+    await expect(paramsTab).toHaveAttribute('aria-controls', 'panel-params')
+  })
+
+  test('with linkPanels: all tab buttons follow the tab-<id>/panel-<id> namespace', async ({
+    mount,
+    page
+  }) => {
+    // Verify the namespace is applied to every tab in the strip, not just the active one.
+    await mount(<TabsLinkPanelsFixture />)
+
+    const idPairs = await page.evaluate(() => {
+      const buttons = Array.from(document.querySelectorAll('[role="tab"]'))
+      return buttons.map((b) => ({
+        id: b.getAttribute('id'),
+        controls: b.getAttribute('aria-controls')
+      }))
+    })
+
+    // TabsLinkPanelsFixture has tabs: params, headers, body.
+    expect(idPairs).toEqual([
+      { id: 'tab-params', controls: 'panel-params' },
+      { id: 'tab-headers', controls: 'panel-headers' },
+      { id: 'tab-body', controls: 'panel-body' }
+    ])
+  })
+})
+
+test.describe('Tabs — AC-14 linkPanels prop: on-path (closable=true branch)', () => {
+  test('with linkPanels + closable: tab button has id="tab-<id>" and aria-controls="panel-<id>"', async ({
+    mount,
+    page
+  }) => {
+    // TabsLinkPanelsClosableFixture: closable=true strip with linkPanels=true.
+    // The closable branch renders a wrapper div + a sibling close button — the
+    // role="tab" button inside must still carry the linkage attributes.
+    await mount(<TabsLinkPanelsClosableFixture />)
+
+    const paramsTab = page.getByRole('tab', { name: 'Params' })
+    await expect(paramsTab).toHaveAttribute('id', 'tab-params')
+    await expect(paramsTab).toHaveAttribute('aria-controls', 'panel-params')
+  })
+
+  test('with linkPanels + closable: all tab buttons follow the tab-<id>/panel-<id> namespace', async ({
+    mount,
+    page
+  }) => {
+    await mount(<TabsLinkPanelsClosableFixture />)
+
+    const idPairs = await page.evaluate(() => {
+      const buttons = Array.from(document.querySelectorAll('[role="tab"]'))
+      return buttons.map((b) => ({
+        id: b.getAttribute('id'),
+        controls: b.getAttribute('aria-controls')
+      }))
+    })
+
+    expect(idPairs).toEqual([
+      { id: 'tab-params', controls: 'panel-params' },
+      { id: 'tab-headers', controls: 'panel-headers' },
+      { id: 'tab-body', controls: 'panel-body' }
+    ])
+  })
+})
+
+test.describe('Tabs — AC-5/AC-14 linkPanels prop: off-path (prop absent — byte-identical)', () => {
+  test('without linkPanels: tab button has NO id attribute (null)', async ({ mount, page }) => {
+    // TabsFixture: standard 4-tab strip with no linkPanels prop.
+    // The "params" tab button must have no id attribute — byte-identical to the
+    // pre-015 selection-only contract (AC-5).
+    await mount(<TabsFixture />)
+
+    const idValues = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('[role="tab"]')).map((b) => b.getAttribute('id'))
+    })
+    for (const val of idValues) {
+      expect(val).toBeNull()
+    }
+  })
+
+  test('without linkPanels: tab button has NO aria-controls attribute (null)', async ({
+    mount,
+    page
+  }) => {
+    // Mirrors the existing AC-7 "NO tab button has an aria-controls attribute"
+    // test and confirms the linkPanels=false path does not break that guarantee.
+    await mount(<TabsFixture />)
+
+    const ariaControlsValues = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('[role="tab"]')).map((b) =>
+        b.getAttribute('aria-controls')
+      )
+    })
+    for (const val of ariaControlsValues) {
+      expect(val).toBeNull()
+    }
+  })
+
+  test('without linkPanels + closable: tab button has NO id and NO aria-controls', async ({
+    mount,
+    page
+  }) => {
+    // TabsClosableFixture: closable=true, no linkPanels.
+    // The closable branch must also be byte-identical when linkPanels is absent.
+    await mount(<TabsClosableFixture initialActiveId="params" />)
+
+    const attrs = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('[role="tab"]')).map((b) => ({
+        id: b.getAttribute('id'),
+        controls: b.getAttribute('aria-controls')
+      }))
+    })
+    for (const { id, controls } of attrs) {
+      expect(id).toBeNull()
+      expect(controls).toBeNull()
+    }
   })
 })

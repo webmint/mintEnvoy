@@ -1,0 +1,201 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/015-request-sub-tabs/tasks",
+  "breakdown_completed_at": "2026-07-06T10:15:11Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/015-request-sub-tabs/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/015-request-sub-tabs/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/015-request-sub-tabs/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "tabsStore activeSubTab state and action",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/src/lib/tabsStore.ts",
+        "src/renderer/src/lib/__tests__/tabsStore.test.ts"
+      ],
+      "expects": [
+        "`Tab`, `makeBlankTab`, `makeCollectionTab`, and `TabsState` are declared in `src/renderer/src/lib/tabsStore.ts`.",
+        "The store's existing actions (`markClean`, `selectActive`, `updateActiveSpec`) use the unknown-id no-op + per-tab-map pattern."
+      ],
+      "produces": [
+        "`SubTabKey` is exported from `tabsStore.ts`.",
+        "`VALID_KEYS` is exported from `tabsStore.ts`.",
+        "`Tab` carries an `activeSubTab` field; `makeBlankTab` and `makeCollectionTab` both seed it to `'params'`.",
+        "`setActiveSubTab` appears in `tabsStore.ts` as a `TabsState` action, validates the key, and no-ops on an unknown `tabId`.",
+        "`tabsStore.test.ts` covers `setActiveSubTab` set / unknown-id no-op / invalid-key no-op."
+      ],
+      "ac_addressed": [
+        "AC-4",
+        "AC-7",
+        "AC-8",
+        "AC-16",
+        "AC-19",
+        "AC-20",
+        "AC-21"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "002",
+      "title": "Tabs opt-in panel-linkage prop",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/molecules/Tabs.tsx",
+        "src/renderer/src/components/molecules/__tests__/Tabs.ct.tsx"
+      ],
+      "expects": [
+        "`TabsProps` and the two `role=\"tab\"` button render branches exist in `Tabs.tsx`; neither currently emits `id` or `aria-controls`."
+      ],
+      "produces": [
+        "`TabsProps` declares a `linkPanels` (boolean) prop.",
+        "Both button branches emit `id={`tab-${tab.id}`}` + `aria-controls={`panel-${tab.id}`}` when `linkPanels` is set, and neither attribute when it is absent.",
+        "`Tabs.ct.tsx` asserts both the on-path (attrs present) and off-path (attrs absent) behavior."
+      ],
+      "ac_addressed": [
+        "AC-5",
+        "AC-14",
+        "AC-20",
+        "AC-21"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "003",
+      "title": "RequestSubTabs organism",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001",
+        "002"
+      ],
+      "blocks": [
+        "004",
+        "005"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/RequestSubTabs.tsx",
+        "src/renderer/src/components/organisms/__tests__/RequestSubTabs.test.tsx"
+      ],
+      "expects": [
+        "`SubTabKey`, `VALID_KEYS`, `Tab.activeSubTab`, and `setActiveSubTab` are exported from `tabsStore.ts` (task 001).",
+        "`Tabs` accepts a `linkPanels` prop that emits `id=\"tab-<id>\"` + `aria-controls=\"panel-<id>\"` on the tab button (task 002).",
+        "`Tabs` + `TabDescriptor` (with `badge`) exist in the molecule."
+      ],
+      "produces": [
+        "`RequestSubTabs` is exported from `RequestSubTabs.tsx`, accepting `params`/`headers` `ReactNode` slot props.",
+        "The component renders a `<Tabs className='pane-tabs' linkPanels ... />` plus 6 `role='tabpanel'` nodes, each with `id=\"panel-<key>\"`, `aria-labelledby=\"tab-<key>\"`, `aria-selected`, and `hidden` toggling.",
+        "Badge derivation appears in source: `spec.params.length` / `spec.headers.length` with a `> 99` `'99+'` clamp and the `'\u2022'` auth marker.",
+        "`RequestSubTabs.tsx` contains no `updateActiveSpec` call, no `electron`/`node:` import, no inline `style={{`, and no `AuthPanel|BodyEditor|CodePanel|TestsPanel` import.",
+        "`RequestSubTabs.test.tsx` covers switch, badges, external write, normalization, and no-active-tab."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-3",
+        "AC-5",
+        "AC-6",
+        "AC-9",
+        "AC-10",
+        "AC-12",
+        "AC-13",
+        "AC-14",
+        "AC-15",
+        "AC-16",
+        "AC-17",
+        "AC-19",
+        "AC-20",
+        "AC-21",
+        "AC-22",
+        "AC-23",
+        "AC-24",
+        "AC-25",
+        "AC-26"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "004",
+      "title": "RequestSubTabs \u00a76 fidelity CSS and CT",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "003"
+      ],
+      "blocks": [
+        "005"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/RequestSubTabs.css",
+        "src/renderer/src/components/organisms/__tests__/RequestSubTabs.ct.tsx"
+      ],
+      "expects": [
+        "`RequestSubTabs` renders a `.pane-tabs`-classed `Tabs` plus 6 `role='tabpanel'` nodes with `aria-labelledby` (task 003).",
+        "\u00a76 tokens `--text-muted/--text/--accent/--accent-soft/--bg-active/--border-faint` are defined in `src/renderer/styles/tokens.css`."
+      ],
+      "produces": [
+        "`RequestSubTabs.css` exists with `.pane-tabs`-scoped rules including the `.pane-tabs .tabs__tab--active::after` underline and the `.pane-tabs .tabs__badge` rebind.",
+        "`RequestSubTabs.ct.tsx` asserts focus-survives-switch, A\u2192B\u2192A per-tab state, and per-theme computed-style fidelity against \u00a76."
+      ],
+      "ac_addressed": [
+        "AC-2",
+        "AC-8",
+        "AC-9",
+        "AC-20",
+        "AC-21",
+        "AC-27"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "005",
+      "title": "App compose request pane (KVTable live)",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "003",
+        "004"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/App.tsx",
+        "src/renderer/src/__tests__/App.test.tsx"
+      ],
+      "expects": [
+        "`RequestSubTabs` is exported and accepts `params`/`headers` `ReactNode` slot props (task 003).",
+        "The `.pane-tabs` fidelity CSS + the focus-survives-switch go/no-go CT are green (task 004).",
+        "`KVTable`, `RequestBar`, and `Shell` exist and are importable via `@renderer`."
+      ],
+      "produces": [
+        "`App.tsx` renders the composed request pane: `RequestBar` above `RequestSubTabs`, with `<KVTable field='params'/>` / `field='headers'/>` passed as the `params`/`headers` slot props.",
+        "`App.test.tsx` asserts the composed pane mounts with KVTable live in the Params slot."
+      ],
+      "ac_addressed": [
+        "AC-11",
+        "AC-18",
+        "AC-20",
+        "AC-21"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    }
+  ],
+  "additions": [
+    "- **`src/renderer/src/__tests__/App.test.tsx`** (task 005) \u2014 a composed-pane mount smoke test. The plan's File Impact lists only 3 test files (RequestSubTabs.test.tsx, RequestSubTabs.ct.tsx, tabsStore.test.ts); this 4th is a breakdown-level addition mitigating Risk 5 (integration regression when the pane goes live). Flagged plan-additive.",
+    "- **`makeCollectionTab` seed** (task 001, same file `tabsStore.ts`) \u2014 the plan named only `makeBlankTab` for the `activeSubTab` seed; `makeCollectionTab` (tabsStore.ts:153) also constructs a `Tab`, so it must seed the field too or the type breaks. No new file \u2014 same File Impact row.",
+    "- **tokens.css path correction** (task 004, verify-only) \u2014 spec \u00a74 + plan Layer Map cite `src/renderer/src/styles/tokens.css`, which does not exist; the real path is **`src/renderer/styles/tokens.css`**. Verify-only; no edit. All 6 \u00a76 tokens confirmed present in both themes."
+  ],
+  "dependency_graph": "001 (tabsStore activeSubTab state + action) \u2500\u2500\u2510\n                                              \u251c\u2500\u2192 003 (RequestSubTabs organism) \u2500\u2500\u2192 004 (\u00a76 fidelity CSS + CT) \u2500\u2500\u2510\n002 (Tabs opt-in panel-linkage prop) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518                                \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2192 005 (App compose request pane)"
+}

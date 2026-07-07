@@ -38,6 +38,7 @@ export function makeTab(
     collectionRequestId: null,
     spec: makeSpec(specOverrides),
     dirty: false,
+    activeSubTab: 'params',
     ...tabOverrides
   }
 }

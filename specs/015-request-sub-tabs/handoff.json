@@ -1,0 +1,505 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/015-request-sub-tabs/spec.md",
+  "specify_completed_at": "2026-07-06T09:14:11Z",
+  "classification": {
+    "spec_number": "015",
+    "feature_name": "request-sub-tabs",
+    "feature_slug": "request-sub-tabs",
+    "spec_type": "feature_addition",
+    "spec_type_rationale": "Extends an existing mature renderer: composes the Tabs molecule, adds an activeSubTab field + setActiveSubTab action to the existing tabsStore, mounts into the existing Shell request pane. Similar features (TabBar, RequestBar, KVTable) + type defs (RequestSpec, Tab) exist \u2014 not greenfield scaffolding.",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "RequestSubTabs is a per-request-tab container/switcher for the request pane: a horizontal strip of 6 fixed sub-tabs (Params, Auth, Headers, Body, Tests, Code) with RequestSpec-derived badges that switches which editor panel is visible below. It composes the existing Tabs molecule (002) for the switcher (a11y/keyboard/badge render), owns the 6 mounted tabpanels (mount-all + toggle-visibility to preserve panel state), and is backed by a new activeSubTab field + setActiveSubTab action on tabsStore. It implements no panel body itself \u2014 Params/Headers slots receive the existing KVTable (014); the other 4 slots show one shared empty-state until their panels land. This feature also mounts the composed request pane (RequestBar + RequestSubTabs) into the Shell, taking KVTable live through the Params/Headers slots. Visual fidelity to design/reference.html section 6 (Pane tabs) is mandatory.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide a RequestSubTabs container component module under the organisms directory.",
+        "verification_command": "test -f src/renderer/src/components/organisms/RequestSubTabs.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The RequestSubTabs component shall ship a sibling token-bound stylesheet.",
+        "verification_command": "test -f src/renderer/src/components/organisms/RequestSubTabs.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The build shall add no third-party tab library dependency.",
+        "verification_command": "! grep -qE 'react-tabs|@radix-ui/react-tabs' package.json",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the new activeSubTab field is present on the Tab record, the existing tabsStore consumers TabBar and RequestBar shall continue to behave as before.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The RequestSubTabs component shall compose the Tabs molecule through its existing public API without modifying the Tabs selection-only contract.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user selects a sub-tab by click or by Arrow/Home/End keyboard navigation, the RequestSubTabs component shall make that sub-tab active and show its tabpanel while hiding the others.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN a sub-tab is activated, the RequestSubTabs component shall persist the selection only through the setActiveSubTab store action.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE two request tabs hold different active sub-tabs, the RequestSubTabs component shall restore each request tab's own active sub-tab when the user switches away and back.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the user switches between sub-tabs, the RequestSubTabs component shall keep all 6 tabpanels mounted and toggle their visibility with CSS so panel state such as input focus, scroll position, and a half-typed row is preserved.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN setActiveSubTab is written externally rather than by a click inside RequestSubTabs, the RequestSubTabs component shall update the strip and the visible tabpanel identically to a local click.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-11",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The Params and Headers sub-tabs shall render the KVTable bound to the respective RequestSpec field.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-12",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a sub-tab has no panel supplied, the RequestSubTabs component shall render one shared neutral empty-state tabpanel using muted text so all 4 unbuilt sub-tabs share the same empty-state.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-13",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The RequestSubTabs component shall render all 6 sub-tabs as reachable, focusable tabs with none disabled or hidden.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-14",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE mounted, the RequestSubTabs component shall give each tabpanel role tabpanel with aria-controls and aria-labelledby linking it to its tab and aria-selected mirroring the active sub-tab.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-15",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN a sub-tab badge count exceeds 99, the RequestSubTabs component shall display the badge as 99+.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-16",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF the stored active sub-tab value is absent or not a valid sub-tab key, THEN the RequestSubTabs component shall treat the active sub-tab as params.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-17",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF there is no active request tab, THEN the RequestSubTabs component shall render a neutral empty region without throwing.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-18",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The App shall mount the composed request pane of RequestBar above RequestSubTabs into the request pane slot.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-19",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The exported RequestSubTabs component, the SubTabKey type, and the setActiveSubTab action shall carry documentation comments.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-20",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer source shall pass strict type-checking.",
+        "verification_command": "npm run typecheck:web",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-21",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The codebase shall pass ESLint without new errors.",
+        "verification_command": "npm run lint",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-22",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The RequestSubTabs source shall contain no inline style attributes.",
+        "verification_command": "! grep -rEn 'style=[{][{]' src/renderer/src/components/organisms/RequestSubTabs.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-23",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The RequestSubTabs source shall not import the electron or node modules.",
+        "verification_command": "! grep -rEn \"from '(electron|node:)\" src/renderer/src/components/organisms/RequestSubTabs.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-24",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The RequestSubTabs source shall not call updateActiveSpec, keeping sub-tab interaction free of any RequestSpec mutation.",
+        "verification_command": "! grep -q updateActiveSpec src/renderer/src/components/organisms/RequestSubTabs.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-25",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The RequestSubTabs source shall import no unbuilt panel component, receiving all panels as slot props.",
+        "verification_command": "! grep -rEn 'AuthPanel|BodyEditor|CodePanel|TestsPanel' src/renderer/src/components/organisms/RequestSubTabs.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-26",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the active RequestSpec changes its params headers or auth data, the RequestSubTabs component shall update the corresponding sub-tab badge reactively without a sub-tab switch.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-27",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE rendered under the light theme or the dark theme, the RequestSubTabs strip shall match the section 6 pane tab computed style targets for both themes.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "ci_pipeline": "No CI pipeline changes; tests run via existing npm scripts, not a new pipeline stage.",
+      "hooks_gates": "No new git hooks or commit gates introduced by this feature."
+    },
+    "constraints": [
+      {
+        "kind": "constitution_anchor",
+        "content": "renderer component tiers flow downward only: organisms to molecules to atoms; no sibling-tier or upward imports",
+        "quantifier": null,
+        "constitution_ref": "2.2",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "renderer depends only on browser/React APIs and preload-exposed window globals \u2014 never on Node, Electron, or main",
+        "quantifier": null,
+        "constitution_ref": "2.1",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "renderer imports cross-module code via the @renderer path alias rather than deep relative paths",
+        "quantifier": null,
+        "constitution_ref": "2.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "co-located tests under __tests__/ next to the code, split .test.tsx (Vitest) and .ct.tsx (Playwright CT)",
+        "quantifier": null,
+        "constitution_ref": "3.4",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "search the codebase for an existing utility/helper/component before writing anything generic",
+        "quantifier": null,
+        "constitution_ref": "3.6",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Introduce no new runtime dependency: compose the existing Tabs molecule, KVTable, and tabsStore rather than adding a tab library",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Never mutate zustand state outside a store action: the activeSubTab write goes through the setActiveSubTab tabsStore action",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Keep all 6 tabpanels mounted and toggle visibility via CSS; never unmount inactive panels, so KVTable edit state survives a sub-tab switch",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Wire the tabpanel WAI-ARIA relationships: role tabpanel, aria-controls, aria-labelledby, and aria-selected mirroring activeSubTab; do not re-implement the tablist keyboard engine Tabs already provides",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Author fidelity CTs by reading the section 6 pane-tab values from design/styles.css at test-writing time, and assert resolved computed styles (not screenshot pixels) so a sub-1-percent color change is caught",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Visual fidelity is backed by the design-token provenance gate (design/reference.html present -> /breakdown design-manifest + /implement static token-provenance check)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "The additive activeSubTab field on the Tab record must not break the existing tabsStore consumers TabBar and RequestBar",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "RequestSubTabs component (new)",
+        "files": [
+          "src/renderer/src/components/organisms/RequestSubTabs.tsx",
+          "src/renderer/src/components/organisms/RequestSubTabs.css"
+        ],
+        "impact": "Create new \u2014 the container/switcher organism composing Tabs; owns the 6 mounted tabpanels + the shared empty-state; sibling CSS carries the .pane-tabs-scoped fidelity override"
+      },
+      {
+        "area": "tabsStore + Tab record",
+        "files": [
+          "src/renderer/src/lib/tabsStore.ts"
+        ],
+        "impact": "Add a SubTabKey enum + activeSubTab field (default 'params') to the Tab record (makeBlankTab), and a setActiveSubTab(tabId,key) store action"
+      },
+      {
+        "area": "App composition root",
+        "files": [
+          "src/renderer/src/App.tsx"
+        ],
+        "impact": "Replace panes.request (<RequestBar/>) with the composed request pane (RequestBar + RequestSubTabs); this takes KVTable live through the Params/Headers slots"
+      },
+      {
+        "area": "Tabs molecule (reused, no change)",
+        "files": [
+          "src/renderer/src/components/molecules/Tabs.tsx"
+        ],
+        "impact": "Composed as-is via activeId/onChange/badge/actions API \u2014 no modification; consumed by RequestSubTabs"
+      },
+      {
+        "area": "KVTable (mounted live)",
+        "files": [
+          "src/renderer/src/components/organisms/KVTable.tsx"
+        ],
+        "impact": "Mounted into the Params/Headers slots as <KVTable field='params'/> / field='headers'/>; no component change \u2014 it goes live through T5d"
+      },
+      {
+        "area": "requestSpec (read-only badge source)",
+        "files": [
+          "src/renderer/src/lib/requestSpec.ts"
+        ],
+        "impact": "Read-only source for badge derivation (params/headers count, auth-set); no change"
+      },
+      {
+        "area": "Design tokens",
+        "files": [
+          "src/renderer/src/styles/tokens.css"
+        ],
+        "impact": "Consumed by RequestSubTabs.css for the \u00a76 pane-tab fidelity values (--text-muted/--text/--accent/--accent-soft/--bg-active/--border-faint); verify tokens present, no new token expected"
+      },
+      {
+        "area": "Tests (new)",
+        "files": [
+          "src/renderer/src/components/organisms/__tests__/RequestSubTabs.test.tsx",
+          "src/renderer/src/components/organisms/__tests__/RequestSubTabs.ct.tsx",
+          "src/renderer/src/lib/__tests__/tabsStore.test.ts"
+        ],
+        "impact": "Create new \u2014 Vitest interaction + Playwright CT (switch/keyboard/per-tab-state/state-preservation/per-theme fidelity/a11y) and a tabsStore setActiveSubTab unit test"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Implementing the Auth, Body, Tests, or Code panel bodies \u2014 those are separate features; T5d only provides their slots + shared empty-state",
+        "finding_ref": ""
+      },
+      {
+        "content": "Reorderable / closable / addable sub-tabs, overflow menus, and per-sub-tab context actions \u2014 the 6-tab set is fixed",
+        "finding_ref": ""
+      },
+      {
+        "content": "Any RequestSpec mutation from sub-tab interaction \u2014 badges are read-only; the only write is setActiveSubTab",
+        "finding_ref": ""
+      },
+      {
+        "content": "Persistence of activeSubTab across app restart \u2014 that is T23's job; T5d only puts the field on the Tab record",
+        "finding_ref": ""
+      },
+      {
+        "content": "Lazy / on-demand / code-split panel mounting \u2014 decision is mount-all + toggle-visibility to preserve panel state",
+        "finding_ref": "F-2026-07-05-request-pane-sub-tabs-container-a-per-request-tab-switcher-2"
+      },
+      {
+        "content": "Sub-tab overflow / responsive collapse \u2014 the fixed 6 tabs shrink or scroll via the Tabs molecule's existing behavior; no responsive re-layout",
+        "finding_ref": ""
+      },
+      {
+        "content": "Implementing the external open-on-specific-sub-tab jump-flows (collections-tree / history / command-palette, T18/T19/T20) \u2014 T5d only reacts to setActiveSubTab writes",
+        "finding_ref": ""
+      },
+      {
+        "content": "Deep-links / URL-scheme sub-tab navigation, a command-palette 'jump to Auth tab' action, and any test-harness/automation API",
+        "finding_ref": ""
+      },
+      {
+        "content": "Reproducing design/reference.html generated cruft (data-om-* attributes, __OmT wrappers, inline styles, tweaks-panel)",
+        "finding_ref": ""
+      }
+    ],
+    "open_questions": [],
+    "risks": [
+      {
+        "risk": "A lazy-mount regression silently breaks panel-state preservation (KVTable remounts on switch, losing focus/edits)",
+        "likelihood": "Med",
+        "impact": "High",
+        "mitigation": "The focus-survives-switch CT (focus a Params cell, switch to Headers and back, assert same DOM node keeps focus/value) is the go/no-go gate before wiring all 6 panels"
+      },
+      {
+        "risk": "A shared/global active-sub-tab index leaks across request tabs (per-tab state bug)",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Dedicated A->B->A CT: A on Headers, B on Body, switch A->B->A, assert A's activeSubTab is still headers"
+      },
+      {
+        "risk": "Fidelity baselines drift (a sub-1-percent color change stays within screenshot tolerance and passes stale)",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Assert resolved computed styles vs section 6 values in both themes, reading the numbers from design/styles.css at CT-writing time"
+      },
+      {
+        "risk": "The additive Tab-record field breaks existing tabsStore consumers",
+        "likelihood": "Low",
+        "impact": "High",
+        "mitigation": "Type-check both configs and run the TabBar and RequestBar CTs after the store change"
+      },
+      {
+        "risk": "Mounting the composed pane into App.tsx and taking KVTable live introduces integration regressions in the running shell",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Add a mount/smoke test for the composed request pane and run the full existing suite"
+      }
+    ]
+  },
+  "provenance": {
+    "upstream_handoff_path": null,
+    "upstream_handoff_kind": null,
+    "upstream_completed_at": null
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}

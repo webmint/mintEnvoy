@@ -15,8 +15,12 @@
  *   AC-20 — markClean clears dirty flag; no-op on unknown id
  *   AC-21 — selectActive sets activeTabId; no-op on unknown id
  *   Risk-3 — RequestSpec round-trips through JSON.parse(JSON.stringify(...))
+ *   AC-7  — setActiveSubTab sets per-tab activeSubTab; per-tab isolation
+ *   AC-8  — setActiveSubTab A→B→A round-trip: non-default key preserved across tab switches
+ *   AC-16 — newBlank seeds activeSubTab to 'params'
  */
-import { tabsStore } from '@renderer/lib/tabsStore'
+import { tabsStore, VALID_KEYS } from '@renderer/lib/tabsStore'
+import type { SubTabKey } from '@renderer/lib/tabsStore'
 import { makeBlankRequest, isBearerAuth } from '@renderer/lib/requestSpec'
 import { makeSpec, makeTab } from '@renderer/__tests__/fixtures/requestSpec'
 
@@ -195,6 +199,8 @@ describe('openFromCollection — miss appends and stores collectionRequestId', (
     const newTab = afterFirst.find((t) => t.id === afterFirstActiveId)
     expect(newTab).toBeDefined()
     expect(newTab!.collectionRequestId).toBe('fresh-coll')
+    // Verify makeCollectionTab seeds activeSubTab to the canonical default
+    expect(newTab!.activeSubTab).toBe('params')
 
     // Second call with same collectionRequestId: leg-1 hit → no append
     tabsStore.getState().openFromCollection(input)
@@ -290,6 +296,7 @@ describe('close — never-zero (AC-17)', () => {
     expect(replacement.spec.url).toBe('')
     expect(replacement.dirty).toBe(false)
     expect(replacement.collectionRequestId).toBeNull()
+    expect(replacement.activeSubTab).toBe('params')
   })
 })
 
@@ -624,5 +631,109 @@ describe('makeBlankRequest — reference independence', () => {
     const a = makeBlankRequest()
     const b = makeBlankRequest()
     expect(a.auth).not.toBe(b.auth)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// setActiveSubTab (AC-7, AC-8)
+// ---------------------------------------------------------------------------
+
+describe('setActiveSubTab — default (AC-16)', () => {
+  it('a fresh tab created via newBlank defaults activeSubTab to "params"', () => {
+    tabsStore.getState().newBlank()
+    const { tabs, activeTabId } = tabsStore.getState()
+    const newTab = tabs.find((t) => t.id === activeTabId)!
+    expect(newTab.activeSubTab).toBe('params')
+  })
+})
+
+describe('setActiveSubTab — per-tab set + isolation (AC-7)', () => {
+  it('sets activeSubTab only on the targeted tab; all other tabs are unchanged', () => {
+    tabsStore.setState({
+      tabs: [makeTab('tab-a'), makeTab('tab-b'), makeTab('tab-c')],
+      activeTabId: 'tab-a'
+    })
+
+    tabsStore.getState().setActiveSubTab('tab-b', 'headers')
+
+    const { tabs } = tabsStore.getState()
+    const tabA = tabs.find((t) => t.id === 'tab-a')!
+    const tabB = tabs.find((t) => t.id === 'tab-b')!
+    const tabC = tabs.find((t) => t.id === 'tab-c')!
+
+    expect(tabB.activeSubTab).toBe('headers')
+    // Other tabs must be unchanged
+    expect(tabA.activeSubTab).toBe('params')
+    expect(tabC.activeSubTab).toBe('params')
+  })
+
+  it('cycles through every valid VALID_KEYS value on a single tab', () => {
+    tabsStore.setState({
+      tabs: [makeTab('tab-x')],
+      activeTabId: 'tab-x'
+    })
+
+    for (const key of VALID_KEYS) {
+      tabsStore.getState().setActiveSubTab('tab-x', key)
+      const { tabs } = tabsStore.getState()
+      expect(tabs.find((t) => t.id === 'tab-x')!.activeSubTab).toBe(key)
+    }
+  })
+})
+
+describe('setActiveSubTab — A→B→A per-tab isolation (AC-8)', () => {
+  it('preserves a non-default activeSubTab on tab-A after tab-B is updated', () => {
+    tabsStore.setState({
+      tabs: [makeTab('tab-a'), makeTab('tab-b'), makeTab('tab-c')],
+      activeTabId: 'tab-a'
+    })
+
+    // Set tab-A to a NON-default key — a reset-to-default regression would restore 'params'
+    tabsStore.getState().setActiveSubTab('tab-a', 'auth')
+    // Simulate "user switches focus to tab-B and changes its sub-tab"
+    tabsStore.getState().setActiveSubTab('tab-b', 'body')
+
+    const { tabs } = tabsStore.getState()
+    const tabA = tabs.find((t) => t.id === 'tab-a')!
+    const tabB = tabs.find((t) => t.id === 'tab-b')!
+    const tabC = tabs.find((t) => t.id === 'tab-c')!
+
+    // tab-A must still hold 'auth', NOT have been reset to the default 'params'
+    expect(tabA.activeSubTab).toBe('auth')
+    // tab-B carries the value that was explicitly set
+    expect(tabB.activeSubTab).toBe('body')
+    // tab-C was never touched; must still hold the seeded default
+    expect(tabC.activeSubTab).toBe('params')
+  })
+})
+
+describe('setActiveSubTab — unknown-id no-op', () => {
+  it('does not throw and leaves all tabs unchanged when tabId is unknown', () => {
+    tabsStore.setState({
+      tabs: [makeTab('tab-a'), makeTab('tab-b')],
+      activeTabId: 'tab-a'
+    })
+    const before = tabsStore.getState().tabs.map((t) => t.activeSubTab)
+
+    expect(() => tabsStore.getState().setActiveSubTab('nonexistent-id', 'body')).not.toThrow()
+
+    const after = tabsStore.getState().tabs.map((t) => t.activeSubTab)
+    expect(after).toEqual(before)
+  })
+})
+
+describe('setActiveSubTab — invalid-key no-op (runtime VALID_KEYS guard)', () => {
+  it('rejects an out-of-union key cast through unknown and leaves the tab unchanged', () => {
+    tabsStore.setState({
+      tabs: [makeTab('tab-guard')],
+      activeTabId: 'tab-guard'
+    })
+
+    const bogusKey = 'bogus' as unknown as SubTabKey
+    expect(() => tabsStore.getState().setActiveSubTab('tab-guard', bogusKey)).not.toThrow()
+
+    const { tabs } = tabsStore.getState()
+    // activeSubTab must still be the seeded default, not 'bogus'
+    expect(tabs.find((t) => t.id === 'tab-guard')!.activeSubTab).toBe('params')
   })
 })
