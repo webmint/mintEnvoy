@@ -27,7 +27,7 @@ The renderer process has a three-sublayer structure beneath feature components:
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | Presentation — atoms     | Inline SVG `Icon` component + typed `IconName` string-literal union over the project-owned 40-icon set                                                                                                                                                                                                                                                                       | `src/renderer/src/components/atoms/`     |
 | Presentation — molecules | `Dropdown`, `Modal`, `Toast` — thin wrappers over Radix UI primitives, styled via semantic classes. `Tabs` — controlled selection-only tab-strip; hand-rolled WAI-ARIA engine (see Patterns § below for the departure rationale). `Divider` — hand-rolled WAI-ARIA splitter (domain-agnostic; used by `PaneSplit`).                                                          | `src/renderer/src/components/molecules/` |
-| Presentation — organisms | `Shell` (root composition layer), `Titlebar`, `Statusbar`, and `PaneSplit` — grouped under `organisms/shell/` (app-shell domain). `Sidebar`, `TabBar`, and `RequestBar` — flat domain singletons directly under `organisms/`. Organisms compose molecules/atoms; they never import across the same tier.                                                                     | `src/renderer/src/components/organisms/` |
+| Presentation — organisms | `Shell` (root composition layer), `Titlebar`, `Statusbar`, and `PaneSplit` — grouped under `organisms/shell/` (app-shell domain). `Sidebar`, `TabBar`, `RequestBar`, `RequestSubTabs`, and `KVTable` — flat domain singletons directly under `organisms/`. `RequestSubTabs` receives its Params and Headers panel content as slot props from the App composition root (never a direct organism import — §2.2). Organisms compose molecules/atoms; they never import across the same tier.                                                                     | `src/renderer/src/components/organisms/` |
 | Support — lib/ (thin)    | `toastStore` (zustand queue + imperative `toast()` API), `settingsStore` (zustand SSOT for theme/accent/mstyle/sidebarWidth/paneRatio/sidebarCollapsed + clamp helpers), `icons-glue` (Icon lookup/fallback), shared `cx()` className helper, `httpMethods` (ordered `METHODS` tuple + `HttpMethod` union — method SSOT consumed by `requestSpec`, `RequestBar`, and `Tabs`), `varTokens` (pure display-only `{{var}}` tokeniser — stateless, renderer-isolated, no resolution), `envVars` (∅-default frozen-sentinel selector for the active environment's valid variable names — T14 seam; see Patterns §) | `src/renderer/src/lib/`                  |
 
 **Dependency direction**: organisms import from molecules and atoms; molecules and atoms import from lib/; `lib/` must NOT import from `components/`. No sibling-tier imports (organisms must not import other organisms). All intra-renderer imports use the `@renderer` alias — no deep relative paths across sublayer boundaries.
@@ -38,7 +38,7 @@ The renderer process has a three-sublayer structure beneath feature components:
 
 **Shell app-state pattern**: a single module-level zustand `settingsStore` is the SSOT for all shell view state. `Shell.tsx` is the sole writer of `document.documentElement` data-attributes (`data-theme`, `data-accent`, `data-mstyle`) and CSS custom properties (`--sidebar-width`, `--pane-ratio`); the `Divider` also writes these same CSS vars during live drag at rAF cadence. No other component sets these attrs or vars directly.
 
-**Working-tabs state machine pattern**: a single module-level zustand `tabsStore` owns the open-request tab list (`tabs: Tab[]`, array order = visual order), the active tab pointer (`activeTabId`), and the full lifecycle — `openFromCollection` (id-then-url two-leg dedupe), `newBlank`, `close` (never-zero: spawns a replacement when the last tab closes; right-then-left neighbor selection when the active tab closes), `selectActive`, `markClean(tabId)`, and `updateActiveSpec(patch)` (shallow-merges a partial `RequestSpec` patch into the active tab's spec; no-op when every key already equals the current value, so the dirty flag is never flipped spuriously). `TabBar` is the lifecycle subscriber — it wires `openFromCollection`, `newBlank`, `close`, and `selectActive` to the Tabs molecule. `RequestBar` is the spec-edit subscriber — it reads the active tab's `method`, `url`, and `dirty` fields via per-field selectors and writes them back via `updateActiveSpec`; Save calls `markClean`. The never-zero invariant is a construction-time guarantee: the store initialises with one seeded blank tab and `close` always spawns a replacement before removing the last entry. `requestSpec.ts` is a pure data module in lib/ — exports types only (`RequestSpec`, `Row`, `Auth` discriminated union, `isBearerAuth` type guard) and `makeBlankRequest()` seed factory; it carries no actions and no store state (constitution §3.1 / §4).
+**Working-tabs state machine pattern**: a single module-level zustand `tabsStore` owns the open-request tab list (`tabs: Tab[]`, array order = visual order), the active tab pointer (`activeTabId`), and the full lifecycle — `openFromCollection` (id-then-url two-leg dedupe), `newBlank`, `close` (never-zero: spawns a replacement when the last tab closes; right-then-left neighbor selection when the active tab closes), `selectActive`, `markClean(tabId)`, and `updateActiveSpec(patch)` (shallow-merges a partial `RequestSpec` patch into the active tab's spec; no-op when every key already equals the current value, so the dirty flag is never flipped spuriously), and `setActiveSubTab(tabId, key)` (sets the active sub-tab for the given tab; validates `key` against `VALID_KEYS` and no-ops on unknown `tabId` — mirrors `markClean`'s guard pattern). The `Tab` record carries an additive `activeSubTab: SubTabKey` field (type `'params'|'auth'|'headers'|'body'|'tests'|'code'`, default `'params'`) — per-tab state so each request tab restores its own sub-tab independently when the user switches away and back. `TabBar` is the lifecycle subscriber — it wires `openFromCollection`, `newBlank`, `close`, and `selectActive` to the Tabs molecule. `RequestBar` is the spec-edit subscriber — it reads the active tab's `method`, `url`, and `dirty` fields via per-field selectors and writes them back via `updateActiveSpec`; Save calls `markClean`. `RequestSubTabs` is the sub-tab-state subscriber — it reads `activeSubTab` via a scalar selector and writes changes via `setActiveSubTab`. The never-zero invariant is a construction-time guarantee: the store initialises with one seeded blank tab and `close` always spawns a replacement before removing the last entry. `requestSpec.ts` is a pure data module in lib/ — exports types only (`RequestSpec`, `Row`, `Auth` discriminated union, `isBearerAuth` type guard) and `makeBlankRequest()` seed factory; it carries no actions and no store state (constitution §3.1 / §4).
 
 **Styling**: semantic class names bound to `tokens.css` CSS custom properties; no inline styles. Per-component CSS files live alongside the component under `atoms/`, `molecules/`, and `organisms/`.
 
@@ -76,7 +76,7 @@ await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)))
 
 mintEnvoy is structured around Electron's three-process security model. The **main** process (Node.js) owns the application lifecycle and creates the single BrowserWindow with sandbox-friendly webPreferences and a preload script attached. The **preload** bridge runs with context isolation and is the only place permitted to expose privileged Electron APIs to the UI, doing so through contextBridge under a process.contextIsolated guard. The **renderer** is a React 19 single-page UI that must never import Node or Electron modules — it talks to the platform exclusively through the globals the preload bridge exposes on window.
 
-Within the renderer, the code is organized as a small design-system with three atomic-design tiers: an Icon atom; Dropdown/Modal/Toast/Tabs/Divider molecules (Dropdown/Modal/Toast wrap Radix; Tabs hand-rolls its WAI-ARIA engine and also supports opt-in closable, method-chip, and dirty-state affordances — see Patterns §; Divider is a hand-rolled WAI-ARIA splitter); and organisms — Shell, Titlebar, Statusbar, and PaneSplit (grouped under organisms/shell/) plus flat singletons Sidebar, TabBar (the working-tabs strip), and RequestBar (the method-dropdown + URL-input + Send/Save/Share bar for the active tab), and KVTable (a controlled key-value grid for editing a request's params/headers — built and CT-tested in isolation; not yet mounted into the running app) — that compose the single-window app shell. A shared lib layer provides className merge, safe icon resolution, three module-level zustand stores (toastStore for the toast queue; settingsStore as the view-state SSOT; tabsStore as the working-tabs lifecycle state machine), `httpMethods` (ordered `METHODS` tuple + `HttpMethod` union — the method SSOT), the requestSpec domain model (RequestSpec types + makeBlankRequest factory), the display-only `{{var}}` tokeniser (`varTokens`), and the ∅-default environment-variable selector (`envVars` — T14 seam; see Patterns §). UI styling is driven by CSS custom-property design tokens rather than inline styles. A dev-only PrimitivesDemo gallery is dynamically imported behind import.meta.env.DEV so it is tree-shaken out of production builds.
+Within the renderer, the code is organized as a small design-system with three atomic-design tiers: an Icon atom; Dropdown/Modal/Toast/Tabs/Divider molecules (Dropdown/Modal/Toast wrap Radix; Tabs hand-rolls its WAI-ARIA engine and also supports opt-in closable, method-chip, and dirty-state affordances — see Patterns §; Divider is a hand-rolled WAI-ARIA splitter); and organisms — Shell, Titlebar, Statusbar, and PaneSplit (grouped under organisms/shell/) plus flat singletons Sidebar, TabBar (the working-tabs strip), and RequestBar (the method-dropdown + URL-input + Send/Save/Share bar for the active tab), RequestSubTabs (the per-request sub-tab switcher — 6 fixed sub-tabs composing the Tabs molecule, always-mounted hidden-toggled panels, read-only badges derived from the active spec, per-tab activeSubTab state), and KVTable (a controlled key-value grid for params/headers editing — mounted live via the Params/Headers slot props of RequestSubTabs from the App composition root) — that compose the single-window app shell. A shared lib layer provides className merge, safe icon resolution, three module-level zustand stores (toastStore for the toast queue; settingsStore as the view-state SSOT; tabsStore as the working-tabs lifecycle state machine), `httpMethods` (ordered `METHODS` tuple + `HttpMethod` union — the method SSOT), the requestSpec domain model (RequestSpec types + makeBlankRequest factory), the display-only `{{var}}` tokeniser (`varTokens`), and the ∅-default environment-variable selector (`envVars` — T14 seam; see Patterns §). UI styling is driven by CSS custom-property design tokens rather than inline styles. A dev-only PrimitivesDemo gallery is dynamically imported behind import.meta.env.DEV so it is tree-shaken out of production builds.
 
 The toolchain is electron-vite (three build targets: main, preload, renderer) for bundling and electron-builder for OS packaging, with Vitest + Playwright component tests covering the primitive library.
 
@@ -90,11 +90,15 @@ src/
     └── src/
         ├── components/
         │   ├── atoms/      # Icon
-        │   ├── molecules/  # Dropdown, Modal, Toast (Radix-based); Tabs (hand-rolled WAI-ARIA; opt-in closable, method-chip, dirty-state); Divider (WAI-ARIA splitter)
+        │   ├── molecules/  # Dropdown, Modal, Toast (Radix-based); Tabs (hand-rolled WAI-ARIA; opt-in closable, method-chip, dirty-state, linkPanels); Divider (WAI-ARIA splitter)
         │   ├── organisms/
         │   │   ├── shell/  # Shell, Titlebar, Statusbar, PaneSplit (app-shell domain)
+        │   │   ├── KVTable.tsx   # controlled key-value grid for params/headers; self-subscribes to tabsStore via field prop
+        │   │   ├── KVTable.css
         │   │   ├── RequestBar.tsx   # request submission bar; method dropdown + URL input + Send/Save/Share; wired to tabsStore.updateActiveSpec
         │   │   ├── RequestBar.css
+        │   │   ├── RequestSubTabs.tsx   # per-request sub-tab switcher; 6 always-mounted hidden-toggled panels; reads/writes activeSubTab via tabsStore
+        │   │   ├── RequestSubTabs.css
         │   │   ├── Sidebar.tsx
         │   │   └── TabBar.tsx   # working-tabs strip
         │   └── PrimitivesDemo.tsx  # dev-only gallery
@@ -209,6 +213,8 @@ The Tabs primitive does NOT wrap Radix Tabs, departing from the Dropdown/Modal/T
 
 - `method?: string` — renders a `<span aria-hidden="true">` chip before the label using global class names `.method` and `.{METHOD}` (e.g. `.GET`, `.DELETE`); unknown methods use the base `.method` class only (uncolored). See hazards below.
 - `dirty?: boolean` — in the closable branch, replaces the ✕ button with a non-focusable `<span class="tabs__tab-dirty">` dot; Delete/Backspace on the focused tab still fires `onClose` regardless of dirty state.
+
+**Feature-015 opt-in extension to `TabsProps` — `linkPanels` prop**: when `linkPanels` is true, each rendered `role="tab"` button receives a DOM `id` equal to its descriptor's `id` value and an `aria-controls` attribute pointing at the corresponding panel element. Absent (the default) → byte-identical output to the pre-015 contract. The same backward-compatible extension pattern as `closable`/`onClose` (feature-004). Only `RequestSubTabs` uses this prop today; enabling it for another consumer requires that consumer to also mount matching `id={"panel-${key}"}` tabpanel elements for the `aria-controls` references to resolve.
 
 **Hazard: `.tabbar` visual contract spans two CSS files.** `TabBar` passes `className="tabbar"` to the Tabs primitive. The full visual treatment is split: `Tabs.css` carries a `.tabbar`-scoped override block (compound selectors prefixed with `.tabbar`) that changes geometry, active treatment, hover fill, tablist flex, and overflow; `TabBar.css` carries strip chrome (height, background, bottom border). Both files must be read together when debugging or changing TabBar appearance. The tab-cell width cap (`max-width: 220px`, design-fidelity-contract §5) lives on `.tabbar .tabs__tab-wrapper` in `Tabs.css` (feature 011); `TabBar.css` carries no label-scoped truncation override.
 
@@ -339,6 +345,40 @@ const EMPTY_SET: ReadonlySet<string> = Object.freeze(new Set<string>())
 
 **Rule for future implementors of T14**: the env store selector that replaces `envVars()` must satisfy: (1) same frozen/stable reference returned when the variable-name set is logically unchanged, (2) `KVTable`'s `validVars` prop default can remain `envVars()` — no call-site change needed, (3) `envVars` remains the sole injection seam (do not add a second path that bypasses this module).
 
+### RequestSubTabs — mount-all + hidden-toggle panel state preservation
+
+**Applies in**: `src/renderer/src/components/organisms/RequestSubTabs.tsx`
+
+All 6 sub-tab panels are always mounted and visibility-toggled via the `hidden` attribute (`display:none`). Panel DOM value state (KVTable input text, scroll position) survives sub-tab switches because nothing is ever unmounted. However, two browser behaviors require compensating code that is easy to accidentally remove:
+
+1. **`display:none` discards `scrollTop`** — a panel's `scrollTop` reads as 0 while hidden; the browser does not restore it on un-hide. `RequestSubTabs` captures `scrollTop` synchronously on the outgoing panel before the state update hides it, and restores it via `useLayoutEffect` on re-show.
+
+2. **`display:none` drops DOM focus** — hiding a panel blurs any focused element within it. `RequestSubTabs` tracks the last focused element per panel via bubbling `onFocus`, then calls `focus({ preventScroll: true })` in the same `useLayoutEffect`. The `preventScroll: true` flag is load-bearing — a bare `focus()` scrolls the panel to bring the focused element into view, overriding the restored `scrollTop` and defeating AC-9.
+
+<!-- src/renderer/src/components/organisms/RequestSubTabs.tsx:229-231 -->
+
+```typescript
+    // preventScroll: a bare focus() would scroll the panel to bring the element
+    // into view, overriding the scrollTop restored above and defeating AC-9.
+    savedEl.focus({ preventScroll: true })
+```
+
+3. **Cross-request-tab scroll leak** — when the active request tab changes, both the `lastFocusedInPanel` and `scrollTops` maps are cleared AND every panel's DOM `scrollTop` is reset to 0 via a `useEffect` on `activeTabId`. Clearing the maps alone is not enough: if two request tabs share the same `activeSubTab` value, the panel div is never toggled hidden between them and the browser physically retains the previous tab's `scrollTop`.
+
+<!-- src/renderer/src/components/organisms/RequestSubTabs.tsx:179-185 -->
+
+```typescript
+  useEffect(() => {
+    scrollTops.current.clear()
+    lastFocusedInPanel.current.clear()
+    panelRefs.current.forEach((panel) => {
+      panel.scrollTop = 0
+    })
+  }, [activeTabId])
+```
+
+**Hazard**: removing any of these three compensating mechanisms silently reintroduces one of: a scroll-to-0 on panel re-show, lost focus after sub-tab switch-back, or a cross-request-tab scroll leak — none of which trigger a type or lint error.
+
 ## Conventions
 
 **Naming**
@@ -373,7 +413,7 @@ const EMPTY_SET: ReadonlySet<string> = Object.freeze(new Set<string>())
 - Shared UI state held in module-level zustand stores (toastStore, settingsStore, tabsStore) exporting a single instance each
 - State mutated only through store actions; an imperative toast() API wraps toastStore for fire-and-forget use
 - Shell view state (theme, accent, mstyle, sidebarWidth, paneRatio, sidebarCollapsed) lives exclusively in settingsStore — Shell.tsx is the sole writer of the corresponding document.documentElement attrs/vars
-- Working-tabs lifecycle (open, dedupe, close, dirty, spec-edits) lives exclusively in tabsStore. TabBar is the lifecycle subscriber (wires open/close/select to the Tabs molecule); RequestBar is the spec-edit subscriber (writes method + url via `updateActiveSpec`; clears dirty via `markClean` on Save)
+- Working-tabs lifecycle (open, dedupe, close, dirty, spec-edits, sub-tab-state) lives exclusively in tabsStore. TabBar is the lifecycle subscriber (wires open/close/select to the Tabs molecule); RequestBar is the spec-edit subscriber (writes method + url via `updateActiveSpec`; clears dirty via `markClean` on Save); RequestSubTabs is the sub-tab-state subscriber (reads `activeSubTab`, writes via `setActiveSubTab`)
 
 ## Layers
 
@@ -396,15 +436,28 @@ import { ICONS, type IconName } from '@renderer/components/atoms/icons'
 
 ### Dev-only code elimination
 
-The PrimitivesDemo gallery is loaded via a dynamic import() gated on import.meta.env.DEV. Vite replaces DEV with false in production, making the import statically unreachable so Rollup drops both the module and its CSS side-effect from the production bundle. App.tsx mounts `<Shell>` inside `<ToastProvider>` and no longer hosts the PrimitivesDemo lazy-import directly; the gallery continues to exist at `src/renderer/src/components/PrimitivesDemo.tsx` and is consumed from its test and story files. As of feature 009-request-bar, `Shell` receives `tabs={<TabBar />}` and `panes={{ request: <RequestBar /> }}` as props.
+The PrimitivesDemo gallery is loaded via a dynamic import() gated on import.meta.env.DEV. Vite replaces DEV with false in production, making the import statically unreachable so Rollup drops both the module and its CSS side-effect from the production bundle. App.tsx mounts `<Shell>` inside `<ToastProvider>` and no longer hosts the PrimitivesDemo lazy-import directly; the gallery continues to exist at `src/renderer/src/components/PrimitivesDemo.tsx` and is consumed from its test and story files. As of feature 015-request-sub-tabs, `Shell` receives `tabs={<TabBar />}` and `panes={{ request: <><RequestBar/><RequestSubTabs.../></> }}` as props — `KVTable` is injected into `RequestSubTabs`'s `params` and `headers` slot props from the App root, keeping sibling-organism wiring out of any organism (§2.2).
 
-<!-- src/renderer/src/App.tsx:6 -->
+<!-- src/renderer/src/App.tsx:8-46 -->
 
 ```typescript
 function App(): React.JSX.Element {
   return (
     <ToastProvider>
-      <Shell tabs={<TabBar />} panes={{ request: <RequestBar /> }} />
+      <Shell
+        tabs={<TabBar />}
+        panes={{
+          request: (
+            <>
+              <RequestBar />
+              <RequestSubTabs
+                params={<KVTable field="params" />}
+                headers={<KVTable field="headers" />}
+              />
+            </>
+          )
+        }}
+      />
       <ToastViewport />
     </ToastProvider>
   )
@@ -425,7 +478,7 @@ function App(): React.JSX.Element {
 graph TD
   main[main process] -->|attaches preload| preload[preload bridge]
   preload -->|exposes window.electron / window.api| renderer[renderer UI]
-  renderer --> organisms[components/organisms: shell/(Shell / Titlebar / Statusbar / PaneSplit) / Sidebar / TabBar / RequestBar]
+  renderer --> organisms[components/organisms: shell/(Shell / Titlebar / Statusbar / PaneSplit) / Sidebar / TabBar / RequestBar / RequestSubTabs / KVTable]
   organisms --> molecules[components/molecules: Dropdown / Modal / Toast / Tabs / Divider]
   molecules --> atoms[components/atoms: Icon]
   atoms --> lib[lib: cx / icons-glue / toastStore / settingsStore / tabsStore / requestSpec]

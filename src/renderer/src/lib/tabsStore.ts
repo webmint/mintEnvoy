@@ -25,6 +25,26 @@ import { RequestSpec, makeBlankRequest } from '@renderer/lib/requestSpec'
 // ---------------------------------------------------------------------------
 
 /**
+ * The set of sub-tabs available inside a request tab.
+ * Used as the key for `Tab.activeSubTab` and validated at runtime by `VALID_KEYS`.
+ */
+export type SubTabKey = 'params' | 'auth' | 'headers' | 'body' | 'tests' | 'code'
+
+/**
+ * Ordered list of every valid `SubTabKey` value.
+ * Used at runtime to reject persisted garbage before it reaches the store
+ * (e.g. `setActiveSubTab` no-ops when the supplied key is not in this array).
+ */
+export const VALID_KEYS: readonly SubTabKey[] = [
+  'params',
+  'auth',
+  'headers',
+  'body',
+  'tests',
+  'code'
+]
+
+/**
  * A single open tab pairing a RequestSpec with tab-local state.
  * `id` is a per-tab surrogate key — NOT the collection identity.
  */
@@ -40,6 +60,11 @@ export interface Tab {
   spec: RequestSpec
   /** True when the tab has unsaved edits not yet persisted/synced. */
   dirty: boolean
+  /**
+   * The currently active sub-tab for this request tab.
+   * Defaults to `'params'` when the tab is first created.
+   */
+  activeSubTab: SubTabKey
 }
 
 /**
@@ -106,6 +131,16 @@ export interface TabsState {
   markClean: (tabId: string) => void
 
   /**
+   * Set the active sub-tab for the tab identified by `tabId`.
+   * - No-op when `tabId` does not reference an open tab (mirrors `markClean` guard).
+   * - No-op when `key` is not a member of `VALID_KEYS` (runtime guard against persisted garbage).
+   * - Otherwise replaces only the matched tab's `activeSubTab`; all other tabs are propagated unchanged.
+   * @param tabId - The id of the tab whose sub-tab should change.
+   * @param key   - The sub-tab to activate; must be a member of `VALID_KEYS`.
+   */
+  setActiveSubTab: (tabId: string, key: SubTabKey) => void
+
+  /**
    * Shallow-merge `patch` into the active tab's spec and set `dirty=true` —
    * but ONLY when at least one patched key carries a value that differs from
    * the current spec value (strict equality, `===`).
@@ -140,7 +175,8 @@ function makeBlankTab(): Tab {
     id: crypto.randomUUID(),
     collectionRequestId: null,
     spec: makeBlankRequest(),
-    dirty: false
+    dirty: false,
+    activeSubTab: 'params'
   }
 }
 
@@ -155,7 +191,8 @@ function makeCollectionTab(input: OpenFromCollectionInput): Tab {
     id: crypto.randomUUID(),
     collectionRequestId: input.collectionRequestId,
     spec: input.spec,
-    dirty: false
+    dirty: false,
+    activeSubTab: 'params'
   }
 }
 
@@ -287,6 +324,16 @@ export const tabsStore = create<TabsState>((set, get) => ({
     if (!exists) return // no-op on unknown id (AC-20)
     set((state) => ({
       tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, dirty: false } : t))
+    }))
+  },
+
+  setActiveSubTab(tabId, key) {
+    const { tabs } = get()
+    const exists = tabs.some((t) => t.id === tabId)
+    if (!exists) return // no-op on unknown id (mirrors markClean guard)
+    if (!(VALID_KEYS as readonly unknown[]).includes(key)) return // runtime guard against invalid key
+    set((state) => ({
+      tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, activeSubTab: key } : t))
     }))
   },
 

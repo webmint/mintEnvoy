@@ -81,7 +81,10 @@
  * - `role="tablist"` on the list container with `aria-orientation="horizontal"`.
  * - Each button has `role="tab"` + `aria-selected` + `tabIndex` managed via
  *   roving tabindex (AC-7).
- * - `aria-controls` is deliberately NOT emitted — no panels are mounted (AC-7).
+ * - `aria-controls` is NOT emitted by default (when `linkPanels` is false or omitted) — no
+ *   panels are mounted (AC-7). When `linkPanels` is set, each tab button emits
+ *   `id="tab-<id>"` + `aria-controls="panel-<id>"` for a sibling tabpanel to reference
+ *   (feature-015 Route B, AC-14).
  * - Disabled tabs carry `disabled` + `aria-disabled="true"` (AC-9).
  * - ✕ close button (when `closable`) is `tabIndex={-1}`, not `role="tab"` (AC-12).
  *
@@ -272,6 +275,32 @@ export interface TabsProps {
    * @since feature-004 (backward-compatible opt-in extension — AC-28)
    */
   onClose?: (id: string) => void
+
+  /**
+   * Opt-in panel-linkage identifiers (default `false`/`undefined` — off).
+   *
+   * When `true`, each `role="tab"` button emits:
+   *   - `id="tab-<tab.id>"` — lets a sibling tabpanel reference the tab via
+   *     `aria-labelledby="tab-<id>"` (WAI-ARIA Tabs pattern AC-14).
+   *   - `aria-controls="panel-<tab.id>"` — lets the tab declare which panel
+   *     it controls, so assistive technology can navigate between the tab and
+   *     its associated `role="tabpanel"` element (`id="panel-<id>"`).
+   *
+   * The panel-side `id="panel-<key>"` and `aria-labelledby="tab-<key>"` are
+   * owned by the consumer (e.g. RequestSubTabs, feature-015); this prop
+   * supplies only the tab-button half so both sides resolve to the same id
+   * namespace (`tab-<key>` / `panel-<key>`).
+   *
+   * When `false` or omitted, the component is byte-identical to the
+   * selection-only contract: no DOM `id` is set and no `aria-controls` is
+   * emitted on any tab button (AC-5). Existing consumers need not update.
+   *
+   * Mirrors the backward-compatible-extension pattern used by
+   * `closable`/`onClose` (feature-004 — AC-28).
+   *
+   * @since feature-015 (backward-compatible opt-in extension — AC-14)
+   */
+  linkPanels?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -367,7 +396,7 @@ function rovingTabStopIndex(tabs: TabDescriptor[], activeId: string): number {
  * AC-1: component exists in the molecules dir.
  * AC-5: click → onChange once per enabled tab.
  * AC-6: ArrowRight/Left/Home/End → onChange with wrap + disabled-skip.
- * AC-7: role=tablist/tab, aria-selected, roving tabindex, no aria-controls.
+ * AC-7: role=tablist/tab, aria-selected, roving tabindex, no aria-controls by default (opt-in via `linkPanels`).
  * AC-8: actions slot rendered right-aligned outside the tablist.
  * AC-9: disabled tabs skip onChange on click and keyboard.
  * AC-10: no-selection guard when activeId matches no enabled tab.
@@ -387,7 +416,8 @@ export function Tabs({
   className,
   'aria-label': ariaLabel,
   closable,
-  onClose
+  onClose,
+  linkPanels
 }: TabsProps): React.JSX.Element {
   // Ref map: keyed by tab id → the button DOM element.
   // Used to move DOM focus after keyboard navigation (AC-6).
@@ -544,6 +574,11 @@ export function Tabs({
               <button
                 key={tab.id}
                 role="tab"
+                // Opt-in panel-linkage: only emitted when linkPanels is set (AC-14).
+                // When absent/false the button has no DOM id and no aria-controls,
+                // preserving the selection-only contract byte-for-byte (AC-5).
+                id={linkPanels ? `tab-${tab.id}` : undefined}
+                aria-controls={linkPanels ? `panel-${tab.id}` : undefined}
                 // aria-selected reflects the active tab; false (not absent) for
                 // inactive tabs (WAI-ARIA Tabs pattern requires explicit false).
                 // When no tab is active (AC-10), every tab gets false.
@@ -604,6 +639,10 @@ export function Tabs({
               {/* role="tab" button — same structure as the closable=false branch. */}
               <button
                 role="tab"
+                // Opt-in panel-linkage: identical to the closable=false branch (AC-14).
+                // When linkPanels is absent/false: no DOM id, no aria-controls (AC-5).
+                id={linkPanels ? `tab-${tab.id}` : undefined}
+                aria-controls={linkPanels ? `panel-${tab.id}` : undefined}
                 aria-selected={isActive}
                 disabled={isDisabled}
                 aria-disabled={isDisabled || undefined}

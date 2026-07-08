@@ -1,0 +1,200 @@
+/* ---------------------------------------------------------------------------
+ * RequestSubTabs.css
+ *
+ * .pane-tabs-scoped override of the Tabs molecule DOM to match
+ * design/styles.css §6 (.pane-tabs / .pane-tab / .pane-tab.active::after /
+ * .pane-tab .badge). All rules use compound selectors (.pane-tabs prefix)
+ * so no bare .tabs consumer is affected.
+ *
+ * Mirrors the technique of the .tabbar-scoped block in Tabs.css: compound
+ * selectors neutralise the molecule's default active treatment (box-shadow
+ * inset indicator + accent-soft wash) and replace it with the §6 ::after
+ * underline at bottom: -1px.
+ *
+ * Tokens used (verified present in both :root and [data-theme='dark'] blocks
+ * of src/renderer/styles/tokens.css — no new token added):
+ *   --border-faint, --text-muted, --text, --accent, --accent-soft, --bg-active
+ * -------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+ * Outer container (.tabs.pane-tabs)
+ *
+ * Allow the active-tab ::after underline (bottom: -1px) to bleed one pixel
+ * below the container edge without being clipped — the same reason
+ * .tabs.tabbar sets overflow: visible in Tabs.css (the base .tabs keeps
+ * overflow: hidden for bare consumers; this override restores visibility only
+ * for the pane-tabs variant). height / border-bottom / padding match §6.
+ * ------------------------------------------------------------------------- */
+
+.tabs.pane-tabs {
+  overflow: visible;
+  height: 36px;
+  border-bottom: 1px solid var(--border-faint);
+  padding: 0 16px;
+  align-items: center;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tablist gap (.pane-tabs .tabs__list)
+ * ------------------------------------------------------------------------- */
+
+.pane-tabs .tabs__list {
+  gap: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tab button (.pane-tabs .tabs__tab)
+ *
+ * §6 geometry and typography. Neutralizes the molecule's base transparent
+ * box-shadow (inset 0 -2px 0 transparent → none) since the active indicator
+ * is the ::after pseudo-element below, not a box-shadow.
+ * ------------------------------------------------------------------------- */
+
+.pane-tabs .tabs__tab {
+  height: 36px;
+  padding: 0 4px;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  margin-right: 14px;
+  color: var(--text-muted);
+  /* Neutralize the molecule's transparent box-shadow placeholder so the
+     non-active tab computes box-shadow: none (cleaner baseline for CT). */
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Active tab (.pane-tabs .tabs__tab--active)
+ *
+ * Neutralize the molecule's active treatment:
+ *   - box-shadow: none     replaces the inset accent underline indicator
+ *   - background-color: transparent  removes the accent-soft wash
+ * Apply §6 active text color (var(--text)). Specificity 0-2-0 beats the
+ * base .tabs__tab--active at 0-1-0.
+ * ------------------------------------------------------------------------- */
+
+.pane-tabs .tabs__tab--active,
+.pane-tabs .tabs__tab[aria-selected='true'] {
+  box-shadow: none;
+  background-color: transparent;
+  color: var(--text);
+}
+
+/* Neutralize the base .tabs__tab--active:hover tint (--bg-hover) so the
+   active pane-tab stays transparent on hover. Mirrors the tabbar precedent
+   in Tabs.css (.tabbar .tabs__tab--active:hover). Specificity 0-3-0 beats
+   the base 0-2-0 hover rule. */
+.pane-tabs .tabs__tab--active:hover,
+.pane-tabs .tabs__tab[aria-selected='true']:hover {
+  background-color: transparent;
+}
+
+/* ---------------------------------------------------------------------------
+ * Active underline pseudo-element (.pane-tabs .tabs__tab--active::after)
+ *
+ * §6: content '' / position absolute / left 0 / right 0 / bottom -1px /
+ * height 1.5px / background var(--accent). The -1px bleed is visible because
+ * .tabs.pane-tabs sets overflow: visible above.
+ * The base .tabs__tab rule already sets position: relative on the button,
+ * so the pseudo-element is positioned relative to the button boundary.
+ * ------------------------------------------------------------------------- */
+
+.pane-tabs .tabs__tab--active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1.5px;
+  background: var(--accent);
+}
+
+/* ---------------------------------------------------------------------------
+ * Badge (.pane-tabs .tabs__badge)
+ *
+ * Rebind to §6 pill geometry and token palette. The base .tabs__badge uses
+ * --bg-sunken + min-width 16px / height 15px + border-radius var(--radius-sm).
+ * Pane-tabs uses --bg-active + 999px pill radius + 1px/6px padding.
+ * min-width/height: unset so the pill shape is determined by content + padding
+ * alone, matching §6.
+ * ------------------------------------------------------------------------- */
+
+.pane-tabs .tabs__badge {
+  font-size: 10px;
+  background: var(--bg-active);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-weight: 600;
+  min-width: unset;
+  height: unset;
+}
+
+/* Active badge accent wash (§6: background --accent-soft, color --accent).
+   Specificity 0-3-0 beats the base .tabs__tab--active .tabs__badge at 0-2-0. */
+.pane-tabs .tabs__tab--active .tabs__badge,
+.pane-tabs .tabs__tab[aria-selected='true'] .tabs__badge {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------------------
+ * RequestSubTabs container (.request-sub-tabs)
+ *
+ * Flex column that fills the remaining height in its flex parent (the pane
+ * container). min-height: 0 prevents the container from overflowing its
+ * flex parent when the panel content is taller than the available space.
+ * ------------------------------------------------------------------------- */
+
+.request-sub-tabs {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tabpanel (.request-sub-tabs__panel)
+ *
+ * Fills the remaining height below the sub-tab strip. overflow: auto allows
+ * panel content to scroll independently without the outer pane overflowing.
+ * min-height: 0 is required as a flex child to prevent infinite expansion.
+ * Only the visible (non-hidden) panel expands — hidden panels are display: none.
+ * ------------------------------------------------------------------------- */
+
+.request-sub-tabs__panel {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Shared empty-state (.request-sub-tabs__empty)
+ *
+ * Muted placeholder text for the four panels not yet built (Auth, Body,
+ * Tests, Code) and for absent slot props (AC-12, D7).
+ * ------------------------------------------------------------------------- */
+
+.request-sub-tabs__empty {
+  color: var(--text-muted);
+  padding: 16px;
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * CT fixture scaffold — bounded height so the panel overflows and scrollTop
+ * assertions are non-vacuous. NOT production styles.
+ * -------------------------------------------------------------------------- */
+
+/* Host: gives RequestSubTabs a constrained flex-column container so the
+   scroll panel's overflow:auto kicks in (panel fills ~214px, spacer overflows). */
+.rst-ct-scroll-host {
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Spacer: taller than the host so the Params panel has scrollable content. */
+.rst-ct-scroll-spacer {
+  height: 600px;
+}

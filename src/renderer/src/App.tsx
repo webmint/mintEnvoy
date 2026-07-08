@@ -1,5 +1,7 @@
 import { ToastProvider, ToastViewport } from '@renderer/components/molecules/Toast'
+import { KVTable } from '@renderer/components/organisms/KVTable'
 import { RequestBar } from '@renderer/components/organisms/RequestBar'
+import { RequestSubTabs } from '@renderer/components/organisms/RequestSubTabs'
 import { TabBar } from '@renderer/components/organisms/TabBar'
 import { Shell } from '@renderer/components/organisms/shell/Shell'
 
@@ -20,7 +22,20 @@ function App(): React.JSX.Element {
      * No dedicated portal container is needed; body-portal + CSS z-index handles it.
      */
     <ToastProvider>
-      <Shell tabs={<TabBar />} panes={{ request: <RequestBar /> }} />
+      <Shell
+        tabs={<TabBar />}
+        panes={{
+          request: (
+            <>
+              <RequestBar />
+              <RequestSubTabs
+                params={<KVTable field="params" />}
+                headers={<KVTable field="headers" />}
+              />
+            </>
+          )
+        }}
+      />
       {/* ToastViewport portals to document.body and renders above all overlays
           via z-index: 2147483647 (Toast.css). Placed after children so it is the
           last sibling inside the ToastProvider context — consistent with the

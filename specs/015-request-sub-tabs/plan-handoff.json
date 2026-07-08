@@ -1,0 +1,273 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/015-request-sub-tabs/plan.md",
+  "plan_completed_at": "2026-07-06T09:45:39Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/015-request-sub-tabs/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/015-request-sub-tabs/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "Composition root",
+        "what": "Swap `panes.request` to composed pane: `RequestBar` above `RequestSubTabs`; inject `<KVTable field='params'/>` / `field='headers'/>` as panel slot props (org\u2192org wiring stays at the root, \u00a72.2). Pane is already `flex-column`, so a bare fragment lays out correctly.",
+        "files": "src/renderer/src/App.tsx (Modify)"
+      },
+      {
+        "layer": "Organism (new)",
+        "what": "RequestSubTabs: composes `Tabs` for the 6-sub-tab strip; self-subscribes `activeTabId` + active `spec` + normalized `activeSubTab`; derives 3 read-only badges; owns 6 always-mounted tabpanels (visibility-toggled) + one shared empty-state; wires tabpanel ARIA.",
+        "files": "src/renderer/src/components/organisms/RequestSubTabs.tsx (Create)"
+      },
+      {
+        "layer": "Organism style (new)",
+        "what": "`.pane-tabs`-scoped \u00a76 fidelity overrides of the Tabs DOM (mirrors the `.tabbar` precedent) + panel/empty-state layout; root `flex:1;min-height:0`, panel body `flex:1;overflow:auto`.",
+        "files": "src/renderer/src/components/organisms/RequestSubTabs.css (Create)"
+      },
+      {
+        "layer": "Molecule (additive opt-in extension)",
+        "what": "Tabs: opt-in prop (e.g. `linkPanels`/`emitTabIds`) that, when set, emits the descriptor `id` as the button DOM `id` + `aria-controls`; OFF by default \u2192 byte-identical to current contract (AC-5 preserved).",
+        "files": "src/renderer/src/components/molecules/Tabs.tsx (Modify \u2014 Route B)"
+      },
+      {
+        "layer": "Organism (reused, mounted live)",
+        "what": "KVTable injected via slots; no change \u2014 goes live through the Params/Headers slots.",
+        "files": "src/renderer/src/components/organisms/KVTable.tsx (no change)"
+      },
+      {
+        "layer": "lib (store)",
+        "what": "tabsStore: add `SubTabKey` union + `activeSubTab` field (default `'params'`) on `Tab`/`makeBlankTab`; add `setActiveSubTab(tabId,key)` action (validate key, no-op on unknown id).",
+        "files": "src/renderer/src/lib/tabsStore.ts (Modify)"
+      },
+      {
+        "layer": "lib (read-only)",
+        "what": "requestSpec: badge-derivation source (`params`/`headers` rows, `auth` union); no change.",
+        "files": "src/renderer/src/lib/requestSpec.ts (no change)"
+      },
+      {
+        "layer": "tokens (verify)",
+        "what": "Confirm `--text-muted/--text/--accent/--accent-soft/--bg-active/--border-faint` present; no new token.",
+        "files": "src/renderer/src/styles/tokens.css (verify-only)"
+      },
+      {
+        "layer": "tests (new)",
+        "what": "Vitest interaction + Playwright CT + store unit.",
+        "files": ".../organisms/__tests__/RequestSubTabs.test.tsx, RequestSubTabs.ct.tsx; lib/__tests__/tabsStore.test.ts (Create)"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "**D1** Compose Tabs as-is",
+        "chosen_approach": "6 `TabDescriptor`s (`id`=subtab key, `label`, `badge`); `<Tabs closable={false} activeId={activeSubTab} onChange={k=>setActiveSubTab(activeTabId,k)} className='pane-tabs'/>`; delegate Arrow/Home/End to Tabs.",
+        "why": "Reuses molecule WAI-ARIA + roving-tabindex engine (\u00a73.6); no fork. `closable=false` = selection-only path (AC-5, AC-6).",
+        "alternatives_rejected": "Forking Tabs / re-implementing keyboard \u2014 violates \u00a73.6 + AC-5."
+      },
+      {
+        "decision": "**D2** Per-tab `activeSubTab` state",
+        "chosen_approach": "Additive `SubTabKey` union + `activeSubTab` field (default `'params'`) on `Tab`, seeded in `makeBlankTab`; `setActiveSubTab(tabId,key)` action.",
+        "why": "Extends the established additive-field + action-no-op store pattern; per-tab field guarantees A\u2192B\u2192A isolation (AC-8).",
+        "alternatives_rejected": "Shared/global active index (leaks across tabs, \u00a79 risk 2); a separate store (fragments tab lifecycle)."
+      },
+      {
+        "decision": "**D3** Read-only badge derivation",
+        "chosen_approach": "One selector returns the active `spec` ref (mirrors KVTable's `rows` selector \u2014 avoids new-object-per-render over-render); `useMemo` derives `params`=`spec.params.length` (omit 0), `headers`=`spec.headers.length` (omit 0), each clamped `n>99?'99+':n`; `auth`=presence marker (e.g. `\u2022`) when `spec.auth.type!=='none'`, else omit; Body/Tests/Code never badged.",
+        "why": "Spec-ref selector re-fires only on `updateActiveSpec` replace \u2192 reactive without churn (AC-26, AC-15). Raw stored-row length = simplest \"count\" (KISS). Read-only \u2192 AC-24.",
+        "alternatives_rejected": "Object-returning selector (re-renders on every write); enabled-only counting (no AC backing); mirroring auth into a Headers row (spec forbids)."
+      },
+      {
+        "decision": "**D4** \u00a76 fidelity via `.pane-tabs`-scoped CSS, zero-Tabs-DOM-change",
+        "chosen_approach": "Achievable, no molecule DOM change; AC-5 \u2227 AC-27 both hold. Mirror the `.tabbar` block: scope `.tabs.pane-tabs`, `.pane-tabs .tabs__list`, `.pane-tabs .tabs__tab`, neutralize molecule active treatment + add `.pane-tabs .tabs__tab--active::after` underline (1.5px `--accent`), rebind `.pane-tabs .tabs__badge` to \u00a76 `--bg-active`/`--accent-soft`.",
+        "why": "Fidelity asserted as computed styles (not class equality), so re-styled `.tabs__badge` matches \u00a76 `.pane-tab .badge` computed values. Same theme tokens on both sides \u2192 light/dark parity automatic. `.tabbar` precedent proves every move.",
+        "alternatives_rejected": "A Tabs-molecule DOM/class change (violates AC-5); screenshot baselines (drift-blind, \u00a79 risk 3)."
+      },
+      {
+        "decision": "**D5** App.tsx composition",
+        "chosen_approach": "`request={<><RequestBar/><RequestSubTabs params={<KVTable field='params'/>} headers={<KVTable field='headers'/>} /></>}`. Panels injected from the root; RequestSubTabs imports NO organism.",
+        "why": "`.pane-split__pane--request` is already `flex-column;min-height:0` \u2192 fragment stacks RequestBar over RequestSubTabs (`flex:1`) with no wrapper (minimal). Root injection keeps sibling wiring out of any organism (\u00a72.2 + AC-11 + AC-25).",
+        "alternatives_rejected": "A `RequestPane` wrapper organism (imports sibling organisms \u2192 \u00a72.2 violation); RequestSubTabs importing KVTable (\u00a72.2 + AC-25 violation)."
+      },
+      {
+        "decision": "**D6** Mount-all + visibility toggle",
+        "chosen_approach": "Render all 6 tabpanels; hide inactive via the `hidden` attribute (`display:none` + drops from a11y tree). Same DOM node + React value state + `scrollTop` survive. Add a `useLayoutEffect` refocus-on-reshow to guarantee literal input-focus retention across a switch (see R6).",
+        "why": "Never unmounting preserves KVTable value + scroll (\u00a77, AC-9); `hidden` is the APG-correct hidden-tabpanel form. Refocus closes the `hidden`-blurs-focus gap.",
+        "alternatives_rejected": "Lazy/on-demand mount (\u00a76 OOS + \u00a79 risk 1 \u2014 remount loses state)."
+      },
+      {
+        "decision": "**D7** One shared neutral empty-state",
+        "chosen_approach": "RequestSubTabs renders ONE muted (`--text-muted`) \"Panel not yet available\" element for the 4 unbuilt slots (and as fallback when a panel prop is absent, AC-12); internal inline JSX, imports no `AuthPanel/BodyEditor/TestsPanel/CodePanel`.",
+        "why": "Satisfies AC-12/AC-25; internal element is not a sibling-organism import.",
+        "alternatives_rejected": "Per-panel personalized empty-states (AC-12 says one shared); importing stub panels (AC-25)."
+      },
+      {
+        "decision": "**D8** Tabpanel ARIA owned by RequestSubTabs",
+        "chosen_approach": "Each panel: `role='tabpanel'` + stable `id={`panel-${key}`}` + `aria-labelledby={`tab-${key}`}` + `aria-controls` to its tab + `aria-selected` mirroring `activeSubTab`. The tab-side `id`/`aria-controls` come from D2/Route B's opt-in Tabs prop.",
+        "why": "RequestSubTabs owns the panels \u2192 role + aria-selected trivially set; Route B supplies the tab DOM id needed for the linkage (AC-14 fully met).",
+        "alternatives_rejected": "(blocked-portion resolved by Route B, see D10)."
+      },
+      {
+        "decision": "**D9** Defensive reads",
+        "chosen_approach": "`activeSubTab` read normalized `VALID_KEYS.includes(v)?v:'params'`; `setActiveSubTab` validates key + no-ops on unknown `tabId`; no active tab \u2192 neutral empty region, no throw.",
+        "why": "Mirrors the store's unknown-id no-op convention; guards persisted-garbage from later T23 restore (AC-16/AC-17).",
+        "alternatives_rejected": "Throwing on invalid key (AC-17 forbids); trusting the typed enum alone (runtime persisted values can violate it)."
+      },
+      {
+        "decision": "**D10** ARIA panel\u2194tab linkage",
+        "chosen_approach": "**RESOLVED \u2014 Route B (user-approved)**: a minimal opt-in, byte-identical-when-off Tabs extension emits the descriptor `id` as the button DOM `id` + optional `aria-controls`.",
+        "why": "Only path that fully meets AC-14 while keeping AC-5's selection-only contract intact (off-path unchanged); precedented by `closable`/`onClose` (feature-004).",
+        "alternatives_rejected": "Route A (omit tab-linking attrs \u2014 fails AC-14 as written); runtime `setAttribute` on Tabs buttons from an effect (fragile DOM mutation outside React)."
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "src/renderer/src/components/organisms/RequestSubTabs.tsx",
+        "action": "Create",
+        "what_changes": "The container/switcher organism: composes Tabs, owns 6 mounted tabpanels + shared empty-state, derives read-only badges, wires tabpanel ARIA, defensive reads (AC-1, AC-5, AC-6..AC-17, AC-26)."
+      },
+      {
+        "file": "src/renderer/src/components/organisms/RequestSubTabs.css",
+        "action": "Create",
+        "what_changes": "`.pane-tabs`-scoped \u00a76 fidelity override of the Tabs DOM + panel/empty-state layout (AC-2, AC-27)."
+      },
+      {
+        "file": "src/renderer/src/lib/tabsStore.ts",
+        "action": "Modify",
+        "what_changes": "Add `SubTabKey` union + `activeSubTab` field (default `'params'`) on `Tab`/`makeBlankTab`; add `setActiveSubTab(tabId,key)` action (AC-7, AC-8, AC-16, AC-19)."
+      },
+      {
+        "file": "src/renderer/src/components/molecules/Tabs.tsx",
+        "action": "Modify (planning-discovered addition; \u00a74 row 4 was \"no change\")",
+        "what_changes": "Route B: additive opt-in prop emitting descriptor `id` as button DOM `id` + optional `aria-controls`; OFF by default \u2192 byte-identical (AC-14, AC-5)."
+      },
+      {
+        "file": "src/renderer/src/App.tsx",
+        "action": "Modify",
+        "what_changes": "Replace `panes.request` (`<RequestBar/>`) with composed `<RequestBar/> + <RequestSubTabs params=\u2026 headers=\u2026/>`; injects KVTable via slots (AC-18, AC-11)."
+      },
+      {
+        "file": "src/renderer/src/components/organisms/KVTable.tsx",
+        "action": "No change",
+        "what_changes": "Mounted live via slots; no component change."
+      },
+      {
+        "file": "src/renderer/src/lib/requestSpec.ts",
+        "action": "No change",
+        "what_changes": "Read-only badge source."
+      },
+      {
+        "file": "src/renderer/src/styles/tokens.css",
+        "action": "Verify-only",
+        "what_changes": "Confirm \u00a76 tokens present; no new token."
+      },
+      {
+        "file": "src/renderer/src/components/organisms/__tests__/RequestSubTabs.test.tsx",
+        "action": "Create",
+        "what_changes": "Vitest interaction (switch, badge, defensive reads, per-tab state)."
+      },
+      {
+        "file": "src/renderer/src/components/organisms/__tests__/RequestSubTabs.ct.tsx",
+        "action": "Create",
+        "what_changes": "Playwright CT: keyboard, focus-survives-switch, A\u2192B\u2192A per-tab state, per-theme computed-style fidelity, a11y."
+      },
+      {
+        "file": "src/renderer/src/lib/__tests__/tabsStore.test.ts",
+        "action": "Create",
+        "what_changes": "Unit: `setActiveSubTab` sets per-tab key, validates, no-ops on unknown id; additive field does not break existing consumers."
+      }
+    ],
+    "doc_impact": [
+      {
+        "doc_file": "docs/renderer/components/index.md (or organisms concern doc)",
+        "action": "Update",
+        "what_changes": "Add RequestSubTabs to the organisms roster + its compose-Tabs/own-panels role."
+      },
+      {
+        "doc_file": "docs/renderer/lib/index.md (tabsStore concern)",
+        "action": "Update",
+        "what_changes": "Note the additive `activeSubTab`/`SubTabKey`/`setActiveSubTab` on the tabs state machine."
+      }
+    ],
+    "risks": [
+      {
+        "risk": "(1) A lazy-mount regression silently breaks panel-state preservation (KVTable remounts on switch, losing focus/edits)",
+        "likelihood": "Med",
+        "impact": "High",
+        "mitigation": "The focus-survives-switch CT (focus a Params cell, switch to Headers and back, assert same DOM node keeps focus/value) is the go/no-go gate before wiring all 6 panels."
+      },
+      {
+        "risk": "(2) A shared/global active-sub-tab index leaks across request tabs (per-tab state bug)",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Dedicated A\u2192B\u2192A CT: A on Headers, B on Body, switch A\u2192B\u2192A, assert A's activeSubTab is still headers."
+      },
+      {
+        "risk": "(3) Fidelity baselines drift (a sub-1% color change stays within screenshot tolerance and passes stale)",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Assert resolved computed styles vs \u00a76 values in both themes, reading the numbers from design/styles.css at CT-writing time (not screenshots)."
+      },
+      {
+        "risk": "(4) The additive Tab-record field breaks existing tabsStore consumers",
+        "likelihood": "Low",
+        "impact": "High",
+        "mitigation": "Type-check both configs and run the TabBar and RequestBar CTs after the store change."
+      },
+      {
+        "risk": "(5) Mounting the composed pane into App.tsx + taking KVTable live introduces integration regressions in the running shell",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Add a mount/smoke test for the composed request pane and run the full existing suite."
+      },
+      {
+        "risk": "(R6 \u2014 NEW) `hidden`/`display:none` toggle drops literal DOM focus on hide (element made `display:none` blurs); value + scroll survive but the cell is no longer `document.activeElement` after switch-back",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "D6 adds a `useLayoutEffect` refocus-on-reshow (reuse the focus-restore pattern in Tabs.tsx); /breakdown must pin the AC-9 CT semantics to same DOM node + value + scroll + (via refocus) focus."
+      },
+      {
+        "risk": "(R7 \u2014 NEW) Incomplete `.pane-tabs` neutralization \u2014 \u00a76 parity needs badge-bg rebind, badge geometry reset, active box-shadow + accent-wash removal, `overflow:visible`, and the `::after` underline; missing any one leaves a computed-style drift",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Enumerate EVERY \u00a76 property (both themes) in the fidelity CT, read from styles.css at test-writing time."
+      },
+      {
+        "risk": "(R8 \u2014 NEW) Auth badge shows on every fresh tab (bearer seed defaults `auth.type='bearer'` with a token) \u2192 reads as \"auth configured\"",
+        "likelihood": "High",
+        "impact": "Low",
+        "mitigation": "In-scope behavior is truthful to the seed; a \"meaningful-auth\" heuristic and changing the seed are both OOS (\u00a76). Badge shows presence when `auth.type!=='none'`."
+      },
+      {
+        "risk": "(R9 \u2014 RESOLVED) `aria-controls`/`aria-labelledby` cannot resolve without a tab DOM id (AC-14 vs AC-5/\u00a74)",
+        "likelihood": "\u2014",
+        "impact": "\u2014",
+        "mitigation": "Resolved via Route B (opt-in Tabs extension), user-approved; see D10 + Constitution Compliance."
+      }
+    ],
+    "specialist_consultation": [
+      {
+        "specialist": "architect",
+        "sub_question": "Author the Layer Map / Key Design Decisions / Risk / Constitution tables; resolve whether \u00a76 fidelity is achievable via scoped CSS with zero Tabs change",
+        "input_summary": "Full decision tables D1\u2013D10; confirmed \u00a76 fidelity achievable via `.pane-tabs`-scoped override (mirrors `.tabbar` precedent); surfaced AC-14\u2194AC-5/\u00a74 ARIA-linkage conflict as D10 escalation",
+        "verdict": "accepted",
+        "cites": "src/renderer/src/components/molecules/Tabs.css `.tabbar` block; design/styles.css:877-933"
+      },
+      {
+        "specialist": "design-auditor",
+        "sub_question": "Confirm \u00a76 computed-style fidelity via `.pane-tabs` scoped CSS with no Tabs DOM change",
+        "input_summary": "Requested by architect; no response relayed \u2014 architect decided from the `.tabbar` scoped-override precedent",
+        "verdict": "no-response",
+        "cites": "own-reasoning (Tabs.css `.tabbar` block)"
+      },
+      {
+        "specialist": "frontend-engineer",
+        "sub_question": "Badge selector shape (count semantics + auth-badge glyph given the bearer seed)",
+        "input_summary": "Requested by architect; no response relayed \u2014 architect decided from KVTable's spec-ref selector pattern",
+        "verdict": "no-response",
+        "cites": "own-reasoning (KVTable.tsx:36)"
+      }
+    ],
+    "dependencies": [
+      "None. No package to install, no service to configure, no environment variable. AC-3 explicitly forbids a third-party tab library; the feature composes existing modules (Tabs, KVTable, tabsStore)."
+    ]
+  }
+}
