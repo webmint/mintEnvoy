@@ -1,255 +1,324 @@
 ---
 generated_by: /generate-docs (Phase B — glossary)
-last_indexed: 2026-06-22
-total_terms: 36
+last_indexed: 2026-07-09
+total_terms: 45
 ---
 
 # Project Glossary
 
 Terms surfaced in `docs/` and cross-referenced against the CBM-indexed code graph. Code-anchored entries link to a canonical definition; prose-only entries have no code symbol but appear in narrative.
 
-## App
-
-App.tsx, the renderer's root component. It mounts the single ToastProvider + ToastViewport and dev-gates the PrimitivesDemo gallery behind import.meta.env.DEV.
-
-- **Used in**: `architecture.md`, `overview.md`, `renderer/index.md`
-- **Related**: Toast, Renderer, DEV
-
 ## BrowserWindow
 
-The single Electron window the main process creates (900x670, hidden until ready-to-show), with the preload script attached and sandbox-tuned webPreferences.
+The Electron window primitive the main process constructs (900x670, deferred show) to host the renderer.
 
-- **Used in**: `architecture.md`, `main/index.md`, `overview.md`
-- **Related**: Main, Electron, contextBridge
+- **Used in**: `architecture.md`, `glossary.md`, `main/index.md` (and 1 others)
+- **Related**: Main, Electron
 
-## Build
+## Chromium
 
-Build tooling — electron-vite (Vite) bundles the main/preload/renderer targets; electron-builder packages OS installers.
+The browser engine underlying the Electron renderer.
 
-- **Used in**: `architecture.md`, `overview.md`
-- **Related**: Vite, Commands
+- **Used in**: `architecture.md`, `glossary.md`
+- **Related**: Electron, Renderer
 
 ## className
 
-A space-separated CSS class string. The renderer composes these with the cx() helper, which drops falsy tokens, instead of open-coded filter/join or template literals.
+The space-separated CSS class string built by the cx() helper, which filters out falsy tokens.
 
-- **Used in**: `architecture.md`, `renderer/index.md`
-- **Related**: Icon, Build
-
-## CLAUDE
-
-CLAUDE.md — the per-project primer holding stack facts (language, framework, build/lint/typecheck commands) and working guidance for Claude Code.
-
-- **Used in**: `architecture.md`, `overview.md`
-- **Related**: Commands
-
-## Code
-
-[TODO: human-define]
-
-- **Used in**: `architecture.md`, `overview.md`
-
-## Commands
-
-The project's npm scripts (dev, build, typecheck, lint, test, test:ct, build:mac/win/linux) for running, checking, and packaging the app.
-
-- **Used in**: `architecture.md`, `overview.md`
-- **Related**: Build, Vite
+- **Used in**: `architecture.md`, `glossary.md`
+- **Related**: Renderer
 
 ## contextBridge
 
-The Electron preload API that exposes privileged main-world globals (window.electron, window.api) to the renderer, only when context isolation is enabled.
+The Electron API the preload uses to expose a safe, typed object to the renderer under contextIsolation.
 
-- **Used in**: `architecture.md`, `preload/index.md`
-- **Related**: contextIsolation, Renderer, Electron
+- **Used in**: `glossary.md`, `preload/index.md`
+- **Related**: Preload, contextIsolation, electronAPI
 
 ## contextIsolation
 
-Electron's security boundary keeping the preload and renderer JS contexts separate. The preload is the only place permitted to expose APIs across it, via contextBridge.
+The Electron security setting isolating renderer JS from Node/Electron internals; the preload bridge is the only sanctioned crossing.
 
-- **Used in**: `architecture.md`, `overview.md`, `preload/index.md`
-- **Related**: contextBridge, Electron, Renderer
+- **Used in**: `architecture.md`, `glossary.md`, `main/index.md` (and 2 others)
+- **Related**: Preload, contextBridge, IPC
 
-## Cross
+## CT
 
-Shorthand for the docs' cross-cutting concerns and Cross-Module Dependencies sections — renderer isolation, dev-only elimination, and the outbound dependency graph.
+Playwright component testing — *.ct.tsx specs rendering components in-browser with screenshot baselines.
 
-- **Used in**: `architecture.md`, `overview.md`
-- **Related**: Module, Renderer
+- **Used in**: `architecture.md`, `glossary.md`
+- **Related**: Playwright
 
-## DEV
+## Divider
 
-import.meta.env.DEV — Vite's build-time dev flag. Replaced with false in production so dev-only code (the PrimitivesDemo gallery) is statically unreachable and tree-shaken out.
+The ARIA splitter drag-handle molecule separating resizable panes; writes CSS vars during drag.
 
-- **Used in**: `architecture.md`, `renderer/index.md`
-- **Related**: Vite, App
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: PaneSplit, Sidebar, Shell
 
 ## Dropdown
 
-A molecule wrapping Radix DropdownMenu — a controlled menu with keyboard navigation, click-outside/Escape dismiss, focus return, and edge-aware positioning.
+The molecule wrapping Radix DropdownMenu for controlled dropdown menus.
 
-- **Used in**: `architecture.md`, `overview.md`, `renderer/index.md`
-- **Related**: Radix, Modal, UI
+- **Used in**: `architecture.md`, `glossary.md`, `overview.md` (and 1 others)
+- **Related**: Radix, Modal
 
 ## Electron
 
-The desktop runtime mintEnvoy is built on. It enforces a three-process model — a Node.js main process, a contextIsolation-safe preload bridge, and a Chromium renderer — for security isolation.
+The desktop runtime hosting mintEnvoy; splits the app into main, preload, and renderer processes.
 
 - **Used in**: `architecture.md`, `glossary.md`, `main/index.md` (and 3 others)
-- **Related**: Main, Renderer, contextIsolation, BrowserWindow
+- **Related**: Main, Preload, Renderer, BrowserWindow
+
+## electronAPI
+
+The @electron-toolkit helper object exposed to the renderer through the preload bridge.
+
+- **Used in**: `architecture.md`, `preload/index.md`
+- **Related**: Preload, contextBridge
+
+## envVars
+
+The stable seam returning the active environment's valid variable-name set (currently an empty set).
+
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: varTokens
+
+## HMR
+
+Hot module replacement for the renderer during development, wired via electron-vite.
+
+- **Used in**: `architecture.md`, `main/index.md`
+- **Related**: Vite, Renderer
+
+## httpMethods
+
+The single-source readonly METHODS tuple and its derived HttpMethod union type.
+
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: requestSpec, RequestBar
 
 ## Icon
 
-Presentation atom: an inline-SVG component with a typed IconName union over the project-owned 40-icon set. Decorative (aria-hidden) by default; announced when given a label.
+The inline-SVG icon atom rendering a project-owned icon via currentColor.
 
-- **Used in**: `architecture.md`, `overview.md`, `renderer/index.md`
-- **Related**: UI, className
+- **Used in**: `architecture.md`, `glossary.md`, `overview.md` (and 1 others)
+- **Related**: IconName, SVG
+
+## IconName
+
+The union type of valid project icon names, resolved safely through icons-glue.
+
+- **Used in**: `architecture.md`, `glossary.md`
+- **Related**: Icon
 
 ## IPC
 
-Inter-process communication between Electron's main and renderer processes. The main process is the IPC host; the renderer reaches it through preload-exposed globals.
+Inter-process communication between the Electron main and renderer processes, mediated exclusively by the preload bridge.
 
-- **Used in**: `architecture.md`, `overview.md`
-- **Related**: Main, contextBridge, Renderer
+- **Used in**: `architecture.md`, `glossary.md`, `overview.md`
+- **Related**: Preload, contextBridge, Main
+
+## KVTable
+
+The organism editing key/value rows (params/headers) with {{variable}} token cells, bound to the active tab.
+
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: varTokens, tabsStore, requestSpec
 
 ## Main
 
-The Electron main process (src/main/index.ts) — Node.js lifecycle, native window creation, and IPC host. It never imports renderer code.
+The Electron main process — owns BrowserWindow creation, app lifecycle, and native OS wiring.
 
-- **Used in**: `architecture.md`, `overview.md`
-- **Related**: Electron, BrowserWindow, IPC, Renderer
+- **Used in**: `architecture.md`, `glossary.md`, `overview.md`
+- **Related**: Electron, BrowserWindow, Preload
 
 ## mintEnvoy
 
-The project: a desktop API client built on Electron, React 19, and TypeScript, bundled by electron-vite and packaged by electron-builder.
+The desktop API client this project builds — an Electron + React 19 + TypeScript app for composing and sending HTTP requests.
 
-- **Used in**: `architecture.md`, `overview.md`
+- **Used in**: `architecture.md`, `glossary.md`, `overview.md`
 - **Related**: Electron, Renderer
 
 ## Modal
 
-A molecule wrapping Radix Dialog — a controlled dialog with focus trap, Escape-to-close, focus return, an overlay scrim, and body scroll lock.
+The molecule wrapping Radix Dialog for controlled modal dialogs.
 
-- **Used in**: `architecture.md`, `overview.md`, `renderer/index.md`
-- **Related**: Radix, Dropdown, UI
+- **Used in**: `architecture.md`, `glossary.md`, `overview.md` (and 1 others)
+- **Related**: Radix, Dropdown
 
-## Module
+## PaneSplit
 
-Module Map / Module Structure — the project-overview grouping of source areas into infrastructure (main, preload) and core (renderer).
+The request/response vertical split organism driven by the --pane-ratio CSS variable.
 
-- **Used in**: `architecture.md`, `overview.md`
-- **Related**: Packages, Main, Renderer
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: Shell, Divider
 
-## No
+## Playwright
 
-[TODO: human-define]
+The component-test runner exercising components in a real browser.
 
 - **Used in**: `architecture.md`, `glossary.md`
+- **Related**: CT, Vitest
 
-## Package
+## Preload
 
-A workspace/build unit. mintEnvoy is single-root with one root package; the docs treat main/preload/renderer as source modules rather than separate packages.
+The contextIsolation-safe bridge process exposing a typed IPC surface (electronAPI plus a project api) from main to the renderer.
 
 - **Used in**: `architecture.md`, `overview.md`
-- **Related**: Packages, Module
+- **Related**: contextIsolation, contextBridge, electronAPI, IPC
 
-## Packages
+## PrimitivesDemo
 
-The project-overview section listing mintEnvoy's top-level source areas (main, preload, renderer). Single-root project, so these are modules, not separate workspace packages.
+The dev-only gallery rendering every UI primitive for visual QA.
 
-- **Used in**: `architecture.md`, `overview.md`, `structure.md`
-- **Related**: Package, Module, mintEnvoy
-
-## Project
-
-The project-tier scope of the docs and spec workflow; the CLAUDE.md primer is its entrypoint for stack facts.
-
-- **Used in**: `architecture.md`, `glossary.md`, `overview.md`
-- **Related**: CLAUDE, mintEnvoy
-
-## Purpose
-
-[TODO: human-define]
-
-- **Used in**: `main/index.md`, `overview.md`, `preload/index.md` (and 1 others)
+- **Used in**: `glossary.md`, `overview.md`
+- **Related**: Icon, Dropdown, Modal, Tabs, Toast
 
 ## Radix
 
-The radix-ui unified package providing the headless overlay substrate — focus-trap, keyboard navigation, and positioning — that Dropdown, Modal, and Toast wrap with project styling.
+The radix-ui primitive library providing accessible focus-trap, keyboard nav, and positioning for overlay molecules.
 
-- **Used in**: `architecture.md`, `overview.md`, `renderer/index.md`
+- **Used in**: `architecture.md`, `glossary.md`, `overview.md` (and 1 others)
 - **Related**: Dropdown, Modal, Toast
 
 ## Renderer
 
-The React 19 process hosting the user-facing UI. It carries no Node/Electron imports and reaches the platform only through preload-exposed window globals.
+The Electron renderer process — the entire React 19 UI plus its generated design tokens; runs node/electron-free.
 
-- **Used in**: `architecture.md`, `overview.md`
-- **Related**: Electron, contextBridge, UI
+- **Used in**: `architecture.md`, `glossary.md`, `overview.md`
+- **Related**: Electron, Shell, tabsStore
 
-## Stack
+## RequestBar
 
-Tech Stack — the project's technologies (React, TypeScript, Vite, Vitest); the Renderer Test Stack is its testing subset.
+The organism rendering the request submission row (method, URL, Send/Save/Share) bound to the active tab's RequestSpec.
 
-- **Used in**: `architecture.md`, `overview.md`
-- **Related**: Vite, Vitest, Testing
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: requestSpec, tabsStore, RequestSubTabs
 
-## Structure
+## requestSpec
 
-[TODO: human-define]
+The renderer-only, JSON-serializable HTTP request domain model (types, guards, and makeBlankRequest).
 
-- **Used in**: `architecture.md`, `main/index.md`, `overview.md` (and 3 others)
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: tabsStore, RequestBar, httpMethods
 
-## Test
+## RequestSubTabs
 
-Test files: _.{test,spec}.{ts,tsx} (Vitest) and _.ct.{ts,tsx} (Playwright CT), co-located under src/renderer/src/\*\*/**tests**/.
+The organism switching a request's six always-mounted sub-tabs (Params, Auth, Headers, Body, Tests, Code).
 
-- **Used in**: `architecture.md`, `overview.md`
-- **Related**: Vitest, Testing
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: Tabs, RequestBar
 
-## Testing
+## settingsStore
 
-The renderer test approach: Vitest + testing-library (jsdom) for interaction, and Playwright component tests for real-browser focus/keyboard fidelity. No main/preload test infra yet.
+The module-level zustand store for shell view state — the single source of truth for shell UI.
 
-- **Used in**: `architecture.md`, `overview.md`
-- **Related**: Vitest, Test
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: Shell, tabsStore
 
-## The
+## Shell
 
-[TODO: human-define]
+The root composition organism assembling Titlebar, Sidebar, panes, and Statusbar.
 
-- **Used in**: `architecture.md`, `glossary.md`, `overview.md` (and 1 others)
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: Titlebar, Statusbar, PaneSplit, Sidebar
 
-## This
+## Sidebar
 
-[TODO: human-define]
+The resizable left-sidebar organism consuming --sidebar-width and mounting a Divider.
 
-- **Used in**: `architecture.md`, `overview.md`
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: Shell, Divider
+
+## Statusbar
+
+The presentational bottom status footer of the shell (children slot).
+
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: Shell
+
+## SVG
+
+The inline vector format for project icons (16x16, currentColor stroke).
+
+- **Used in**: `architecture.md`, `glossary.md`
+- **Related**: Icon
+
+## TabBar
+
+The working-tabs strip organism bound to tabsStore.
+
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: tabsStore, Tabs
+
+## Tabs
+
+The hand-rolled controlled horizontal tab-strip molecule; selection-only.
+
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: TabBar, RequestSubTabs
+
+## tabsStore
+
+The module-level zustand store driving the working-tabs lifecycle state machine (UUID-stamped tabs).
+
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: TabBar, requestSpec, settingsStore
+
+## Titlebar
+
+The top-chrome organism: logo, workspace pill, sidebar toggle, palette trigger, env selector, account pill.
+
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: Shell
 
 ## Toast
 
-A molecule rendering the notification queue via Radix Toast.Root/Toast.Viewport. A single ToastProvider + ToastViewport is mounted once at the App root; multiple instances would split the queue.
+The notification molecule rendering the toast queue via Radix; subscribes to toastStore.
 
-- **Used in**: `architecture.md`, `overview.md`, `renderer/index.md`
-- **Related**: Radix, App, Renderer
+- **Used in**: `architecture.md`, `glossary.md`, `overview.md` (and 1 others)
+- **Related**: toastStore, ToastProvider, ToastViewport, Radix
 
-## UI
+## ToastProvider
 
-The renderer's UI Primitives Layer (feature 001-ui-primitives): the Icon atom plus Dropdown, Modal, and Toast molecules — reusable, accessible building blocks for the desktop client's interface.
+The single Radix provider mounted once at App root so any enqueue renders into one ToastViewport.
 
-- **Used in**: `architecture.md`, `overview.md`, `renderer/index.md`
-- **Related**: Renderer, Icon, Dropdown, Modal, Toast
+- **Used in**: `architecture.md`, `glossary.md`, `renderer/src/index.md`
+- **Related**: Toast, ToastViewport, toastStore
+
+## toastStore
+
+The module-level zustand store owning the toast stack (enqueue, auto/manual dismiss, hover-pause).
+
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: Toast, ToastProvider, tabsStore
+
+## ToastViewport
+
+The single Radix viewport where queued toasts render.
+
+- **Used in**: `architecture.md`, `glossary.md`
+- **Related**: Toast, ToastProvider
+
+## varTokens
+
+The display-only tokeniser splitting text into plain and {{variable}} segments; it never resolves values.
+
+- **Used in**: `architecture.md`, `renderer/src/index.md`
+- **Related**: KVTable, RequestBar, envVars
 
 ## Vite
 
-The bundler underlying electron-vite. It builds the three process targets and applies build-time DEV substitution for dead-code elimination.
+The bundler (via electron-vite) that builds all three Electron processes.
 
-- **Used in**: `architecture.md`, `main/index.md`, `overview.md`
-- **Related**: DEV, Build, Commands
+- **Used in**: `glossary.md`, `overview.md`
+- **Related**: Vitest, HMR
 
 ## Vitest
 
-The unit/interaction test runner for the renderer, paired with @testing-library/react and user-event under jsdom.
+The unit-test runner for renderer logic and components.
 
-- **Used in**: `architecture.md`, `overview.md`
-- **Related**: Testing, Test, Renderer
+- **Used in**: `architecture.md`, `glossary.md`, `overview.md`
+- **Related**: Playwright, Vite

@@ -1,16 +1,17 @@
 ---
 concern: main
 files: 1
-last_indexed: 2026-06-22
+last_indexed: 2026-07-09
 package: .
-source_stamp: 246d3c55692bd3e5
+source_stamp: 3367f88a950516ad
 ---
+
 
 # main
 
 ## Purpose
 
-Electron main-process entry point. Creates the application BrowserWindow with the preload bridge attached, drives app lifecycle (ready, activate, window-all-closed), and routes new-window requests to the system browser via shell.openExternal. Loads the Vite dev-server URL in development and the bundled HTML in production.
+Boots the Electron main process: constructs the 900x670 BrowserWindow (min-width 720, menu bar auto-hidden, deferred show until ready-to-show) wired to the contextIsolation-safe preload bridge, and routes window-open requests to the system browser via shell.openExternal. Owns app-lifecycle wiring (ready, window-all-closed, activate) and electron-vite HMR for the renderer.
 
 ## Structure
 
