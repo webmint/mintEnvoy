@@ -40,6 +40,26 @@ def _empty_dimension() -> dict:
     return {"value": None, "state": RUBRIC_STATE_DEFAULT, "turns": 0}
 
 
+def _empty_design_anchor_record() -> dict:
+    """Return a fresh (unset) design_anchor record.
+
+    Distinct from _empty_dimension(): design_anchor is NOT one of
+    RUBRIC_DIMENSIONS -- it does not participate in symptom-coverage /
+    symptom-finalize gating (plan 53 Phase 1: an anchor is optional, an
+    empty/unset anchor is the valid default). `value` is a nested
+    {kind, file, selectors} dict rather than a plain string, matching the
+    handoff_schema.DesignAnchor shape 1:1.
+
+    No "turns" key (unlike _empty_dimension()) -- design_anchor has no
+    --increment-turn setter and nothing reads a turns count for it; the
+    key would be dead state if carried over.
+    """
+    return {
+        "value": {"kind": "", "file": "", "selectors": []},
+        "state": RUBRIC_STATE_DEFAULT,
+    }
+
+
 def default_memo_state() -> dict:
     """Return a fresh SymptomMemo state matching schema."""
     return {
@@ -59,6 +79,11 @@ def default_memo_state() -> dict:
         # Appended by record-intake-classification; read by render-intake-echo.
         # Append-only; re-recording the same statement replaces its entry (idempotent).
         "intake_classifications": [],
+        # Plan 53 Phase 1 -- captured design intent. Optional; NOT one of
+        # RUBRIC_DIMENSIONS (does not gate symptom-finalize). set-design-anchor
+        # persists {kind, file, selectors} into value; finalize-handoff maps it
+        # into SpecSeeds.design_anchor.
+        "design_anchor": _empty_design_anchor_record(),
     }
 
 

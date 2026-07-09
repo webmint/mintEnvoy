@@ -15,7 +15,6 @@ The difference between a defect and a relitigation is the whole discipline of th
 mode.
 
 THE RELITIGATION RULE:
-
 - A finding is a DEFECT only when you can demonstrate, from quoted text, that the
   chosen design is broken: a duplicate the codebase already has, a layer the plan
   crosses, a deprecated API the plan names, a security boundary the plan omits, a

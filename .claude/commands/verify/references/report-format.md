@@ -28,12 +28,11 @@ Plus the `mechanical-status` string carried from `verify-touched` (PHASE 4.1) an
 
 ## Acceptance Criteria
 
-| AC   | Status      | Evidence                                          |
-| ---- | ----------- | ------------------------------------------------- |
-| AC-1 | PASS        | [snapshot/response/file:line evidence]            |
-| AC-2 | FAIL        | [expected-vs-observed]                            |
+| AC | Status | Evidence |
+|---|---|---|
+| AC-1 | PASS | [snapshot/response/file:line evidence] |
+| AC-2 | FAIL | [expected-vs-observed] |
 | AC-3 | PASS (code) | [implementation in file:line satisfies criterion] |
-
 ...
 
 (When the spec defines no ACs, the table is replaced by "_No ACs defined in spec._")
@@ -60,14 +59,12 @@ Severity breakdown: N Critical, N High, N Medium, N Info
 (Grouped by severity — Critical → High → Medium → Info — drawn from the confirmed + contested findings of the review report. Each entry names the severity, the file:line, the pattern, and any tags such as [CONTESTED].)
 
 ### Critical
-
-- [Critical] src/auth.py:42 — [description] [CONTESTED]
-  ...
+- [Critical] src/auth.py:42 — [description]  [CONTESTED]
+...
 
 ### High
-
 - [High] src/orders.py:88 — [description]
-  ...
+...
 
 (When there are no confirmed or contested findings: "_No confirmed or contested findings in the review report._"; when review.md is missing: "_No review report — run /review to identify issues._")
 
@@ -76,10 +73,10 @@ Severity breakdown: N Critical, N High, N Medium, N Info
 **APPROVED** | **NEEDS WORK** | **REJECTED**
 
 **Reasons**:
-
 - [reason line 1 — e.g. "AC failure: 1 of 5 verifiable ACs did not pass."]
 - [reason line 2 — e.g. "Mechanical checks failed: verify-touched reported status='failed'."]
-  ...
+- [reason line 3 — e.g. "Regression gate: the test suite passed at the merge-base and fails at HEAD — implementation regression detected."]
+...
 
 (On a clean APPROVED with no reasons: "All acceptance criteria satisfied, no blocking issues found.")
 
@@ -90,8 +87,17 @@ Severity breakdown: N Critical, N High, N Medium, N Info
 
 The verdict is deterministic (`compute-verdict`), in priority order:
 
-- **REJECTED** — a confirmed `[CONSTITUTION-VIOLATION]` (D7), OR a spec-level AC failure pattern (mode != `off` AND ≥ 2 failing ACs AND ≥ 50% failure rate).
-- **NEEDS WORK** — any blocker present: a failing/partial AC (mode != `off`), a mechanical failure, a Critical/High review finding (confirmed or contested, **excluding** constitution-violation-tagged findings — those route to the constitution paths above/below, not this one), a contested `[CONSTITUTION-VIOLATION]` (D7 — always at least NEEDS WORK), OR a confirmed Medium review finding (non-constitution; contested Medium does NOT gate). Hygiene flags (`scope_creep` / `leftover_artifacts`) are **advisory only** — they appear in `reasons` but never in `blockers` and never cause NEEDS WORK on their own.
+- **REJECTED** — a confirmed `[CONSTITUTION-VIOLATION]`, OR a spec-level AC failure pattern (mode != `off` AND ≥ 2 failing ACs AND ≥ 50% failure rate).
+- **NEEDS WORK** — any blocker present: a failing/partial AC (mode != `off`), a mechanical failure, a **regression** (`regression-gate` returned `status:regression` — the test suite was green at the feature's merge-base and is red at HEAD; this is a NEEDS WORK blocker and can NEVER force REJECTED), a Critical/High review finding (confirmed or contested, **excluding** constitution-violation-tagged findings — those route to the constitution paths above/below, not this one), a contested `[CONSTITUTION-VIOLATION]` (always at least NEEDS WORK), OR a confirmed Medium review finding (non-constitution; contested Medium does NOT gate). Hygiene flags (`scope_creep` / `leftover_artifacts`) are **advisory only** — they appear in `reasons` but never in `blockers` and never cause NEEDS WORK on their own.
 - **APPROVED** — no blockers. Under `ac_verification_mode=off`, AC failures are advisory (they appear in `reasons` but do not block), and the verdict notes ACs were verified by code-reading only.
 
-Constitution violations ALWAYS block APPROVED — a confirmed one forces REJECTED, a contested one forces at least NEEDS WORK. This is the D7 invariant and is enforced structurally in `compute-verdict`; the report never relaxes it.
+Constitution violations ALWAYS block APPROVED — a confirmed one forces REJECTED, a contested one forces at least NEEDS WORK. This invariant is enforced structurally in `compute-verdict`; the report never relaxes it.
+
+## Regression gate (folds into the verdict — no dedicated rendered section)
+
+The full-suite regression gate (`verify_helper regression-gate`, PHASE 4.3) reaches `verification.md` ONLY through the verdict — `render-report` takes no regression input, so the report has NO dedicated "Regression Gate" section. Instead, the orchestrator passes `$WORKDIR/regression.json` to `compute-verdict --regression`, which folds the result into the verdict it owns:
+
+- `status:regression` (the suite was green at the feature's merge-base and is red at HEAD) → `compute-verdict` adds a `regression`-type blocker AND a Reason line ("Regression gate: the test suite passed at the merge-base and fails at HEAD — implementation regression detected."). The verdict becomes NEEDS WORK. This surfaces in the report's `## Verdict` → **Reasons** (and drives the Issues listing via the blocker). A regression can NEVER force REJECTED — it is implementation-level, not spec-level.
+- Every other status — `off` (gate disabled), `inconclusive` (could not run — no merge-base / no test command / git error), `clean` (green at both points), `baseline-failing` (already red at the merge-base, a pre-existing failure) — adds NO blocker and NO Reason line; it leaves the verdict unaffected and writes nothing to `verification.md`.
+
+The full status / `note` / failing-test tail (`head_output_tail`) is surfaced to the user IN-RUN by the orchestrator (PHASE 4.3), not persisted to `verification.md`. The gate is fail-soft — an internal error is reported as `inconclusive`, never a gate. Only `status:regression` ever gates; no other status is a silent pass and none is a false gate.

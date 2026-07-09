@@ -1,9 +1,11 @@
 """Thin entry-point shim for design_helper — see _design/ for implementation.
 
-Disposition manifest helper for the design-fidelity forcing function (plan 40
-Phase 2): produces and validates a per-element design-disposition manifest from
-a reference.html (+ optional design/styles.css).  All logic lives in `_design/`;
-this shim provides the stable POSIX launcher path.
+Design-fidelity helper (plan 40 Phase 2, reframed to the anchor/binding
+schema in plan 53 Phase 3): validates a per-feature route+pairs binding
+(specs/[feature]/design-manifest.json) against a reference.html (+ optional
+design/styles.css) via `validate-binding`, `check-design-source`, and
+`extract-spacing-scale`.  All logic lives in `_design/`; this shim provides
+the stable POSIX launcher path.
 """
 
 import sys

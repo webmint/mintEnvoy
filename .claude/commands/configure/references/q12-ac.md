@@ -5,7 +5,6 @@
 ## Q12 — Mode selection
 
 Use AskUserQuestion: "How should /verify check acceptance criteria?"
-
 - `code-only` (Recommended) — read code; no test execution; no runtime probing
 - `tests` — run tests; no runtime probing
 - `runtime-assisted` — run app + probe via Chrome DevTools MCP / API calls
@@ -29,7 +28,6 @@ If the user picks `runtime-assisted`, proceed to the conditional follow-up tripl
 Phase 2 detection populated `AC_RUNTIME_URL` from matched config files (e.g., `vite.config.*` `server.host` + `server.port`). Pre-fill the prompt with that detected value.
 
 If detection produced a non-empty value, use AskUserQuestion (substitute `<value>` with the Phase 2 composed URL): "Detected runtime URL: `<value>`. Confirm or override?"
-
 - `Confirm` — use the detected URL
 - `Override` — let me type a different URL
 
@@ -42,7 +40,6 @@ If detection produced an empty value, skip the AskUserQuestion and ask plainly: 
 Phase 2 detection populated `AC_RUNTIME_API_BASE` from matched `.env*` files (e.g., `VITE_API_URL`).
 
 If detection produced a non-empty value, use AskUserQuestion (substitute `<value>` with the Phase 2 composed URL): "Detected API base: `<value>`. Confirm or override?"
-
 - `Confirm` — use the detected API base
 - `Override` — let me type a different URL
 
@@ -55,7 +52,6 @@ If detection produced an empty value, skip the AskUserQuestion and ask plainly: 
 Phase 2 detection populated `AC_RUNTIME_CLI_COMMAND` from manifest `scripts.dev` or `scripts.start`.
 
 If detection produced a non-empty value, use AskUserQuestion (substitute `<value>` with the Phase 2 composed command): "Detected runtime CLI command: `<value>`. Confirm or override?"
-
 - `Confirm` — use the detected command
 - `Override` — let me type a different command
 

@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Translate an approved spec into a technical implementation plan with architecture decisions, layer map, file impact, and risk assessment.
-argument-hint: '[spec-file]'
+argument-hint: "[spec-file]"
 disable-model-invocation: true
 ---
 
@@ -146,18 +146,20 @@ Exit 2 means the spec is malformed (neither Date nor Status frontmatter line). E
 - For greenfield projects: check the constitution's scaffolding guide for pattern references.
 - The spec already incorporates relevant documentation context from `docs/`. Do not re-read docs — use the spec's "Current State" and "Affected Areas" sections as your primary source.
 
+After the codebase read, do one design-intent read (separate from the code-pattern research above): if a `design-anchor.json` sibling of the resolved `spec.md` exists (i.e. `specs/[feature]/design-anchor.json`, the design INTENT `/specify` persisted for a UI feature), read it — a passive, read-only sibling read. Parse the flat JSON directly; do NOT call any helper verb (the anchor is read in place). It carries `{kind, file, selectors}`: the design-source `kind` (e.g. `html`), the source `file`, and the `selectors` that carry the intent. Note the `kind` and the intent-bearing `selectors` so the UI technical approach (Phase 1) is shaped to match the captured intent instead of re-guessing it. `/plan` does NOT author the built-side binding (the render `route` + selector pairs) — that is `/breakdown`'s job — and does NOT re-serialize the anchor into `plan-handoff.json`. Absent → silent no-op (a non-UI feature, or one whose intake captured no anchor).
+
 ### Step 2: Signal Scan
 
 Read the spec and check for these signals. **Only flag signals for things NOT already in the project's current stack.** If the spec references a library/technology that's already in the project's dependencies (check `CLAUDE.md`, `package.json`, `pubspec.yaml`, `requirements.txt`, etc.), that is NOT a signal — the team has already made that choice.
 
-| Signal                                                       | Example                                                 | NOT a signal when...                |
-| ------------------------------------------------------------ | ------------------------------------------------------- | ----------------------------------- |
-| External library/package **not in project dependencies**     | "use Stripe SDK" (and Stripe is not in package.json)    | Library is already installed        |
-| New integration with **unconfigured** third-party service    | "connect to payment gateway" (no payment config exists) | Service is already integrated       |
-| Architectural decision where multiple valid approaches exist | "real-time updates" (polling vs SSE vs WebSocket)       | Always a signal — requires decision |
-| Greenfield pattern not yet present in the codebase           | first use of caching, first background job              | Pattern already exists in codebase  |
-| Performance constraints that need benchmarking               | "handle 10k concurrent users", "< 200ms response"       | Always a signal — requires research |
-| Technology **not part of the project's current stack**       | new protocol or tool the codebase hasn't used           | Technology is already in the stack  |
+| Signal | Example | NOT a signal when... |
+|--------|---------|---------------------|
+| External library/package **not in project dependencies** | "use Stripe SDK" (and Stripe is not in package.json) | Library is already installed |
+| New integration with **unconfigured** third-party service | "connect to payment gateway" (no payment config exists) | Service is already integrated |
+| Architectural decision where multiple valid approaches exist | "real-time updates" (polling vs SSE vs WebSocket) | Always a signal — requires decision |
+| Greenfield pattern not yet present in the codebase | first use of caching, first background job | Pattern already exists in codebase |
+| Performance constraints that need benchmarking | "handle 10k concurrent users", "< 200ms response" | Always a signal — requires research |
+| Technology **not part of the project's current stack** | new protocol or tool the codebase hasn't used | Technology is already in the stack |
 
 **No signals found** → proceed to Phase 1 with codebase research only.
 
@@ -168,13 +170,11 @@ Read the spec and check for these signals. **Only flag signals for things NOT al
 For each signal, choose the appropriate research tool:
 
 **For specific libraries named in the spec** (binding):
-
 - **Required**: Use Context7 first (`resolve-library-id` → `query-docs`) to get current documentation. **Do not skip directly to WebSearch.**
 - **Fallback condition**: Only fall back to WebSearch if (a) Context7 returns no results for the library, OR (b) the Context7 tool is unavailable in this session. Document the fallback in research.md with the specific reason ("Context7 returned no docs for X" or "Context7 unavailable").
 - **Auditability**: The choice is logged in tool-call traces; reviewers can verify which path was taken.
 
 **For comparing alternatives or architectural decisions:**
-
 - Use WebSearch to find current best practices and proven approaches.
 - Compare at least 2-3 alternatives with pros/cons.
 - Check library options: maintenance status, bundle size, community adoption.
@@ -188,7 +188,6 @@ After raw findings for each alternative are gathered (pros/cons/maintenance/bund
 Skip ONLY when alternatives are mechanical (one library is project-default per `CLAUDE.md`, others are non-starters). The skip reason must be recorded as a one-line note in the plan.md "Specialist Consultation" section (see Phase 2 template) — that section is always present in plan.md and is the single source of truth for invocation/skip provenance, regardless of whether research.md was generated. Silent skips are a hard error.
 
 **For all signals:**
-
 - Look at real-world examples of similar implementations.
 - Verify external API contracts and limitations.
 
@@ -216,16 +215,14 @@ Save to `specs/[feature-name]/research.md`:
 **Signals detected**: [list which signals triggered deep research]
 
 ## Questions Investigated
-
 1. [Question] → [Finding + decision]
 2. [Question] → [Finding + decision]
 
 ## Alternatives Compared
 
 ### [Decision Area] (e.g., "Payment processor", "WebSocket library")
-
-| Option     | Pros   | Cons   | Verdict           |
-| ---------- | ------ | ------ | ----------------- |
+| Option | Pros | Cons | Verdict |
+|--------|------|------|---------|
 | [option A] | [pros] | [cons] | Chosen / Rejected |
 | [option B] | [pros] | [cons] | Chosen / Rejected |
 | [option C] | [pros] | [cons] | Chosen / Rejected |
@@ -233,13 +230,12 @@ Save to `specs/[feature-name]/research.md`:
 **Decision**: [chosen option] — [one-line rationale]
 
 ## References
-
 - [links to docs, examples, or source files consulted]
 ```
 
 If no deep research was needed (no signals), skip the research.md file.
 
-## PHASE 1.5: Findings from Spec (REQUIRED INTERMEDIATE OUTPUT — v2)
+## PHASE 1.5: Findings from Spec (REQUIRED INTERMEDIATE OUTPUT)
 
 Before writing any of the plan's tables (Layer Map, File Impact, Key Design Decisions, Risk Assessment), produce a structured intermediate output enumerating what the spec contains. This is a hard requirement.
 
@@ -269,7 +265,7 @@ This appends a resolution audit entry to specify-state; the spec re-render strik
 
 This intermediate output forces every spec section to be acknowledged before plan tables are written. Same purpose as /specify Phase 1.5: convert implicit recall into explicit enumeration. Skipping or compressing this step is a hard error.
 
-After this intermediate output is complete, proceed to Phase 1 (Technical Design). The "1.5" numbering is preserved verbatim from parity-validated `/plan` v2 — the section runs after Phase 0 and before Phase 1 despite the numeric ordering, because it gates both the Phase 1 technical artefacts (data model, contracts, architecture decisions — per the Prerequisite at the top of Phase 1) and the Phase 2 plan tables (Layer Map, File Impact, Key Design Decisions, Risk Assessment — per the preamble above).
+After this intermediate output is complete, proceed to Phase 1 (Technical Design). The "1.5" numbering is deliberate — the section runs after Phase 0 and before Phase 1 despite the numeric ordering, because it gates both the Phase 1 technical artefacts (data model, contracts, architecture decisions — per the Prerequisite at the top of Phase 1) and the Phase 2 plan tables (Layer Map, File Impact, Key Design Decisions, Risk Assessment — per the preamble above).
 
 ## PHASE 1: Technical Design
 
@@ -285,18 +281,15 @@ If the feature involves data entities, define them. Save to `specs/[feature-name
 ## Entities
 
 ### [EntityName]
-
-| Field | Type   | Required | Description       |
-| ----- | ------ | -------- | ----------------- |
-| id    | string | yes      | Unique identifier |
-| ...   | ...    | ...      | ...               |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string | yes | Unique identifier |
+| ... | ... | ... | ... |
 
 ### Relationships
-
 - [Entity A] → [Entity B]: [relationship type and description]
 
 ### Validation Rules
-
 - [Field]: [constraint]
 ```
 
@@ -310,7 +303,6 @@ If the feature involves API calls (REST, GraphQL, etc.), define contracts. Save 
 # API Contracts: [Feature Name]
 
 ## [Endpoint/Query/Mutation Name]
-
 - **Type**: [GET/POST/Query/Mutation]
 - **Input**: [type definition or reference to existing type]
 - **Output**: [type definition or reference to existing type]
@@ -373,13 +365,11 @@ Save to `specs/[feature-name]/plan.md`. The Layer Map below shows a Domain/Data/
 ## Specialist Consultation
 
 **Invocations**:
-
 - Phase 0 alternatives: [yes — see research.md §Alternatives Compared | no — N/A (no 2+ alternatives compared, OR alternatives were mechanical per CLAUDE.md project-defaults — one-line reason: ___)]
 - Phase 1.3 architecture decisions: yes (mandatory)
 - Specialists consulted (orchestrator-relayed on the architect's request, or directly): [see Specialist Consultation table]
 
 **Architect-authored sections** (transcribed verbatim from architect return):
-
 - Layer Map: [rows N-M]
 - Key Design Decisions: [rows N-M]
 - Risk Assessment seeds: [rows N-M]
@@ -400,7 +390,6 @@ Save to `specs/[feature-name]/plan.md`. The Layer Map below shows a Domain/Data/
 ## Constitution Compliance
 
 [Verify the planned approach doesn't violate any NON-NEGOTIABLE rules]
-
 - Rule X: [compliant / requires attention]
 - Rule Y: [compliant / requires attention]
 
@@ -410,48 +399,48 @@ Save to `specs/[feature-name]/plan.md`. The Layer Map below shows a Domain/Data/
 
 [Which architectural layers this feature touches and what happens in each]
 
-| Layer        | What                           | Files (existing or new) |
-| ------------ | ------------------------------ | ----------------------- |
-| Domain       | [types, interfaces, use cases] | [file paths]            |
-| Data         | [repositories, API calls]      | [file paths]            |
-| Presentation | [components, views, state]     | [file paths]            |
+| Layer | What | Files (existing or new) |
+|-------|------|------------------------|
+| Domain | [types, interfaces, use cases] | [file paths] |
+| Data | [repositories, API calls] | [file paths] |
+| Presentation | [components, views, state] | [file paths] |
 
 ### Key Design Decisions
 
-| Decision   | Chosen Approach | Why         | Alternatives Rejected |
-| ---------- | --------------- | ----------- | --------------------- |
-| [decision] | [approach]      | [rationale] | [alternatives]        |
+| Decision | Chosen Approach | Why | Alternatives Rejected |
+|----------|----------------|-----|----------------------|
+| [decision] | [approach] | [rationale] | [alternatives] |
 
 ### Established-Convention Departures
 
 [Include this subsection ONLY if ≥1 Key Design Decision is flagged "DEPARTURE" in its Why column (per architect Rule 3). Omit the entire subsection — heading and table — when there are no departures (e.g. greenfield or first-touch concerns).]
 
-| Departure            | Established Pattern Left                          | Why Necessary                                             |
-| -------------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| Departure | Established Pattern Left | Why Necessary |
+|-----------|--------------------------|---------------|
 | [new pattern chosen] | [what the codebase already does for this concern] | [why the established pattern genuinely doesn't work here] |
 
 ### File Impact
 
-| File   | Action        | What Changes        |
-| ------ | ------------- | ------------------- |
+| File | Action | What Changes |
+|------|--------|-------------|
 | [path] | Create/Modify | [brief description] |
 | [path] | Create/Modify | [brief description] |
 
 ### Documentation Impact
 
-| Doc File                          | Action        | What Changes                                    |
-| --------------------------------- | ------------- | ----------------------------------------------- |
-| docs/<package>/overview.md        | Update/Create | [what needs documenting at the package level]   |
-| docs/<package>/architecture.md    | Update        | [if package-level layer patterns change]        |
-| docs/<package>/<concern>/index.md | Update/Create | [if a concern's Purpose or Structure changes]   |
-| docs/architecture.md              | Update        | [if cross-package architecture patterns change] |
+| Doc File | Action | What Changes |
+|----------|--------|-------------|
+| docs/<package>/overview.md | Update/Create | [what needs documenting at the package level] |
+| docs/<package>/architecture.md | Update | [if package-level layer patterns change] |
+| docs/<package>/<concern>/index.md | Update/Create | [if a concern's Purpose or Structure changes] |
+| docs/architecture.md | Update | [if cross-package architecture patterns change] |
 
 [If no documentation impact: "No documentation changes expected — internal implementation only."]
 
 ## Risk Assessment
 
-| Risk   | Likelihood   | Impact       | Mitigation      |
-| ------ | ------------ | ------------ | --------------- |
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
 | [risk] | Low/Med/High | Low/Med/High | [how to handle] |
 
 ## Dependencies
@@ -490,7 +479,7 @@ Before presenting the plan to the user, verify completeness:
 
 ## PHASE 3: User Approval
 
-**Mode-dependent execution path** (Patch 4 per PLAN-COMMAND-REDESIGN-PLAN.md — auto vs interactive paths, verbatim from parity-validated `/plan` v2):
+**Mode-dependent execution path** — auto vs interactive paths:
 
 - **If auto mode is active** (detect via `<system-reminder>` about auto mode, or explicit user instruction to operate autonomously): do not pause for clarifying questions during plan creation. Apply model's recommended defaults to any decision the spec left as `[default applied]` or that the plan surfaces fresh. Document each in a "Decision Points Resolved" subsection of the plan summary, marked `[default applied]`. The user reviews defaults at the approval gate below.
 - **If auto mode is NOT active** (interactive mode, default): if the plan surfaces decision points the spec didn't resolve (e.g., between filter patterns, single-target invocation methods, or override mechanisms), pause and ask the user via `AskUserQuestion` (or fallback to numbered markdown list) before writing. Do not silently apply defaults in interactive mode.
@@ -546,6 +535,19 @@ The block below shows the mandatory two-entry minimum — append `"specs/<NNN>-<
 ```
 
 The helper stages those paths in the install repo and makes a `[WIP] plan: <NNN>-<feature>` commit; it is install-repo-only (never the source repo in wrapper mode). This call is UNCONDITIONAL — always run it, even if `finalize-handoff` above exited non-zero (`plan.md` still exists, and the helper benign-skips any `--paths` entry that was not written). It is FAIL-SOFT: a git staging or commit failure warns on stderr and exits 1 (non-fatal — the artifact is already written, so warn the user with the helper's stderr and continue to the `render-breakdown-handoff` block below; do NOT abort the approve flow); "nothing to commit" (paths already staged or absent) exits 0 silently as a benign no-op.
+
+**Surface the design-stakes hint (advisory, non-blocking).** `finalize-handoff` in the first step of this phase wrote `plan-handoff.json` alongside `<plan-path>` (its sibling in the same feature directory) and printed that file's absolute path on stdout — call it `<plan-handoff-path>`. Run the stakes-hint helper against that same path:
+
+```bash
+.devforge/lib/plan_helper stakes-hint <plan-handoff-path>
+```
+
+The helper reads that `plan-handoff.json` and prints a short "consider running `/grill`" hint to stdout WHEN the plan's structured signals indicate high stakes (wide file impact, a new data model, a real new dependency, security-relevant risks or decisions, or an unusually risk-laden plan of 4+ recorded risks); otherwise it prints nothing. It always exits 0. Handle its stdout:
+
+- **Non-empty stdout** → copy it VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase).
+- **Empty stdout** → emit nothing and proceed silently to the `render-breakdown-handoff` step below. Empty output is the normal case for an ordinary plan and is NOT an error.
+
+This hint is ADVISORY and NON-BLOCKING: it never blocks the approve flow, never gates `/breakdown`, and the user is free to ignore it. `/grill` remains opt-in — the user chooses whether to run it. Like the other PHASE 4 helper calls, this step is best-effort; because `stakes-hint` always exits 0, there is no non-zero exit to handle here.
 
 Then emit the deterministic handoff block via the helper:
 

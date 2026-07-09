@@ -4,16 +4,27 @@ build_parser composes the top-level + subparsers.
 _register_subcommands attaches each cmd_* handler via set_defaults(func=...).
 main parses argv + dispatches (prints help + returns 2 when no subcommand).
 
-Phase 2 verbs (this file):
-  resolve-reference       — parse reference.html: element list + resolved values
-                            + gap-list of unresolvable classes/tokens
-  init-manifest           — produce a skeleton manifest (all unclassified) from
-                            resolve-reference output
-  validate-manifest       — validate a manifest: unclassified element → exit 1
-                            naming the element; non-empty gap-list → exit 1
-                            naming each token; fully-classified + empty gap-list → exit 0
+Verbs (this file):
+  validate-binding        — validate a binding JSON (specs/[feature]/
+                            design-manifest.json): route + >=1 fully-
+                            specified pair required; empty/invalid binding
+                            -> exit 1 naming the gap. (plan 53 Phase 3)
   extract-spacing-scale   — extract spacing scale from design/styles.css;
                             relaxes (available=false) when CSS is absent (OQ-6)
+  check-design-source     — warn (non-blocking) when a non-file design
+                            source is declared but no enforceable
+                            design/reference.html exists (plan 43)
+  compare                 — run the deterministic intent-reader x
+                            built-reader x comparator engine over a built
+                            bag (+ optional intent bag + binding); emits a
+                            {status, ...} ComparisonResult JSON distinguishing
+                            NOT_COVERED / CLEAN / DEFECT (plan 53 Phase 4/5)
+
+RETIRED (plan 53 Phase 3): resolve-reference and init-manifest.  The data-ref
+HTML-anchor extraction (resolve-reference) and its skeleton-manifest
+generator (init-manifest) fed the retired disposition-manifest schema; the
+binding schema's route + pairs are always human/LLM authored directly, so
+neither verb has a mechanical replacement.
 
 Extension point: append to _SUBCOMMAND_REGISTRY and add the argument block in
 _register_subcommands's elif chain.
@@ -24,13 +35,12 @@ from __future__ import annotations
 import argparse
 import sys
 
-from ._reference import cmd_resolve_reference
 from ._manifest import (
-    cmd_init_manifest,
-    cmd_validate_manifest,
+    cmd_validate_binding,
     cmd_extract_spacing_scale,
 )
 from ._source import cmd_check_design_source
+from ._cmds_compare import cmd_compare
 
 
 # ---------------------------------------------------------------------------
@@ -39,36 +49,16 @@ from ._source import cmd_check_design_source
 
 _SUBCOMMAND_REGISTRY = [
     (
-        "resolve-reference",
+        "validate-binding",
         (
-            "Parse reference.html: returns element list (data-ref anchors, tags, "
-            "classes, inline styles) + declared CSS values from <style> blocks "
-            "and linked stylesheets resolvable on disk + gap-list of unresolvable "
-            "classes/tokens (classes with no CSS definition, undefined --custom-props). "
-            "Emits JSON to stdout. (Phase 2)."
+            "Read a binding JSON (--binding-path) and validate it. "
+            "Missing/empty route -> exit 1 naming 'route'. "
+            "Zero pairs -> exit 1. A pair missing anchor_selector or "
+            "built_testid -> exit 1 naming the pair index and field. "
+            "Valid binding (route + >=1 fully-specified pair) -> exit 0. "
+            "Emits {valid, errors} JSON to stdout. (plan 53 Phase 3)."
         ),
-        cmd_resolve_reference,
-    ),
-    (
-        "init-manifest",
-        (
-            "Read a resolve-reference JSON output (--reference-json) and produce "
-            "a skeleton disposition manifest JSON to stdout with every element set "
-            "to disposition='' (unclassified). The orchestrator fills in dispositions "
-            "before running validate-manifest. (Phase 2)."
-        ),
-        cmd_init_manifest,
-    ),
-    (
-        "validate-manifest",
-        (
-            "Read a manifest JSON (--manifest-path) and validate it. "
-            "Unclassified element → exit 1 naming the element. "
-            "Non-empty gap-list → exit 1 naming each unresolvable token. "
-            "Fully-classified manifest + empty gap-list → exit 0. "
-            "Emits {valid, errors} JSON to stdout. (Phase 2)."
-        ),
-        cmd_validate_manifest,
+        cmd_validate_binding,
     ),
     (
         "extract-spacing-scale",
@@ -95,6 +85,23 @@ _SUBCOMMAND_REGISTRY = [
         ),
         cmd_check_design_source,
     ),
+    (
+        "compare",
+        (
+            "Run the deterministic intent-reader x built-reader x "
+            "comparator engine. Reads a built bag (--built-bag, required), "
+            "an optional intent bag (--intent-bag), and an optional "
+            "binding (--binding), and emits a JSON ComparisonResult "
+            "distinguishing NOT_COVERED (built region not found) / CLEAN "
+            "(region found, zero findings) / DEFECT (real findings). "
+            "The always-on anchor-free sanity floor (overflow/clip/"
+            "font-not-loaded) runs whenever the region is found, with or "
+            "without an intent bag; anchor-gated value + geometry fidelity "
+            "runs only when both --intent-bag and --binding are given. "
+            "(plan 53 Phase 4/5)."
+        ),
+        cmd_compare,
+    ),
 ]
 
 
@@ -109,11 +116,14 @@ def build_parser():
     parser = argparse.ArgumentParser(
         prog="design_helper",
         description=(
-            "Helper for the design-fidelity forcing function (plan 40 Phase 2). "
-            "Produces and validates a per-element disposition manifest from a "
-            "reference.html (+ optional design/styles.css). "
-            "Verbs: resolve-reference, init-manifest, validate-manifest, "
-            "extract-spacing-scale, check-design-source."
+            "Helper for the design-anchor + binding apparatus (plan 53). "
+            "Validates a per-feature built-side binding (route + anchor-selector/"
+            "built-testid pairs) against specs/[feature]/design-manifest.json, "
+            "and runs the deterministic design-fidelity comparator over "
+            "measurement bags captured by the js/built_reader.js + "
+            "js/intent_reader.js evaluate_script collectors. "
+            "Verbs: validate-binding, extract-spacing-scale, check-design-source, "
+            "compare."
         ),
     )
     subparsers = parser.add_subparsers(dest="subcommand")
@@ -127,38 +137,15 @@ def _register_subcommands(subparsers):
     for verb, help_text, handler in _SUBCOMMAND_REGISTRY:
         sp = subparsers.add_parser(verb, help=help_text)
 
-        if verb == "resolve-reference":
+        if verb == "validate-binding":
             sp.add_argument(
-                "--html-path",
+                "--binding-path",
                 required=True,
-                dest="html_path",
+                dest="binding_path",
                 metavar="PATH",
                 help=(
-                    "Path to the reference.html file to parse. "
-                    "Linked stylesheets are resolved relative to this file's directory."
-                ),
-            )
-
-        elif verb == "init-manifest":
-            sp.add_argument(
-                "--reference-json",
-                required=True,
-                dest="reference_json",
-                metavar="PATH",
-                help=(
-                    "Path to a JSON file produced by the resolve-reference verb. "
-                    "The skeleton manifest is written to stdout."
-                ),
-            )
-
-        elif verb == "validate-manifest":
-            sp.add_argument(
-                "--manifest-path",
-                required=True,
-                dest="manifest_path",
-                metavar="PATH",
-                help=(
-                    "Path to the disposition manifest JSON to validate. "
+                    "Path to the binding JSON to validate "
+                    "(specs/[feature]/design-manifest.json). "
                     "Emits {valid, errors} JSON to stdout; "
                     "exit 0 = valid, exit 1 = validation errors."
                 ),
@@ -197,6 +184,58 @@ def _register_subcommands(subparsers):
                 help=(
                     "Workspace root directory used to resolve design/reference.html. "
                     "Defaults to '.' (current directory)."
+                ),
+            )
+
+        elif verb == "compare":
+            sp.add_argument(
+                "--built-bag",
+                required=True,
+                dest="built_bag",
+                metavar="PATH",
+                help=(
+                    "Path to the built web reader's JSON bag "
+                    "(js/built_reader.js's evaluate_script output, saved "
+                    "to a scratch file by the caller). Required."
+                ),
+            )
+            sp.add_argument(
+                "--intent-bag",
+                required=False,
+                default=None,
+                dest="intent_bag",
+                metavar="PATH",
+                help=(
+                    "Path to the html intent reader's JSON bag "
+                    "(js/intent_reader.js's output). Omit when the "
+                    "feature has no captured design anchor -- the "
+                    "fidelity layer is then NOT-COVERED but the sanity "
+                    "floor still runs."
+                ),
+            )
+            sp.add_argument(
+                "--binding",
+                required=False,
+                default=None,
+                dest="binding",
+                metavar="PATH",
+                help=(
+                    "Path to the feature's binding JSON "
+                    "(specs/[feature]/design-manifest.json). Omit "
+                    "alongside --intent-bag."
+                ),
+            )
+            sp.add_argument(
+                "--route",
+                required=True,
+                dest="route",
+                metavar="ROUTE",
+                help=(
+                    "The built app's route, carried into every emitted "
+                    "finding's 'file' field. Required -- a route-absent "
+                    "run is NOT-COVERED per plan 53 honesty invariant #2 "
+                    "and must never reach this verb (the caller decides "
+                    "that upstream, before invoking evaluate_script)."
                 ),
             )
 

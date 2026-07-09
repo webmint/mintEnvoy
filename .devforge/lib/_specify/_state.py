@@ -34,6 +34,11 @@ def default_state() -> Dict[str, Any]:
         "spec_type_seeded_by_upstream": False,
         "status": SPEC_STATUS_DEFAULT,
         "design_source": DESIGN_SOURCE_DEFAULT,
+        # Carried from a research/discover intake handoff's SpecSeeds.design_anchor
+        # (plan 53 Phase 2, cmd_import_handoff). Empty default -- NOT missing --
+        # matches the handoff schema's own empty-DesignAnchor default so a
+        # manual /specify run (no upstream handoff) still has this key.
+        "design_anchor": {"kind": "", "file": "", "selectors": []},
 
         # --- Phase 0 — branch state ----------------------------------------
         "current_branch": None,

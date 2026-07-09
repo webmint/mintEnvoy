@@ -188,6 +188,23 @@ def _build_risks(report):
     return result
 
 
+def _build_design_anchor(memo):
+    # type: (dict) -> handoff_schema.DesignAnchor
+    """Map memo.design_anchor.value -> DesignAnchor dataclass (plan 53 Phase 1).
+
+    Back-compat: a memo predating plan 53 Phase 1 has no 'design_anchor' key
+    -> empty DesignAnchor (kind="", file="", selectors=[]), matching the
+    schema's own default.
+    """
+    rec = memo.get("design_anchor") or {}
+    val = rec.get("value") or {}
+    kind = val.get("kind") or ""
+    file_ = val.get("file") or ""
+    selectors_raw = val.get("selectors") or []
+    selectors = [s for s in selectors_raw if isinstance(s, str)]
+    return handoff_schema.DesignAnchor(kind=kind, file=file_, selectors=selectors)
+
+
 def _build_open_questions(memo, report):
     # type: (dict, dict) -> List[handoff_schema.OpenQuestion]
     """Build OpenQuestion list from report.open_uncertainties + memo.gaps."""
@@ -500,6 +517,7 @@ def _build_handoff_from_state(memo, report, report_md_path=None):
         affected_areas=affected_areas,
         risks=risks,
         open_questions=open_questions,
+        design_anchor=_build_design_anchor(memo),
     )
 
     # plan_seeds -- design_options auto-assign letter ids.

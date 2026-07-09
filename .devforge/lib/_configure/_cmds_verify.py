@@ -25,7 +25,7 @@ def cmd_verify(args: argparse.Namespace) -> int:
     """Cross-check configure.yaml + project-config.json for correctness.
 
     Checks:
-    1. All 29 configure.yaml fields populated (non-null scalars, non-empty
+    1. All 30 configure.yaml fields populated (non-null scalars, non-empty
        arrays). AC runtime fields (3) are exempt when ac_verification_mode
        != "runtime-assisted". project_natures is required (empty → violation).
     2. project-config.json exists and is valid JSON.
@@ -51,7 +51,7 @@ def cmd_verify(args: argparse.Namespace) -> int:
     ac_mode = cfg_state.get("ac_verification_mode")
     ac_runtime_required = (ac_mode == "runtime-assisted")
 
-    # Check all 29 configure.yaml fields.
+    # Check all 30 configure.yaml fields.
     for name, kind in FIELD_SCHEMA:
         value = cfg_state.get(name)
         if name in _AC_RUNTIME_FIELDS and not ac_runtime_required:

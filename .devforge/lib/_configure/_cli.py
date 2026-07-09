@@ -1,7 +1,7 @@
 """argparse parser + dispatch + main entry for configure_helper.
 
 Dispatcher-only. All cmd_* handler bodies live in sibling modules:
-  _cmds_set    — all 28 cmd_set_* + cmd_reset + cmd_add_package_stack
+  _cmds_set    — all 29 cmd_set_* + cmd_reset + cmd_add_package_stack
                  + cmd_set_package_stacks
   _cmds_read   — read-init / read-docs / read-manifests / read-configs
   _cmds_render — render-config / substitute-templates / substitute-file / prune-agents
@@ -57,6 +57,7 @@ from ._cmds_set import (
     cmd_set_project_natures,
     cmd_set_project_structure,
     cmd_set_project_type,
+    cmd_set_regression_gate,
     cmd_set_test_commands,
     cmd_set_testings,
     cmd_set_type_check_commands,
@@ -300,6 +301,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sp.add_argument("value", help="AC verification mode.")
     sp.set_defaults(func=cmd_set_ac_verification_mode)
+
+    sp = subparsers.add_parser(
+        "set-regression-gate",
+        help="Set regression_gate enum (off | full). Default: full.",
+    )
+    sp.add_argument("value", help="Regression gate setting.")
+    sp.set_defaults(func=cmd_set_regression_gate)
 
     # ------------------------------------------------------------------
     # AC runtime scalar setters.

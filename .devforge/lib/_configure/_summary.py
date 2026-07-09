@@ -56,6 +56,7 @@ _SUMMARY_GROUPS = (
             "ac_runtime_url",
             "ac_runtime_api_base",
             "ac_runtime_cli_command",
+            "regression_gate",
         ),
     ),
 )

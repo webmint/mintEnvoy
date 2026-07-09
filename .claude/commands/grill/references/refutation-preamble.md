@@ -34,7 +34,6 @@ crosses, a deprecated API the plan names, a security boundary it omits), grounde
 in the quoted artifact — not by proposing the alternative you prefer.
 
 THE LINE BETWEEN A VERDICT AND A FABRICATION:
-
 - A confirmed verdict re-quotes the offending text VERBATIM from the artifact and
   states in one line why it is a defect. The quote must be a literal substring of
   the actual artifact — copy-pasted, not paraphrased, not reconstructed from
@@ -125,14 +124,13 @@ Evidence:
 ````
 
 The `Evidence:` fenced block content depends on the `Verdict:`:
-
 - **confirmed** — the verbatim re-quote of the offending text, copied literally
   from the artifact (no edits, no `...`, no paraphrase); for a web claim, the
   cited passage that demonstrates the attack.
 - **dismissed** — the counter-quote (the plan section / spec clause / code path
   that makes the finding wrong), copied literally from the artifact, WHEN ONE
   EXISTS; otherwise the literal marker `(no counter-quote — finding is not
-demonstrable)`.
+  demonstrable)`.
 - **uncertain** — a one-line statement of what you cannot resolve from the
   artifact, written INSIDE the fenced Evidence block (same block structure as the
   other two branches, so all three verdicts share one uniform format). The
@@ -140,7 +138,6 @@ demonstrable)`.
   Evidence block.
 
 **Hard rules for the refuter**:
-
 - **Emit exactly one `## Verdict N` block for every finding handed to you** — no
   more, no fewer. Do not merge two findings into one verdict; do not skip a
   finding because it looks obviously wrong (dismiss it explicitly instead).
@@ -155,12 +152,12 @@ demonstrable)`.
   copy from the artifact** — but its absence does not block the dismissal.
 - **A `dismissed` verdict's Evidence block is ALWAYS present.** When no
   counter-quote exists, the block contains exactly the literal marker `(no
-counter-quote — finding is not demonstrable)` and nothing else — so the parser
+  counter-quote — finding is not demonstrable)` and nothing else — so the parser
   can rely on an Evidence block existing for every verdict.
 - If you finish judging all findings, write the file with `# Status: complete`
   and `# Verdict count: N` matching the number of `## Verdict` blocks.
 - If you fail partway, still write the file with `# Status: failed` and a `#
-Reason: <message>` line, so the parent can detect failure.
+  Reason: <message>` line, so the parent can detect failure.
 
 REMEMBER: REFUTATION MODE is in effect. The default verdict is NOT-a-defect —
 confirmation carries the burden, dismissal does not. Confirm only what you can

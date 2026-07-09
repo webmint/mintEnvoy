@@ -363,18 +363,29 @@ def _parse_finding_block(block_text, agent_name):
     # Remediation
     remediation = _extract_section(why_rem_text, "Remediation:")
 
-    # Lift the [CONSTITUTION-VIOLATION] marker into the structured tags list.
+    # Lift the known high-stakes markers into the structured tags list.
     # Agents have no structured Tags field in the output contract (§3.2), so
     # they embed the bracketed marker in the Pattern one-liner or Why text.
-    # We detect the exact token here — case-sensitive, brackets required — so
+    # We detect each exact token here — case-sensitive, brackets required — so
     # that prose like "this is not a constitution violation" (no brackets)
     # does NOT match.  Evidence is intentionally excluded from the scan: it
     # contains verbatim source code, where the literal token would be
     # coincidental rather than a deliberate marker.
-    _CONSTITUTION_MARKER = "[CONSTITUTION-VIOLATION]"
-    tags = []
-    if _CONSTITUTION_MARKER in pattern or _CONSTITUTION_MARKER in why:
-        tags = [_CONSTITUTION_MARKER]
+    #
+    # [CONSTITUTION-VIOLATION] backs the D7 constitution carve-out (_verify.py);
+    # [DATA-LOSS] / [IRREVERSIBLE] back the plan-50 P1 high-stakes widening —
+    # an unconfirmed data-loss / irreversible-migration finding must not be
+    # silently buried by a refuter's dismissal.  This is an ALLOWLIST, not a
+    # generic bracket lift: an unrecognized bracketed token is not tagged.
+    _HIGH_STAKES_MARKERS = (
+        "[CONSTITUTION-VIOLATION]",
+        "[DATA-LOSS]",
+        "[IRREVERSIBLE]",
+    )
+    tags = [
+        marker for marker in _HIGH_STAKES_MARKERS
+        if marker in pattern or marker in why
+    ]
 
     return ParsedFinding(
         agent=agent_name,

@@ -229,6 +229,23 @@ def _build_data_flow_chain(dfc):
     )
 
 
+def _build_design_anchor(memo):
+    # type: (dict) -> handoff_schema.DesignAnchor
+    """Map memo.design_anchor.value -> DesignAnchor dataclass (plan 53 Phase 1).
+
+    Back-compat: a memo predating plan 53 Phase 1 has no 'design_anchor' key
+    -> empty DesignAnchor (kind="", file="", selectors=[]), matching the
+    schema's own default.
+    """
+    rec = memo.get("design_anchor") or {}
+    val = rec.get("value") or {}
+    kind = val.get("kind") or ""
+    file_ = val.get("file") or ""
+    selectors_raw = val.get("selectors") or []
+    selectors = [s for s in selectors_raw if isinstance(s, str)]
+    return handoff_schema.DesignAnchor(kind=kind, file=file_, selectors=selectors)
+
+
 def _build_open_questions(open_uncertainties):
     # type: (List[str]) -> List[handoff_schema.OpenQuestion]
     """Map open_uncertainties list of strings to OpenQuestion dataclass list."""
@@ -419,6 +436,7 @@ def _build_handoff_from_state(memo, report, research_md_path, devforge_dir=None)
         value_semantics=value_semantics_schema,
         value_production_sites=value_production_sites_schema,
         literal_archaeology=literal_archaeology_schema,
+        design_anchor=_build_design_anchor(memo),
     )
 
     # plan_seeds block

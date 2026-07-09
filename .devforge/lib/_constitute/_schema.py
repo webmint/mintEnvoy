@@ -131,7 +131,9 @@ def validate_forcing_functions(ff_block: object) -> list:
                     "{prefix}.token_source_css: must be a string, "
                     "got {t}".format(prefix=prefix, t=type(tsc).__name__)
                 )
-            # manifest_path: optional str (back-compat; absent = glob at run time)
+            # manifest_path: optional str (retained for config back-compat only;
+            # the disposition-manifest / Check 5 consumer was retired in plan 53
+            # Phase 7a — this key is no longer read by verify-design-tokens).
             mp = rule_cfg.get("manifest_path")
             if mp is not None and not isinstance(mp, str):
                 errors.append(

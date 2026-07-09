@@ -645,9 +645,24 @@ def cmd_render_report(args: argparse.Namespace) -> int:
            --framework <str>   (Framework / Language value)
            --scope-files <N>   (number of files in the assembled-feature diff)
            --finders-skipped <comma>  (skipped / not-installed finder names)
+           --design-section <path>  (optional; see below)
+           --a11y-section <path>    (optional; see below)
     Returns 0 on success, 2 on bad input.
     Output on stdout: JSON ack {"path": "<written>", "confirmed": N,
                                  "contested": N, "dismissed": N, "uncertain": N}.
+
+    --design-section is purely additive: when omitted, output is byte-identical
+    to a pre-flag render. When given, its file content is embedded verbatim as
+    a distinct '## Design Fidelity' section (see _report.render_report's
+    design_section docstring for placement + rationale) — never parsed, never
+    counted in any bucket/headline total. An unreadable or empty path is
+    fail-soft: a warning goes to stderr and the section is simply omitted
+    (never a crash, never a non-zero exit on this account alone).
+
+    --a11y-section is purely additive with the same fail-soft semantics:
+    embeds verbatim as '## Accessibility' after '## Methodology'. When both
+    --design-section and --a11y-section are given, Design Fidelity appears
+    first, then Accessibility (deterministic order, see _report.render_report).
     """
     from ._report import render_report, write_review_report
 
@@ -660,6 +675,8 @@ def cmd_render_report(args: argparse.Namespace) -> int:
     framework = getattr(args, "framework", None) or "(unset)"
     scope_files_raw = getattr(args, "scope_files", None) or "0"
     skipped_raw = getattr(args, "finders_skipped", None) or ""
+    design_section_path = getattr(args, "design_section", None)
+    a11y_section_path = getattr(args, "a11y_section", None)
 
     if not partition_path:
         sys.stderr.write(
@@ -703,6 +720,52 @@ def cmd_render_report(args: argparse.Namespace) -> int:
         )
         return 2
 
+    # Fail-soft: an unreadable or empty --design-section is a non-fatal warn,
+    # never a crash — the section is simply omitted from the report.
+    design_section_content = None
+    if design_section_path:
+        try:
+            with open(design_section_path, "r", encoding="utf-8") as fh:
+                design_section_raw = fh.read()
+        except OSError as exc:
+            sys.stderr.write(
+                "review_helper render-report: cannot read --design-section "
+                "file: {0} (Design Fidelity section omitted)\n".format(exc)
+            )
+            design_section_raw = None
+
+        if design_section_raw is not None:
+            if design_section_raw.strip():
+                design_section_content = design_section_raw
+            else:
+                sys.stderr.write(
+                    "review_helper render-report: --design-section file is "
+                    "empty (Design Fidelity section omitted)\n"
+                )
+
+    # Fail-soft: an unreadable or empty --a11y-section is a non-fatal warn,
+    # never a crash — the section is simply omitted from the report.
+    a11y_section_content = None
+    if a11y_section_path:
+        try:
+            with open(a11y_section_path, "r", encoding="utf-8") as fh:
+                a11y_section_raw = fh.read()
+        except OSError as exc:
+            sys.stderr.write(
+                "review_helper render-report: cannot read --a11y-section "
+                "file: {0} (Accessibility section omitted)\n".format(exc)
+            )
+            a11y_section_raw = None
+
+        if a11y_section_raw is not None:
+            if a11y_section_raw.strip():
+                a11y_section_content = a11y_section_raw
+            else:
+                sys.stderr.write(
+                    "review_helper render-report: --a11y-section file is "
+                    "empty (Accessibility section omitted)\n"
+                )
+
     content = render_report(
         partition=partition,
         feature=feature,
@@ -713,6 +776,8 @@ def cmd_render_report(args: argparse.Namespace) -> int:
         framework=framework,
         n_scope_files=n_scope_files,
         finders_skipped=finders_skipped,
+        design_section=design_section_content,
+        a11y_section=a11y_section_content,
     )
 
     try:
@@ -732,6 +797,45 @@ def cmd_render_report(args: argparse.Namespace) -> int:
         "uncertain": len((partition.get("uncertain") or [])),
     }
     sys.stdout.write(json.dumps(ack, indent=2, sort_keys=True) + "\n")
+    return 0
+
+
+def cmd_resolve_ui_scope(args: argparse.Namespace) -> int:
+    """Classify whether a feature touches UI code (is_ui determination).
+
+    Reads PROJECT_NATURES from .devforge/project-config.json and returns
+    a JSON classification dict indicating whether an accessibility audit is
+    warranted for the feature.
+
+    Recall-bias contract: missing config, absent/empty PROJECT_NATURES, or
+    any unreadable state defaults to is_ui=True — accessibility is never
+    silently dropped due to a broken or outdated config.
+
+    Input: --files '<json-array-string>'  (touched file paths, accepted for
+                                            CLI shape-compat; not used for
+                                            narrowing — see _ui_scope.py)
+           --workspace-root <dir>          (where .devforge/ lives; default CWD)
+    Returns 0 on success, 2 on bad --files JSON.
+    Output: JSON to stdout — {"is_ui": bool, "platform_hint": str|null,
+                               "natures": [...], "reason": str}
+    """
+    from ._ui_scope import resolve_ui_scope
+
+    files_raw = getattr(args, "files", "[]") or "[]"
+    workspace_root = getattr(args, "workspace_root", ".") or "."
+
+    try:
+        files = json.loads(files_raw)
+        if not isinstance(files, list):
+            raise ValueError("--files must be a JSON array")
+    except (json.JSONDecodeError, ValueError) as exc:
+        sys.stderr.write(
+            "review_helper resolve-ui-scope: invalid --files JSON: {0}\n".format(exc)
+        )
+        return 2
+
+    result = resolve_ui_scope(files=files, workspace_root=workspace_root)
+    sys.stdout.write(json.dumps(result, indent=2, sort_keys=True) + "\n")
     return 0
 
 
@@ -859,6 +963,16 @@ _SUBCOMMAND_REGISTRY = [
         "render-inline-summary",
         "Render ## Review Complete inline console block from the apply-verdicts partition (Phase 5).",
         cmd_render_inline_summary,
+    ),
+    (
+        "resolve-ui-scope",
+        (
+            "Classify whether the feature touches UI code by checking PROJECT_NATURES "
+            "in .devforge/project-config.json. Emits JSON with is_ui, platform_hint, "
+            "natures, and reason. Recall-biased: missing/empty config defaults to "
+            "is_ui=True so accessibility audits are never silently dropped."
+        ),
+        cmd_resolve_ui_scope,
     ),
 ]
 
@@ -1263,6 +1377,45 @@ def _register_subcommands(subparsers) -> None:
                     "not installed (default: empty)."
                 ),
             )
+            sp.add_argument(
+                "--design-section",
+                default=None,
+                dest="design_section",
+                metavar="PATH",
+                help=(
+                    "Optional path to a markdown file holding the design-auditor's "
+                    "deterministic fidelity report (coverage verdict + findings + "
+                    "non-gating VLM advisory). Embedded VERBATIM as a distinct "
+                    "'## Design Fidelity' section appended after ## Methodology — "
+                    "never parsed, never partitioned, never counted in any bucket "
+                    "or headline total (design-auditor output is not refuted by "
+                    "the ensemble and has no file:line to flow through that "
+                    "pipeline). Purely additive: omitted (default), the report is "
+                    "byte-identical to a run without this flag. An unreadable or "
+                    "empty path is fail-soft — a stderr warning, section omitted, "
+                    "never a crash. When both --design-section and --a11y-section "
+                    "are given, Design Fidelity appears first."
+                ),
+            )
+            sp.add_argument(
+                "--a11y-section",
+                default=None,
+                dest="a11y_section",
+                metavar="PATH",
+                help=(
+                    "Optional path to a markdown file holding the design-auditor's "
+                    "accessibility / responsive / native audit result (steps 8-10 "
+                    "of the design-auditor checklist). Embedded VERBATIM as a "
+                    "distinct '## Accessibility' section appended after "
+                    "## Methodology — never parsed, never partitioned, never "
+                    "counted in any bucket or headline total. Purely additive: "
+                    "omitted (default), the report is byte-identical to a run "
+                    "without this flag. An unreadable or empty path is fail-soft "
+                    "— a stderr warning, section omitted, never a crash. When both "
+                    "--design-section and --a11y-section are given, Design Fidelity "
+                    "appears first, then Accessibility."
+                ),
+            )
 
         elif verb == "render-inline-summary":
             sp.add_argument(
@@ -1291,6 +1444,31 @@ def _register_subcommands(subparsers) -> None:
                 help=(
                     "Comma-separated list of finder names that were skipped / "
                     "not installed (default: empty)."
+                ),
+            )
+
+        elif verb == "resolve-ui-scope":
+            sp.add_argument(
+                "--files",
+                default="[]",
+                metavar="JSON",
+                help=(
+                    "JSON array string of source-relative touched file paths "
+                    "(e.g. '[\"src/a.tsx\",\"src/b.ts\"]'). "
+                    "Accepted for CLI shape-compatibility with validate-findings; "
+                    "not used for narrowing the UI classification (see _ui_scope.py). "
+                    "Default: '[]'."
+                ),
+            )
+            sp.add_argument(
+                "--workspace-root",
+                default=".",
+                dest="workspace_root",
+                metavar="DIR",
+                help=(
+                    "Workspace root containing .devforge/project-config.json. "
+                    "In wrapper mode this is the install/wrapper root (not the "
+                    "source-code subdirectory). Default: CWD."
                 ),
             )
 

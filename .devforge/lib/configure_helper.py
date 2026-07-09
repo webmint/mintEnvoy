@@ -39,6 +39,7 @@ from _configure import main  # noqa: E402
 # YamlParseError, parse_yaml, _parse_overview_md, _parse_architecture_md).
 from _configure._schema import (  # noqa: E402,F401
     ENUM_FIELDS,
+    FIELD_DEFAULTS,
     FIELD_SCHEMA,
     OUTPUT_FILE_NAME,
 )

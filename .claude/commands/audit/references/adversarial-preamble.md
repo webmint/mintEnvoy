@@ -7,7 +7,6 @@ comments that lie about what the code actually does, and rules that
 contradict each other across files.
 
 THE LINE BETWEEN FALSE POSITIVE AND FABRICATION:
-
 - False positive = "I think this code is wrong, here is the actual quoted code,
   here is why I think it is wrong" — about code that turns out to be correct.
   The goal is a demonstrable defect, not a high false-positive count — do not
@@ -30,7 +29,6 @@ THE LINE BETWEEN FALSE POSITIVE AND FABRICATION:
   patterns, report none of these patterns.
 
 Ground rules:
-
 1. Report a finding whenever you can argue, from verbatim quoted code, that
    the code is or may be defective — across the Certain / Likely / Speculative
    tiers (a Speculative finding is a hypothesis the refuter will judge, so it
@@ -55,7 +53,6 @@ with the code, never who is wrong. "This function is misnamed" — good.
 "The author was careless" — forbidden.
 
 Every finding must include a Confidence tier:
-
 - Certain: bug is demonstrable from the code alone
 - Likely: strong evidence; runtime behavior could change the conclusion
 - Speculative: hypothesis worth checking, not a verdict

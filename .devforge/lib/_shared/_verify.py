@@ -35,13 +35,16 @@ apply_verdicts(findings, verdicts)
     agent).  Returns:
       confirmed    — confirmed by a refuter; given an extra "verify_confidence"
                      signal ("confirmed").  NOT tagged [CONTESTED].
-      dismissed    — dismissed by a refuter (and NOT a [CONSTITUTION-VIOLATION]
-                     finding, per the D7 constitution carve-out).
+      dismissed    — dismissed by a refuter (and NOT tagged [CONSTITUTION-
+                     VIOLATION] / [DATA-LOSS] / [IRREVERSIBLE], per the D7
+                     carve-out widened by plan 50 P1).
       uncertain    — low-stakes uncertain (category NOT in high-stakes set and
-                     NOT tagged [CONSTITUTION-VIOLATION]).
+                     NOT tagged [CONSTITUTION-VIOLATION] / [DATA-LOSS] /
+                     [IRREVERSIBLE]).
       contested    — high-stakes uncertain (category == "security" OR tagged
-                     [CONSTITUTION-VIOLATION]) + dismissed [CONSTITUTION-
-                     VIOLATION] findings (the D7 constitution carve-out).
+                     [CONSTITUTION-VIOLATION] / [DATA-LOSS] / [IRREVERSIBLE])
+                     + dismissed findings carrying any of those three tags
+                     (the D7 carve-out, widened by plan 50 P1).
                      ALL contested findings carry a "[CONTESTED]" tag appended
                      to their tags list (a copy of the dict is returned — the
                      input dict is never mutated).
@@ -58,7 +61,8 @@ Contested findings carry the "[CONTESTED]" tag:
   The input dict is never mutated; a shallow copy is returned.
 
 No-verdict-match default: uncertain routing by category.
-  - high-stakes category ("security") or [CONSTITUTION-VIOLATION] tag → contested
+  - high-stakes category ("security") or a [CONSTITUTION-VIOLATION] /
+    [DATA-LOSS] / [IRREVERSIBLE] tag → contested
   - all other categories → uncertain
   Rationale: a finding that no refuter judged is not confirmed — treat as
   unresolved rather than silently accepting it; the precision-safe default.
@@ -89,6 +93,13 @@ _HIGH_STAKES_CATEGORIES = frozenset(["security"])
 
 # Constitution-violation tag (exact marker as used throughout the pipeline).
 _CONSTITUTION_TAG = "[CONSTITUTION-VIOLATION]"
+
+# Data-loss / irreversible-migration marker tags (plan 50 P1 high-stakes
+# widening).  Mirror the [CONSTITUTION-VIOLATION] tag mechanism exactly: a
+# finder that could not confirm a data-loss/irreversible-change finding must
+# not have it silently buried by a refuter's dismissal.  Lifted from a
+# finding's Pattern/Why text into its tags list by _consume.py.
+_DATA_LOSS_TAGS = frozenset(["[DATA-LOSS]", "[IRREVERSIBLE]"])
 
 # Verdict vocabulary (lowercase, as specified in the preamble contract).
 _VALID_VERDICTS = frozenset(["confirmed", "dismissed", "uncertain"])
@@ -142,15 +153,18 @@ _RE_EVIDENCE_BLOCK = re.compile(
 
 def _is_high_stakes(finding):
     # type: (dict) -> bool
-    """Return True when a finding is high-stakes per D7.
+    """Return True when a finding is high-stakes per D7 (widened by plan 50 P1).
 
     High-stakes = category == "security" OR the finding carries the
-    [CONSTITUTION-VIOLATION] tag in its tags list.
+    [CONSTITUTION-VIOLATION] tag OR either data-loss marker tag
+    ([DATA-LOSS] / [IRREVERSIBLE]) in its tags list.
     """
     if finding.get("category") in _HIGH_STAKES_CATEGORIES:
         return True
     tags = finding.get("tags") or []
-    return _CONSTITUTION_TAG in tags
+    if _CONSTITUTION_TAG in tags:
+        return True
+    return any(tag in _DATA_LOSS_TAGS for tag in tags)
 
 
 def _has_constitution_tag(finding):
@@ -158,6 +172,16 @@ def _has_constitution_tag(finding):
     """Return True when the finding carries the [CONSTITUTION-VIOLATION] tag."""
     tags = finding.get("tags") or []
     return _CONSTITUTION_TAG in tags
+
+
+def _has_data_loss_tag(finding):
+    # type: (dict) -> bool
+    """Return True when the finding carries [DATA-LOSS] or [IRREVERSIBLE].
+
+    Mirrors _has_constitution_tag exactly (plan 50 P1).
+    """
+    tags = finding.get("tags") or []
+    return any(tag in _DATA_LOSS_TAGS for tag in tags)
 
 
 def _parse_verdict_block(block_text, refuter_name):
@@ -546,12 +570,15 @@ def apply_verdicts(findings, verdicts):
     key are merged: 'confirmed' beats 'uncertain' beats 'dismissed' (most
     favourable to surfacing).
 
-    D7 partition rules:
+    D7 partition rules (widened by plan 50 P1 to include [DATA-LOSS] /
+    [IRREVERSIBLE] alongside [CONSTITUTION-VIOLATION]):
       confirmed  → confirmed bucket; gets verify_confidence="confirmed".
                    NOT tagged [CONTESTED].
       dismissed  → dismissed bucket -- UNLESS the finding carries the
-                   [CONSTITUTION-VIOLATION] tag → contested (the D7 carve-out).
-      uncertain  → high-stakes (category == "security" OR [CONSTITUTION-VIOLATION]
+                   [CONSTITUTION-VIOLATION] tag OR a [DATA-LOSS] /
+                   [IRREVERSIBLE] tag → contested (the D7 carve-out).
+      uncertain  → high-stakes (category == "security" OR
+                   [CONSTITUTION-VIOLATION] / [DATA-LOSS] / [IRREVERSIBLE]
                    tag) → contested; all other categories → uncertain bucket.
       no-match   → treated as uncertain and routed by category
                    (high-stakes → contested; others → uncertain).
@@ -620,6 +647,12 @@ def apply_verdicts(findings, verdicts):
             if _has_constitution_tag(finding):
                 # D7 constitution carve-out: a dismissed [CONSTITUTION-VIOLATION]
                 # finding surfaces as contested rather than dropping to dismissed.
+                contested.append(_tag_contested(finding))
+            elif _has_data_loss_tag(finding):
+                # Plan 50 P1 carve-out (parallels D7): a dismissed [DATA-LOSS] /
+                # [IRREVERSIBLE] finding surfaces as contested rather than
+                # dropping to dismissed -- a grounded data-loss/irreversible
+                # risk is never silently dismissed.
                 contested.append(_tag_contested(finding))
             else:
                 dismissed.append(finding)

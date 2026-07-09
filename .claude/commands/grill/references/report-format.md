@@ -31,11 +31,13 @@ what the cross-examination concluded:
 2. **High-stakes `[CONTESTED]` findings are surfaced IN the headline, flagged —
    never buried.** Two paths route a finding here. (a) A high-stakes finding the
    refuter could NOT confirm (a `security` finding, or any finding carrying the
-   `[CONSTITUTION-VIOLATION]` tag, that the refuter left uncertain) is too
-   high-stakes to drop to an appendix. (b) A `[CONSTITUTION-VIOLATION]` finding the
-   refuter explicitly DISMISSED also lands here, not in the Dismissed appendix —
-   the constitution carve-out: a dismissed constitution violation is too important
-   to bury, so the dismissal is surfaced for a human to adjudicate. Either path
+   `[CONSTITUTION-VIOLATION]`, `[DATA-LOSS]`, or `[IRREVERSIBLE]` tag, that the
+   refuter left uncertain) is too
+   high-stakes to drop to an appendix. (b) A `[CONSTITUTION-VIOLATION]`, `[DATA-LOSS]`,
+   or `[IRREVERSIBLE]` finding the refuter explicitly DISMISSED also lands here, not
+   in the Dismissed appendix — the high-stakes carve-out: a dismissed constitution
+   violation or data-loss / irreversible-migration risk is too important to bury, so
+   the dismissal is surfaced for a human to adjudicate. Either path
    appears in the headline tagged `[CONTESTED]`. A missed design-time security
    hole or a wrongly-dismissed constitution violation is more costly than a false
    alarm, so the tie goes to surfacing.
@@ -53,9 +55,11 @@ from which agent produced the finding.
 
 Finding tags: `[CROSS-AGENT]` (raised by ≥2 finders — rare for `/grill`, which
 dispatches a single `devils-advocate` finder), `[CONSTITUTION-VIOLATION]` (always
-Critical), and `[CONTESTED]` (a high-stakes `security` / `[CONSTITUTION-VIOLATION]`
-finding the refutation stage could NOT confirm, OR a `[CONSTITUTION-VIOLATION]`
-finding it DISMISSED; both are surfaced in the headline, never buried).
+Critical), `[DATA-LOSS]` / `[IRREVERSIBLE]` (a data-loss / irreversible-migration
+marker), and `[CONTESTED]` (a high-stakes `security` / `[CONSTITUTION-VIOLATION]` /
+`[DATA-LOSS]` / `[IRREVERSIBLE]` finding the refutation stage could NOT confirm, OR
+a `[CONSTITUTION-VIOLATION]` / `[DATA-LOSS]` / `[IRREVERSIBLE]` finding it DISMISSED;
+both are surfaced in the headline, never buried).
 
 ## Skeleton
 
@@ -78,30 +82,25 @@ finding it DISMISSED; both are surfaced in the headline, never buried).
 [the orchestrator's CLASSIFY rationale — why this disposition]
 
 > [verdict-specific guidance — the helper renders one of:]
->
 > - PROCEED — the grill attack found no disqualifying plan-level defect; the plan is sound to execute (run `/breakdown`).
 > - REVISE-PLAN — the defects are real but correctable at the plan level; revise `plan.md`, then re-run (re-`/plan` / hand-patch, optionally re-`/grill`). If you choose `Revise plan` at the human gate, the orchestrator emits a `grill-seed.json` (`target_stage="plan"`) that `/plan` consumes on re-entry, so the re-`/plan` is directed, not a repeat.
 > - RE-ENTER-UPSTREAM — the defect is rooted upstream; re-enter at the named stage (`/specify` for `spec`, `/discover` for `discovery`, `/research` for `research`). If you choose `Re-enter upstream` at the human gate, the orchestrator emits a `grill-seed.json` for that stage so the re-run is directed, not a repeat.
 > - KILL — the defect is fundamental; the plan should be abandoned (re-`/plan` with a wholly different approach).
 
 ## Confirmed — Top Priorities
-
 Force-ranked across the confirmed findings. Fix these first.
-
 1. [severity] [file:line] — [one-line description] [confidence] [tags]
-   ...
+...
 
 ## Confirmed Findings
-
 (Grouped by file — each file with findings gets one `### <file path>` section,
 files ordered by path; within a file, findings grouped by `#### <category>` and
 sorted by severity Critical → Info. High-stakes `[CONTESTED]` findings appear here
 too, flagged.)
 
-### [plan.md OR relative/path/to/source.ext]
+### [plan.md  OR  relative/path/to/source.ext]
 
 #### Security
-
 - [F-001] [Critical] :42 — [description]
   Severity: Critical
   File: [plan.md or the anchor file named above]
@@ -110,17 +109,15 @@ too, flagged.)
   Confidence: Certain | Likely | Speculative
   Category: security
   Evidence:
-```
-
-[one verbatim snippet copied from the anchor file named in File: above]
-
-```
-Why it's wrong: [the design defect this instance triggers — name any partner
-artifact by path and line here, e.g. "duplicates the existing helper in
-src/util/foo.py:12"; the partner is referenced in prose, not quoted]
-Remediation: [specific design change]
+  ```
+  [one verbatim snippet copied from the anchor file named in File: above]
+  ```
+  Why it's wrong: [the design defect this instance triggers — name any partner
+  artifact by path and line here, e.g. "duplicates the existing helper in
+  src/util/foo.py:12"; the partner is referenced in prose, not quoted]
+  Remediation: [specific design change]
 - [F-007] [High] :88 — [description]
-[same finding format]
+  [same finding format]
 
 #### System Design
 [same finding format — Category: system_design]
@@ -165,8 +162,9 @@ reaches the report: a finding earns the headline only by surviving an adversary
 who default-dismisses anything not demonstrable as a real plan-level defect.
 Confirmed findings reach the headline; dismissed findings and low-stakes uncertain
 findings drop to the Dismissed / Worth a Glance appendix; high-stakes `[CONTESTED]`
-findings (a `security` / `[CONSTITUTION-VIOLATION]` finding the refuter could not
-confirm) are surfaced in the headline, flagged `[CONTESTED]`, never buried.
+findings (a `security` / `[CONSTITUTION-VIOLATION]` / `[DATA-LOSS]` /
+`[IRREVERSIBLE]` finding the refuter could not confirm) are surfaced in the
+headline, flagged `[CONTESTED]`, never buried.
 ```
 
 ## The re-entry seed (RE-ENTER-UPSTREAM or REVISE-PLAN)

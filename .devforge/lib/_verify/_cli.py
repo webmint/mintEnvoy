@@ -539,6 +539,7 @@ def cmd_compute_verdict(args):
     hygiene_path = getattr(args, "hygiene", None) or ""
     mech_status = getattr(args, "mechanical_status", None) or ""
     ac_mode = getattr(args, "ac_mode", None) or "code-only"
+    regression_path = getattr(args, "regression", None) or ""
 
     ac_results = _load_json(ac_path, "--ac-results")
     if ac_results == "ERROR":
@@ -575,12 +576,17 @@ def cmd_compute_verdict(args):
             "files_skipped": 0,
         }
 
+    # Regression gate result (optional — allow_missing=True so the existing
+    # 15-subcommand callers that omit --regression are byte-identical).
+    regression = _load_json(regression_path, "--regression", allow_missing=True)
+
     result = compute_verdict(
         ac_results=ac_results,
         mechanical_status=mech_status,
         review_findings=review_findings,
         hygiene=hygiene,
         ac_verification_mode=ac_mode,
+        regression=regression,
     )
 
     sys.stdout.write(json.dumps(result, indent=2, sort_keys=True) + "\n")
@@ -794,6 +800,37 @@ def cmd_flip_spec_status(args):
     return 0
 
 
+def cmd_regression_gate(args):
+    # type: (argparse.Namespace) -> int
+    """Run the baseline-diff regression gate and emit JSON to stdout.
+
+    Compares the test suite exit code at the feature's merge-base with the
+    exit code at HEAD.  Only returns regression=true when the suite was
+    PASSING at the merge-base and is now FAILING (green→red).  Pre-existing
+    failures are reported as status="baseline-failing" and are never gated.
+
+    Returns:
+      0 — always (fail-soft; all internal errors produce status="inconclusive")
+      2 — argument error (required flag missing)
+    """
+    from ._regression import run_regression_gate
+
+    feature_dir = getattr(args, "feature", ".") or "."
+    workspace_root = getattr(args, "workspace_root", None) or os.getcwd()
+    mode_override = getattr(args, "mode", None)
+
+    workspace_root = os.path.realpath(workspace_root)
+
+    result = run_regression_gate(
+        feature_dir=feature_dir,
+        workspace_root=workspace_root,
+        mode=mode_override,
+    )
+
+    sys.stdout.write(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    return 0
+
+
 def cmd_file_bugs(args):
     # type: (argparse.Namespace) -> int
     """Write bug files in bugs/NNN-<slug>.md format (storage-rules.md format).
@@ -953,6 +990,16 @@ _SUBCOMMAND_REGISTRY = [
             "with Source: verify, sequential NNN numbering (Phase 5)."
         ),
         cmd_file_bugs,
+    ),
+    (
+        "regression-gate",
+        (
+            "Baseline-diff regression gate: run the primary test command at the "
+            "feature's merge-base (in an isolated worktree) and at HEAD; emit JSON "
+            "with regression=true only when the suite was passing at the merge-base "
+            "and is now failing (green→red only). Pre-existing failures are not gated."
+        ),
+        cmd_regression_gate,
     ),
 ]
 
@@ -1204,6 +1251,17 @@ def _register_subcommands(subparsers) -> None:
                     "Default: code-only."
                 ),
             )
+            sp.add_argument(
+                "--regression",
+                default=None,
+                dest="regression",
+                metavar="PATH",
+                help=(
+                    "Path to JSON file from regression-gate. "
+                    "When regression=true in that file, adds a NEEDS WORK blocker. "
+                    "Omit when the regression gate was not run or returned off/inconclusive."
+                ),
+            )
 
         elif verb == "render-report":
             sp.add_argument(
@@ -1365,6 +1423,39 @@ def _register_subcommands(subparsers) -> None:
                 dest="date",
                 metavar="YYYY-MM-DD",
                 help="Report date (REQUIRED — never calls the clock).",
+            )
+
+        elif verb == "regression-gate":
+            sp.add_argument(
+                "--feature",
+                default=".",
+                metavar="DIR",
+                help=(
+                    "Feature directory path (e.g. specs/001-auth). "
+                    "Used for context only — not for git operations. Default: CWD."
+                ),
+            )
+            sp.add_argument(
+                "--workspace-root",
+                default=None,
+                dest="workspace_root",
+                metavar="DIR",
+                help=(
+                    "Install root directory (where .devforge/ lives). "
+                    "In wrapper mode this is the wrapper root. Default: CWD."
+                ),
+            )
+            sp.add_argument(
+                "--mode",
+                default=None,
+                choices=["full", "off"],
+                metavar="MODE",
+                help=(
+                    "Override the regression gate mode: 'full' (run the gate) "
+                    "or 'off' (skip entirely). "
+                    "Omit to read REGRESSION_GATE from project-config.json "
+                    "(default 'full' when the key is absent)."
+                ),
             )
 
         sp.set_defaults(func=handler)

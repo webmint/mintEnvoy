@@ -12,7 +12,6 @@ playwright/.cache/
 .devforge/**.lock
 .idea/
 .npm-cache/
-.claude/session-state.md
 .claude/wip.md
 .claude/scheduled_tasks.lock
 # Python bytecode — always regenerated from source, never tracked
@@ -37,3 +36,15 @@ src/devforge/constitute.json.lock
 src/devforge/.preflight-stamp
 src/devforge/cbm-usage.log
 node_modules/
+# AIDevTeamForge — .devforge/ runtime-state (ephemeral; regenerated each run — see plan 49)
+.devforge/session-state.md
+.devforge/specify-state.json
+.devforge/research-state.json
+.devforge/research-report.json
+.devforge/discover-scope.json
+.devforge/discover-report.json
+.devforge/.preflight-stamp
+.devforge/cbm-last-indexed-sha
+.devforge/.generate-docs-trace.log
+.devforge/cbm-usage.log
+.devforge/*.lock

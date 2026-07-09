@@ -8,7 +8,7 @@ check-design-source reads that line and emits a loud NON-BLOCKING WARN on
 stderr (exit 0) when a non-file design source is declared but no enforceable
 local design/reference.html exists — so teams using Figma/URL/screenshot are
 no longer silently un-enforced.  The remedy is to convert the design to
-design/reference.html so the plan-40 apparatus engages.
+design/reference.html so the design-fidelity gates engage.
 
 Parsing rules (parse_design_source):
   - Split on the FIRST colon only (figma/URL targets contain ':' in https://).
@@ -208,7 +208,7 @@ def cmd_check_design_source(args):
             "check-design-source: design source declared but no enforceable design/reference.html (non-blocking — review and convert):",
             "  - declared: {0}".format(ds.raw),
             "  - design/reference.html: absent",
-            "  remedy: export the {0} design to design/reference.html so the plan-40 design-fidelity gates engage; until then visual drift is unenforced for this feature.".format(ds.scheme),
+            "  remedy: export the {0} design to design/reference.html so the design-fidelity gates engage; until then visual drift is unenforced for this feature.".format(ds.scheme),
         ])
         return 0
 
@@ -223,7 +223,7 @@ def cmd_check_design_source(args):
             "check-design-source: declared html design source file is absent (non-blocking — review and fix):",
             "  - declared: {0}".format(ds.raw),
             "  - {0}: absent".format(ds.target),
-            "  remedy: create {0}, or update the **Design source**: line; the plan-40 design-fidelity gates require the target to be design/reference.html.".format(ds.target),
+            "  remedy: create {0}, or update the **Design source**: line; the design-fidelity gates require the target to be design/reference.html.".format(ds.target),
         ])
         return 0
 

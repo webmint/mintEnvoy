@@ -1,7 +1,7 @@
 ---
 name: breakdown
 description: Translate an approved technical plan into ordered, atomic, agent-assigned tasks with verifiable contracts and a structured breakdown→implement handoff.
-argument-hint: '[plan-file]'
+argument-hint: "[plan-file]"
 disable-model-invocation: true
 ---
 
@@ -16,7 +16,7 @@ Usage: `/breakdown [plan-file]` (e.g. `/breakdown specs/008-prevent-duplicate-co
 - `specs/NNN-<feature>/tasks/NNN-<title>.md` — one rendered task file per task (required).
 - `specs/NNN-<feature>/tasks/README.md` — task index with dependency graph, risk assessment, and review checkpoints (required).
 - `specs/NNN-<feature>/breakdown-handoff.json` — structured producer-side handoff (best-effort; see Phase 5).
-- `specs/NNN-<feature>/design-manifest.json` — per-element design-fidelity disposition manifest (conditional; written only when the feature has a `design/reference.html` — see Phase 2.5).
+- `specs/NNN-<feature>/design-manifest.json` — the design-fidelity binding: the built-side wiring (`route` + anchor-selector/built-testid pairs) mapping the captured design intent to the elements the feature builds (conditional; written only when the feature has a `design/reference.html` — see Phase 2.5).
 
 After approval (Phase 5), `/breakdown` WIP-commits these artifacts — the whole `tasks/` directory plus `breakdown-handoff.json` — via `.devforge/lib/artifact_helper commit-artifacts`. The commit lands in the INSTALL repo only (never the wrapper-mode source/product repo) and is fail-soft (a git failure warns and `/breakdown` continues — the artifacts are already written). The `[WIP]` commit folds into `/finalize`'s squash, so the final PR is unchanged. **In WRAPPER mode this is the FIRST per-step commit that tracks the task files + `tasks/README.md` in the install repo** — `/implement`'s wrapper path stages ONLY source code in the source repo and leaves the task files uncommitted, so this commit is NOT redundant there. (In standalone mode `/implement` already tracks the task files, so re-staging unchanged ones is a harmless no-op; `breakdown-handoff.json` is newly tracked either way.)
 
@@ -235,24 +235,24 @@ When bundling, merge the mechanical task's files, contracts, and done-when condi
 
 ### Agent Assignment table
 
-Assign exactly ONE agent per task by the file's owning package/stack (see `## Packages` / `PACKAGE_STACKS` in `CLAUDE.md`). A type, interface, domain model, contract, or state store is **not its own layer with its own agent** — it belongs to the stack that owns the file, and that stack's implementer writes it. The architect never appears in this table: it shapes at `/plan` and only _VALIDATES_ the decomposition (above) — it does not write code.
+Assign exactly ONE agent per task by the file's owning package/stack (see `## Packages` / `PACKAGE_STACKS` in `CLAUDE.md`). A type, interface, domain model, contract, or state store is **not its own layer with its own agent** — it belongs to the stack that owns the file, and that stack's implementer writes it. The architect never appears in this table: it shapes at `/plan` and only *VALIDATES* the decomposition (above) — it does not write code.
 
-| Files in...                                                                                                                                                                                       | Agent                                                                                                                                                                                                               |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| API endpoints, controllers, middleware, services, server-side logic — and the backend stack's domain models, types, interfaces, contracts, and business/state logic                               | backend-engineer                                                                                                                                                                                                    |
-| UI components, styles, routes, composables, stores — and the frontend stack's domain models, types, interfaces, and state management (BLoC / Redux / Pinia)                                       | frontend-engineer                                                                                                                                                                                                   |
-| Mobile screens, navigation, native modules, platform-specific code, app lifecycle — and the mobile stack's domain models, types, and state                                                        | mobile-engineer                                                                                                                                                                                                     |
-| Non-server host / runtime-entrypoint code — Electron main process, desktop-app `main`, CLI entrypoint, Tauri core — i.e. the app's host process, NOT a backend server                             | the owning package's stack implementer per `## Packages` / `PACKAGE_STACKS` (the app's primary implementer — e.g. the frontend/app engineer that owns the rest of the codebase) — NOT `backend-engineer` by default |
-| Bug investigation with runtime symptoms                                                                                                                                                           | runtime-debugger                                                                                                                                                                                                    |
-| Performance-critical path or optimization task                                                                                                                                                    | owning stack engineer (backend/frontend/mobile-engineer, per the file's layer) — `performance-analyst` diagnoses and recommends during `/review`, it never implements                                               |
-| Auth, secrets, input validation, security hardening                                                                                                                                               | owning stack engineer (backend-engineer for server-side auth/secrets/validation; frontend-engineer for client-side) — `security-reviewer` reviews during `/review`, it never implements                             |
-| Database schemas, migrations, queries, seed data                                                                                                                                                  | db-engineer                                                                                                                                                                                                         |
-| API contract design, OpenAPI specs, endpoint structure                                                                                                                                            | api-designer                                                                                                                                                                                                        |
-| CI/CD, Docker, deployment config, infrastructure                                                                                                                                                  | devops-engineer                                                                                                                                                                                                     |
-| Data migration scripts, backward compatibility layers                                                                                                                                             | migration-engineer                                                                                                                                                                                                  |
-| Accessibility, design-system compliance, visual-fidelity work on UI files                                                                                                                         | owning stack engineer (frontend-engineer / mobile-engineer, per the file's layer)                                                                                                                                   |
-| Dedicated test-authoring / coverage-gap task — a standalone task that writes tests for existing or just-built behavior, NOT the inline tests an engineer writes for their own implementation task | qa-engineer                                                                                                                                                                                                         |
-| Unclear or mixed                                                                                                                                                                                  | split per the rule below — never `architect`                                                                                                                                                                        |
+| Files in... | Agent |
+|-------------|-------|
+| API endpoints, controllers, middleware, services, server-side logic — and the backend stack's domain models, types, interfaces, contracts, and business/state logic | backend-engineer |
+| UI components, styles, routes, composables, stores — and the frontend stack's domain models, types, interfaces, and state management (BLoC / Redux / Pinia) | frontend-engineer |
+| Mobile screens, navigation, native modules, platform-specific code, app lifecycle — and the mobile stack's domain models, types, and state | mobile-engineer |
+| Non-server host / runtime-entrypoint code — Electron main process, desktop-app `main`, CLI entrypoint, Tauri core — i.e. the app's host process, NOT a backend server | the owning package's stack implementer per `## Packages` / `PACKAGE_STACKS` (the app's primary implementer — e.g. the frontend/app engineer that owns the rest of the codebase) — NOT `backend-engineer` by default |
+| Bug investigation with runtime symptoms | runtime-debugger |
+| Performance-critical path or optimization task | owning stack engineer (backend/frontend/mobile-engineer, per the file's layer) — `performance-analyst` diagnoses and recommends during `/review`, it never implements |
+| Auth, secrets, input validation, security hardening | owning stack engineer (backend-engineer for server-side auth/secrets/validation; frontend-engineer for client-side) — `security-reviewer` reviews during `/review`, it never implements |
+| Database schemas, migrations, queries, seed data | db-engineer |
+| API contract design, OpenAPI specs, endpoint structure | api-designer |
+| CI/CD, Docker, deployment config, infrastructure | devops-engineer |
+| Data migration scripts, backward compatibility layers | migration-engineer |
+| Accessibility, design-system compliance, visual-fidelity work on UI files | owning stack engineer (frontend-engineer / mobile-engineer, per the file's layer) |
+| Dedicated test-authoring / coverage-gap task — a standalone task that writes tests for existing or just-built behavior, NOT the inline tests an engineer writes for their own implementation task | qa-engineer |
+| Unclear or mixed | split per the rule below — never `architect` |
 
 A mixed or unclear task is a decomposition smell, not a routing problem: split it until each piece maps to exactly one stack's implementer; if a piece genuinely spans stacks (e.g. a backend API plus its frontend consumer), break it into per-stack tasks joined by a dependency edge. If splitting is genuinely impossible, escalate to the human. Never assign `architect` to write code — the architect cannot implement.
 
@@ -268,7 +268,7 @@ Inline tests stay the per-engineer default — each stack engineer writes the te
 
 **This phase runs ONLY when the feature implements against a design reference.** A design reference is a `design/reference.html` file at the workspace root (the single HTML artifact the feature's UI implements against). If no such file exists, this feature is not UI-against-a-reference work — SKIP this entire phase and proceed directly to Phase 3. Non-UI features and UI features with no `design/reference.html` are NOT blocked by this gate.
 
-When a `design/reference.html` DOES exist, this gate produces a per-element disposition manifest — the pre-code contract that classifies every reference element before any task file is written — and HALTS intake if any reference value cannot be resolved or any element is left unclassified. The gate runs at INTAKE (before Phase 3 writes task files), not at verify: a fidelity gap is escalated to the user BEFORE code is written, never after. The `design_helper` owns the manifest's structure, validation, and the gap-list computation; the orchestrator composes only the disposition values.
+When a `design/reference.html` DOES exist, this gate authors the feature's design-fidelity **binding** — the built-side wiring that maps the captured design intent to what the feature will build — and HALTS intake if that binding is empty or invalid. The binding names WHERE the feature renders (its `route`) and, per correspondence pair, WHICH reference selector maps to WHICH built element's stable testid. The gate runs at INTAKE (before Phase 3 writes task files), not at verify: an unresolved design contract is escalated to the user BEFORE code is written, never after. The `design_helper` owns the binding's validation; the orchestrator reads the captured intent and composes the `route` and pair values.
 
 **Detect the design reference.** Run a mechanical existence test from the workspace root (cwd) — `test -f design/reference.html` — and branch on its boolean result, not on eyeballing the filesystem. If it is present (`test` is zero), continue to Step 1.
 
@@ -279,61 +279,46 @@ If the file is absent (`test` is non-zero), there is no enforceable reference to
   --spec specs/NNN-<feature>/spec.md --workspace-root .
 ```
 
-The verb's exit code is ALWAYS 0 (this is a non-blocking warning, never a halt) — branch on whether the verb produced output (a WARN), not on its exit code. The verb is SILENT in the common cases and prints a WARN (to stderr, exit 0) only when a non-file design source is declared without an enforceable reference. If the verb produced a WARN, the spec declared a non-file design source (`figma`/`screenshot`, or an `html` target that is not an existing file) with no enforceable `design/reference.html`: copy that output VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase), then proceed to Phase 3 — the WARN's own text explains the skip and the convert-to-`design/reference.html` remedy, so it replaces the plain "skipping" line in this case. If the verb produced no output, tell the user `"No design/reference.html for this feature; skipping the design-fidelity intake gate."` and proceed to Phase 3 (the common cases: the spec declared `none` or declared nothing; note an `html:` source pointing to an existing non-`design/reference.html` path also produces no output but is a misdeclaration this gate does not catch — the plan-40 apparatus enforces only `design/reference.html`).
+The verb's exit code is ALWAYS 0 (this is a non-blocking warning, never a halt) — branch on whether the verb produced output (a WARN), not on its exit code. The verb is SILENT in the common cases and prints a WARN (to stderr, exit 0) only when a non-file design source is declared without an enforceable reference. If the verb produced a WARN, the spec declared a non-file design source (`figma`/`screenshot`, or an `html` target that is not an existing file) with no enforceable `design/reference.html`: copy that output VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase), then proceed to Phase 3 — the WARN's own text explains the skip and the convert-to-`design/reference.html` remedy, so it replaces the plain "skipping" line in this case. If the verb produced no output, tell the user `"No design/reference.html for this feature; skipping the design-fidelity intake gate."` and proceed to Phase 3 (the common cases: the spec declared `none` or declared nothing; note an `html:` source pointing to an existing non-`design/reference.html` path also produces no output but is a misdeclaration this gate does not catch — the design-fidelity gates enforce only `design/reference.html`).
 
 The PHASE 3.5 `verify-manifest-present` gate is the authoritative backstop for the reference-PRESENT case — it re-derives the `design/reference.html` existence check mechanically — so a wrongly-skipped PHASE 2.5 is caught downstream, never silently lost.
 
-**Step 1 — Resolve the reference into elements + a gap-list.** Run the helper, capturing its stdout JSON to a scratch file outside the work tree (the helper's next verb reads a file path, not a pipe):
+**Step 1 — Read the captured design intent (the anchor).** `/specify` persisted the feature's design intent to `specs/NNN-<feature>/design-anchor.json` (substitute `NNN-<feature>` with the resolved feature dir name) — an immutable record of shape `{kind, file, selectors, source_hash}` where `kind` + `file` name the design source and `selectors` names which reference selectors carry the intent. Read this file. Its `selectors` are the candidate anchor-side selectors for the binding's pairs (Step 2). If `design-anchor.json` is absent, or its `selectors` list is empty, that does NOT block this gate — Read `design/reference.html` to identify its primary top-level container selector, then author the container-floor pair directly from that container in Step 2. Only an empty or invalid binding halts intake (Step 3).
 
-```bash
-mkdir -p "${TMPDIR:-/tmp}/forge-breakdown"
-.devforge/lib/design_helper resolve-reference --html-path design/reference.html \
-  > "${TMPDIR:-/tmp}/forge-breakdown/design-reference.json"
+**Step 2 — Author the binding.** Compose the built-side binding and write it to `specs/NNN-<feature>/design-manifest.json` via Write (substitute `NNN-<feature>` with the resolved feature dir name). The binding maps the captured intent to what the feature will build; it has this shape:
+
+```json
+{
+  "route": "<where the feature's UI renders in the built app>",
+  "pairs": [
+    { "anchor_selector": "<a selector from the anchor / reference>", "built_testid": "<the stable testid the engineer will add to the built element>" }
+  ]
+}
 ```
 
-**Check the exit code before proceeding.** Because the command redirects stdout to a file, a non-zero exit (exit 2 — `design/reference.html` was not found or could not be read) leaves an empty/partial JSON file and the helper's informative stderr is the only diagnostic. If the exit code is non-zero, copy the helper's stderr VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase), then end the turn. Proceed to Step 2 ONLY on exit 0.
+- **`route`** (required, non-empty): where the feature's UI renders in the built app — a URL path, screen name, or route identifier. The review-time runtime design-fidelity check navigates here to find the surface to compare; without it there is no place to check.
+- **`pairs`** (required, at least one): each pair maps one reference selector to one built element.
+  - The **FIRST pair is the mandatory container floor**: the anchor's primary region (its top-level container selector) ↔ the built container's stable testid. This single pair covers the styling every child inherits from the container (the most-omitted, most-dangerous class) plus the container's own box geometry.
+  - **Additional pairs are opt-in precision** — add one per anchor `selector` (from Step 1) whose per-element fidelity matters. In practice this is a handful of elements.
+  - **`anchor_selector`** MAY be brittle (e.g. a bare class) — it points at the static reference file, which never changes, so its fragility is harmless.
+  - **`built_testid`** MUST be a stable testid the engineer adds to the living, refactored code — never a brittle selector, because it points at code that gets refactored.
 
-On exit 0 the verb has emitted a JSON object carrying the `data-ref`-anchored element list (each element's `data_ref`, tag, id, classes, inline style), the resolved CSS values, and a `gap_list` of unresolvable classes/undefined tokens (a class with no CSS definition on disk, a `var(--token)` with no definition in the collected CSS). The gap-list is NOT escalated here — it is carried into the manifest and enforced by `validate-manifest` (Step 4), which is the single halt point for both unresolvable values and unclassified elements.
+The Phase-2 architect validation of task boundaries and the design decisions it surfaced inform which elements warrant an opt-in pair — author the pairs in light of that consultation, not independently of it.
 
-**Step 2 — Initialize the skeleton manifest.** Produce a skeleton manifest (every element unclassified) from the resolve-reference output, and write it to the feature's manifest path via Write:
-
-```bash
-.devforge/lib/design_helper init-manifest \
-  --reference-json "${TMPDIR:-/tmp}/forge-breakdown/design-reference.json"
-```
-
-The verb emits the skeleton manifest JSON to stdout — every element carries `disposition: ""` (unclassified) and the `gap_list` is copied in. Exit 2 means the reference JSON could not be read — copy the helper's stderr VERBATIM into a fenced code block and end the turn. Otherwise write the helper's stdout VERBATIM to `specs/NNN-<feature>/design-manifest.json` via Write (substitute `NNN-<feature>` with the resolved feature dir name). Do not edit the structure; you will fill only the disposition values in Step 3.
-
-**Step 3 — Classify every element's disposition (judgment step, WITH the architect consult already performed in Phase 2).** This is the orchestrator's composition step. For each element in `specs/NNN-<feature>/design-manifest.json`, set its `disposition` field to exactly one of:
-
-- **`MATCH`** — the element is in scope; its runtime values (color, border, radius, spacing, typography, `:hover`, `:focus-visible`) must equal the reference 1:1.
-- **`DEFER-EMPTY`** — the element's CONTENT is out of scope (an empty mount slot), but the CONTAINER's box model (border, padding, dimensions) still matches the reference 1:1.
-- **`STATIC-PLACEHOLDER`** — the element's content is fixed/hardcoded, but its styling still matches the reference 1:1.
-- **`DEVIATE`** — an explicit, recorded decision to depart from the reference. A `DEVIATE` element REQUIRES a non-empty `deviate_reason` field stating why; that reason is the audit trail.
-
-The Phase-2 architect validation of task boundaries and the design decisions it surfaced are the basis for these classifications — classify in light of that consultation, not independently of it. Write the classified `specs/NNN-<feature>/design-manifest.json` via Edit (set each `disposition`, and the `deviate_reason` on every `DEVIATE` element).
-
-**Step 4 — Validate the manifest (the HALT point).** Run the validator against the classified manifest:
+**Step 3 — Validate the binding (the HALT point).** Run the validator against the authored binding:
 
 ```bash
-.devforge/lib/design_helper validate-manifest \
-  --manifest-path specs/NNN-<feature>/design-manifest.json
+.devforge/lib/design_helper validate-binding \
+  --binding-path specs/NNN-<feature>/design-manifest.json
 ```
 
-Substitute `NNN-<feature>` with the resolved feature dir name. The verb emits a `{valid, errors}` JSON object to stdout and, on failure, one error line per problem to stderr. It enforces two rules: every element MUST carry a disposition (an unclassified element fails, naming the element), and the gap-list MUST be empty (each unresolvable class/token fails, naming the token with a "supply the missing artifact or record a DEVIATE entry" instruction).
+Substitute `NNN-<feature>` with the resolved feature dir name. The verb emits a `{valid, errors}` JSON object to stdout and, on failure, one error line per problem to stderr. It validates BOTH the structural shape (a well-formed `route` plus a `pairs` array whose entries carry `anchor_selector` / `built_testid`) AND completeness — `route` non-empty and at least one fully-specified pair (both `anchor_selector` and `built_testid` non-empty) present; an empty binding is never valid by omission. Because Step 2 authors the JSON directly with no helper skeleton, a structurally-malformed file is caught at THIS gate, not shipped downstream.
 
-- **Exit 0** — the manifest is fully classified with an empty gap-list. The intake gate passes. Remove the scratch dir, then proceed to Phase 3:
+- **Exit 0** — the binding is valid (non-empty `route` + at least one fully-specified pair). The intake gate passes; proceed to Phase 3.
+- **Exit 1** — validation errors. Copy the helper's stderr VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase). Do NOT write any task file. The binding is empty or incomplete — a missing `route`, zero pairs, or a pair missing its `anchor_selector` / `built_testid`. Re-enter Step 2, supply the missing value(s), and re-run Step 3. If a required value genuinely cannot be determined from the spec, plan, anchor, and reference — for example the feature's render `route` is unknown — HALT and escalate to the user: end the turn with the copied errors and a request for the missing value; the user's reply opens the next turn, after which re-author (Step 2) and re-validate (Step 3). Intake does not proceed to Phase 3 until the binding validates.
+- **Exit 2** — the binding file could not be read or parsed (a Step 2 write problem, or the path is missing / not a file). Copy the helper's stderr VERBATIM into a fenced code block, then end the turn.
 
-  ```bash
-  rm -rf "${TMPDIR:-/tmp}/forge-breakdown"
-  ```
-
-- **Exit 1** — validation errors. Copy the helper's stderr VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase), then HALT and escalate. Two distinct failure classes appear in the stderr, with distinct recovery paths — tell the user which applies and that intake cannot proceed until it is resolved. Do NOT write any task file. End the turn; the user's resolution opens the next turn, after which re-run from the step named below for the failure they fixed, then re-validate.
-  - **An unclassified element** (`element '<data-ref>': disposition is unclassified`) → the element was left blank in Step 3. Recovery: re-enter Step 3 to set its `disposition` (and `deviate_reason` if `DEVIATE`), then re-run Step 4.
-  - **A gap-list entry** (`gap-list: unresolvable class/token '<token>'`) → a class or token in the reference could not be resolved on disk. The `gap_list` is a SEPARATE top-level field of the manifest; reclassifying an element does NOT clear it. Two accurate recovery paths: (1) **supply the missing artifact** — add the missing stylesheet or define the missing token at its source, then re-run from Step 1 to recompute the gap-list from the updated reference; or (2) **accept it as a known deviation** — manually edit `specs/NNN-<feature>/design-manifest.json` to REMOVE that token from the `gap_list` array AND set the corresponding element's `disposition` to `DEVIATE` with a `deviate_reason` recording the acceptance, then re-run Step 4 to re-validate. Path 1 re-runs from Step 1; path 2 is a manual edit followed by Step 4.
-- **Exit 2** — the manifest file could not be read or parsed (a Step 2/Step 3 write problem). Copy the helper's stderr VERBATIM into a fenced code block, then end the turn.
-
-The validated `specs/NNN-<feature>/design-manifest.json` PERSISTS as the design-fidelity CONTRACT for the feature. It declares, per element, what the two downstream fidelity gates enforce: a `MATCH` element's runtime values must equal the reference 1:1 (color, border, radius, spacing, typography, `:hover`, `:focus-visible`); a `DEFER-EMPTY` element's container box model must match 1:1 while its content is out of scope; a `STATIC-PLACEHOLDER` element's styling must match 1:1 while its content is fixed; a `DEVIATE` element is exempt, its `deviate_reason` the audit trail. The manifest is consumed by two enforcement concerns: `/implement`'s per-task forcing-functions gate runs the write-time provenance check `verify-design-tokens` against it (no hardcoded color literals, no `var(--x, <literal>)` fallbacks, token-binding on `MATCH` elements, `:hover` + `:focus-visible` on interactive elements), and `/review`'s PHASE 2.5 dispatches `design-auditor` to read it for the review-time runtime-conformance check (each in-scope element's rendered values against the reference per its disposition). This phase only PRODUCES that contract; it does not itself run either enforcement.
+The validated `specs/NNN-<feature>/design-manifest.json` PERSISTS as the design-fidelity CONTRACT for the feature — the built-side binding the two downstream design-fidelity gates read. It declares the feature's render `route` and, per pair, which reference selector the built element (identified by its stable testid) must match. The binding is consumed by two enforcement concerns: `/implement`'s per-task forcing-functions gate runs the static design-token provenance check `verify-design-tokens` on the feature's styling (no hardcoded color literals, no `var(--x, <literal>)` fallbacks, undefined-token-fails-loud), and `/review`'s PHASE 2.5 dispatches `design-auditor` for the review-time runtime-conformance check (the built UI's rendered values and geometry against the design intent). This phase only PRODUCES that binding; it does not itself run either enforcement.
 
 ## PHASE 3: Write tasks
 
@@ -442,7 +427,7 @@ Pass only the tasks directory — do NOT pass `--agents-dir`. The verb defaults 
 - Exit 2 with `no agent roster found...` on stderr → `.claude/agents/` is missing or has no agent files (a broken install). Copy the helper's stderr VERBATIM into a fenced code block; this is an install problem to resolve before breakdown can assign agents.
 - Exit 2 with `no task files...` on stderr → the tasks directory is missing or empty (Phase 3 did not write the task files). Copy the helper's stderr VERBATIM into a fenced code block; return to Phase 3.
 
-**Design manifest** — a reference-present feature has a present-and-valid `design-manifest.json` (the PHASE 2.5 disposition contract the two downstream design-fidelity gates depend on):
+**Design manifest** — a reference-present feature has a present-and-valid `design-manifest.json` (the PHASE 2.5 binding the two downstream design-fidelity gates depend on):
 
 ```bash
 .devforge/lib/breakdown_helper verify-manifest-present <tasks-dir>
@@ -451,7 +436,7 @@ Pass only the tasks directory — do NOT pass `--agents-dir`. The verb defaults 
 Pass only the tasks directory — do NOT pass `--scope-only`, `--reference-path`, or `--manifest-path` (those flags exist for testing and an alternate scope-check mode; `--scope-only` in particular changes the exit-code semantics). The verb defaults the workspace root to the working directory (cwd), the reference to `design/reference.html`, and the manifest to `specs/NNN-<feature>/design-manifest.json` (deriving the feature dir as the parent of the tasks dir), which are correct for Phase 3.5 in both standalone and wrapper mode: the helper is invoked via the relative path `.devforge/lib/breakdown_helper`, so the working directory is always the install root, where `.claude/` and `design/` live.
 
 - Exit 0 (`design-manifest: skip (...)` or `design-manifest: ok (...)`) → pass; no action. `skip` = this is not a design-reference feature (no `design/reference.html`); `ok` = the manifest is present and valid.
-- Exit 2 with a `## Design manifest findings` block on stdout → a HARD failure: the feature has a `design/reference.html` but its `design-manifest.json` is absent or invalid (an unclassified element or an unresolvable reference value). Copy the helper's stdout VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase). Re-enter PHASE 2.5 to produce/complete and re-validate the manifest, then re-run THIS gate. This is a HARD gate with NO `## Risk Assessment` deferral/bypass: do not proceed to Phase 4 with an unresolved manifest violation.
+- Exit 2 with a `## Design manifest findings` block on stdout → a HARD failure: the feature has a `design/reference.html` but its `design-manifest.json` is absent or invalid (an empty or incomplete binding — a missing `route`, or a pair missing its `anchor_selector` / `built_testid`). Copy the helper's stdout VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase). Re-enter PHASE 2.5 to author/complete and re-validate the binding, then re-run THIS gate. This is a HARD gate with NO `## Risk Assessment` deferral/bypass: do not proceed to Phase 4 with an unresolved manifest violation.
 - Exit 2 with `breakdown_helper: tasks directory not found: ...` on stderr → copy the helper's stderr VERBATIM into a fenced code block; the tasks directory is missing (Phase 3 did not write the task files) — return to Phase 3.
 
 ## PHASE 4: User approval (HARD GATE)
@@ -474,7 +459,7 @@ Present a summary. This block is LLM-authored (breakdown state lives on disk in 
 **Contract chain**: [ok | N findings recorded in Risk Assessment]
 **AC coverage**: [all covered | N flagged in Risk Assessment]
 **Agent roster**: all agents installed
-**Design fidelity**: manifest present-and-valid"
+**Design fidelity**: binding present-and-valid"
 
 The `**Design fidelity**:` line is CONDITIONAL — include it ONLY when this feature has a `design/reference.html` (i.e. the PHASE 3.5 design-manifest gate ran against a present reference and passed). For a non-UI feature with no `design/reference.html`, OMIT the line entirely — do not emit a "not a design feature" line. Unlike the always-present `**Agent roster**` line, this line is reference-present-gated.
 
@@ -486,7 +471,7 @@ Then ask via `AskUserQuestion`:
 End the turn. The user's reply opens the next turn.
 
 - **`approve`** → proceed to Phase 5 (finalize).
-- **`request-changes`** → in the next turn, ask the user which task or aspect to revise. Re-enter the relevant phase (Phase 1 file analysis / Phase 2 decomposition / Phase 3 task writing / Phase 3.5 gates) as needed; re-render the affected task files and index via Write or Edit; re-run the Phase 3.5 gates; re-present the summary above and re-issue this approval prompt. The state lives in the rendered files on disk; this loop mutates them in place.
+- **`request-changes`** → in the next turn, ask the user which task or aspect to revise. Re-enter the relevant phase (Phase 1 file analysis / Phase 2 decomposition / Phase 2.5 design-fidelity intake / Phase 3 task writing / Phase 3.5 gates) as needed; re-render the affected task files and index via Write or Edit; re-run the Phase 3.5 gates; re-present the summary above and re-issue this approval prompt. The state lives in the rendered files on disk; this loop mutates them in place.
 - **`cancel`** → tell the user `"/breakdown cancelled. Task drafts preserved at specs/NNN-<feature>/tasks/."` and end the turn.
 
 ## PHASE 5: Finalize

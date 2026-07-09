@@ -1,6 +1,6 @@
 ---
 name: implement
-argument-hint: ''
+argument-hint: ""
 description: Drain an approved feature's breakdown tasks one at a time — dispatch the assigned agent, verify, autonomous four-reviewer review panel, forcing-functions gate, then a per-task human hard gate before any commit.
 disable-model-invocation: true
 allowed-tools:
@@ -15,7 +15,6 @@ allowed-tools:
   - Bash(.devforge/lib/implement_helper mark-skipped *)
   - Bash(.devforge/lib/implement_helper update-session-state *)
   - Bash(.devforge/lib/cbm_sync_helper write *)
-  - Bash(test -f *)
   - Bash(git commit --allow-empty *)
   - Bash(git -C * commit --allow-empty *)
   - Bash(git diff *)
@@ -73,10 +72,8 @@ Read `.devforge/wip.md`.
     ```
 
     The helper sets `**Status**: Skipped` in the task file and rewrites the matching `tasks/README.md` index row (it does NOT touch git or `wip.md`); exit 2 means the task file or index row was not found — copy its stderr VERBATIM into a fenced code block and resolve before re-running. `resolve-next-task` treats `Skipped` as satisfied for dependency resolution, so downstream tasks are not permanently blocked.
-
   - **`manual`** → keep all state and `wip.md` in place; tell the user `"/implement paused for manual inspection. Re-run /implement when ready."` and end the turn.
-
-- **Present with a `**Command**:`value other than`/implement`** → a different command was interrupted. Do NOT proceed. Tell the user `"A previous session of a different command was interrupted (see .devforge/wip.md). Resolve that session first before running /implement."` and end the turn.
+- **Present with a `**Command**:` value other than `/implement`** → a different command was interrupted. Do NOT proceed. Tell the user `"A previous session of a different command was interrupted (see .devforge/wip.md). Resolve that session first before running /implement."` and end the turn.
 
 ---
 
@@ -128,7 +125,6 @@ Then the orchestrator creates the pre-task checkpoint and writes the WIP marker:
    ```
 
    Substitute `NNN` with the resolved task `number` and `<source_root>` with the path resolved above. The checkpoint SHA written into `wip.md` (step 2 below) is preflight's `head_sha` — the **source** repo HEAD snapshotted before this empty commit (`preflight` already targeted the source repo per D3), the rollback target for `skip` and recovery. In standalone mode `<source_root>` is the install root, so this is a single-repo commit exactly as before.
-
 2. Write `.devforge/wip.md` with the mandatory `**Command**: /implement` field plus `**Feature**`, `**Task**` (number), `**Title**`, `**Agent**`, `**Phase**` (set to the phase about to run, starting at `dispatch`), and `**Checkpoint**` (the checkpoint SHA captured above). The marker is the crash-recovery anchor read by PHASE 0 on the next run. See `.claude/commands/implement/references/crash-recovery.md` for the field layout.
 
 ---
@@ -194,7 +190,6 @@ Start the loop iteration counter at 0 and run:
    ```
 
    The helper parses each reviewer's `### Verdict:` line against that reviewer's vocabulary and emits JSON `{clean, escalate, iteration, per_reviewer}` (exit 0), where `per_reviewer` is one `{agent, verdict, clean}` record per reviewer. `clean` is `true` IFF EVERY reviewer returned its own clean token (`code-reviewer` `APPROVE`, `qa-reviewer` `ADEQUATE`, `security-reviewer` `PASS`, `performance-analyst` `MEETS TARGETS`); one dirty reviewer keeps the loop going. `escalate` is `true` when `N >= 3` (the helper-owned `REVIEW_LOOP_CAP`). The helper does the deterministic verdict aggregation ONLY — it does NOT parse, merge, or conflict-detect findings; that is the orchestrator's job below. Exit 2 means one reviewer's verdict line was missing, was the unfilled slash-joined template, or carried a token outside that reviewer's vocabulary — copy the helper's stderr VERBATIM into a fenced code block (it names WHICH reviewer failed), then re-invoke ONLY that named reviewer for a properly-formed verdict, rewrite its scratch file, and re-run `merge-review-panel`. Do not treat a parse error as a verdict.
-
 4. Branch on the JSON:
    - **`clean: true`** → exit the panel loop. Carry any reviewer warnings into PHASE 7 Stage B. Proceed to the forcing-functions gate below.
    - **`clean: false` and `escalate: false`** → the autonomous repair leg (no human). You hold the four reviewers' returned markdown; do all of the following, then re-fan-out:
@@ -204,17 +199,7 @@ Start the loop iteration counter at 0 and run:
      - Relaunch the **implementing agent** ONCE with the synthesized findings, then **re-fan-out the FULL panel** (all four reviewers over `touched_files` — no delta-scoping) at iteration `N + 1`. Full-panel re-review each round closes the cross-file-regression hole a repair could open.
    - **`clean: false` and `escalate: true`** → the cap was reached without converging. Exit the loop and record a `could-not-converge` decision item carrying the unresolved reviewer objection(s) for Stage A.
 
-After the review panel exits clean, first run the design-manifest tripwire, then run the forcing-functions gate.
-
-**Design-manifest tripwire (loud WARN, non-blocking).** Before the gate, check whether this feature has a design reference but is missing its disposition manifest:
-
-```bash
-test -f design/reference.html && ! test -f <feature_dir>/design-manifest.json && echo VOID
-```
-
-Substitute `<feature_dir>` with the resolved feature's `feature_dir` from PHASE 1 (`design/reference.html` is at the install root, where you run; `feature_dir` is the absolute `specs/NNN-*/` path). When the command prints `VOID` — a `design/reference.html` is present but this feature's `specs/<feature>/design-manifest.json` is absent — emit a loud, operator-visible WARN in your next user-facing message: this feature has a design reference but no design-manifest, so the forcing-functions gate's static design-token provenance check (`verify-design-tokens` Check 5 — MATCH-element token binding) is voided. Check 5 globs `specs/*/design-manifest.json` project-wide, so with this feature's manifest absent it either no-ops (no manifest on disk) or — if another feature's `design-manifest.json` is present — runs against the WRONG feature's MATCH refs, silently checking the wrong element set. The remedy is to re-run `/breakdown` PHASE 2.5 to produce this feature's manifest. Then CONTINUE to the gate — this is a WARN, not a halt; the task still proceeds. When the command prints nothing (no `design/reference.html`, or the manifest is present), say nothing and proceed silently — a genuine non-UI feature must not trip this WARN.
-
-Then run the forcing-functions gate via the helper:
+After the review panel exits clean, run the forcing-functions gate via the helper:
 
 ```bash
 .devforge/lib/implement_helper run-forcing-functions-gate
@@ -245,13 +230,11 @@ Iterate the recorded decision items. For EACH item, ask ONE `AskUserQuestion` �
   - **`stop`** → keep `.devforge/wip.md` + the working tree; tell the user the loop stopped at task `NNN`; end the loop.
 
 For a `could-not-converge` item (recorded when PHASE 6 escalated at the cap with one or more reviewers still dirty), the question's options are `["send back with direction", "skip", "stop"]` — there is NO accept-the-finding-as-is option, because an open finding must never reach `approve` (the D4 guarantee above):
-
 - **`send back with direction`** → free-text follow-up, then repair as above (relaunch the implementing agent → re-run PHASE 4 (capture) → PHASE 5 (verify) → PHASE 6 (review panel) → rebuild the decision set → restart Stage A). The loop continues under human direction; it does not ship the open finding.
 - **`skip`** → take the Stage B `skip` path below.
 - **`stop`** → keep `wip.md` + working tree; end the loop.
 
 For a `conflict` item (recorded when PHASE 6 found a COMPARABLE-severity contradiction it must not decide on the user's behalf), the question names the contested finding on one line and offers the two reviewers' incompatible positions as the first two options, each explained in its `description`: `["<reviewer A's position>", "<reviewer B's position>", "let me specify", "stop"]`:
-
 - **`<reviewer A's position>` / `<reviewer B's position>` / `let me specify`** → treat the chosen resolution as a repair direction. For `let me specify`, ask the user via free-text follow-up. Relaunch the implementing agent with the chosen resolution → re-run PHASE 4 (capture) → PHASE 5 (verify) → PHASE 6 (review panel) → rebuild the decision set → restart Stage A. The conflict is thus RESOLVED and re-reviewed to clean before Stage B — never approved open.
 - **`stop`** → keep `wip.md` + working tree; end the loop.
 
@@ -278,7 +261,6 @@ End the turn. The user's reply opens the next turn.
      Pass the `task_file` and `index_file` paths emitted by PHASE 1's `resolve-next-task` — do not construct them.
 
      The helper sets `**Status**: Complete`, ticks the Done-When boxes, fills Completion Notes in `tasks/<NNN>-<title>.md`, and rewrites the Status cell of the matching `tasks/README.md` index row (exit 0 → `{"marked": true}`). Any Done-When checkbox whose line contains a passed `--unverified-box` substring is left UNticked and annotated `_(unverified — see Completion Notes)_` instead of ticked; with no `--unverified-box` argument every box ticks. Exit 2 means the task file or index row was not found, exit 1 an I/O error — copy the helper's stderr VERBATIM into a fenced code block and resolve before re-running.
-
   2. Commit the approved work:
 
      ```bash
@@ -288,7 +270,6 @@ End the turn. The user's reply opens the next turn.
      Pass the same `task_file` and `index_file` paths emitted by PHASE 1.
 
      The helper never uses `git add -A`. In **standalone** mode it stages the touched files + the task file + index together in the single repo and commits them. In **wrapper** mode (D1) it commits ONLY the source `touched_files` to the **source** repo on its branch (deriving the `[TICKET-ID]` from the source branch per D2) and leaves the wrapper artifacts — the `mark-complete` task `Status` edit + index row from step 1 — written to disk but **uncommitted** in the wrapper repo; expect the wrapper tree to stay dirty (it is already dirty from `/specify`//`plan`//`breakdown`, and `/finalize` later squashes the accumulated source WIP commits). Either way the helper composes the message per the wrapper/non-wrapper convention (reading `WORKSPACE_MODE` + `COMMIT_ATTRIBUTION` from `.devforge/project-config.json`), commits, captures the new source HEAD SHA, and clears `.devforge/wip.md` in the install root (exit 0 → `{"committed": true, ...}`, carrying `head_sha` and `message`). It resolves `<source_root>` internally from the install-root `--root`. Exit 1 (config/I/O) or exit 2 (git staging/commit failure) — copy the helper's stderr VERBATIM into a fenced code block and resolve before re-running.
-
   3. **CBM post-commit refresh (orchestrator MCP call — NOT a helper subprocess).** Because the loop drains dependency-ordered tasks, a later task's `Expects` reads the just-committed `Produces`; the codebase-memory-mcp graph would otherwise be stale. Call `mcp__codebase-memory-mcp__detect_changes` (incremental — re-indexes only the committed delta, including new inline docs), then advance the stamp:
 
      ```bash
@@ -296,7 +277,6 @@ End the turn. The user's reply opens the next turn.
      ```
 
      `detect_changes` targets the **source** code (the indexed project), since that is what the just-committed change touched. Subprocess helpers cannot reach MCP, so the `detect_changes` call is the orchestrator's responsibility; `cbm_sync_helper write` then advances the stamp, which stays in the install root at `.devforge/cbm-last-indexed-sha`. (Standalone: source code and install root are the one repo, so this is a single index refresh as today.)
-
   4. Update session-state + memory:
 
      ```bash
@@ -304,9 +284,7 @@ End the turn. The user's reply opens the next turn.
      ```
 
      Pass `--total-count` as the `total_count` PHASE 1 emitted (completion does not change the task total). The `completed_count` PHASE 1 emitted is the **pre-completion** snapshot, so pass `--completed-count` as that value **plus 1** to account for the task just marked complete in step 1 — this is correct and cheaper than re-running `resolve-next-task` to re-scan disk. The helper overwrites `.devforge/session-state.md` (≤40 lines, sliding window of the last 3 task mods + last 3 decisions) and appends one outcome line to `.devforge/memory.md` (exit 0 → `{"updated": true}`).
-
   5. Loop: return to PHASE 1 (`resolve-next-task`) to pick the next task. The loop auto-advances — there is no per-task continue prompt; `stop` at this gate is the only loop exit besides `all-complete`.
-
 - **`repair`** → ask the user via free-text follow-up for the repair direction, relaunch the implementing agent with those notes, then re-run PHASE 4 (capture-touched-files) → PHASE 5 (verify) → PHASE 6 (review panel + forcing-functions gate) → return to this hard gate.
 - **`skip`** → discard the task's edits and advance:
   1. `git -C <source_root> reset --hard <checkpoint_sha>` (the PHASE 2 checkpoint SHA, which is the **source** repo HEAD) — this resets the **source** working tree to the task-start state so the skipped edits do not bleed into the next task's diff. (Standalone: `<source_root>` is the install root, so this resets the single repo as today.)
@@ -317,11 +295,9 @@ End the turn. The user's reply opens the next turn.
      ```
 
      Pass the `task_file` and `index_file` paths emitted by PHASE 1. The helper sets `**Status**: Skipped` in the task file and rewrites the Status cell of the matching `tasks/README.md` index row via the same region-aware updater `mark-complete` uses (exit 0 → `{"marked_skipped": true}`); it does NOT touch git or Completion Notes. Exit 2 means the task file or index row was not found — copy the helper's stderr VERBATIM into a fenced code block and resolve before re-running.
-
   3. Clear `.devforge/wip.md` (the orchestrator removes the file).
   4. If this task's `produces` feed a downstream task's `expects`, warn the user before the skip lands that downstream tasks may be affected.
   5. Loop: return to PHASE 1. (`resolve-next-task` treats `Skipped` as satisfied for dependency resolution, so downstream tasks are not permanently blocked.)
-
 - **`stop`** → keep `.devforge/wip.md` + the working tree as-is; tell the user the loop stopped at task `NNN` with work uncommitted; end the loop.
 
 ### Gate-blocked path (verify cap reached, wrapper-isolation failure, or forcing-functions exit 2)

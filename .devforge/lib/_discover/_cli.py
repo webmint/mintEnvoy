@@ -97,6 +97,7 @@ from ._cmds_handoff import (  # noqa: E402
     cmd_append_outcome,
     cmd_finalize_handoff,
 )
+from ._cmds_design_anchor import cmd_set_scope_design_anchor  # noqa: E402
 from ._cmds_intake import (  # noqa: E402
     INTAKE_KIND_ENUM,
     cmd_record_intake_classification,
@@ -216,6 +217,37 @@ def _register_subcommands(subparsers) -> None:
             help="Add 1 to dimensions.<dim>.turns.",
         )
         sp.set_defaults(func=_make_scope_dim_setter(_dim), dimension=_dim)
+
+    # Plan 53 Phase 1 — design-anchor capture (optional; not gated by
+    # scope-finalize; see _cmds_design_anchor.py docstring). Named to match
+    # the "set-scope-<dim>" convention even though design_anchor is NOT one
+    # of RUBRIC_DIMENSIONS.
+    sp = subparsers.add_parser(
+        "set-scope-design-anchor",
+        help=(
+            "Capture design intent: kind + file (parsed from --value "
+            "'<scheme>:<target>' via parse_design_source) + selectors (JSON "
+            "array of intent selector strings). Optional — an empty/unset "
+            "anchor is the valid default (plan 53 D3/D5)."
+        ),
+    )
+    sp.add_argument(
+        "--value",
+        required=True,
+        help="'<scheme>:<target>' (scheme one of html|figma|screenshot) or the literal 'none'.",
+    )
+    sp.add_argument(
+        "--selectors",
+        required=True,
+        help='JSON array of intent selector strings (may be "[]").',
+    )
+    sp.add_argument(
+        "--state",
+        default="Clear",
+        choices=list(RUBRIC_STATE_ENUM),
+        help="State after this set (default: Clear). Informational only — not gated.",
+    )
+    sp.set_defaults(func=cmd_set_scope_design_anchor)
 
     sp = subparsers.add_parser(
         "record-references",

@@ -1587,7 +1587,14 @@ def _validate_manifest_present(
     # type: (str, str, str, Optional[str]) -> Tuple[int, str, str]
     """Core validation for the design-manifest-present invariant (plan 42 WI-1).
 
-    Asserts: reference_present => manifest_present AND manifest_valid.
+    Asserts: reference_present => binding_present AND binding_valid.
+
+    Plan 53 Phase 3/7c retarget: the on-disk artifact `design-manifest.json`
+    is unchanged (same filename, same call sites — plan 53 D4 successor), but
+    its SCHEMA is now the BINDING (`{route, pairs: [{anchor_selector,
+    built_testid}]}`, `_design._schema.Binding`) — the retired data-ref /
+    disposition-manifest shape (`ElementRecord` / `disposition` / `gap_list`)
+    is gone.  This function composes `_design._schema.validate_binding`.
 
     Used by both the standalone verb (verify-manifest-present) and the
     finalize-handoff chokepoint (Phase 2).
@@ -1595,22 +1602,22 @@ def _validate_manifest_present(
     Parameters
     ----------
     feature_dir : str
-        The feature directory (parent of tasks/).  The manifest is expected at
+        The feature directory (parent of tasks/).  The binding is expected at
         feature_dir/design-manifest.json unless manifest_path_override is given.
     workspace_root : str
         Workspace root used to locate design/reference.html.
     reference_path : str
         Path to the reference HTML relative to workspace_root.
     manifest_path_override : str or None
-        Override the manifest path (for testing / explicit --manifest-path flag).
+        Override the binding path (for testing / explicit --manifest-path flag).
 
     Returns
     -------
     (exit_code, stdout_text, stderr_text)
 
     exit_code:
-      0  — ok (either reference absent — not a design feature — or manifest valid)
-      2  — violation (reference present but manifest absent or invalid)
+      0  — ok (either reference absent — not a design feature — or binding valid)
+      2  — violation (reference present but binding absent or invalid)
 
     stdout_text:
       On exit 0 (no reference):  one-liner skip message.
@@ -1627,11 +1634,11 @@ def _validate_manifest_present(
     if str(_lib_dir) not in sys.path:
         sys.path.insert(0, str(_lib_dir))
 
-    from _design._schema import validate_manifest, manifest_from_json  # type: ignore[import]
+    from _design._schema import validate_binding, binding_from_json  # type: ignore[import]
 
     feature_path = Path(feature_dir)
 
-    # Determine manifest path.
+    # Determine binding path (the on-disk artifact is still design-manifest.json).
     if manifest_path_override:
         manifest_file = Path(manifest_path_override)
     else:
@@ -1650,7 +1657,7 @@ def _validate_manifest_present(
             "",
         )
 
-    # --- Step 2: reference present, manifest absent → hard fail ---
+    # --- Step 2: reference present, binding absent → hard fail ---
     if not manifest_file.is_file():
         stdout = (
             "## Design manifest findings\n"
@@ -1658,11 +1665,11 @@ def _validate_manifest_present(
             "- {ref} is present but {manifest} is absent.\n"
             "  The PHASE 2.5 design-intake gate was skipped or did not complete.\n"
             "\n"
-            "Remedy: re-run /breakdown PHASE 2.5 to produce the manifest for\n"
+            "Remedy: re-run /breakdown PHASE 2.5 to produce the binding for\n"
             "  feature '{feature}' before proceeding to PHASE 3.5.\n"
-            "  Run `design_helper resolve-reference --html-path {ref}` then\n"
-            "  `design_helper init-manifest --reference-json <output>` and\n"
-            "  classify every element before running validate-manifest.\n"
+            "  The binding must declare a route and at least one\n"
+            "  anchor_selector/built_testid pair (the container floor) before\n"
+            "  running validate-binding.\n"
         ).format(
             ref=reference_path,
             manifest=str(manifest_file.relative_to(feature_path.parent)
@@ -1675,7 +1682,7 @@ def _validate_manifest_present(
     # --- Step 3: both present → validate ---
     try:
         with open(str(manifest_file), "r", encoding="utf-8") as fh:
-            container = manifest_from_json(fh.read())
+            binding = binding_from_json(fh.read())
     except (OSError, ValueError) as exc:
         stdout = (
             "## Design manifest findings\n"
@@ -1684,12 +1691,12 @@ def _validate_manifest_present(
         ).format(manifest=manifest_file, exc=exc)
         return (2, stdout, "")
 
-    errors = validate_manifest(container)
+    errors = validate_binding(binding)
 
     if not errors:
         return (
             0,
-            "design-manifest: ok (manifest present and valid for '{feature}')\n".format(
+            "design-manifest: ok (binding present and valid for '{feature}')\n".format(
                 feature=feature_name
             ),
             "",
@@ -1700,8 +1707,8 @@ def _validate_manifest_present(
     for err in errors:
         lines.append("- {0}\n".format(err))
     lines.append(
-        "\nRemedy: classify all unclassified elements and resolve all gap-list\n"
-        "  entries before proceeding to PHASE 3.5.\n"
+        "\nRemedy: supply a non-empty route and resolve every pair's\n"
+        "  anchor_selector/built_testid before proceeding to PHASE 3.5.\n"
     )
     return (2, "".join(lines), "")
 

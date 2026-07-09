@@ -95,6 +95,24 @@ Subcommands:
       Schema validation failure: exit 2 with message on stderr.
       Idempotent: re-running overwrites the previous plan-handoff.json.
 
+  stakes-hint <plan-handoff-path>
+      Advisory-only. Reads plan-handoff.json's breakdown_seeds and checks
+      for a sibling data-model.md. If a high-stakes signal crosses
+      threshold -- wide blast radius (file_impact >= 8), many recorded
+      risks (>= 4), a real (non-negated) Dependencies entry, a sibling
+      data-model.md, or a security-relevant keyword in risks/decisions --
+      prints a hint block naming which signals fired and ending with the
+      literal next step `/grill <plan-path>` (the handoff's own recorded
+      plan_path field, falling back to the sibling plan.md only when that
+      field is absent or not a string).
+      Otherwise prints nothing. See _plan/_stakes.py for signal + threshold
+      rationale.
+      Once invoked (an absent positional argument is an argparse usage
+      error, exit 2, before this handler runs), NEVER blocks, NEVER raises,
+      and NEVER exits non-zero -- this is advisory only; any missing/
+      unreadable/malformed handoff CONTENT (including a handoff missing
+      breakdown_seeds) degrades to silent no-op, not an error.
+
 Exit codes:
   0 — success
   1 — reserved for I/O failures (write errors)
@@ -1918,6 +1936,70 @@ def cmd_finalize_handoff(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Subcommand: stakes-hint
+# ---------------------------------------------------------------------------
+
+
+def cmd_stakes_hint(args: argparse.Namespace) -> int:
+    """Advisory-only: print a '/grill <plan-path>' hint when a plan is high-stakes.
+
+    Reads the plan-handoff.json at args.plan_handoff_path and delegates
+    signal computation to _plan._stakes. Once this handler runs (argparse
+    has already validated the CLI arguments before control reaches here),
+    it never raises to the caller and never returns non-zero: any missing
+    file, unreadable file, malformed JSON, non-dict root, or missing/
+    malformed breakdown_seeds degrades to silent no-op (no stdout) rather
+    than an error. This is a deliberate broad-except: the verb's contract
+    is "never disrupt /plan" on any handoff CONTENT shape, so a defensive
+    try/except around the read+parse+compute path is the correct shape
+    here, not a lazily-caught escape hatch.
+    """
+    handoff_path_raw = getattr(args, "plan_handoff_path", None)
+    if not handoff_path_raw:
+        return 0
+
+    try:
+        handoff_path = Path(handoff_path_raw)
+        if not handoff_path.is_absolute():
+            handoff_path = Path.cwd() / handoff_path
+        if not handoff_path.is_file():
+            return 0
+
+        raw_text = handoff_path.read_text(encoding="utf-8")
+        d = json.loads(raw_text)
+        if not isinstance(d, dict):
+            return 0
+
+        breakdown_seeds = d.get("breakdown_seeds")
+        if not isinstance(breakdown_seeds, dict):
+            return 0
+
+        _lib_dir = Path(__file__).resolve().parent
+        if str(_lib_dir) not in sys.path:
+            sys.path.insert(0, str(_lib_dir))
+        from _plan._stakes import compute_signals, render_hint
+
+        handoff_dir = handoff_path.resolve().parent
+        signals = compute_signals(breakdown_seeds, handoff_dir)
+        if not signals.get("fires"):
+            return 0
+
+        # Prefer the handoff's own recorded plan_path (schema-required,
+        # authoritative) over re-deriving it from the handoff's directory --
+        # a handoff can be moved/copied independently of its plan.md.
+        plan_path_raw = d.get("plan_path")
+        if isinstance(plan_path_raw, str) and plan_path_raw:
+            plan_path_str = plan_path_raw
+        else:
+            plan_path_str = str(handoff_dir / "plan.md")
+
+        sys.stdout.write(render_hint(signals, plan_path_str))
+        return 0
+    except Exception:
+        return 0
+
+
+# ---------------------------------------------------------------------------
 # CLI wiring.
 # ---------------------------------------------------------------------------
 
@@ -2042,6 +2124,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="UTC ISO-8601 timestamp for plan_completed_at (default: now).",
     )
     sp.set_defaults(func=cmd_finalize_handoff)
+
+    # stakes-hint
+    sp = sub.add_parser(
+        "stakes-hint",
+        help=(
+            "Advisory-only: print a '/grill <plan-path>' hint to stdout when a "
+            "just-finalized plan crosses a high-stakes signal (wide blast radius, "
+            "many risks, a new dependency, a new data model, or a security-relevant "
+            "risk/decision). Prints nothing and exits 0 when no signal fires. "
+            "Never blocks, never raises, never exits non-zero."
+        ),
+    )
+    sp.add_argument(
+        "plan_handoff_path",
+        help="Path to plan-handoff.json (specs/NNN-slug/plan-handoff.json).",
+    )
+    sp.set_defaults(func=cmd_stakes_hint)
 
     return parser
 

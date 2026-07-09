@@ -13,7 +13,9 @@ import-handoff:
   Reads a handoff.json produced by research_helper or discover_helper
   finalize-handoff, validates it via handoff_schema (schema dataclasses),
   and pre-seeds specify state with spec_type, constraints, affected_areas,
-  risks, open_questions.  Dispatch is on handoff_kind field:
+  risks, open_questions, design_anchor (plan 53 Phase 2 -- carried verbatim
+  from spec_seeds.design_anchor; an empty anchor in the handoff yields an
+  empty anchor in state, never an absent key).  Dispatch is on handoff_kind field:
     "discover"           -> discover branch (source has handoff_kind + discover_completed_at).
     absent / "research"  -> research branch (existing behaviour).
   Unknown explicit handoff_kind -> exit 2.
@@ -455,6 +457,16 @@ def _import_handoff_research(
     spec_type = seeds.spec_type_hint
     research_completed_at = handoff.research_completed_at
 
+    # Plan 53 Phase 2 — carry the captured design_anchor across the ONE hop.
+    # Deterministic: an empty anchor in the handoff (intake skipped capture)
+    # yields an empty anchor in state, never an absent key (default_state()
+    # already carries the same empty shape for a handoff-less manual run).
+    design_anchor = {
+        "kind": seeds.design_anchor.kind,
+        "file": seeds.design_anchor.file,
+        "selectors": list(seeds.design_anchor.selectors),
+    }
+
     # Compute future spec_path.
     devforge_dir = Path(args.devforge_dir).resolve()
     nnn = _next_spec_number(devforge_dir)
@@ -494,6 +506,7 @@ def _import_handoff_research(
             state["affected_areas"] = affected_areas
             state["risks"] = risks
             state["open_questions"] = open_questions
+            state["design_anchor"] = design_anchor
             state["source"]["handoff_path"] = str(handoff_path)
             state["source"]["handoff_kind"] = "research"
             state["source"]["research_completed_at"] = research_completed_at
@@ -611,6 +624,15 @@ def _import_handoff_discover(
     open_questions = [_open_question_to_dict(q, i) for i, q in enumerate(open_questions_src)]
     spec_type = seeds.spec_type_hint
 
+    # Plan 53 Phase 2 — carry the captured design_anchor across the ONE hop.
+    # Deterministic: an empty anchor in the handoff (intake skipped capture)
+    # yields an empty anchor in state, never an absent key.
+    design_anchor = {
+        "kind": seeds.design_anchor.kind,
+        "file": seeds.design_anchor.file,
+        "selectors": list(seeds.design_anchor.selectors),
+    }
+
     # Discover-specific source fields.
     discover_completed_at = handoff.discover_completed_at
     plan_seeds = handoff.plan_seeds
@@ -657,6 +679,7 @@ def _import_handoff_discover(
             state["affected_areas"] = affected_areas
             state["risks"] = risks
             state["open_questions"] = open_questions
+            state["design_anchor"] = design_anchor
             state["source"]["handoff_path"] = str(handoff_path)
             state["source"]["handoff_kind"] = "discover"
             state["source"]["discover_completed_at"] = discover_completed_at
@@ -980,6 +1003,12 @@ def cmd_finalize_handoff(args):
         )
 
     try:
+        # design_anchor is deliberately left at its DesignAnchor() default here
+        # (no design_anchor= kwarg) -- do NOT thread state["design_anchor"]
+        # through this handoff. Its single source of truth is the sibling
+        # specs/[feature]/design-anchor.json (plan 53 D5, park-once /
+        # read-in-place); /plan reads THAT file, never spec_seeds.design_anchor.
+        # Populating both would create a two-source desync D5 forbids.
         spec_seeds = specify_handoff_schema.SpecSeeds(
             overview=state.get("overview") or "",
             acceptance_criteria=acceptance_criteria,

@@ -523,6 +523,11 @@ def cmd_set_ac_verification_mode(args: argparse.Namespace) -> int:
     return _cmd_set_enum(args, "ac_verification_mode")
 
 
+def cmd_set_regression_gate(args: argparse.Namespace) -> int:
+    """Set regression_gate enum scalar (off | full). Default: full."""
+    return _cmd_set_enum(args, "regression_gate")
+
+
 # ---------------------------------------------------------------------------
 # AC runtime scalar setters (3).
 # ---------------------------------------------------------------------------

@@ -64,6 +64,30 @@ collision with another entry's canonical term, count 30..150). Concern-tier Purp
 still carry inline term disambiguation; this file is the project-tier
 consolidation, not a replacement.
 
+## `.devforge/` Runtime State Disposition
+
+`.devforge/` holds three storage classes; each top-level file has exactly one git disposition (plan 49). Getting the class right is what keeps a consumer install's tree CLEAN after a full pipeline cycle instead of dirty with runtime churn.
+
+| File | Class | Git treatment |
+|---|---|---|
+| `memory.md` | VERSIONED | Tracked; per-feature delta folds into the `/finalize` squash |
+| `spec-stamps.jsonl` | VERSIONED | Tracked; per-feature delta folds into the `/finalize` squash |
+| `init.yaml`, `configure.yaml`, `constitute.json` | VERSIONED | Tracked; setup identity, changes only on reconfigure |
+| `project-config.json`, `index.json` | VERSIONED | Tracked; render/index artifacts, stable across cycles |
+| `storage-rules.md` | VERSIONED | Tracked; installed framework file |
+| `session-state.md` | EPHEMERAL | gitignored (crash recovery reads it from DISK, not git) |
+| `specify-state.json`, `research-state.json`, `discover-scope.json` | EPHEMERAL | gitignored; per-cycle working state |
+| `research-report.json`, `discover-report.json` | EPHEMERAL | gitignored; single-slot scratch output |
+| `.preflight-stamp`, `cbm-last-indexed-sha` | EPHEMERAL | gitignored; pointers/timestamps |
+| `.generate-docs-trace.log`, `cbm-usage.log` | EPHEMERAL | gitignored; logs |
+| `*.lock` | EPHEMERAL | gitignored |
+
+- **VERSIONED** — carry history or setup identity; stay tracked. Only `memory.md` + `spec-stamps.jsonl` have a per-feature delta, and that delta rides the `/finalize` squash (a scoped, deliberate narrowing of the plan 33/37 D3 runtime-state exclusion — see `src/commands/finalize/main.md` PHASE 2).
+- **EPHEMERAL** — per-cycle working state, single-slot scratch, pointers, logs, locks. Gitignored via the dedicated `src/files/devforge.gitignore` template (merged into a consumer's `.gitignore` by `install.sh` + `update.sh`); already-tracked ones are untracked by `update.sh`'s one-time `git rm --cached` migration.
+- **FEATURE-SCOPED** — the persistent per-feature records, committed per-step (plan 37) and folded into `/finalize`'s squash: `specs/<feature>/*`, and the DATED `research/<date>-<slug>/*` + `discover/<date>-<slug>.*` reports below.
+
+**Scratch ≠ record — do not conflate.** `.devforge/research-report.json` (EPHEMERAL single-slot scratch, gitignored) is a DIFFERENT file from `research/<date>-<slug>/handoff.json` (FEATURE-SCOPED persistent record, committed). Same for `.devforge/discover-report.json` vs `discover/<date>-<slug>.handoff.json`. The `.devforge/` copy is overwritten each run; the dated copy is the durable artifact.
+
 ## Naming Rules
 
 ### Feature Directories

@@ -82,6 +82,7 @@ from ._cmds_handoff import (
     cmd_finalize_handoff,
     cmd_set_probe_feasibility,
 )
+from ._cmds_design_anchor import cmd_set_design_anchor
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -215,6 +216,35 @@ def _register_subcommands(subparsers) -> None:
         ),
     )
     sp.set_defaults(func=_make_scope_setter())
+
+    # Plan 53 Phase 1 — design-anchor capture (optional; not gated by
+    # symptom-finalize; see _cmds_design_anchor.py docstring).
+    sp = subparsers.add_parser(
+        "set-design-anchor",
+        help=(
+            "Capture design intent: kind + file (parsed from --value "
+            "'<scheme>:<target>' via parse_design_source) + selectors (JSON "
+            "array of intent selector strings). Optional — an empty/unset "
+            "anchor is the valid default (plan 53 D3/D5)."
+        ),
+    )
+    sp.add_argument(
+        "--value",
+        required=True,
+        help="'<scheme>:<target>' (scheme one of html|figma|screenshot) or the literal 'none'.",
+    )
+    sp.add_argument(
+        "--selectors",
+        required=True,
+        help='JSON array of intent selector strings (may be "[]").',
+    )
+    sp.add_argument(
+        "--state",
+        default="Clear",
+        choices=list(RUBRIC_STATE_ENUM),
+        help="State after this set (default: Clear). Informational only — not gated.",
+    )
+    sp.set_defaults(func=cmd_set_design_anchor)
 
     sp = subparsers.add_parser(
         "detect-mode",

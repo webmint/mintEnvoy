@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 from typing import Iterator, Union
 
-from ._schema import FIELD_SCHEMA, OUTPUT_FILE_NAME
+from ._schema import FIELD_DEFAULTS, FIELD_SCHEMA, OUTPUT_FILE_NAME
 from ._yaml import emit_yaml, parse_yaml
 
 try:
@@ -39,13 +39,14 @@ def _output_file_path(devforge_dir: Union[str, "os.PathLike[str]"]) -> Path:
 def default_state() -> dict:
     """Return a fresh defaults dict matching FIELD_SCHEMA shape.
 
-    Walks FIELD_SCHEMA and returns all 29 keys with type-appropriate
-    defaults: scalars → None, string_array → [], package_stack_array → [].
+    Walks FIELD_SCHEMA and returns all 30 keys with type-appropriate
+    defaults: scalars → None (or the FIELD_DEFAULTS value when one exists),
+    string_array → [], package_stack_array → [].
     """
     state = {}
     for name, kind in FIELD_SCHEMA:
         if kind == "scalar":
-            state[name] = None
+            state[name] = FIELD_DEFAULTS.get(name, None)
         else:
             state[name] = []
     return state
@@ -86,12 +87,22 @@ def _load(devforge_dir: Union[str, "os.PathLike[str]"]) -> dict:
     If the file is missing, returns default_state() — normal on first run.
     Malformed file propagates YamlParseError so the caller can exit non-zero
     with a clear message rather than silently resetting.
+
+    Applies FIELD_DEFAULTS to the loaded state after parsing so that fields
+    added after an install's first run (e.g. regression_gate) get their
+    non-None baseline even when the existing configure.yaml predates the field.
+    A field already set to a value (not None) is never overwritten.
     """
     path = _output_file_path(devforge_dir)
     if not path.exists():
         return default_state()
     text = path.read_text(encoding="utf-8")
-    return parse_yaml(text)
+    state = parse_yaml(text)
+    # Back-fill non-None defaults for fields absent or null in the file.
+    for name, default_val in FIELD_DEFAULTS.items():
+        if state.get(name) is None:
+            state[name] = default_val
+    return state
 
 
 def _dump(state: dict, devforge_dir: Union[str, "os.PathLike[str]"]) -> None:

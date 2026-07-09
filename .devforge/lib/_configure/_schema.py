@@ -64,6 +64,9 @@ FIELD_SCHEMA = (
     ("ac_runtime_url",         "scalar"),
     ("ac_runtime_api_base",    "scalar"),
     ("ac_runtime_cli_command", "scalar"),
+
+    # Regression gate
+    ("regression_gate",        "scalar"),
 )
 
 # Enum-restricted scalars; key = field name, value = allowed set.
@@ -78,6 +81,15 @@ ENUM_FIELDS = {
     "workflow_enforcement":  {"Strict", "Moderate", "Light"},
     "ai_attribution":        {"Yes", "No"},
     "ac_verification_mode":  {"code-only", "tests", "runtime-assisted", "off"},
+    "regression_gate":       {"off", "full"},
+}
+
+# Non-None defaults for specific scalar fields (applied by default_state() and
+# _load() so every code path — fresh install, reset, and existing install —
+# gets the right baseline value without explicit configuration).
+# Only fields where None is NOT the right out-of-the-box value appear here.
+FIELD_DEFAULTS = {
+    "regression_gate": "full",
 }
 
 # package_stack_array record field order — locked so emit is deterministic.

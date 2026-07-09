@@ -44,7 +44,8 @@ fi
 FAILED=0
 for VERB in $ENABLED_VERBS; do
     # verify-design-tokens is a UI-feature check; only run it when at least
-    # one disposition manifest exists (specs/*/design-manifest.json).  Non-UI
+    # one binding exists (specs/*/design-manifest.json — the route+pairs
+    # binding, not the retired plan-40 disposition manifest).  Non-UI
     # projects that have the rule enabled in constitute.json are skipped here
     # so the hook remains silent on non-UI features (consistent with how the
     # verify-magic-enum / verify-any-leak checks skip silently when their

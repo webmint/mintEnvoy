@@ -25,10 +25,13 @@ Implements Phase 4 of /grill:
 Headline vs appendix partition rule (mirrors _review/_report):
   The ``partition`` dict comes directly from ``_shared.apply_verdicts``:
     confirmed  -- confirmed by a refuter (carry verify_confidence="confirmed")
-    dismissed  -- dismissed; NOT [CONSTITUTION-VIOLATION] (per D7)
-    uncertain  -- low-stakes uncertain (non-high-stakes, not [CONSTITUTION-VIOLATION])
-    contested  -- high-stakes uncertain + dismissed [CONSTITUTION-VIOLATION] findings;
-                 ALL carry "[CONTESTED]" tag
+    dismissed  -- dismissed; NOT [CONSTITUTION-VIOLATION] / [DATA-LOSS] /
+                 [IRREVERSIBLE] (per D7, widened by plan 50 P1)
+    uncertain  -- low-stakes uncertain (non-high-stakes, not [CONSTITUTION-
+                 VIOLATION] / [DATA-LOSS] / [IRREVERSIBLE])
+    contested  -- high-stakes uncertain + dismissed [CONSTITUTION-VIOLATION] /
+                 [DATA-LOSS] / [IRREVERSIBLE] findings; ALL carry "[CONTESTED]"
+                 tag
 
   Headline = confirmed union contested  (grouped by file -> category, severity-sorted)
   Appendix = dismissed union uncertain  (omitted when both are empty)
@@ -664,10 +667,13 @@ def render_report(
         "Dismissed / Worth a Glance appendix; high-stakes [CONTESTED] findings"
     )
     out.append(
-        "(security / [CONSTITUTION-VIOLATION] the refuter could not confirm) are"
+        "(security / [CONSTITUTION-VIOLATION] / [DATA-LOSS] / [IRREVERSIBLE] the"
     )
     out.append(
-        "surfaced in the headline, flagged [CONTESTED], never buried."
+        "refuter could not confirm) are surfaced in the headline, flagged"
+    )
+    out.append(
+        "[CONTESTED], never buried."
     )
 
     return "\n".join(out) + "\n"

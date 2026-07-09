@@ -70,6 +70,7 @@ from ._cmds_handoff import (
     cmd_finalize_handoff,
     cmd_import_handoff,
 )
+from ._cmds_design_anchor import cmd_write_design_anchor
 from ._cmds_phase5 import (
     cmd_render_plan_handoff,
     cmd_render_summary,
@@ -356,6 +357,36 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     sp.set_defaults(func=cmd_set_design_source)
+
+    sp = sub.add_parser(
+        "write-design-anchor",
+        help=(
+            "Persist specs/[feature]/design-anchor.json (plan 53 Phase 2). "
+            "Uses the carried design_anchor (from import-handoff) when "
+            "non-empty, else composes one from design_source (backstop), "
+            "else writes an empty anchor. Adds source_hash (sha256 of the "
+            "html anchor file, resolved under --workspace-root; '' when "
+            "kind != html or the file is absent/unreadable). Immutable: "
+            "no companion update verb -- a re-run overwrites."
+        ),
+    )
+    sp.add_argument(
+        "--specs-root", default=SPECS_ROOT_DEFAULT, dest="specs_root",
+        help="Path to specs/ root (default: specs).",
+    )
+    sp.add_argument(
+        "--workspace-root", default=".", dest="workspace_root",
+        help="Workspace root used to resolve the anchor file for source_hash"
+             " (default: '.').",
+    )
+    sp.add_argument(
+        "--emit-path", default=None, dest="emit_path",
+        help=(
+            "Override output path for design-anchor.json. Defaults to "
+            "{specs-root}/{spec_number}-{feature_slug}/design-anchor.json."
+        ),
+    )
+    sp.set_defaults(func=cmd_write_design_anchor)
 
     sp = sub.add_parser(
         "create-branch",

@@ -358,8 +358,8 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Scan component style sources (CSS / styled-components / CSS-in-JS) "
             "for design-token provenance violations: hardcoded color literals, "
-            "var() fallbacks, undefined tokens, missing :hover/:focus-visible, "
-            "and MATCH-element literal bindings. "
+            "var() fallbacks, undefined tokens, and missing :hover/:focus-visible "
+            "states. "
             "Exit 0 = clean or disabled. Exit 2 = violations found."
         ),
     )
@@ -447,7 +447,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Path (relative to project root) to the CSS token source file "
             "(e.g., design/styles.css). Optional for design_token_provenance. "
-            "Used by Check 3 (undefined token) and the spacing sub-check of Check 5."
+            "Used by Check 3 (undefined token)."
         ),
     )
     sp.add_argument(
@@ -455,9 +455,10 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         dest="manifest_path",
         help=(
-            "Path (relative to project root) to a single disposition manifest JSON "
-            "(design_token_provenance only). Optional: when absent the detector globs "
-            "specs/*/design-manifest.json at run time. Supplied for back-compat only."
+            "Path (relative to project root) to a disposition manifest JSON "
+            "(design_token_provenance only). Retained for config back-compat only "
+            "-- the disposition-manifest consumer (formerly Check 5) was retired "
+            "in plan 53 Phase 7a; this value is stored but no longer read."
         ),
     )
     sp.add_argument(

@@ -180,6 +180,7 @@ def compute_verdict(
     review_findings,   # type: Dict
     hygiene,           # type: Dict
     ac_verification_mode,  # type: str
+    regression=None,   # type: Optional[Dict]
 ):
     # type: (...) -> Dict
     """Compute the APPROVED / NEEDS WORK / REJECTED verdict.
@@ -198,6 +199,15 @@ def compute_verdict(
         check_hygiene output.
     ac_verification_mode : str
         "code-only" | "tests" | "runtime-assisted" | "off"
+    regression : dict or None
+        Output of the regression-gate verb.  When the dict contains
+        ``"regression": true``, a "regression" blocker is added that
+        forces NEEDS WORK.  When None or ``"regression": false``, the
+        verdict is unaffected.
+        IMPORTANT: regression NEVER triggers REJECTED — it is a
+        NEEDS WORK blocker only (implementation regression, not a
+        spec-level failure; REJECTED is reserved for constitution
+        violations and catastrophic AC failure rates).
 
     Returns
     -------
@@ -371,6 +381,32 @@ def compute_verdict(
             med_summary += " (+ {0} more)".format(len(medium_confirmed) - 3)
         reasons.append(
             "Medium review findings: {0}.".format(med_summary)
+        )
+
+    # Regression gate (plan 51 Finding 1) — NEEDS WORK only, NEVER REJECTED.
+    # Triggered when the regression-gate verb returns "regression": true
+    # (test suite was passing at the feature's merge-base and is now failing
+    # at HEAD).  Pre-existing failures (baseline already failing) do NOT gate
+    # (regression == false in that case) — that is the core false-positive guard.
+    #
+    # Deliberate asymmetry from the REJECTED conditions: regression is an
+    # implementation problem (the code broke something) not a spec-level failure
+    # (the spec is wrong or unobtainable).  REJECTED is reserved for confirmed
+    # constitution violations and catastrophic AC failure rates (≥2 fails at ≥50%).
+    regression_detected = bool((regression or {}).get("regression", False))
+    if regression_detected:
+        blockers.append({
+            "type": "regression",
+            "detail": (
+                "Regression: test suite was PASSING at the feature's merge-base "
+                "and is now FAILING at HEAD."
+            ),
+        })
+        reasons.append(
+            "Regression gate: the test suite passed at the merge-base and fails "
+            "at HEAD — implementation regression detected. "
+            "This is a NEEDS WORK blocker (not REJECTED; regression is "
+            "implementation-level, not spec-level)."
         )
 
     # Hygiene flags — ADVISORY only, never added to blockers

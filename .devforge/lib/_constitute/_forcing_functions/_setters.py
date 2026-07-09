@@ -331,13 +331,14 @@ def set_forcing_function(
     token_source_css
         Path (relative to consumer project root) to the CSS token source file
         (e.g., ``design/styles.css``).  Optional for ``design_token_provenance``.
-        When supplied, Check 3 (undefined token) and the spacing sub-check of
-        Check 5 use the extracted token definitions and spacing scale.
+        When supplied, Check 3 (undefined token) uses the extracted token
+        definitions.
     manifest_path
-        Path (relative to consumer project root) to the disposition manifest
-        JSON produced by ``design_helper validate-manifest``.  Optional for
-        ``design_token_provenance``.  When supplied, Check 5 (MATCH token
-        binding) uses the MATCH element data-refs from the manifest.
+        Path (relative to consumer project root) to a disposition manifest
+        JSON.  Optional for ``design_token_provenance``.  Retained for config
+        back-compat only -- the disposition-manifest consumer (formerly
+        Check 5, MATCH token binding) was retired in plan 53 Phase 7a; this
+        value is stored but no longer read by verify-design-tokens.
 
     Raises
     ------

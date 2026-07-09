@@ -502,6 +502,59 @@ class LiteralArchaeology:
 
 
 # ---------------------------------------------------------------------------
+# Design anchor — plan 53 Phase 1.
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class DesignAnchor:
+    """Captured design intent — open-discriminator kind + source file + selectors.
+
+    Plan 53 Phase 1: design intent as a first-class pipeline input, captured
+    once at /research or /discover intake and carried into SpecSeeds.
+
+    - kind is an OPEN discriminator (D3) at THIS layer — any string is
+      shape-valid and deserializes cleanly here; only "html" is implemented
+      downstream (verification/binding machinery), and an unrecognized kind
+      resolves to NOT-COVERED there, never a schema error. This openness is
+      about deserialization safety, not about what can be CAPTURED today —
+      the one shipped capture setter (set-design-anchor) is narrower: it
+      reuses parse_design_source(), which validates kind against a fixed
+      recognized-scheme set (see _design/_source.py:_KNOWN_SCHEMES). So an
+      arbitrary kind can arrive here via a hand-edited or future-producer
+      handoff.json, but cannot be captured via the setter today.
+    - file is the source file/URL path (e.g. "design/reference.html").
+    - selectors is the list of intent selectors (e.g. [".fooBar"]); may be
+      empty.
+
+    Empty/unset anchor — {kind:"", file:"", selectors:[]} — is the valid
+    default so an old handoff.json without a design_anchor key deserializes
+    cleanly (back-compat).
+    """
+
+    kind: str = ""
+    file: str = ""
+    selectors: List[str] = field(default_factory=list)
+
+    def __post_init__(self):
+        if not isinstance(self.kind, str):
+            raise ValueError(
+                f"DesignAnchor.kind must be a string, got {type(self.kind).__name__}"
+            )
+        if not isinstance(self.file, str):
+            raise ValueError(
+                f"DesignAnchor.file must be a string, got {type(self.file).__name__}"
+            )
+        if not isinstance(self.selectors, list):
+            raise ValueError("DesignAnchor.selectors must be a list")
+        for s in self.selectors:
+            if not isinstance(s, str):
+                raise ValueError(
+                    f"DesignAnchor.selectors elements must be strings, got {type(s).__name__!r}"
+                )
+
+
+# ---------------------------------------------------------------------------
 # Spec seeds aggregate.
 # ---------------------------------------------------------------------------
 
@@ -520,6 +573,10 @@ class SpecSeeds:
     - literal_archaeology distinct (literal, file_line) pairs.
 
     Note: mode is passed in from the Handoff constructor for cross-field checks.
+
+    design_anchor (plan 53 Phase 1) is appended LAST and defaults to an
+    empty DesignAnchor so an old handoff.json (pre-plan-53) without the key
+    deserializes cleanly.
     """
 
     spec_type_hint: str
@@ -531,6 +588,7 @@ class SpecSeeds:
     value_production_sites: List[ValueProductionSite] = field(default_factory=list)
     literal_archaeology: List[LiteralArchaeology] = field(default_factory=list)
     data_flow_chain: Optional[DataFlowChain] = None
+    design_anchor: DesignAnchor = field(default_factory=DesignAnchor)
 
     def __post_init__(self):
         _require_in_enum(self.spec_type_hint, _VALID_SPEC_TYPE_HINT, "SpecSeeds.spec_type_hint")
@@ -548,6 +606,11 @@ class SpecSeeds:
             raise ValueError("SpecSeeds.value_production_sites must be a list")
         if not isinstance(self.literal_archaeology, list):
             raise ValueError("SpecSeeds.literal_archaeology must be a list")
+        if not isinstance(self.design_anchor, DesignAnchor):
+            raise ValueError(
+                f"SpecSeeds.design_anchor must be a DesignAnchor, "
+                f"got {type(self.design_anchor).__name__}"
+            )
 
         # V2: distinct (value, file_line) tuples for value_production_sites.
         seen_prod = set()  # type: ignore

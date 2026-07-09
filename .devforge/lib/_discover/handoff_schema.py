@@ -343,10 +343,62 @@ class OpenQuestion:
 
 
 @dataclass
+class DesignAnchor:
+    """Captured design intent -- open-discriminator kind + source file + selectors.
+
+    Plan 53 Phase 1: design intent as a first-class pipeline input, captured
+    once at /research or /discover intake and carried into SpecSeeds.
+
+    - kind is an OPEN discriminator (D3) at THIS layer -- any string is
+      shape-valid and deserializes cleanly here; only "html" is implemented
+      downstream (verification/binding machinery), and an unrecognized kind
+      resolves to NOT-COVERED there, never a schema error. This openness is
+      about deserialization safety, not about what can be CAPTURED today --
+      the one shipped capture setter (set-scope-design-anchor) is narrower:
+      it reuses parse_design_source(), which validates kind against a fixed
+      recognized-scheme set (see _design/_source.py:_KNOWN_SCHEMES). So an
+      arbitrary kind can arrive here via a hand-edited or future-producer
+      handoff.json, but cannot be captured via the setter today.
+    - file is the source file/URL path (e.g. "design/reference.html").
+    - selectors is the list of intent selectors (e.g. [".fooBar"]); may be
+      empty.
+
+    Empty/unset anchor -- {kind:"", file:"", selectors:[]} -- is the valid
+    default so an old handoff.json without a design_anchor key deserializes
+    cleanly (back-compat).
+    """
+
+    kind: str = ""
+    file: str = ""
+    selectors: List[str] = field(default_factory=list)
+
+    def __post_init__(self):
+        if not isinstance(self.kind, str):
+            raise ValueError(
+                f"DesignAnchor.kind must be a string, got {type(self.kind).__name__}"
+            )
+        if not isinstance(self.file, str):
+            raise ValueError(
+                f"DesignAnchor.file must be a string, got {type(self.file).__name__}"
+            )
+        if not isinstance(self.selectors, list):
+            raise ValueError("DesignAnchor.selectors must be a list")
+        for s in self.selectors:
+            if not isinstance(s, str):
+                raise ValueError(
+                    f"DesignAnchor.selectors elements must be strings, got {type(s).__name__!r}"
+                )
+
+
+@dataclass
 class SpecSeeds:
     """Spec-seeds block -- all inputs /specify needs from /discover.
 
     spec_type_hint is a constant 'greenfield_feature'; any other value is rejected.
+
+    design_anchor (plan 53 Phase 1) is appended LAST and defaults to an
+    empty DesignAnchor so an old handoff.json (pre-plan-53) without the key
+    deserializes cleanly.
     """
 
     spec_type_hint: str
@@ -354,6 +406,7 @@ class SpecSeeds:
     affected_areas: List[AffectedArea]
     risks: List[Risk]
     open_questions: List[OpenQuestion]
+    design_anchor: DesignAnchor = field(default_factory=DesignAnchor)
 
     def __post_init__(self):
         if self.spec_type_hint != "greenfield_feature":
@@ -369,6 +422,11 @@ class SpecSeeds:
             raise ValueError("SpecSeeds.risks must be a list")
         if not isinstance(self.open_questions, list):
             raise ValueError("SpecSeeds.open_questions must be a list")
+        if not isinstance(self.design_anchor, DesignAnchor):
+            raise ValueError(
+                f"SpecSeeds.design_anchor must be a DesignAnchor, "
+                f"got {type(self.design_anchor).__name__}"
+            )
 
 
 # ---------------------------------------------------------------------------

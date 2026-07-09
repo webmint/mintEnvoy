@@ -339,8 +339,10 @@ def render_report(
     framework,
     n_scope_files,
     finders_skipped=None,
+    design_section=None,
+    a11y_section=None,
 ):
-    # type: (dict, str, str, List[str], List[str], str, str, int, Optional[List[str]]) -> str
+    # type: (dict, str, str, List[str], List[str], str, str, int, Optional[List[str]], Optional[str], Optional[str]) -> str
     """Render the full /review markdown report from the apply_verdicts partition.
 
     Parameters
@@ -364,6 +366,29 @@ def render_report(
         Number of files in the assembled-feature diff scope.
     finders_skipped : list[str] or None
         Finder agent names that were not installed / skipped.
+    design_section : str or None
+        Pre-rendered markdown for the design-auditor's deterministic fidelity
+        report (coverage verdict + findings + non-gating VLM advisory), or
+        None to omit it entirely.  When given (non-empty), it is embedded
+        VERBATIM as a distinct ``## Design Fidelity`` section appended AFTER
+        ``## Methodology``.  This content is NOT parsed, NOT partitioned, and
+        NOT counted in any bucket or headline total.  See the a11y_section
+        parameter for placement ordering when both sections are present.
+    a11y_section : str or None
+        Pre-rendered markdown for the design-auditor's accessibility /
+        responsive / native audit result (steps 8-10 of the design-auditor
+        checklist), or None to omit it entirely.  When given (non-empty), it
+        is embedded VERBATIM as a distinct ``## Accessibility`` section
+        appended AFTER ``## Methodology`` — entirely OUTSIDE the refutation
+        partition (never parsed, never counted in any confirmed/dismissed/
+        contested/uncertain total or the ``## Summary``).
+
+        Section ordering when both optional sections are present:
+          ``## Design Fidelity`` first, then ``## Accessibility``.
+        This ordering is deterministic regardless of argument order.
+
+        When ``a11y_section`` is absent (default None), output is byte-
+        identical to a pre-flag render — the flag is purely additive.
 
     Returns
     -------
@@ -515,6 +540,27 @@ def render_report(
         "headline, flagged `[CONTESTED]`, never buried. This report is findings only —"
     )
     out.append("the verdict is `/verify`'s.")
+
+    # -- Optional verbatim sections (entirely outside the refutation partition) -
+    # Both Design Fidelity and Accessibility are appended AFTER ## Methodology
+    # so that section's refutation-pipeline claims stay accurate — they describe
+    # only the ensemble content above, never these un-refuted addenda.
+    #
+    # Deterministic section order when both are present:
+    #   ## Design Fidelity  (first)
+    #   ## Accessibility    (second)
+    # This order is fixed here regardless of argument order.
+    if design_section and design_section.strip():
+        out.append("")
+        out.append("## Design Fidelity")
+        out.append("")
+        out.append(design_section.strip("\n"))
+
+    if a11y_section and a11y_section.strip():
+        out.append("")
+        out.append("## Accessibility")
+        out.append("")
+        out.append(a11y_section.strip("\n"))
 
     return "\n".join(out) + "\n"
 

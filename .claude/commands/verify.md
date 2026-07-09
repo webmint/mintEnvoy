@@ -1,13 +1,13 @@
 ---
 name: verify
-description: Post-implementation acceptance-criteria verification + assembled mechanical checks for one feature. Runs after `/review` drains a feature's tasks and before `/summarize`/`/finalize`. Proves each AC item PASS/FAIL/PARTIAL (via the ac-verifier agent or code-reading, per `ac_verification_mode`), runs the assembled-feature type-check/lint/build/test together as a REPORT, folds in `/review`'s findings, renders the single APPROVED / NEEDS WORK / REJECTED verdict to `specs/[feature]/verification.md`, and on APPROVED flips the spec `**Status**:` to Complete + ticks the passed AC boxes.
-argument-hint: '[spec-file]'
+description: Post-implementation acceptance-criteria verification + assembled mechanical checks for one feature. Runs after `/review` drains a feature's tasks and before `/summarize`/`/finalize`. Proves each AC item PASS/FAIL/PARTIAL (via the ac-verifier agent or code-reading, per `ac_verification_mode`), runs the assembled-feature type-check/lint/build/test together as a REPORT AND a full-suite regression gate that flags a feature which breaks a previously-green test suite (green→red at the feature's merge-base, config-gated by `regression_gate`, default on), folds in `/review`'s findings, renders the single APPROVED / NEEDS WORK / REJECTED verdict to `specs/[feature]/verification.md`, and on APPROVED flips the spec `**Status**:` to Complete + ticks the passed AC boxes.
+argument-hint: "[spec-file]"
 disable-model-invocation: true
 ---
 
 # /verify — Acceptance-Criteria Verification + Verdict
 
-`/verify` is the pipeline step run after `/review` and before `/summarize`/`/finalize`. It owns the ONE job nothing else in the pipeline owns: **the verdict**. `/review` is findings-only; `/verify` is where the spec's acceptance criteria are proven, the assembled feature is mechanically checked together (the cross-task version of `/implement`'s per-task gate), `/review`'s findings are folded in, and a single APPROVED / NEEDS WORK / REJECTED verdict is rendered and acted on. State + render shape are owned by `.devforge/lib/verify_helper`; the orchestrator composes values via verb subcommands and dispatches the `ac-verifier` agent.
+`/verify` is the pipeline step run after `/review` and before `/summarize`/`/finalize`. It owns the ONE job nothing else in the pipeline owns: **the verdict**. `/review` is findings-only; `/verify` is where the spec's acceptance criteria are proven, the assembled feature is mechanically checked together (the cross-task version of `/implement`'s per-task gate) and run against a full-suite regression gate (green→red at the feature's merge-base flags a feature that broke a previously-green test suite the changed-file checks never touch — config-gated by `regression_gate`, default on), `/review`'s findings are folded in, and a single APPROVED / NEEDS WORK / REJECTED verdict is rendered and acted on. State + render shape are owned by `.devforge/lib/verify_helper`; the orchestrator composes values via verb subcommands and dispatches the `ac-verifier` agent.
 
 **`/verify` OWNS the verdict — unlike `/review`, which produces findings only.** `/verify` does NOT run a finder ensemble or a refutation pass — that is `/review`'s job. `/verify` relies on `/review` for cross-task code-quality / consistency reasoning and adds three things on top: AC conformance, assembled mechanical checks, and the verdict. It does NOT fix code (it reports + decides) and it does NOT re-review.
 
@@ -41,6 +41,7 @@ The helper cannot dispatch agents (a subprocess has no Task/MCP tools), so the o
 - `$WORKDIR/ac-report.md` — the `ac-verifier` agent's `## AC Verification Report` (its `### Results` table). Written BY THE AGENT via Bash redirection in PHASE 3, consumed by `merge-ac-results --agent-report`.
 - `$WORKDIR/ac-results.json` — the `merge-ac-results` stdout (the AC list extended with `status` + `evidence` per AC). Written in PHASE 3, passed to `compute-verdict --ac-results`, `render-report --ac-results`, `render-inline-summary --ac-results`, and `flip-spec-status --ac-results`.
 - `$WORKDIR/hygiene.json` — the `check-hygiene` stdout (`scope_creep`, `leftover_artifacts`, `scope_creep_checked`, `files_checked`, `files_unreadable`, `files_skipped`). Written in PHASE 4, passed to `compute-verdict --hygiene` and `render-report --hygiene`.
+- `$WORKDIR/regression.json` — the `regression-gate` stdout (`status`, `regression`, `mode`, `baseline_status`, `head_status`, `note`, and — only on `status: "regression"` — `head_output_tail`). Written in PHASE 4, passed to `compute-verdict --regression`. (It is NOT a `render-report` input — the regression result reaches `verification.md` only through the verdict's reasons/blockers that `compute-verdict` folds it into.)
 - `$WORKDIR/verdict.json` — the `compute-verdict` stdout (`verdict`, `reasons`, `blockers`). Written in PHASE 5, passed to `render-report --verdict` and `render-inline-summary --verdict`.
 - `$WORKDIR/issues.json` — the bug-issue array the orchestrator composes from the verdict blockers + AC failures + folded findings on a NEEDS WORK verdict. **Orchestrator-written via the Write tool** (NOT a helper-verb stdout — no verb produces it), in PHASE 9, passed to `file-bugs --issues`. Skipped entirely on a `none` election (the `file-bugs` call is not made — see PHASE 9 for the shape).
 
@@ -150,7 +151,7 @@ WORKDIR="${TMPDIR:-/tmp}/forge-verify"
 
 `read-review-findings` accepts the feature directory (it appends `/review.md`) and parses `specs/[feature]/review.md` into a folded-findings dict: `missing`, `confirmed` (the confirmed-findings list), `contested` (the `[CONTESTED]`-tagged list), and `summary` (severity + partition counts). On a non-zero exit, copy the helper's stderr VERBATIM and end the turn.
 
-**Missing-review warning (proceed weakened).** If the stdout JSON has `"missing": true`, warn the user: _no review report was found — run `/review` first for a complete verdict; proceeding with AC + mechanical checks only._ Do NOT stop — `compute-verdict` handles a missing review report as a non-blocking note (the verdict is computed from AC + mechanical + hygiene, and the missing report is recorded in the verdict reasons). Keep `$WORKDIR/review.json` and pass it forward unchanged.
+**Missing-review warning (proceed weakened).** If the stdout JSON has `"missing": true`, warn the user: *no review report was found — run `/review` first for a complete verdict; proceeding with AC + mechanical checks only.* Do NOT stop — `compute-verdict` handles a missing review report as a non-blocking note (the verdict is computed from AC + mechanical + hygiene, and the missing report is recorded in the verdict reasons). Keep `$WORKDIR/review.json` and pass it forward unchanged.
 
 ## PHASE 3 — Acceptance-criteria verification
 
@@ -200,7 +201,7 @@ WORKDIR="${TMPDIR:-/tmp}/forge-verify"
 
 `merge-ac-results` reads the structured AC list (`--acs`) and the agent's markdown report (`--agent-report`), extracts the agent's `### Results` table, and emits the AC list extended with `status` (`PASS` / `FAIL` / `PARTIAL` / `MANUAL` / `PASS (code)` / `FAIL (code)` / `PARTIAL (code)`, or `UNVERIFIED` when the agent produced no row for an AC) and `evidence` (the agent's Evidence cell) per AC. On a non-zero exit (missing required flag, or the `--acs` file is not a JSON list), copy the helper's stderr VERBATIM and end the turn.
 
-## PHASE 4 — Assembled mechanical checks + hygiene
+## PHASE 4 — Assembled mechanical checks + hygiene + regression gate
 
 ```bash
 .devforge/lib/verify_helper check-status-and-flip --feature-dir <feature> --to phase4
@@ -229,6 +230,27 @@ WORKDIR="${TMPDIR:-/tmp}/forge-verify"
 
 `check-hygiene` reads the changed-files list (`--files`, a file PATH containing the JSON array written in PHASE 1) and flags two things across the assembled diff: scope-creep (changed files outside the planned scope) and leftover artifacts (debug prints, bare TODOs, commented-out code). For `--scope-baseline`, pass `<feature>/breakdown-handoff.json` when that file exists (its tasks' `touched_files` union is the planned scope); pass the literal string `none` when it is absent (the helper then skips the scope-creep check and reports only leftover artifacts). Pass the `source_root` from `$WORKDIR/preflight.json` to `--source-root` so the changed files are read from the right tree. Stdout JSON carries `scope_creep`, `leftover_artifacts`, `scope_creep_checked`, `files_checked`, `files_unreadable`, and `files_skipped` (count of non-code prose/data files bypassed by the file-type gate). On a non-zero exit (missing `--files`, or it is not a JSON list), copy the helper's stderr VERBATIM and end the turn.
 
+### 4.3 — Full-suite regression gate
+
+Run the full-suite regression gate — the net for a defect the changed-file mechanical check in 4.1 structurally cannot catch: a feature that breaks an EXISTING, untouched test. 4.1 scopes its type-check / lint / build / test to the assembled feature's changed files; the regression gate runs the WHOLE primary test suite at the feature's merge-base and again at HEAD, and compares.
+
+```bash
+WORKDIR="${TMPDIR:-/tmp}/forge-verify"
+.devforge/lib/verify_helper regression-gate --feature <feature> --workspace-root . > "$WORKDIR/regression.json"
+```
+
+`regression-gate` reads the `regression_gate` config itself (`REGRESSION_GATE` in `.devforge/project-config.json`, default `full`) — pass NO `--mode` in normal operation; the verb resolves the config default. It runs the primary test command (`TEST_COMMANDS[0]`) at the feature's merge-base in an isolated git worktree and again at HEAD, and reports a regression ONLY when the suite was green at the merge-base and is red at HEAD (a suite already red at the merge-base is a pre-existing failure, reported as `baseline-failing`, never the feature's fault, never gated). It is **FAIL-SOFT by design**: it ALWAYS exits 0, even on a git error, a missing merge-base, or an absent test command — an internal problem yields `status: "inconclusive"`, never a crash and never a non-zero exit. So do NOT apply the "non-zero exit → copy stderr → end the turn" recovery here; read the `status` field from `$WORKDIR/regression.json` and branch on it. Stdout JSON carries `status` (one of `off` / `inconclusive` / `clean` / `baseline-failing` / `regression`), `regression` (bool — `true` only when `status` is `regression`), `mode`, `baseline_status`, `head_status`, `note` (a human-readable explanation, always present), and — only when `status` is `regression` — `head_output_tail` (the last lines of the failing HEAD test run).
+
+Branch on `status` (mirroring how 4.1 surfaces the mechanical-check status — only `regression` gates; every other status is informational, never a silent pass but never a false gate):
+
+- **`off`** — the regression gate is disabled (`regression_gate=off`). Note it in the run; do not gate.
+- **`inconclusive`** — the gate could not run this time (no auto-detectable merge-base, no configured test command, or a git error). Surface the `note` field to the user so it is visible that the regression net did not run this time; do not gate.
+- **`baseline-failing`** — the suite was already red at the merge-base, so a red HEAD is not this feature's fault. Surface the `note`; do not gate.
+- **`clean`** — the full suite is green at both the merge-base and HEAD. Note it; do not gate.
+- **`regression`** — the feature broke a previously-green suite (green→red). This FEEDS the verdict as a blocker via `compute-verdict --regression` (PHASE 5.1) → NEEDS WORK. Surface the `head_output_tail` to the user so they can see which tests now fail. Do NOT decide the verdict yourself — pass `$WORKDIR/regression.json` to `compute-verdict` and let the helper own the fold.
+
+Carry `$WORKDIR/regression.json` forward to PHASE 5.1 unchanged in every branch (`compute-verdict --regression` handles each status — only `regression:true` adds a blocker; every other status leaves the verdict unaffected).
+
 ## PHASE 5 — Verdict + report + inline summary
 
 ```bash
@@ -241,10 +263,10 @@ Compute the deterministic verdict, write `verification.md`, and print the count-
 
 ```bash
 WORKDIR="${TMPDIR:-/tmp}/forge-verify"
-.devforge/lib/verify_helper compute-verdict --ac-results "$WORKDIR/ac-results.json" --review-findings "$WORKDIR/review.json" --hygiene "$WORKDIR/hygiene.json" --mechanical-status <mechanical-status> --ac-mode <ac-mode> > "$WORKDIR/verdict.json"
+.devforge/lib/verify_helper compute-verdict --ac-results "$WORKDIR/ac-results.json" --review-findings "$WORKDIR/review.json" --hygiene "$WORKDIR/hygiene.json" --regression "$WORKDIR/regression.json" --mechanical-status <mechanical-status> --ac-mode <ac-mode> > "$WORKDIR/verdict.json"
 ```
 
-`compute-verdict` is deterministic: it reads the merged AC results (`--ac-results`), the folded review findings (`--review-findings`), the hygiene result (`--hygiene`), the `verify-touched` status string (`--mechanical-status`, the `status` carried from PHASE 4.1), and the AC mode (`--ac-mode`, the `ac_verification_mode` from PHASE 3.1), and emits `verdict` (APPROVED / NEEDS WORK / REJECTED), `reasons` (explanation lines), and `blockers` (structured blocker dicts). **Constitution violations always block APPROVED** (D7): a confirmed `[CONSTITUTION-VIOLATION]` from the review findings forces REJECTED, and a contested one forces at least NEEDS WORK. Under `ac_verification_mode=off`, AC failures are advisory (noted in `reasons`, not blocking); under all other modes a FAIL/PARTIAL AC is a blocker. On a non-zero exit, copy the helper's stderr VERBATIM and end the turn.
+`compute-verdict` is deterministic: it reads the merged AC results (`--ac-results`), the folded review findings (`--review-findings`), the hygiene result (`--hygiene`), the regression-gate result (`--regression`, the `$WORKDIR/regression.json` from PHASE 4.3), the `verify-touched` status string (`--mechanical-status`, the `status` carried from PHASE 4.1), and the AC mode (`--ac-mode`, the `ac_verification_mode` from PHASE 3.1), and emits `verdict` (APPROVED / NEEDS WORK / REJECTED), `reasons` (explanation lines), and `blockers` (structured blocker dicts). **Constitution violations always block APPROVED** (D7): a confirmed `[CONSTITUTION-VIOLATION]` from the review findings forces REJECTED, and a contested one forces at least NEEDS WORK. Under `ac_verification_mode=off`, AC failures are advisory (noted in `reasons`, not blocking); under all other modes a FAIL/PARTIAL AC is a blocker. **A regression (`regression:true` in `--regression`) adds a blocker → NEEDS WORK, and never anything else** — a regression can never force REJECTED (it is an implementation-level break, not a spec-level failure), and every non-`regression` status (`off` / `inconclusive` / `clean` / `baseline-failing`) leaves the verdict unaffected. On a non-zero exit, copy the helper's stderr VERBATIM and end the turn.
 
 ### 5.2 — Render the report
 
@@ -327,7 +349,7 @@ Compose `$WORKDIR/issues.json` as a JSON array of issue dicts and write it with 
     "expected": "Total reflects the discount after the code is applied.",
     "actual": "Total is unchanged; the discount is parsed but never subtracted.",
     "files": [
-      { "path": "src/cart/total.ts", "detail": "applyDiscount() computes but discards the delta" }
+      {"path": "src/cart/total.ts", "detail": "applyDiscount() computes but discards the delta"}
     ],
     "evidence": "AC-3 FAIL: expected $90.00, observed $100.00 (see verification.md)",
     "ac_ref": "AC-3"
@@ -371,3 +393,4 @@ rm -rf "$WORKDIR"
 7. **Empty feature diff is non-fatal** — `file_count == 0` (HEAD == merge-base) means there is nothing to verify; stop gracefully after cleanup (PHASE 1).
 8. **Wrapper-mode aware** — in wrapper mode, `resolve-feature-scope` requires both `--source-root` (the inner code repo) AND `--install-root` (the wrapper root where `.devforge/` lives); `verify-touched --root` and `check-hygiene --source-root` each take `source_root`; `specs/[feature]/`, `bugs/`, and `verification.md` always live at the workspace root.
 9. **Cleanup is last** — all intermediate scratch lives in `$WORKDIR` (`${TMPDIR:-/tmp}/forge-verify`), outside the repo, and is swept by the single `rm -rf "$WORKDIR"` in the Cleanup block, never mid-run.
+10. **Regression gate is NEEDS WORK-only and fail-soft** — the PHASE-4.3 regression gate is the full-suite net for a feature that breaks a previously-green, untouched test (green→red at the merge-base). A `status:regression` result ALWAYS folds to NEEDS WORK via `compute-verdict --regression` and can NEVER force REJECTED (it is implementation-level, not spec-level). Every other status (`off` / `inconclusive` / `clean` / `baseline-failing`) ALWAYS does not gate — those are informational, never a silent pass. The gate is fail-soft: a git or test-runner error is reported as `inconclusive`, never a blocker and never a crash. It is config-gated by `regression_gate` (`REGRESSION_GATE`, default `full`), which the verb reads itself — `/verify` passes no `--mode`.

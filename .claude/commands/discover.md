@@ -1,7 +1,7 @@
 ---
 name: discover
 description: Pre-spec exploration of a greenfield feature; produce a structured discovery report grounded in prior-art survey + codebase fit-check.
-argument-hint: '<topic>'
+argument-hint: "<topic>"
 disable-model-invocation: true
 ---
 
@@ -161,16 +161,16 @@ Convert the vague topic into a structured scoping memo across 8 dimensions. The 
 
 ### Rubric dimensions
 
-| Dimension (underscore form) | Setter (kebab form)            | Captures                                                                                                   |
-| --------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `functional_scope`          | `set-scope-functional-scope`   | Core behavior the feature delivers                                                                         |
-| `users`                     | `set-scope-users`              | Who consumes the feature (role, surface)                                                                   |
-| `inputs_outputs`            | `set-scope-inputs-outputs`     | Data in / data out of the feature boundary                                                                 |
-| `integration_points`        | `set-scope-integration-points` | Where in the existing architecture this lives (user's BELIEF — fit-check reconciles vs reality in Phase 2) |
-| `constraints`               | `set-scope-constraints`        | Non-negotiable limits (latency, schema, security, compliance)                                              |
-| `non_goals`                 | `set-scope-non-goals`          | Behaviors explicitly out of scope                                                                          |
-| `success_criteria`          | `set-scope-success-criteria`   | How "done" is recognized                                                                                   |
-| `edge_cases`                | `set-scope-edge-cases`         | Failure modes, boundary conditions, adversarial inputs                                                     |
+| Dimension (underscore form) | Setter (kebab form) | Captures |
+|---|---|---|
+| `functional_scope` | `set-scope-functional-scope` | Core behavior the feature delivers |
+| `users` | `set-scope-users` | Who consumes the feature (role, surface) |
+| `inputs_outputs` | `set-scope-inputs-outputs` | Data in / data out of the feature boundary |
+| `integration_points` | `set-scope-integration-points` | Where in the existing architecture this lives (user's BELIEF — fit-check reconciles vs reality in Phase 2) |
+| `constraints` | `set-scope-constraints` | Non-negotiable limits (latency, schema, security, compliance) |
+| `non_goals` | `set-scope-non-goals` | Behaviors explicitly out of scope |
+| `success_criteria` | `set-scope-success-criteria` | How "done" is recognized |
+| `edge_cases` | `set-scope-edge-cases` | Failure modes, boundary conditions, adversarial inputs |
 
 Per-dimension state enum: `Clear` / `Partial` / `Missing` (default `Clear` when a setter is called without `--state`). Turn cap: 3 follow-ups per dimension before the helper auto-marks `Partial` on the next set with `--increment-turn`.
 
@@ -191,6 +191,28 @@ Before the first dimension question, ask one supplementary free-text prompt: `"A
   ```
 
 This call does NOT gate progression. Advance to the docs scan regardless of the user's answer.
+
+### Design-reference capture (supplementary — non-gating)
+
+Some features target a UI surface with a design reference — an HTML export, a Figma node, or a screenshot — that expresses what the built UI should look like. Capture it here so that intent is recorded once at intake as a structured anchor rather than left in prose. Ask one supplementary free-text prompt: ``"Is there a design reference for this feature's UI — an HTML export, a Figma node, or a screenshot? If so, name the kind, the file path or URL, and which element selector(s) carry the intent (e.g. a class like `.fooBar`). If none, answer 'none'."`` — single-line question text, free-text answer. After the user replies:
+
+- If the user names a reference, compose `--value` as `<scheme>:<target>` (`scheme` = `html` / `figma` / `screenshot` matching the named kind; `target` = the file path or URL) and `--selectors` as a JSON array of the named intent selectors:
+
+  ```bash
+  .devforge/lib/discover_helper set-scope-design-anchor \
+      --value "html:design/reference.html" \
+      --selectors '[".fooBar", ".badge"]'
+  ```
+
+- If the user names none (no reference, or the feature has no UI), record the empty anchor:
+
+  ```bash
+  .devforge/lib/discover_helper set-scope-design-anchor \
+      --value "none" \
+      --selectors '[]'
+  ```
+
+The helper validates `--value` as a design-source `scheme:target`; a value whose scheme is not one of `html` / `figma` / `screenshot` / `none` is rejected with a non-zero exit and nothing is persisted, so pass a well-formed `scheme:target` or the bare word `none`. This capture is OPTIONAL and is NOT one of the eight rubric dimensions above — it does not participate in the coverage check or `scope-finalize`, so an unanswered design-reference question never blocks finalization. This call does NOT gate progression. Advance to the docs scan regardless of the user's answer.
 
 ### Pre-rubric docs scan (orchestrator-only)
 
@@ -282,7 +304,6 @@ If the user is clarifying all the way to `Clear`, finalize without the flag:
 ```
 
 Exit code:
-
 - `0` → memo accepted; advance to Phase 2.
 - non-zero → blocked. Stderr enumerates the reason (unresolved direct conflict OR Partial/Missing without `--accept-gaps`). Copy stderr VERBATIM into your next user-facing message as a fenced code block (do not summarize or paraphrase), end the turn, address the cited issue on the next user reply.
 
