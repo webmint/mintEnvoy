@@ -1,12 +1,12 @@
 # Bug 009: KVTable checkbox not dark-gray custom style
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning
 **Source**: manual
 **Feature**: N/A
 **AC**: N/A
 **Reported**: 2026-07-06
-**Fixed**: 
+**Fixed**: 2026-07-09
 
 ## Description
 
@@ -36,4 +36,19 @@ _None — standalone bug._
 
 ## Fix Notes
 
-_Filled in after resolution._
+Resolved as **not a defect — app already conforms to the documented design**. No code change.
+
+Investigation (`/research`, 2026-07-09) checked every design source for the kv-check checkbox:
+
+| Source | Checkbox spec |
+|--------|---------------|
+| `design/design-fidelity-contract.md:160` | `.kv-row input[type="checkbox"]` → `accent-color: var(--accent)`, `width: 12px`, `height: 12px` |
+| `design/styles.css:990` | identical rule |
+| `design/reference.html` (embedded `<style>`) | identical rule; zero `type="checkbox"` custom markup, one unrelated `appearance:none` (`select.input-field`), no custom checkbox pseudo-elements |
+| App `KVTable.css:8` | `accent-color: var(--accent)`, `width: 12px`, `height: 12px` — **same** |
+
+`--accent` = `#10b981` in both app (`tokens.css:10`) and design (`styles.css:4`).
+
+No "dark-gray custom" checkbox style exists in any design artifact — the contract specifies a **native** checkbox tinted with `accent-color`. `accent-color` only colors the *checked* fill; an unchecked/disabled native box stays browser-default (light), which is the "default white" originally observed (empty/virtual rows). The reference screenshot's checkbox column is occluded by the open method dropdown and is inconclusive.
+
+A dark-gray custom checkbox would be a **new design decision** (update the fidelity contract + `styles.css`, then `/specify`), not a fidelity fix. Closing until such a design change is made.
