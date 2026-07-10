@@ -13,3 +13,4 @@
 {"git_sha": "6f18b667b593d64d20607154109a75bbe4d3e93a", "spec_path": "specs/014-kv-table-editor/spec.md", "stamped_at": "2026-07-04T18:03:05Z"}
 {"git_sha": "a4398bbd6886dddb09c106b4b9b924827687b6e1", "spec_path": "specs/014-kv-table-editor/spec.md", "stamped_at": "2026-07-04T19:34:42Z"}
 {"git_sha": "7882d062907171d8ec49e83e13e54ef247b7a8ce", "spec_path": "specs/015-request-sub-tabs/spec.md", "stamped_at": "2026-07-06T09:13:37Z"}
+{"git_sha": "11428808151c1fc89db419c7353a544c65fc45b4", "spec_path": "specs/016-load-design-fonts/spec.md", "stamped_at": "2026-07-09T15:52:54Z"}

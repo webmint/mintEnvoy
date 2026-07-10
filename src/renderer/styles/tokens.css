@@ -58,8 +58,10 @@
   --status-4xx: #f59e0b;
   --status-5xx: #ef4444;
 
-  /* fonts */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Text', system-ui, sans-serif;
+  /* fonts (016). Inter + JetBrains Mono are self-hosted (fonts.css). Stacks match
+     design/styles.css verbatim: 'Inter' is the PRIMARY sans face (loaded, so it
+     renders on every platform including macOS). */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
 
   /* font-size scale — NORMALIZED from the prototype's hardcoded px.
@@ -105,6 +107,7 @@
 
 .method {
   font-family: var(--font-mono);
+  font-weight: 700;
 }
 .method.HEAD {
   color: var(--m-head);

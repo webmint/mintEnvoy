@@ -122,3 +122,24 @@ src/renderer/src/
 ├── env.d.ts  # Ambient TS env/asset type declarations
 └── main.tsx  # React root mount (renderer entry)
 ```
+
+## Hazards
+
+**Hazard: Vite CSS `url()` does not resolve bare `@fontsource/...` specifiers.** In `fonts.css` each `@font-face src:` must use a RELATIVE path from that file into `node_modules` — not a bare package specifier. Vite's CSS pipeline resolves relative paths and fingerprints and emits the woff2 into the renderer bundle; a bare specifier (e.g. `url('@fontsource/inter/files/inter-latin-400-normal.woff2')`) is treated as a literal URL string, the woff2 is never bundled, and fonts fail to load silently. Apply the same relative-path pattern whenever adding a new weight or typeface via `@fontsource`.
+
+<!-- src/renderer/src/assets/fonts.css:21-21 -->
+```css
+src: url('../../../../node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2') format('woff2');
+```
+
+**Hazard: Form elements do not inherit `body` font-family without an explicit reset.** The UA stylesheet overrides `font-family` on `button`, `input`, `select`, and `textarea` — even when `body` declares one via a CSS custom property. The reset in `base.css` is load-bearing: removing it causes all form controls to render in the OS system font rather than Inter, regardless of what `--font-sans` is set to.
+
+<!-- src/renderer/src/assets/base.css:45-50 -->
+```css
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+```

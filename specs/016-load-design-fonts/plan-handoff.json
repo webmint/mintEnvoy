@@ -1,0 +1,168 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/016-load-design-fonts/plan.md",
+  "plan_completed_at": "2026-07-09T17:08:59Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/016-load-design-fonts/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/016-load-design-fonts/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "Renderer styles (primary)",
+        "what": "New hand-authored `@font-face` block referencing bundled woff2",
+        "files": "`src/renderer/src/assets/fonts.css` (new)"
+      },
+      {
+        "layer": "Renderer styles",
+        "what": "Reorder `--font-sans` so Inter precedes `-apple-system` (value-only)",
+        "files": "`src/renderer/styles/tokens.css:62`"
+      },
+      {
+        "layer": "Renderer styles",
+        "what": "Replace hardcoded `body{font-family: Inter, \u2026}` cruft with `var(--font-sans)`",
+        "files": "`src/renderer/src/assets/base.css:49-71`"
+      },
+      {
+        "layer": "Renderer entry",
+        "what": "Import `fonts.css` BEFORE `tokens.css`",
+        "files": "`src/renderer/src/main.tsx`"
+      },
+      {
+        "layer": "Build/deps",
+        "what": "`@fontsource/inter` + `@fontsource/jetbrains-mono` as woff2 source",
+        "files": "`package.json`"
+      },
+      {
+        "layer": "Main (context only \u2014 NO change)",
+        "what": "`createWindow`/CSP owner; confirms `font-src` not needed (same-origin)",
+        "files": "`src/main/index.ts`, `src/renderer/index.html:8`"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "D1 \u2014 `@font-face` delivery",
+        "chosen_approach": "Single hand-authored `fonts.css` with explicit `@font-face` per weight (Inter 400/500/600/700, JetBrains Mono 400/700), `font-display:swap`, `url()` \u2192 `@fontsource` woff2",
+        "why": "AC-1 forces hand-authored `@font-face`; AC-8 swap; one file = one reviewable provenance surface, decoupled from `@fontsource` CSS internals",
+        "alternatives_rejected": "Importing each `@fontsource/*/400.css`: violates AC-1 (not hand-authored), pulls in vendor `@font-face` we don't control, harder to pin latin-only/weights (\u00a76 OOS creep)"
+      },
+      {
+        "decision": "D2 \u2014 `--font-sans` reorder location",
+        "chosen_approach": "Edit value in `tokens.css:62` (Inter first); value-only, NO `@font-face` added; leave a comment: \"move to design/tokens.json if generation pipeline is restored\"",
+        "why": "tokens.css is the de-facto in-repo source (tokens.json + script absent); AC-7 needs Inter to win on macOS; AC-13 holds (value edit, no `@font-face`). **DEPARTURE**: editing a file documented \"GENERATED, never hand-edit\" \u2014 justified: no generator/source exists, so the doc-invariant is unenforceable and tokens.css IS the source",
+        "alternatives_rejected": "Adding `@font-face` here: breaks AC-13. Overriding order in fonts.css/base.css: splits the sans stack across two files, harder to trace"
+      },
+      {
+        "decision": "D3 \u2014 base.css body rule",
+        "chosen_approach": "Replace `body{font-family: Inter, -apple-system, \u2026}` with `body{font-family: var(--font-sans)}`; keep antialiasing/optimizeLegibility",
+        "why": "Design parity (design body uses `var(--font-sans)`); \u00a74 no hardcoded font-family literal; makes the D2 reorder actually take effect. **DEPARTURE**: replacing electron-vite starter body rule \u2014 justified as removing starter cruft, in feature intent",
+        "alternatives_rejected": "Leaving cruft: hardcoded `Inter` first would mask the token, silently diverge from design, violate \u00a74"
+      },
+      {
+        "decision": "D4 \u2014 fidelity assertion",
+        "chosen_approach": "Assert LOADED typeface at runtime: `document.fonts.check`/`.load` for Inter + JetBrains Mono AND `getComputedStyle().fontFamily` resolves to them; NOT a pixel-diff vs `reference.html`",
+        "why": "`reference.html` on macOS renders `-apple-system`/SF for sans, so a pixel-diff would assert the wrong (fallback) glyphs; AC-7/AC-12 are about the loaded face, not pixel match; AC-5 (colors/geometry) stays a separate token assertion",
+        "alternatives_rejected": "Screenshot pixel-diff vs reference: false pass/fail from platform font substitution (per memory: CT fidelity misses typeface)"
+      },
+      {
+        "decision": "D5 \u2014 woff2 reference for bundling",
+        "chosen_approach": "`url()` points into `@fontsource/*/files/*.woff2` inside `node_modules`; let electron-vite/vite fingerprint + emit them; NO manual copy to `assets/fonts/`",
+        "why": "Single source of truth (the dep), no duplicated binaries in-repo, vite already fingerprints CSS `url()` assets; AC-4 offline satisfied (bundled at build), AC-10 no remote URLs",
+        "alternatives_rejected": "Copying woff2 into `src/renderer/src/assets/fonts/`: duplicates binaries, manual sync burden, drifts from `@fontsource` version"
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "src/renderer/src/assets/fonts.css",
+        "action": "Create",
+        "what_changes": "Hand-authored `@font-face` \u00d7 6 (Inter 400/500/600/700, JetBrains Mono 400/700), `font-display: swap`, `src: url()` \u2192 `@fontsource` woff2 (latin)"
+      },
+      {
+        "file": "src/renderer/src/main.tsx",
+        "action": "Modify",
+        "what_changes": "Add `import './assets/fonts.css'` BEFORE `import '../styles/tokens.css'`"
+      },
+      {
+        "file": "src/renderer/styles/tokens.css",
+        "action": "Modify",
+        "what_changes": "Reorder `--font-sans:62` so `'Inter'` precedes `-apple-system`; add restore-to-pipeline comment. No `@font-face`. No other token change"
+      },
+      {
+        "file": "src/renderer/src/assets/base.css",
+        "action": "Modify",
+        "what_changes": "Replace body `font-family` literal stack with `var(--font-sans)`; keep antialiasing/optimizeLegibility/other body props"
+      },
+      {
+        "file": "package.json",
+        "action": "Modify",
+        "what_changes": "Add `@fontsource/inter` + `@fontsource/jetbrains-mono` (dependencies)"
+      },
+      {
+        "file": "src/renderer/src/components/**/__tests__/ (font-load CT)",
+        "action": "Create/Modify",
+        "what_changes": "Add a loaded-typeface assertion (document.fonts + getComputedStyle == Inter/JetBrains Mono) per D4; regenerate affected CT screenshot baselines (rm + re-generate stale PNGs)"
+      }
+    ],
+    "doc_impact": [
+      {
+        "doc_file": "docs/renderer/styles/index.md",
+        "action": "Update",
+        "what_changes": "Record `fonts.css` as the second file in the styles concern; note self-hosted Inter/JetBrains Mono via `@font-face` (AC-9)"
+      }
+    ],
+    "risks": [
+      {
+        "risk": "`@fontsource` `url()` path fails to resolve/bundle in electron-vite renderer build",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Reference the exact `@fontsource/*/files/*-latin-<w>-normal.woff2` paths; verify the built bundle emits the woff2 + resolves at the renderer origin (dev + `electron-vite build`) as part of AC-4/AC-11"
+      },
+      {
+        "risk": "Editing GENERATED `tokens.css` is normalized away if a token pipeline is later restored",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Value-only reorder + inline \"restore via design/tokens.json\" comment; AC-13 gate asserts no `@font-face` lands there; scope stays \u00a76-bounded"
+      },
+      {
+        "risk": "Sans reorder \u2192 app renders Inter on macOS while reference.html renders SF; strict pixel-diff CT vs reference would flag it",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Assert the intended LOADED typeface (D4), not a pixel-diff vs reference's mac-resolved face; document intent-over-reference"
+      },
+      {
+        "risk": "FOUT / layout shift from `font-display: swap` alters existing CT screenshot baselines",
+        "likelihood": "High",
+        "impact": "Low",
+        "mitigation": "`swap` is intended (AC-8) + metric-compatible fallbacks; rm + regenerate affected CT PNG baselines (sub-threshold diffs otherwise stay stale)"
+      },
+      {
+        "risk": "Renderer-purity regression via `@fontsource`",
+        "likelihood": "Low",
+        "impact": "High",
+        "mitigation": "CSS `url()`/asset-only path (D5), never a JS `require` of node/electron; typecheck confirms no node imports (AC-11)"
+      },
+      {
+        "risk": "`@fontsource` adds woff2 binaries to the bundle",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Latin subset only, static weights (Inter 400/500/600/700 + JetBrains Mono 400/700)"
+      }
+    ],
+    "specialist_consultation": [
+      {
+        "specialist": "architect",
+        "sub_question": "Layer map + key design decisions + constitution/OOS trace for self-hosted font loading",
+        "input_summary": "Authored D1-D5, layer map, risk seeds; flagged D2/D3 as DEPARTUREs; no specialist consult needed",
+        "verdict": "accepted",
+        "cites": "specs/016-load-design-fonts/spec.md; own-reasoning"
+      }
+    ],
+    "dependencies": [
+      "- `@fontsource/inter` \u2014 npm dependency (woff2 source for Inter 400/500/600/700, latin).",
+      "- `@fontsource/jetbrains-mono` \u2014 npm dependency (woff2 source for JetBrains Mono 400/700, latin).",
+      "- No services, no environment variables, no CSP change."
+    ]
+  }
+}

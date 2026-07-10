@@ -1,3 +1,4 @@
+import './assets/fonts.css'
 import '../styles/tokens.css'
 import './assets/main.css'
 
