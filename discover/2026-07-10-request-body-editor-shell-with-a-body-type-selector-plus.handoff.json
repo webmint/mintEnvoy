@@ -1,0 +1,484 @@
+{
+  "schema_version": "1.1",
+  "handoff_kind": "discover",
+  "report_path": "discover/2026-07-10-request-body-editor-shell-with-a-body-type-selector-plus.md",
+  "discover_completed_at": "2026-07-10T11:40:45+00:00",
+  "intent": {
+    "feature_concept": "Request-body editor shell with a body-type selector plus three text-only modes (none, raw with {{variable}}-highlighted code area defaulting to JSON, and x-www-form-urlencoded via the existing key-value editor), emitting {type,lang,text} to the active tab RequestSpec through the store, with mandatory design/reference.html visual fidelity.",
+    "topic": "Request-body editor shell with a body-type selector plus three text-only modes (none, raw with {{variable}}-highlighted code area defaulting to JSON, and x-www-form-urlencoded via the existing key-value editor), emitting {type,lang,text} to the active tab RequestSpec through the store, with mandatory design/reference.html visual fidelity.",
+    "topic_slug": "request-body-editor-shell-with-a-body-type-selector-plus",
+    "scope_summary": "BodyEditor shell = body-type radio selector (none, form-data, x-www-form-urlencoded, raw, binary, GraphQL) driving a mode switch. Three modes live now: none (empty region), raw (lang-pill toolbar JSON default over a hand-rolled <pre>/gutter code area with two-pass {{variable}} + syntax highlight), x-www-form-urlencoded (mount existing KVTable emitting KVRow[]). form-data/binary/GraphQL = shared neutral 'not yet available' placeholder. Body is a discriminated union on type (lang/text only on raw; urlencoded/form-data carry KVRow[]); mutations write the union to the active tab RequestSpec via store updateActiveSpec, NOT a flat {type,lang,text}.",
+    "verbatim_prompt": "The request-body editor shell for an HTTP client plus its text-only body modes. A body-type selector (radio row: none, form-data, x-www-form-urlencoded, raw, binary, GraphQL) chooses the mode; THIS task implements the selector/shell and three modes: none (empty), raw (a language pill \u2014 JSON default \u2014 over a code-text area with {{variable}} highlighting), and x-www-form-urlencoded (reuse the existing key-value editor component for text key/value pairs). The other three modes (form-data, binary, GraphQL) are separate tasks that mount into the same shell \u2014 render them as a neutral 'not yet available' placeholder here until they land, exactly like the sub-tab empty-slot pattern. Emits the updated body object { type, lang, text } to the active tab's RequestSpec through the store (never imports requestSpec directly). The raw code-area's {{variable}} highlighting reuses the same tokenise + validVars-\u2205-selector seam the key-value editor uses (tokenise always; flag missing only when validVars is non-empty; neutral otherwise). Visual fidelity is MANDATORY: design/reference.html is the VISUAL TARGET, and the exact resolved values are pre-extracted in design/styles.css (:root + [data-theme=\"dark\"]) and design/mintenvoy-design-fidelity-contract.md (section \"Body editor\") \u2014 use those exact computed-style values (body-toolbar, body-radio + active dot, code-editor grid/gutter mono, lang-pill) as fidelity AC targets, treating var(--token) as resolves-to-token. Copy the VALUES, never the CODE: no data-om-*/__OmT/inline-style/tweaks-panel cruft \u2014 semantic classes bound to tokens.css. (design/styles.css is the authoritative value source.)"
+  },
+  "spec_seeds": {
+    "spec_type_hint": "greenfield_feature",
+    "constraints": [
+      {
+        "kind": "nfr",
+        "content": "CONFIRMED \u2014 Fidelity (mandatory): semantic classes bound to tokens.css; .tk-key/str/num/bool assert LITERAL per-theme hex (:root + [data-theme=dark]); .tk-null/punc/var assert resolves-to-token; gutter<->line alignment (.gutter>div height calc(1.65em), one div/line). No cruft: no data-om-*, __OmT, inline-style, tweaks-panel residue. Layering: lib/ never imports components; Body union import type-only; validVars/highlight spans render-only, never persisted; no wire-format/Content-Type logic in editor (send-time). ADDED (reference silent on edit mechanism -> B4 underspecified-deviate): 1) Editable surface = real <textarea>, highlight <pre> aria-hidden presentation-only, NO contenteditable (native caret + SR; IME/composition safety; caret<->highlight alignment). 2) Three-layer alignment invariant (supersedes gutter<->line): textarea+pre+gutter share identical mono metrics + line-height 1.65 + padding + tab-size; single scroll source (pre+gutter track textarea scrollTop/Left). 3) Highlight perf ceiling (behavior not mechanism): above size/line threshold syntax pass SKIPPED -> pre degrades to plain var(--text); no full-body synchronous tokenise per keystroke (debounce/off-keystroke); bounded gutter node count; threshold = plan-level tunable w/ stated default, not a magic constant. 4) Max body = routing not hard cap: no artificial raw-text limit; large payloads via binary fileRef, never raw buffer. 5) XSS-safe render: tokens as escaped JSX children ONLY; never dangerouslySetInnerHTML/innerHTML of raw body text. 6) a11y on div controls (.body-radio, .lang-pill are divs) DEVIATE-from-underspecified (B1/B4): role=radiogroup/radio + aria-checked + arrow-key nav + visible focus ring; lang-pill = button semantics + aria.",
+        "quantifier": "see discovery report constraints dimension",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "nfr",
+        "content": "Out of scope: CONFIRMED out: form-data/binary/graphql mode implementations \u2014 deferred-mode placeholder slot only (mirrors functional_scope: none/raw/urlencoded live now). Send-time concerns \u2014 serialization, percent-encoding, Content-Type derivation, variable VALUE resolution: T10a/main not editor. Third-party editors \u2014 Monaco rejected; CodeMirror 6 documented future fallback, out. Editor niceties \u2014 multi-cursor, folding, autocomplete, bracket matching. .tk-var.missing strikethrough \u2014 default MATCH neutral .tk-var only; missing-state = opt-in DEVIATE, out. DECISION real syntax tokenizer for XML/HTML/Text = OUT (design-grounded: styles.css ships only JSON token vocab .tk-key/str/num/bool/null/punc; no .tk-tag/attr/comment class exists -> a real XML/HTML tokenizer invents classes the fidelity contract cannot check). JSON syntax tokenizer IN; XML/HTML/Text render plain (var(--text)). CARVE (NOT out): var pass .tk-var for {{var}} applies to ALL raw langs incl text/XML/HTML \u2014 {{var}} highlighting is language-agnostic (varTokens), not JSON-specific; non_goal is structure-aware coloring for non-JSON, not any highlighting. ADDITIONAL out: Response-body rendering (\u00a711 response pane = separate task, reuses same .tk-*/tokenizer lib but T7 = request-body only). Format/Beautify/prettify (no control in export; .body-toolbar .right holds lang-pill only). Gutter interactivity (presentational, line-numbers only; no click-to-select/breakpoint). JSON validation UI (no error markers/lint squiggles/invalid-JSON UI; malformed input degrades to plain, never throws).",
+        "quantifier": "non-goal boundary from scoping session",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a72.2 Renderer Tier Organization (organisms flow downward only; no sibling-tier imports)",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a75.2 Domain Invariants (requestSpec stays a pure data module \u2014 never imported by components)",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.1 Type Safety (strict mode, no any, narrow don't cast)",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a72.1/\u00a72.3 Renderer purity (no Node/Electron; @renderer alias)",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a74 Prefer design tokens over literal style values",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "varTokens var pass",
+        "files": [
+          "src/renderer/src/lib/varTokens.ts"
+        ],
+        "impact": "reuse tokenizeVars for raw code-area {{var}} highlighting; language-agnostic; validVars-\u2205 selector applied by caller",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "KVTable urlencoded",
+        "files": [
+          "src/renderer/src/components/organisms/KVTable.tsx"
+        ],
+        "impact": "mount for x-www-form-urlencoded mode; emits Row[]",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "RequestSubTabs body slot",
+        "files": [
+          "src/renderer/src/components/organisms/RequestSubTabs.tsx"
+        ],
+        "impact": "host; add a body slot prop + wire the body key (currently falls to emptyState L241); BodyEditor mounts here; deferred-mode placeholder mirrors this empty-state",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "tabsStore updateActiveSpec",
+        "files": [
+          "src/renderer/src/lib/tabsStore.ts"
+        ],
+        "impact": "body write path: updateActiveSpec({body}) shallow-merge; no direct requestSpec import from BodyEditor",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "requestSpec Body union migration",
+        "files": [
+          "src/renderer/src/lib/requestSpec.ts"
+        ],
+        "impact": "migrate body flat {lang,type,text} (L82) -> discriminated union; update makeBlankRequest seed (L131); Row (L32) reused for urlencoded/form-data rows",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "BodyEditor organism (new)",
+        "files": [
+          "src/renderer/src/components/organisms"
+        ],
+        "impact": "greenfield BodyEditor.tsx: body-type radio + mode switch + code-editor/gutter/pre + lang-pill; no existing BodyEditor/radio-group/lang-pill/code-editor found",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "syntax tokenizer (new lib)",
+        "files": [
+          "src/renderer/src/lib"
+        ],
+        "impact": "greenfield JSON syntax tokenizer module (.tk-key/str/num/bool/null/punc); lib never imports components; no existing syntax tokenizer found",
+        "is_internal_extension_candidate": false
+      },
+      {
+        "area": "internal:src/renderer/src/lib/varTokens.ts",
+        "files": [
+          "src/renderer/src/lib/varTokens.ts"
+        ],
+        "impact": "internal \u2014 existing {{variable}} tokeniser (var pass); pure, renderer-only, returns VarSegment[] plain/var; directly reusable for the raw code-area var pass",
+        "is_internal_extension_candidate": true
+      },
+      {
+        "area": "internal:src/renderer/src/components/organisms/KVTable.tsx",
+        "files": [
+          "src/renderer/src/components/organisms/KVTable.tsx"
+        ],
+        "impact": "internal \u2014 existing key-value editor emitting Row[]; reuse verbatim for x-www-form-urlencoded mode",
+        "is_internal_extension_candidate": true
+      },
+      {
+        "area": "internal:src/renderer/src/components/organisms/RequestSubTabs.tsx",
+        "files": [
+          "src/renderer/src/components/organisms/RequestSubTabs.tsx"
+        ],
+        "impact": "internal \u2014 host sub-tab shell; mount-all + hidden-toggle; shared 'Panel not yet available' empty-state (L241) \u2014 the pattern the deferred body-modes placeholder mirrors; BodyEditor mounts in the body slot",
+        "is_internal_extension_candidate": true
+      },
+      {
+        "area": "internal:src/renderer/src/lib/tabsStore.ts",
+        "files": [
+          "src/renderer/src/lib/tabsStore.ts"
+        ],
+        "impact": "internal \u2014 store write seam (Partial<RequestSpec> shallow-merge + dirty + equality no-op); BodyEditor emits body via updateActiveSpec({body})",
+        "is_internal_extension_candidate": true
+      },
+      {
+        "area": "internal:src/renderer/src/lib/requestSpec.ts",
+        "files": [
+          "src/renderer/src/lib/requestSpec.ts"
+        ],
+        "impact": "internal \u2014 Body type home; CURRENTLY FLAT {lang,type,text} (L82), NOT a union; Row type (L32) is the actual KV row shape (user called it KVRow). Union migration lands here",
+        "is_internal_extension_candidate": true
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Spike the three-layer alignment (textarea/<pre>/gutter) + scroll-sync in BOTH themes before building any mode \u2014 proves the hardest fidelity invariant early",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Prototype the CT assertComputedStyle / assertResolvesToToken helper against the .tk-* hex table + live-renderer channel; this is the OPEN dev-lane dependency behind the anti-false-green gate",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Do the flat->union body migration first and let the type-checker enumerate every narrowing site \u2014 confirms the zero-consumer / Low-blast-radius assumption empirically",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Write a {{var}}-inside-JSON-string fixture and pin the var-pass-wins tie-break before wiring the two-pass tokenizer",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "add body slot prop to RequestSubTabs",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      },
+      {
+        "risk": "change RequestSpec.body to union",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      },
+      {
+        "risk": "update makeBlankRequest seed to {type:none}",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      }
+    ],
+    "open_questions": [
+      {
+        "question": "user-supplied mechanism/placement guesses (confirm via Phase 2 fit-check): reuse existing key-value editor component + its tokenise/validVars-\u2205-selector seam; emit body via store to active-tab RequestSpec (no direct requestSpec import); neutral 'not yet available' placeholder mirrors existing sub-tab empty-slot pattern",
+        "blocking": true
+      }
+    ],
+    "design_anchor": {
+      "kind": "html",
+      "file": "design/reference.html",
+      "selectors": [
+        ".body-toolbar",
+        ".body-toolbar .right",
+        ".body-radio",
+        ".body-radio:hover",
+        ".body-radio.active .dot",
+        ".dot",
+        ".code-editor",
+        ".code-editor .gutter",
+        ".code-editor .gutter > div",
+        ".code-editor pre",
+        ".lang-pill",
+        ".tk-key",
+        ".tk-str",
+        ".tk-num",
+        ".tk-bool",
+        ".tk-null",
+        ".tk-punc",
+        ".tk-var"
+      ]
+    }
+  },
+  "plan_seeds": {
+    "design_options": [
+      {
+        "id": "A",
+        "name": "Union-in-spec, store-owned, mount-all panels",
+        "shape": "Body becomes a discriminated union on type in requestSpec.ts; the store (tabsStore) is the single source of truth. BodyEditor reads body from the active spec and writes each mode's variant via updateActiveSpec({body}); all mode panels are always-mounted and toggled by the hidden attr (round-trip is free \u2014 state lives in the spec, not the component).",
+        "pros": [
+          "Illegal states unrepresentable (lang/text only on raw; rows on urlencoded/form-data)",
+          "Round-trip preservation is automatic \u2014 no rehydrate logic",
+          "Matches the house mount-all/hidden-toggle pattern (RequestSubTabs)",
+          "Store stays single source of truth (constitution \u00a75.2 / \u00a72.2)",
+          "Decoupled: BodyEditor never imports requestSpec data"
+        ],
+        "cons": [
+          "Requires the flat->union body migration in requestSpec.ts + seed",
+          "Every mode writes a full union variant on change"
+        ],
+        "complexity": "Med"
+      },
+      {
+        "id": "B",
+        "name": "Flat {type,lang,text} + text-encoded KV (minimal migration)",
+        "shape": "Keep RequestSpec.body flat; add only a type discriminator and serialize urlencoded/form-data rows into the text field at edit time, parsing back on render.",
+        "pros": [
+          "No type migration \u2014 smallest diff to requestSpec.ts"
+        ],
+        "cons": [
+          "Lossy round-trip: encoded text cannot represent disabled-but-present rows, row order, or duplicates",
+          "Var literals {{var}} mangled \u2014 pre-encoding braces is wrong, leaving them raw is not encoded",
+          "Parse-back every render; over-generalizes raw (text) onto KV (rows)",
+          "Contradicts inputs_outputs \u2014 the user already reasoned this shape out as incorrect"
+        ],
+        "complexity": "Low"
+      },
+      {
+        "id": "C",
+        "name": "Union-in-spec + component-owned per-mode draft state",
+        "shape": "Body is a union in the spec, but BodyEditor holds local React state per mode and syncs to the store on blur/debounce rather than on every edit.",
+        "pros": [
+          "Fewer store writes per keystroke"
+        ],
+        "cons": [
+          "Dual source of truth (local draft vs spec) -> sync bugs",
+          "Round-trip needs manual rehydrate on mode switch",
+          "Dirty-flag timing becomes ambiguous",
+          "Contradicts store-as-single-source-of-truth (\u00a75.2)"
+        ],
+        "complexity": "Med"
+      }
+    ],
+    "build_vs_buy": {
+      "recommendation": "Build",
+      "build_path": "Hand-roll the code editor (transparent textarea over a highlighted <pre> + gutter, CSS-Grid aligned, single scroll source \u2014 the canonical react-simple-code-editor technique) and a small JSON-only syntax tokenizer lib; reuse varTokens for the var pass.",
+      "buy_path": "Adopt Monaco or CodeMirror 6 as the raw editor.",
+      "reasoning": "Buy is rejected on fidelity grounds: Monaco/CodeMirror render their own DOM and theming, which defeats the design-anchor computed-style diff against reference.html (the verify-green-but-drifted failure, 009->010->B3). The design already ships the exact editor DOM (\u00a78 .code-editor grid 36px 1fr, .gutter, pre, full .tk-* vocabulary), so hand-rolling is a values-copy, not novel design. CodeMirror 6 remains a documented FUTURE fallback strictly if folding/multi-cursor are ever needed \u2014 a re-decision, not part of this build."
+    },
+    "cited_canonical_patterns": [
+      {
+        "reference": "varTokens.tokenizeVars",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/lib/varTokens.ts",
+        "relevance": "internal \u2014 existing {{variable}} tokeniser (var pass); pure, renderer-only, returns VarSegment[] plain/var; directly reusable for the raw code-area var pass",
+        "is_internal": true
+      },
+      {
+        "reference": "KVTable organism",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/components/organisms/KVTable.tsx",
+        "relevance": "internal \u2014 existing key-value editor emitting Row[]; reuse verbatim for x-www-form-urlencoded mode",
+        "is_internal": true
+      },
+      {
+        "reference": "RequestSubTabs shell + empty-slot pattern",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/components/organisms/RequestSubTabs.tsx",
+        "relevance": "internal \u2014 host sub-tab shell; mount-all + hidden-toggle; shared 'Panel not yet available' empty-state (L241) \u2014 the pattern the deferred body-modes placeholder mirrors; BodyEditor mounts in the body slot",
+        "is_internal": true
+      },
+      {
+        "reference": "tabsStore.updateActiveSpec",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/lib/tabsStore.ts",
+        "relevance": "internal \u2014 store write seam (Partial<RequestSpec> shallow-merge + dirty + equality no-op); BodyEditor emits body via updateActiveSpec({body})",
+        "is_internal": true
+      },
+      {
+        "reference": "requestSpec.RequestSpec.body + Row",
+        "kind": "pattern",
+        "source": "internal:src/renderer/src/lib/requestSpec.ts",
+        "relevance": "internal \u2014 Body type home; CURRENTLY FLAT {lang,type,text} (L82), NOT a union; Row type (L32) is the actual KV row shape (user called it KVRow). Union migration lands here",
+        "is_internal": true
+      },
+      {
+        "reference": "react-simple-code-editor",
+        "kind": "library",
+        "source": "https://github.com/react-simple-code-editor/react-simple-code-editor",
+        "relevance": "canonical textarea-over-<pre> overlay technique reference; validates the hand-rolled approach (transparent textarea, CSS-Grid alignment, single scroll source). NOT adopted as a dep \u2014 used as a pattern reference only; matches design \u00a78 .code-editor grid",
+        "is_internal": false
+      },
+      {
+        "reference": "CSS-Tricks: editable textarea with syntax-highlighted code",
+        "kind": "pattern",
+        "source": "https://css-tricks.com/creating-an-editable-textarea-that-supports-syntax-highlighted-code/",
+        "relevance": "documents transparent-textarea + highlighted-pre grid overlay + caret-color + scroll-sync \u2014 the three-layer alignment invariant in constraints",
+        "is_internal": false
+      }
+    ],
+    "complexity": {
+      "changes": "Med",
+      "risk": "Low",
+      "verify_cost": "Med"
+    },
+    "recommended_option_id": "A",
+    "recommended_option_rationale": "This is the only option that makes illegal body states unrepresentable and gets round-trip preservation for free by keeping the discriminated-union Body in internal:src/renderer/src/lib/requestSpec.ts with the store (internal:src/renderer/src/lib/tabsStore.ts) as single source of truth \u2014 extending the existing seams rather than building new state. The existing flat body at internal:src/renderer/src/lib/requestSpec.ts (L82) must migrate to the union, but that existing implementation does NOT cover the discriminated-union requirement, and the migration is consumer-free (zero readers of .body.text/lang/type beyond makeBlankRequest), so it is Low-risk. It reuses internal:src/renderer/src/lib/varTokens.ts, internal:src/renderer/src/components/organisms/KVTable.tsx, and internal:src/renderer/src/lib/tabsStore.ts verbatim, and honours the constitution: BodyEditor injects KVTable as a slot prop (no sibling-organism import, \u00a72.2) and receives the Body type via a tabsStore re-export (requestSpec stays component-invisible, \u00a75.2). Option B is rejected as lossy; Option C duplicates the source of truth."
+  },
+  "discovery_block": {
+    "overall_fit": "Good",
+    "effort_estimate": "Medium",
+    "fit_rationale": "Fit is Good. Every reuse seam the user believed exists actually exists and matches: varTokens.tokenizeVars (var pass), KVTable (Row[] emitter), RequestSubTabs (host + mount-all/hidden-toggle + shared 'Panel not yet available' empty-state at L241), tabsStore.updateActiveSpec (Partial<RequestSpec> write path). One belief-vs-reality mismatch: the user's inputs_outputs assumes a discriminated-union Body, but RequestSpec.body is CURRENTLY FLAT {lang,type,text} (requestSpec.ts:82) \u2014 a migration, not a green-field add. Blast radius is LOW: .body.text/lang/type has ZERO consumers beyond the makeBlankRequest seed, so the union swap + seed update is essentially consumer-free and stays JSON-round-trip-safe. Minor naming reconciliation: the KV row type is Row (requestSpec.ts:32), not KVRow. Remaining work is greenfield-but-fully-design-specified: BodyEditor organism (radio + mode-switch + textarea/pre/gutter code-editor + lang-pill) and a JSON syntax tokenizer lib \u2014 no existing BodyEditor/radio-group/lang-pill/code-editor/syntax-tokenizer found, but design/reference.html + styles.css \u00a78 pin the DOM and every value. Third-party editors (Monaco/CodeMirror) are correctly rejected: they render their own DOM/theming, defeating the design-anchor computed-style diff (verify-green-but-drifted, the 009->010->B3 mode). The textarea-over-<pre> overlay is the canonical hand-rolled technique. Effort Medium driven by the two greenfield UI/lib pieces, not by integration risk.",
+    "fit_assessments": [
+      {
+        "touchpoint": "varTokens var pass",
+        "user_expected": "reuse lib/varTokens.ts for the raw var pass",
+        "reality": "tokenizeVars exists, pure, renderer-only, returns VarSegment[] (plain/var, name+raw); no validVars/missing concept (caller applies \u2205-selector) \u2014 exactly the seam described",
+        "effort": "Low",
+        "blockers": []
+      },
+      {
+        "touchpoint": "KVTable urlencoded",
+        "user_expected": "reuse existing key-value editor for urlencoded",
+        "reality": "KVTable exists and emits Row[]; row type is Row (requestSpec.ts:32), not a distinct KVRow \u2014 naming reconciliation only",
+        "effort": "Low",
+        "blockers": []
+      },
+      {
+        "touchpoint": "RequestSubTabs body slot",
+        "user_expected": "BodyEditor mounts into the Body sub-tab; deferred modes mirror sub-tab empty-slot",
+        "reality": "RequestSubTabs mounts params/headers via slot props; body currently falls to shared emptyState (L241). Must add a body slot prop + wire it. Mount-all+hidden-toggle already the house pattern (supports round-trip)",
+        "effort": "Low",
+        "blockers": [
+          "add body slot prop to RequestSubTabs"
+        ]
+      },
+      {
+        "touchpoint": "tabsStore updateActiveSpec",
+        "user_expected": "emit body via store to active-tab RequestSpec; no direct requestSpec import",
+        "reality": "updateActiveSpec(Partial<RequestSpec>) exists with shallow-merge + dirty + equality no-op; exact seam",
+        "effort": "Low",
+        "blockers": []
+      },
+      {
+        "touchpoint": "requestSpec Body union migration",
+        "user_expected": "Body union type home = requestSpec.ts (type-only import, store re-export)",
+        "reality": "body is CURRENTLY FLAT {lang,type,text} (L82), not a union. Migration required. But .body.text/lang/type has ZERO consumers beyond makeBlankRequest seed -> consumer-free migration, LOW blast radius. Union stays JSON-round-trip-safe",
+        "effort": "Low",
+        "blockers": [
+          "change RequestSpec.body to union",
+          "update makeBlankRequest seed to {type:none}"
+        ]
+      },
+      {
+        "touchpoint": "BodyEditor organism (new)",
+        "user_expected": "BodyEditor as new organism reusing seams",
+        "reality": "no existing BodyEditor/radio-group/lang-pill/code-editor \u2014 greenfield, but design/reference.html + styles.css \u00a78 fully specify DOM+values (grid 36px 1fr, gutter, pre, .tk-*)",
+        "effort": "Medium",
+        "blockers": []
+      },
+      {
+        "touchpoint": "syntax tokenizer (new lib)",
+        "user_expected": "new lib/ syntax tokenizer, lib never imports components",
+        "reality": "no existing syntax tokenizer; greenfield JSON-only tokenizer; token vocabulary fixed by styles.css (.tk-key/str/num/bool/null/punc); scope bounded to JSON",
+        "effort": "Medium",
+        "blockers": []
+      }
+    ],
+    "verdict": "Worth pursuing",
+    "override_recorded": false,
+    "memo_dimensions": {
+      "functional_scope": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "BodyEditor shell = body-type radio selector (none, form-data, x-www-form-urlencoded, raw, binary, GraphQL) driving a mode switch. Three modes live now: none (empty region), raw (lang-pill toolbar JSON default over a hand-rolled <pre>/gutter code area with two-pass {{variable}} + syntax highlight), x-www-form-urlencoded (mount existing KVTable emitting KVRow[]). form-data/binary/GraphQL = shared neutral 'not yet available' placeholder. Body is a discriminated union on type (lang/text only on raw; urlencoded/form-data carry KVRow[]); mutations write the union to the active tab RequestSpec via store updateActiveSpec, NOT a flat {type,lang,text}."
+      },
+      "users": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "mintEnvoy end user (developer authoring an HTTP request) editing the request body in the request panel Body sub-tab. Single consumer surface. No component reads BodyEditor directly \u2014 downstream (serializer/send) reads the body shape from RequestSpec via the store, decoupled from the editor component."
+      },
+      "inputs_outputs": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "IN: raw code-area keystrokes; lang-pill selection; body-type radio selection; KVTable rows (urlencoded/form-data); validVars (active-tab var names) for the var highlight pass (render-only, never persisted). OUT: a discriminated-union Body written to active-tab RequestSpec via store updateActiveSpec \u2014 type Body = {type:none} | {type:raw; lang:json|xml|html|text; text} | {type:x-www-form-urlencoded; rows:KVRow[]} | {type:form-data; rows:KVRow[]} | {type:binary; fileRef} | {type:graphql; query; variables}. lang/text live ONLY on raw; urlencoded/form-data carry structured KVRow[] (NOT encoded text) preserving enabled/disabled + order + literal {{var}}. Union removes illegal states. Highlight spans render-only, not emitted. Content-Type is send-time (T10a): type-derived unless explicit Content-Type header wins; editor stays free of wire-format logic. Body union type import = type-only (\u00a75.2); data flows only via updateActiveSpec."
+      },
+      "integration_points": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "BodyEditor = new organism (components/organisms/BodyEditor.tsx) mounted by RequestSubTabs.tsx Body sub-tab, reusing its empty-slot 'not yet available' pattern (~L241) for form-data/binary/GraphQL. Reuses: KVTable.tsx (urlencoded, emits KVRow[]); lib/varTokens.ts (var pass). New lib/ syntax tokenizer module (lib never imports components). Body union type home = lib/requestSpec.ts (\u00a75.2 type-only import, store re-export). Write path = lib/tabsStore.ts updateActiveSpec; BodyEditor never imports requestSpec data directly."
+      },
+      "constraints": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "CONFIRMED \u2014 Fidelity (mandatory): semantic classes bound to tokens.css; .tk-key/str/num/bool assert LITERAL per-theme hex (:root + [data-theme=dark]); .tk-null/punc/var assert resolves-to-token; gutter<->line alignment (.gutter>div height calc(1.65em), one div/line). No cruft: no data-om-*, __OmT, inline-style, tweaks-panel residue. Layering: lib/ never imports components; Body union import type-only; validVars/highlight spans render-only, never persisted; no wire-format/Content-Type logic in editor (send-time). ADDED (reference silent on edit mechanism -> B4 underspecified-deviate): 1) Editable surface = real <textarea>, highlight <pre> aria-hidden presentation-only, NO contenteditable (native caret + SR; IME/composition safety; caret<->highlight alignment). 2) Three-layer alignment invariant (supersedes gutter<->line): textarea+pre+gutter share identical mono metrics + line-height 1.65 + padding + tab-size; single scroll source (pre+gutter track textarea scrollTop/Left). 3) Highlight perf ceiling (behavior not mechanism): above size/line threshold syntax pass SKIPPED -> pre degrades to plain var(--text); no full-body synchronous tokenise per keystroke (debounce/off-keystroke); bounded gutter node count; threshold = plan-level tunable w/ stated default, not a magic constant. 4) Max body = routing not hard cap: no artificial raw-text limit; large payloads via binary fileRef, never raw buffer. 5) XSS-safe render: tokens as escaped JSX children ONLY; never dangerouslySetInnerHTML/innerHTML of raw body text. 6) a11y on div controls (.body-radio, .lang-pill are divs) DEVIATE-from-underspecified (B1/B4): role=radiogroup/radio + aria-checked + arrow-key nav + visible focus ring; lang-pill = button semantics + aria."
+      },
+      "non_goals": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "CONFIRMED out: form-data/binary/graphql mode implementations \u2014 deferred-mode placeholder slot only (mirrors functional_scope: none/raw/urlencoded live now). Send-time concerns \u2014 serialization, percent-encoding, Content-Type derivation, variable VALUE resolution: T10a/main not editor. Third-party editors \u2014 Monaco rejected; CodeMirror 6 documented future fallback, out. Editor niceties \u2014 multi-cursor, folding, autocomplete, bracket matching. .tk-var.missing strikethrough \u2014 default MATCH neutral .tk-var only; missing-state = opt-in DEVIATE, out. DECISION real syntax tokenizer for XML/HTML/Text = OUT (design-grounded: styles.css ships only JSON token vocab .tk-key/str/num/bool/null/punc; no .tk-tag/attr/comment class exists -> a real XML/HTML tokenizer invents classes the fidelity contract cannot check). JSON syntax tokenizer IN; XML/HTML/Text render plain (var(--text)). CARVE (NOT out): var pass .tk-var for {{var}} applies to ALL raw langs incl text/XML/HTML \u2014 {{var}} highlighting is language-agnostic (varTokens), not JSON-specific; non_goal is structure-aware coloring for non-JSON, not any highlighting. ADDITIONAL out: Response-body rendering (\u00a711 response pane = separate task, reuses same .tk-*/tokenizer lib but T7 = request-body only). Format/Beautify/prettify (no control in export; .body-toolbar .right holds lang-pill only). Gutter interactivity (presentational, line-numbers only; no click-to-select/breakpoint). JSON validation UI (no error markers/lint squiggles/invalid-JSON UI; malformed input degrades to plain, never throws)."
+      },
+      "success_criteria": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "Three AC groups (fidelity, behavioral, robustness/a11y) confirmed. TIGHTENING 1 \u2014 .tk-* HEX TABLE (from styles.css), not prose: light .tk-key #0369a1 / .tk-str #15803d / .tk-num #b45309 / .tk-bool #be185d; dark .tk-key #7dd3fc / .tk-str #86efac / .tk-num #fcd34d / .tk-bool #f0abfc; both .tk-null resolves var(--text-faint), .tk-punc resolves var(--text-muted), .tk-var resolves var(--accent) (no dark override, theme-invariant). Assert literal hex per active theme for key/str/num/bool; resolves-to-token for null/punc/var; do NOT run resolves-to-token on the hex four. TIGHTENING 2 \u2014 anti-false-green gate (load-bearing): fidelity ACs PASS ONLY when auditor reads computed-style from a LIVE renderer; if the renderer/computed-style channel is unavailable (DevTools-MCP absent) fidelity ACs report UNVERIFIED never PASS (skipped != green; false-green is the known drift root cause). Phrase AC as gate not mechanism. TIGHTENING 3 \u2014 gutter<->line EQUALITY: computed height of .code-editor .gutter>div == computed line-height of .code-editor pre (1.65 x font-size); gutter node count == rendered line count; pre and gutter share one scrollTop (no independent drift). ADDITIONS: empty/initial raw state renders empty .code-editor, zero tokens, no throw; union round-trip \u2014 switching body-type away and back preserves per-mode value from RequestSpec (raw text kept, urlencoded rows kept) via mount-all + toggle-visibility (not unmount). SCOPE DISCIPLINE: only non-JSON highlighting criterion is '.tk-var works across all raw langs'; NO criterion asserts XML/HTML/Text structural highlighting (in non_goals); malformed JSON degrades to plain var(--text), no throw, no error UI. OPEN dependency (not a criterion): CT assertComputedStyle/assertResolvesToToken helper + live-renderer infra are OPEN dev-lane items; if unavailable at build time fidelity ACs stay UNVERIFIED per Tightening 2."
+      },
+      "edge_cases": {
+        "state": "Clear",
+        "turns": 0,
+        "value": "CONFIRMED 8: empty/whitespace raw -> empty editor zero tokens no throw; malformed JSON -> plain no throw no error UI; large body -> syntax pass skipped above threshold, bounded gutter nodes, no per-keystroke full re-tokenise; {{var}} malformed (unclosed/empty/adjacent/newline-spanning) -> no crash, unmatched braces plain; validVars empty -> neutral .tk-var never missing; theme switch mid-edit -> hex .tk-* re-resolve to active palette, token classes follow --accent/--text-*; rapid body-type switch -> mount-all+toggle preserves per-mode RequestSpec (no unmount loss); special/long/RTL/tabs -> three-layer alignment holds, tab-size consistent, no caret<->highlight drift. REFINEMENT (decision, contract silent on pass interaction): {{var}} inside a JSON string literal (\"url\":\"{{base}}/x\") -> var-pass and syntax-pass claim same bytes; TIE-BREAK var-pass WINS inside value region: .tk-var colors the braces, rest of string stays .tk-str; {{var}} is a NESTED token within the string region, not a whole-string competitor (matches KV where {{var}} highlights over the value). Must be explicit or implementer diverges. ADDITIONS: paste huge payload (distinct from large body: one-shot insert) -> exactly ONE re-tokenise per paste event, threshold evaluated against pasted size immediately, keystroke debounce does not cover paste, multi-MB paste must not freeze UI. Non-UTF8/control chars -> tokeniser operates on code points (no ASCII assumption); non-printing control chars (\\v \\f, lone \\r) do not create phantom gutter lines (line-count stays correct). Theme switch x empty-selector simultaneously -> theme change while validVars empty must NOT flag any {{var}} .missing (empty = neutral always, theme-independent). REGISTER: boundary BEHAVIOR not mechanism; debounce/threshold number stays in constraints."
+      }
+    },
+    "references": [
+      "in-repo seams: lib/varTokens.ts (var pass), KVTable empty-slot/sub-tab pattern",
+      "hand-rolled <pre>/<span> + gutter renderer (design \u00a78 .code-editor already IS pre/span/gutter grid 36px 1fr)",
+      "CodeMirror 6 \u2014 documented fallback ONLY if folding/multi-cursor later; re-decision not a default",
+      "Monaco \u2014 REJECTED (renders own DOM+theming; breaks design-anchor computed-style diff \u2192 verify-green-but-drifted, 009\u2192010\u2192B3 mode)"
+    ],
+    "gaps": [
+      {
+        "dimension": "integration_points",
+        "description": "user-supplied mechanism/placement guesses (confirm via Phase 2 fit-check): reuse existing key-value editor component + its tokenise/validVars-\u2205-selector seam; emit body via store to active-tab RequestSpec (no direct requestSpec import); neutral 'not yet available' placeholder mirrors existing sub-tab empty-slot pattern"
+      }
+    ]
+  },
+  "downstream_links": {
+    "spec_path": null,
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}
