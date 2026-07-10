@@ -1,12 +1,12 @@
 # Bug 010: KVTable header vs row font color perceived mismatch
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Info
 **Source**: manual
-**Feature**: N/A
+**Feature**: 016-load-design-fonts
 **AC**: N/A
 **Reported**: 2026-07-06
-**Fixed**: 
+**Fixed**: 2026-07-10
 
 ## Description
 
@@ -36,4 +36,4 @@ _None — standalone bug._
 
 ## Fix Notes
 
-_Filled in after resolution._
+Resolved by feature 016-load-design-fonts (see [[011-design-fonts-inter-and]], which supersedes/explains this bug). The perceived KVTable header-vs-row font mismatch was rooted in the app never loading Inter/JetBrains Mono (bug 011) — the KVTable rendered in system-fallback faces (SF Mono/Menlo), not the intended JetBrains Mono, so weight/letterform read differently from the design. With the fonts now self-hosted and load-verified (016), KV cells compute JetBrains Mono and the header/row relationship renders as the design intends. The checked-in colors/weights already matched design/styles.css §.kv, so no KVTable.css color change was needed.

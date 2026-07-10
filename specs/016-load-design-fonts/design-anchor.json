@@ -1,0 +1,9 @@
+{
+  "kind": "html",
+  "file": "design/reference.html",
+  "selectors": [
+    "@font-face",
+    ":root"
+  ],
+  "source_hash": "0b7c718f3f31c68f28d6f2361865947d6ad36ed9c2be7706ef2e39cc3307c227"
+}

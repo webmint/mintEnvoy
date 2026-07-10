@@ -1,0 +1,164 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/016-load-design-fonts/tasks",
+  "breakdown_completed_at": "2026-07-09T18:26:01Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/016-load-design-fonts/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/016-load-design-fonts/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/016-load-design-fonts/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "Add @fontsource dependencies",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "002"
+      ],
+      "touched_files": [
+        "package.json"
+      ],
+      "expects": [
+        "`package.json` has a `dependencies` object."
+      ],
+      "produces": [
+        "`package.json` `dependencies` contains `@fontsource/inter` and `@fontsource/jetbrains-mono`.",
+        "`node_modules/@fontsource/inter/files/` and `node_modules/@fontsource/jetbrains-mono/files/` exist and contain latin `*-normal.woff2` files."
+      ],
+      "ac_addressed": [
+        "AC-2"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "002",
+      "title": "Create fonts.css @font-face and import it in main.tsx",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [
+        "003",
+        "004",
+        "005"
+      ],
+      "touched_files": [
+        "src/renderer/src/assets/fonts.css",
+        "src/renderer/src/main.tsx"
+      ],
+      "expects": [
+        "`@fontsource/inter` and `@fontsource/jetbrains-mono` woff2 files are present under `node_modules/@fontsource/*/files/` (Task 001 Produces)."
+      ],
+      "produces": [
+        "`src/renderer/src/assets/fonts.css` exists and declares 6 `@font-face` rules: `Inter` (400/500/600/700) and `JetBrains Mono` (400/700).",
+        "Every `@font-face` in `fonts.css` sets `font-display: swap` and a `src: url(...) format('woff2')` that resolves to a bundled `@fontsource` woff2 (no remote URL).",
+        "`src/renderer/src/main.tsx` contains `import './assets/fonts.css'` before `import '../styles/tokens.css'`."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-3",
+        "AC-4",
+        "AC-6",
+        "AC-8",
+        "AC-10",
+        "AC-12"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "003",
+      "title": "Reorder --font-sans and point base.css body at the token",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "002"
+      ],
+      "blocks": [
+        "005"
+      ],
+      "touched_files": [
+        "src/renderer/styles/tokens.css",
+        "src/renderer/src/assets/base.css"
+      ],
+      "expects": [
+        "`fonts.css` loads Inter and JetBrains Mono (Task 002 Produces) so the reordered token resolves to a real face."
+      ],
+      "produces": [
+        "In `tokens.css`, `--font-sans` lists `'Inter'` before `-apple-system`, and carries the restore-to-`tokens.json` comment.",
+        "`tokens.css` contains no `@font-face` rule.",
+        "In `base.css`, the `body` rule's `font-family` is `var(--font-sans)` (the hardcoded literal stack is removed); the antialiasing / `optimizeLegibility` declarations are retained."
+      ],
+      "ac_addressed": [
+        "AC-5",
+        "AC-7",
+        "AC-13"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "004",
+      "title": "Document self-hosted fonts in the styles concern doc",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "002"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "docs/renderer/styles/index.md"
+      ],
+      "expects": [
+        "`src/renderer/src/assets/fonts.css` exists (Task 002 Produces)."
+      ],
+      "produces": [
+        "`docs/renderer/styles/index.md` names `fonts.css` and records that Inter and JetBrains Mono are self-hosted via `@font-face` / `@fontsource`."
+      ],
+      "ac_addressed": [
+        "AC-9"
+      ],
+      "doc_refs": [
+        "docs/renderer/styles/index.md"
+      ],
+      "review_checkpoint": false
+    },
+    {
+      "number": "005",
+      "title": "Font-load fidelity CT and regenerate baselines",
+      "agent": "qa-engineer",
+      "depends_on": [
+        "002",
+        "003"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/**/__tests__/ (font-load CT)"
+      ],
+      "expects": [
+        "`fonts.css` loads Inter + JetBrains Mono (Task 002 Produces).",
+        "`--font-sans` is reordered Inter-first and `base.css` body uses `var(--font-sans)` (Task 003 Produces)."
+      ],
+      "produces": [
+        "A CT test asserting `document.fonts` has Inter + JetBrains Mono loaded AND `getComputedStyle().fontFamily` resolves to Inter (sans) / JetBrains Mono (mono).",
+        "The affected CT screenshot baselines are regenerated (stale PNGs deleted + re-created)."
+      ],
+      "ac_addressed": [
+        "AC-4",
+        "AC-7",
+        "AC-11",
+        "AC-12"
+      ],
+      "doc_refs": [
+        "specs/016-load-design-fonts/design-manifest.json"
+      ],
+      "review_checkpoint": true
+    }
+  ],
+  "additions": [
+    "None \u2014 all task files map to the plan's File Impact rows. (The `src/main/index.ts` / CSP row in the plan is context-only, NO change.)"
+  ],
+  "dependency_graph": "001 (add @fontsource deps) \u2500\u2500\u2192 002 (create fonts.css + import) \u2500\u2500\u2192 003 (reorder --font-sans + base.css) \u2500\u2500\u2192 005 (font-load CT + baselines)\n                                              \u251c\u2500\u2500\u2192 004 (document self-hosted fonts)\n                                              \u2514\u2500\u2500\u2192 005 (font-load CT + baselines)"
+}

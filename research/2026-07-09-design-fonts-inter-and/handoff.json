@@ -1,0 +1,135 @@
+{
+  "schema_version": "1.1",
+  "research_path": "research/2026-07-09-design-fonts-inter-and.md",
+  "research_completed_at": "2026-07-09T15:13:43+00:00",
+  "mode": "bug",
+  "intent": {
+    "symptom_summary": "tokens.css declares font-family stacks naming 'Inter' (sans) and 'JetBrains Mono' (mono), but no @font-face rule, @import, <link>, or bundled font file exists anywhere in the app, so all UI text renders in system fallbacks (-apple-system/SF, SF Mono) instead of the design typefaces, producing a pervasive visual mismatch vs design/reference.html",
+    "desired_summary": "Inter and JetBrains Mono actually load and render, matching design/reference.html, via self-hosted bundled woff2 files declared with local @font-face rules \u2014 no network dependency, no CSP change",
+    "scope": "feature-wide",
+    "verbatim_prompt": "Bug 011: Design fonts Inter and JetBrains Mono never loaded"
+  },
+  "spec_seeds": {
+    "spec_type_hint": "bug_fix",
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Sec4 Prefer design tokens (CSS custom properties in tokens.css) over literal style values",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Sec2.1 Process Boundaries -- Never import Node/Electron in the renderer",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Design Fidelity (design_token_provenance)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "src/main",
+        "files": [
+          "src/main/index.ts:6"
+        ],
+        "impact": "see findings"
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Typeface change on mono surfaces is intended but alters rendering; FOUT/layout-shift risk mitigated by font-display: swap and metric-compatible fallbacks; existing CT screenshot baselines will likely need regeneration (sub-threshold diffs leave stale baselines)",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "tbd via /plan"
+      }
+    ],
+    "open_questions": [],
+    "value_semantics": [
+      {
+        "value": "--font-mono",
+        "classification": "unclassified",
+        "stable_across_calls": null
+      }
+    ],
+    "value_production_sites": [],
+    "literal_archaeology": [],
+    "data_flow_chain": {
+      "handler_qn": "Users-mykolakudlyk-Projects-private-mintEnvoy.src.main.createWindow",
+      "write_boundary_qn": "Users-mykolakudlyk-Projects-private-mintEnvoy.src.main.createWindow.loadRenderer",
+      "intermediate_qns": [],
+      "trace_mode": "calls"
+    },
+    "design_anchor": {
+      "kind": "html",
+      "file": "design/reference.html",
+      "selectors": [
+        "@font-face",
+        ":root"
+      ]
+    }
+  },
+  "plan_seeds": {
+    "recommended_approach_id": "self_hosted_bundled_woff2_font_face",
+    "recommended_approach_summary": "User selected self-hosted bundling; it is the only approach that satisfies unchanged_behavior (offline launch plus no CSP loosening). No canonical @font-face/self-hosted-font pattern exists project-wide (Phase 2.4b recorded file_line (none)), so a fresh @font-face setup is justified rather than reuse. Fidelity is anchored to the existing design tokens: the fix adds sources for --font-mono / --font-sans (value-semantics row for --font-mono) without hardcoding families. Scope-confined to the renderer style layer; createWindow's loadURL/loadFile origin is the only main-process surface that bears on whether the same-origin url() assets resolve.",
+    "layer_destination": "--font-mono",
+    "layer_justification": "The fix is declarative (bundle woff2 + @font-face in the renderer stylesheet + one CSS import); it has no data-flow call chain. The sole code-layer surface that affects whether self-hosted url() fonts resolve at runtime is createWindow's renderer-load origin (src/main), so the code footprint is genuinely single-layer.",
+    "complexity": {
+      "changes": "Low",
+      "risk": "Med",
+      "verify_cost": "Med"
+    },
+    "cited_canonical_patterns": [
+      {
+        "qn": "--font-mono",
+        "file_line": "--font-mono"
+      }
+    ],
+    "alternatives_considered": [
+      {
+        "id": "remote_google_fonts_csp_relaxation",
+        "summary": "Port design/reference.html's gstatic @font-face + preconnect links and relax CSP to allow font-src fonts.gstatic.com and style-src fonts.googleapis.com.",
+        "rejected_reason": "not recommended; see /plan if needed"
+      }
+    ],
+    "proposed_call_shape": "createWindow()",
+    "correctness_vetted": false
+  },
+  "probe": {
+    "tier": "1.5",
+    "actor": "llm",
+    "discriminator": {
+      "primary_confirms_if": "tbd \u2014 populated by Step 4 probe-tier classifier",
+      "runner_up_confirms_if": "if test FAILS but with different assertion outcome \u2192 runner-up applies; LLM evaluates output diff",
+      "both_disproved_if": "if test PASSES with current code \u2192 both hypotheses are wrong; widen investigation",
+      "production_site_check": null
+    },
+    "feasibility_check": {
+      "data_shape_only": true,
+      "auth_required": false,
+      "network_dependent": false,
+      "timing_dependent": false,
+      "is_test_code": false
+    },
+    "test_framework": null,
+    "test_path": null,
+    "script_path": "research/2026-07-09-design-fonts-inter-and/probe-script.mjs",
+    "is_first_test_for_file": false
+  },
+  "downstream_links": {
+    "spec_path": null,
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}

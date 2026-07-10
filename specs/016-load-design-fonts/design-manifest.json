@@ -1,0 +1,7 @@
+{
+  "route": "/",
+  "pairs": [
+    { "anchor_selector": "body", "built_testid": "app-root" },
+    { "anchor_selector": ".method", "built_testid": "request-bar-method" }
+  ]
+}

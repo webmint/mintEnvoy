@@ -1,0 +1,66 @@
+/*
+ * Self-hosted design fonts (feature 016).
+ *
+ * Hand-authored @font-face rules for the typefaces the design tokens name
+ * (--font-sans = Inter, --font-mono = JetBrains Mono in tokens.css). The woff2
+ * come from the @fontsource/inter and @fontsource/jetbrains-mono packages;
+ * the url() is a RELATIVE path from this file into node_modules so vite
+ * fingerprints + emits the woff2 into the renderer bundle (a bare
+ * `@fontsource/...` specifier is NOT resolved by vite CSS url()).
+ *
+ * Imported in main.tsx BEFORE tokens.css. font-display: swap matches
+ * design/reference.html. Latin subset only.
+ */
+
+/* Inter — sans (400/500/600/700) */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../../../node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../../../../node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../../../../node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../../../../node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2') format('woff2');
+}
+
+/* JetBrains Mono — mono (400/600/700; the design/contract uses 600 + 700) */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../../../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../../../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2') format('woff2');
+}

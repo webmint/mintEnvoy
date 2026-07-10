@@ -1,0 +1,338 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/016-load-design-fonts/spec.md",
+  "specify_completed_at": "2026-07-09T15:53:47Z",
+  "classification": {
+    "spec_number": "016",
+    "feature_name": "load-design-fonts",
+    "feature_slug": "load-design-fonts",
+    "spec_type": "bug_fix",
+    "spec_type_rationale": "pre-seeded from research handoff at research/2026-07-09-design-fonts-inter-and/handoff.json",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "The renderer declares Inter (--font-sans) and JetBrains Mono (--font-mono) in its design-token font stacks but never loads the faces \u2014 there is no @font-face, no bundled font file, and the CSP blocks remote Google Fonts \u2014 so every surface renders in system fallbacks (San Francisco / SF Mono), a pervasive visual mismatch vs design/reference.html. This feature self-hosts the faces: it bundles Inter (400/500/600/700) and JetBrains Mono (400/700) as woff2 via @fontsource, declares them with local @font-face (font-display: swap) in a new hand-authored fonts.css imported before tokens.css, and reorders the sans stack so Inter actually renders. It is offline-safe, requires no CSP change, and does not hand-edit the generated tokens.css.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide a hand-authored fonts stylesheet that declares @font-face rules for Inter and JetBrains Mono.",
+        "verification_command": "test -f src/renderer/src/assets/fonts.css && grep -q '@font-face' src/renderer/src/assets/fonts.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall bundle self-hosted Inter and JetBrains Mono webfonts via @fontsource dependencies.",
+        "verification_command": "grep -q '@fontsource/inter' package.json && grep -q '@fontsource/jetbrains-mono' package.json",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer entry shall import the fonts stylesheet.",
+        "verification_command": "grep -q \"assets/fonts.css\" src/renderer/src/main.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the app runs with no network access, the renderer shall load and render Inter and JetBrains Mono from self-hosted assets.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall preserve existing design-token colors, spacing, radius, and theme behavior, changing only the rendered typeface.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer Content-Security-Policy shall remain unchanged, adding no remote font or style origins.",
+        "verification_command": "! grep -Eq 'fonts\\.(googleapis|gstatic)\\.com' src/renderer/index.html",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the app renders sans or body text, the renderer shall display Inter, including on macOS.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall declare every bundled @font-face with font-display set to swap.",
+        "verification_command": "grep -q 'font-display: *swap' src/renderer/src/assets/fonts.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The project documentation shall record that Inter and JetBrains Mono are self-hosted via the fonts stylesheet.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer source shall contain no remote font URLs.",
+        "verification_command": "! grep -rEq 'fonts\\.(googleapis|gstatic)\\.com' src/renderer",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-11",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The project shall pass type-check, lint, and build with the font changes in place.",
+        "verification_command": "npm run typecheck && npm run lint && npm run build",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-12",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the app renders a mono surface such as a KVTable cell or a code block, the renderer shall display JetBrains Mono.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-13",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The generated design-token stylesheet shall contain no @font-face rule.",
+        "verification_command": "! grep -q '@font-face' src/renderer/styles/tokens.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "ci_pipeline": "No CI/pipeline configuration changes \u2014 this is a renderer asset + stylesheet change; existing build/test commands are unchanged",
+      "hooks_gates": "No new hooks or gates \u2014 no pre-commit/CI gate is added or modified by bundling fonts"
+    },
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Sec4 Prefer design tokens (CSS custom properties in tokens.css) over literal style values",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Sec2.1 Process Boundaries -- Never import Node/Electron in the renderer",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Design Fidelity (design_token_provenance)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Process Boundaries: the renderer must not import Node/Electron; font loading stays a renderer-side declarative concern (CSS @font-face + vite-served assets), never routed through the main process",
+        "quantifier": null,
+        "constitution_ref": "2.1",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "Offline launch must keep working: fonts load from self-hosted same-origin assets with no network dependency",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "Existing design-token colors, spacing, radius, geometry, and theme (data-theme/data-mstyle) behavior must not regress; base.css antialiasing/text-rendering settings preserved",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Do NOT hand-edit the generated tokens.css (generated from design/tokens.json per docs/renderer/styles/index.md); the @font-face rules live in a separate hand-authored fonts.css and any --font-sans reorder is resolved at the token source in /plan",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Reuse the established fidelity-test precedent (Playwright CT computed-style + thresholded screenshot diff over a tokens.css fixture) and reconcile stale baselines by deleting then regenerating the PNGs",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "src/main",
+        "files": [
+          "src/main/index.ts:6"
+        ],
+        "impact": "see findings"
+      },
+      {
+        "area": "Font assets + @font-face stylesheet",
+        "files": [
+          "src/renderer/src/assets/fonts.css",
+          "src/renderer/src/assets/fonts/"
+        ],
+        "impact": "Create new \u2014 new hand-authored fonts.css with local @font-face rules (font-display: swap) for Inter 400/500/600/700 + JetBrains Mono 400/700, sourcing self-hosted woff2 (via @fontsource)"
+      },
+      {
+        "area": "Renderer entry import chain",
+        "files": [
+          "src/renderer/src/main.tsx"
+        ],
+        "impact": "Modify \u2014 import the new fonts.css before tokens.css so @font-face is registered; no logic change"
+      },
+      {
+        "area": "Sans font stack (token + starter cruft)",
+        "files": [
+          "src/renderer/styles/tokens.css",
+          "src/renderer/src/assets/base.css"
+        ],
+        "impact": "Modify \u2014 reorder --font-sans so Inter precedes -apple-system, and reconcile base.css hardcoded body font-family to use var(--font-sans); tokens.css must not be hand-edited (generated) so the token reorder is resolved in /plan (token source vs override)"
+      },
+      {
+        "area": "Build dependencies",
+        "files": [
+          "package.json"
+        ],
+        "impact": "Modify \u2014 add @fontsource/inter + @fontsource/jetbrains-mono as dependencies (self-hosted woff2, bundled by vite)"
+      },
+      {
+        "area": "Font-fidelity tests + baselines",
+        "files": [
+          "src/renderer/src/components/**/__tests__/",
+          "playwright.config.ts"
+        ],
+        "impact": "Create/extend \u2014 add a font-load verification (document.fonts / computed fontFamily) and regenerate affected CT screenshot baselines to reflect the real typefaces (delete stale PNGs then regenerate)"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Remote / Google Fonts loading (fonts.gstatic.com @font-face + preconnect) \u2014 explicitly rejected; fonts are self-hosted",
+        "finding_ref": "F-2026-07-09-design-fonts-inter-and-2"
+      },
+      {
+        "content": "Non-latin font subsets (Cyrillic, Greek, Vietnamese) \u2014 latin woff2 only",
+        "finding_ref": ""
+      },
+      {
+        "content": "Font weights beyond Inter 400/500/600/700 and JetBrains Mono 400/700; variable-font single-file approach",
+        "finding_ref": ""
+      },
+      {
+        "content": "Broader design-token pipeline / tokens.json regeneration work, and removing electron-vite starter cruft in base.css beyond reconciling the body font-family",
+        "finding_ref": "F-index-5"
+      },
+      {
+        "content": "Never importing design-export markup/cruft (data-om-*, __OmT, tweaks-panel) from reference.html; class-based styling only, no inline styles",
+        "finding_ref": "F-constitution-3"
+      }
+    ],
+    "open_questions": [
+      {
+        "question_id": "Q-1",
+        "content": "tokens.css is documented as generated from design/tokens.json, but tokens.json is not present in the repo. /plan must resolve where the --font-sans reorder lands: edit the (absent/external) token source, treat tokens.css as the de-facto source, or override --font-sans in the hand-authored fonts.css",
+        "category_no_dp_reason": ""
+      },
+      {
+        "question_id": "Q-2",
+        "content": "Should base.css's hardcoded body font-family (Inter-first starter cruft) be replaced with var(--font-sans) for design parity (design uses body font-family var(--font-sans)), or reordered in place? /plan decides the reconciliation",
+        "category_no_dp_reason": ""
+      },
+      {
+        "question_id": "Q-3",
+        "content": "design/reference.html's --font-sans is also -apple-system-first, so the reference renders San Francisco for sans on macOS. Reordering to Inter-first makes the app render Inter on macOS: matching design INTENT but diverging from what reference.html actually renders. Confirm the fidelity check asserts the intended typeface (Inter) not the reference mac-resolved face",
+        "category_no_dp_reason": ""
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Typeface change on mono surfaces is intended but alters rendering; FOUT/layout-shift risk mitigated by font-display: swap and metric-compatible fallbacks; existing CT screenshot baselines will likely need regeneration (sub-threshold diffs leave stale baselines)",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "tbd via /plan"
+      },
+      {
+        "risk": "Sans reorder makes the app render Inter on macOS while reference.html renders SF; a strict computed-style CT fidelity check vs the reference could flag a mismatch",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Assert the fidelity check against the intended typeface (Inter/JetBrains Mono) not reference.html's mac-resolved face; document the intent-over-reference decision"
+      },
+      {
+        "risk": "FOUT / layout shift from font swap alters existing CT screenshot baselines",
+        "likelihood": "High",
+        "impact": "Low",
+        "mitigation": "font-display: swap + metric-compatible fallbacks; delete then regenerate affected CT PNG baselines (sub-threshold diffs otherwise leave them stale)"
+      },
+      {
+        "risk": "A future tokens.css regeneration overwrites any @font-face or reorder placed directly in tokens.css",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Keep @font-face in the separate fonts.css; resolve the --font-sans reorder at the token source, never by hand-editing generated tokens.css"
+      },
+      {
+        "risk": "@fontsource adds woff2 binaries to the bundle",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Latin subset only, static weights (Inter 400/500/600/700 + JetBrains Mono 400/700)"
+      }
+    ],
+    "design_anchor": {
+      "kind": "",
+      "file": "",
+      "selectors": []
+    }
+  },
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/research/2026-07-09-design-fonts-inter-and/handoff.json",
+    "upstream_handoff_kind": "research",
+    "upstream_completed_at": "2026-07-09T15:13:43+00:00"
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}
