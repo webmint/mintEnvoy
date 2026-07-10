@@ -1,12 +1,12 @@
 # Bug 011: Design fonts Inter and JetBrains Mono never loaded
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning
 **Source**: manual
-**Feature**: N/A
+**Feature**: 016-load-design-fonts
 **AC**: N/A
 **Reported**: 2026-07-06
-**Fixed**: 
+**Fixed**: 2026-07-10
 
 ## Description
 
@@ -36,4 +36,4 @@ _None — standalone bug._
 
 ## Fix Notes
 
-_Filled in after resolution._
+Fixed by feature 016-load-design-fonts. Inter + JetBrains Mono are now self-hosted via @fontsource: a hand-authored src/renderer/src/assets/fonts.css declares @font-face for every weight (Inter 400/500/600/700, JetBrains Mono 400/600/700) with font-display:swap, referencing bundled woff2 by relative url() into node_modules/@fontsource so Vite emits them into the renderer bundle (same-origin, no CSP change — default-src 'self' permits them). main.tsx imports fonts.css before tokens.css; --font-sans leads with Inter. Verified: /review design-fidelity audit CLEAN — document.fonts loads all faces, body/titlebar/buttons compute Inter-first, .method computes JetBrains Mono 700. /verify APPROVED, 13/13 ACs PASS. A follow-on fix also added `button,input,select,textarea{font-family:inherit}` to base.css so form controls (which don't inherit body font per the UA stylesheet) render Inter instead of Arial.
