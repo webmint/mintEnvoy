@@ -86,6 +86,17 @@
 - **[Task 003 / 016-load-design-fonts]**: Reorder --font-sans + base.css body at token — completed. _(Task 003)_
 - **[Task 004 / 016-load-design-fonts]**: Document self-hosted fonts — completed. _(Task 004)_
 - **[Task 005 / 016-load-design-fonts]**: Font-load fidelity CT and regenerate baselines — completed. _(Task 005)_
+- **[Task 001 / 017-body-editor-shell]**: Migrate RequestSpec body to tagged record — completed. _(Task 001)_
+- **[Task 002 / 017-body-editor-shell]**: Re-export Body types from tabsStore — completed. _(Task 002)_
+- **[Task 003 / 017-body-editor-shell]**: JSON tokenizer lib + two-pass compose — completed. _(Task 003)_
+- **[Task 004 / 017-body-editor-shell]**: CT fidelity util — assertComputedStyle / assertResolvesToToken — completed. _(Task 004)_
+- **[Task 005 / 017-body-editor-shell]**: KVTable controlled-mode prop union — completed. _(Task 005)_
+- **[Task 007 / 017-body-editor-shell]**: RequestSubTabs body slot — completed. _(Task 007)_
+- **[Task 009 / 017-body-editor-shell]**: tokens.css --tk-* per-theme syntax tokens — completed. _(Task 009)_
+- **[Task 006 / 017-body-editor-shell]**: BodyEditor organism + CSS — completed. _(Task 006)_
+- **[Task 008 / 017-body-editor-shell]**: App composition — wire BodyEditor into the body slot — completed. _(Task 008)_
+- **[Task 010 / 017-body-editor-shell]**: BodyEditor CT — fidelity + behavior — completed. _(Task 010)_
+- **[Task 011 / 017-body-editor-shell]**: KVTable CT regression — field + controlled modes — completed. _(Task 011)_
 ## 2026-06-22 — /verify scope pollution (feature 001-ui-primitives)
 
 **Lesson**: /verify computed NEEDS WORK entirely from artifacts, not real defects. Causes: (1) `review.md` was stale — its 7 confirmed findings were already remediated by `/fix` before `/verify` ran (re-run `/review` after `/fix` to refresh); (2) the assembled-diff scope is `main..HEAD`, which here includes framework reformats (a repo-wide `prettier --write .`), `specs/`, `.devforge/`, and `docs/` housekeeping commits → 147 scope-creep + most leftover flags are NON-feature files; (3) the leftover-artifact detector flags ordinary `//` explanatory comments as `commented_code_block` (56 false positives in feature test files). Real feature signal was clean: 24/24 AC PASS, mechanical PASS, src/renderer hygiene clean.

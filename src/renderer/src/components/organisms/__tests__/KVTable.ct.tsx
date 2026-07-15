@@ -46,7 +46,9 @@ import {
   KVTableDisabledRowFixture,
   KVTableTwoFieldsFixture,
   KVTablePaddedTokenFixture,
-  KVTableValueCellFixture
+  KVTableValueCellFixture,
+  KVTableControlledFixture,
+  KVTableControlledVarFixture
 } from './KVTable.stories'
 
 // ---------------------------------------------------------------------------
@@ -251,15 +253,16 @@ test.describe('KVTable — delete and focus', () => {
 
     await expect(page.locator('.kv-row:not(.empty)')).toHaveCount(1)
 
-    // Hover to reveal the .kv-actions delete button, then force-click it
+    // Hover to reveal the .kv-actions delete button (reveal-on-hover), then click it
     const realRow = page.locator('.kv-row:not(.empty)').first()
+    await realRow.hover()
 
     // Assert delete control is a real <button> element (AC-14)
-    expect(await realRow.locator('[aria-label="Delete row"]').evaluate((el) => el.tagName)).toBe(
+    expect(await realRow.locator('[aria-label^="Delete row"]').evaluate((el) => el.tagName)).toBe(
       'BUTTON'
     )
 
-    await realRow.locator('[aria-label="Delete row"]').click({ force: true })
+    await realRow.locator('[aria-label^="Delete row"]').click()
 
     // Real row is gone
     await expect(page.locator('.kv-row:not(.empty)')).toHaveCount(0)
@@ -272,6 +275,33 @@ test.describe('KVTable — delete and focus', () => {
       () => document.querySelector('.kv')?.contains(document.activeElement) ?? false
     )
     expect(isInsideKV).toBe(true)
+  })
+
+  /**
+   * WCAG 2.1.1 — the delete button is display:none by default and revealed on
+   * hover; a fix added `.kv-row:focus-within .kv-actions{display:flex}` so it is
+   * ALSO revealed when keyboard focus lands on a row input, making it reachable
+   * without a pointer. This CT exercises the FOCUS path (not hover): focusing a
+   * cell input must make the row's delete button visible.
+   */
+  test('delete button is revealed on keyboard focus-within (no hover) — WCAG 2.1.1', async ({
+    mount,
+    page
+  }) => {
+    await mount(<KVTableOneRowParamsFixture />)
+    await page.waitForSelector('[data-testid="ct-kv-ready"]', { state: 'attached' })
+
+    const realRow = page.locator('.kv-row:not(.empty)').first()
+    const del = realRow.locator('[aria-label^="Delete row"]')
+
+    // Baseline: not hovered, not focused → delete button hidden.
+    await expect(del).toBeHidden()
+
+    // Focus a cell input via keyboard-equivalent .focus() — no hover.
+    await realRow.locator('input').first().focus()
+
+    // focus-within must now reveal the delete button.
+    await expect(del).toBeVisible()
   })
 
   /**
@@ -288,7 +318,8 @@ test.describe('KVTable — delete and focus', () => {
     await expect(page.locator('.kv-row:not(.empty)')).toHaveCount(3)
 
     const middleRow = page.locator('.kv-row:not(.empty)').nth(1)
-    await middleRow.locator('[aria-label="Delete row"]').click({ force: true })
+    await middleRow.hover() // reveal the .kv-actions delete button (reveal-on-hover)
+    await middleRow.locator('[aria-label^="Delete row"]').click()
 
     // Two real rows remain
     await expect(page.locator('.kv-row:not(.empty)')).toHaveCount(2)
@@ -388,7 +419,10 @@ test.describe('KVTable — tab traversal', () => {
   /**
    * Tab moves focus through the interactive cells of a real row in order:
    * checkbox → key → value → description → next row's checkbox.
-   * The delete button is display:none until hover, so Tab skips it.
+   * The delete <button> carries no tabindex, so Tab does not land on it — even
+   * though `.kv-row:focus-within .kv-actions` now reveals it (display:flex) while
+   * a row input is focused, it is revealed-but-not-tabbable, so the Tab order is
+   * unchanged.
    */
   test('should move focus checkbox → key → value → description → next row on Tab (AC-25)', async ({
     mount,
@@ -430,7 +464,8 @@ test.describe('KVTable — tab traversal', () => {
     expect(afterTab3.cellClass).not.toContain('value')
 
     // Tab → next row's checkbox (the virtual row's checkbox).
-    // The delete button is display:none until hover so Tab skips it.
+    // The delete <button> has no tabindex, so Tab skips it even though
+    // focus-within reveals it (display:flex) while a row input is focused.
     await page.keyboard.press('Tab')
     const afterTab4 = await page.evaluate(() => ({
       tag: document.activeElement?.tagName ?? '',
@@ -755,5 +790,69 @@ test.describe('KVTable — value cell highlight', () => {
     const valueVarSpan = page.locator('.kv-row:not(.empty) .kv-cell.value .kv-highlight .var')
     await expect(valueVarSpan).toHaveCount(1)
     await expect(valueVarSpan).toHaveText('{{v}}')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Controlled-mode regression (task 005 prop union / AC-11)
+//
+// Field-mode regression is the ENTIRE existing suite above — it runs unchanged
+// against the discriminated-prop KVTable, so its continued green is the proof
+// that the union extension did not regress the `field` arm. These cases add the
+// new controlled `{rows, onRowsChange}` arm.
+// ---------------------------------------------------------------------------
+
+test.describe('KVTable — controlled mode', () => {
+  /**
+   * A controlled-mode edit round-trips through `onRowsChange`: the callback
+   * updates the caller's local state, which flows back into `props.rows` and
+   * re-renders the cell — proving the rows are caller-owned (AC-11).
+   */
+  test('controlled edit round-trips through onRowsChange into props.rows', async ({ mount, page }) => {
+    await mount(<KVTableControlledFixture />)
+    await page.waitForSelector('[data-testid="ct-kv-ready"]', { state: 'attached' })
+
+    const valueInput = page.locator('.kv-row:not(.empty) .kv-cell.value .kv-input-wrap input').first()
+    await expect(valueInput).toHaveValue('secret') // seeded ROW_ENABLED value
+    await valueInput.fill('changed')
+    await expect(valueInput).toHaveValue('changed') // driven by props.rows after onRowsChange
+  })
+
+  /**
+   * AC-11 negative arm (carried from the task 005 review): a controlled-mode
+   * edit must NEVER write the tabsStore. `beforeEach` seeds the active tab's
+   * params to `[]`; the live read-out of the stored params length must stay `0`
+   * across a controlled edit that grows the LOCAL rows to two.
+   */
+  test('controlled edit never writes the store — updateActiveSpec untouched (AC-11)', async ({
+    mount,
+    page
+  }) => {
+    await mount(<KVTableControlledFixture />)
+    await page.waitForSelector('[data-testid="ct-kv-ready"]', { state: 'attached' })
+
+    const storedParams = page.getByTestId('ct-kv-store-params-count')
+    await expect(storedParams).toHaveText('0') // seeded empty
+
+    // Promote the virtual row via a controlled edit → local rows grow to 2.
+    const virtualKeyInput = page.locator('.kv-row.empty .kv-cell.key .kv-input-wrap input')
+    await virtualKeyInput.fill('newkey')
+    await expect(page.locator('.kv-row:not(.empty)')).toHaveCount(2)
+
+    // The store's params were NEVER written by the controlled edit.
+    await expect(storedParams).toHaveText('0')
+  })
+
+  /**
+   * The retained `validVars` `.missing` highlight gate still fires in controlled
+   * mode: `{{x}}` (in validVars) → `.var` only; `{{y}}` (absent) → `.var.missing`.
+   */
+  test('controlled mode retains the validVars .missing highlight gate', async ({ mount, page }) => {
+    await mount(<KVTableControlledVarFixture />)
+    await page.waitForSelector('[data-testid="ct-kv-ready"]', { state: 'attached' })
+
+    // Two key cells → two .var spans ({{x}} and {{y}}); exactly one is .missing ({{y}}).
+    await expect(page.locator('.kv-highlight .var')).toHaveCount(2)
+    await expect(page.locator('.kv-highlight .var.missing')).toHaveCount(1)
   })
 })

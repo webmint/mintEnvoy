@@ -1,0 +1,383 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/017-body-editor-shell/tasks",
+  "breakdown_completed_at": "2026-07-10T21:57:29Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/017-body-editor-shell/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/017-body-editor-shell/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/017-body-editor-shell/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "Migrate RequestSpec body to tagged record",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "002",
+        "006"
+      ],
+      "touched_files": [
+        "src/renderer/src/lib/requestSpec.ts",
+        "src/renderer/src/lib/__tests__/tabsStore.test.ts"
+      ],
+      "expects": [
+        "`RequestSpec.body` is currently the flat `{ lang: string; type: string; text: string }` in `requestSpec.ts` (near :82).",
+        "`makeBlankRequest` seeds `body: { lang: '', type: '', text: '' }` (near :131).",
+        "The existing `Row` interface is exported from `requestSpec.ts`.",
+        "`tabsStore.test.ts` contains a newBlank body-defaults assertion of the old shape (near :232)."
+      ],
+      "produces": [
+        "`requestSpec.ts` exports `BodyType`, `RawLang`, `RawBody`, `UrlencodedBody`, and `Body`.",
+        "`RequestSpec.body` is typed `Body`.",
+        "`makeBlankRequest` returns `body: { active: 'none', raw: { lang: 'json', text: '' }, urlencoded: { rows: [] } }`.",
+        "No `isRawBody` symbol exists.",
+        "`tabsStore.test.ts` asserts the tagged-record body seed and includes body/`body.raw`/`body.urlencoded`/`body.urlencoded.rows` reference-independence cases."
+      ],
+      "ac_addressed": [
+        "AC-4",
+        "AC-26"
+      ],
+      "doc_refs": [
+        "specs/017-body-editor-shell/data-model.md"
+      ],
+      "review_checkpoint": false
+    },
+    {
+      "number": "002",
+      "title": "Re-export Body types from tabsStore",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [
+        "006"
+      ],
+      "touched_files": [
+        "src/renderer/src/lib/tabsStore.ts"
+      ],
+      "expects": [
+        "`requestSpec.ts` exports `Body`, `RawBody`, `UrlencodedBody`, `BodyType`, `RawLang`, and `Row` (task 001).",
+        "`tabsStore.ts` currently imports `RequestSpec` from `@renderer/lib/requestSpec` but re-exports none of the body/Row types."
+      ],
+      "produces": [
+        "`tabsStore.ts` re-exports `Body`, `RawBody`, `UrlencodedBody`, `BodyType`, `RawLang`, and `Row`.",
+        "The store's write path (`updateActiveSpec`) signature is unchanged."
+      ],
+      "ac_addressed": [
+        "AC-13"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "003",
+      "title": "JSON tokenizer lib + two-pass compose",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "006"
+      ],
+      "touched_files": [
+        "src/renderer/src/lib/jsonTokens.ts",
+        "src/renderer/src/lib/__tests__/jsonTokens.test.ts"
+      ],
+      "expects": [
+        "`tokenizeVars(text)` returns `VarSegment[]` (plain/var) from `@renderer/lib/varTokens` (existing, unchanged)."
+      ],
+      "produces": [
+        "`src/renderer/src/lib/jsonTokens.ts` exports `compose` and its token-segment type(s).",
+        "`compose('', 'json', \u2026)` returns zero tokens; malformed JSON returns a single plain segment; both never throw.",
+        "The JSON structural pass runs only for `lang === 'json'`; the `{{var}}` pass runs for all langs.",
+        "A named perf-ceiling threshold constant (default 50000) gates the JSON pass.",
+        "`jsonTokens.test.ts` covers the tie-break, empty, malformed, non-JSON, and above-threshold cases."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-9",
+        "AC-10",
+        "AC-16",
+        "AC-17",
+        "AC-26",
+        "AC-27",
+        "AC-28"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "004",
+      "title": "CT fidelity util \u2014 assertComputedStyle / assertResolvesToToken (fail-closed)",
+      "agent": "qa-engineer",
+      "depends_on": [],
+      "blocks": [
+        "010"
+      ],
+      "touched_files": [
+        "src/renderer/src/test-utils/fidelityAssert.ts"
+      ],
+      "expects": [
+        "The Playwright experimental-ct-react harness is present (existing `*.ct.tsx` suites run).",
+        "`src/renderer/src/test-utils/` exists (holds `simulateDrag.ts`)."
+      ],
+      "produces": [
+        "`src/renderer/src/test-utils/fidelityAssert.ts` exports `assertComputedStyle` and `assertResolvesToToken`.",
+        "A setup-probe path marks the fidelity suite UNVERIFIED (skip) when the computed-style channel is empty/throws.",
+        "Each assertion intercepts `\"\"` from `getPropertyValue` as UNVERIFIED before any `expect`."
+      ],
+      "ac_addressed": [
+        "AC-2",
+        "AC-19"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "005",
+      "title": "KVTable controlled-mode prop union",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "008",
+        "011"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/KVTable.tsx"
+      ],
+      "expects": [
+        "KVTable currently takes `{ field: 'params' | 'headers'; validVars? }`, reads rows from the store selector over `tab.spec[field]`, and dispatches via the `writeRows` function.",
+        "`Row` is importable (existing type-only import)."
+      ],
+      "produces": [
+        "KVTable's props are the discriminated union `({field} | {rows, onRowsChange}) & { validVars? }`.",
+        "`writeRows` early-returns through `props.onRowsChange` in controlled mode; the store-read selector is reached only in field mode.",
+        "Field mode (`'params'`/`'headers'`) behavior is unchanged."
+      ],
+      "ac_addressed": [
+        "AC-11"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "006",
+      "title": "BodyEditor organism + CSS",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "002",
+        "003",
+        "009"
+      ],
+      "blocks": [
+        "008",
+        "010"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/BodyEditor.tsx",
+        "src/renderer/src/components/organisms/BodyEditor.css"
+      ],
+      "expects": [
+        "`Body`/`RawBody`/`UrlencodedBody`/`BodyType`/`RawLang`/`Row` are re-exported from `tabsStore` (task 002).",
+        "`compose(text, lang, validVars)` is exported from `jsonTokens` (task 003).",
+        "`--tk-key/--tk-str/--tk-num/--tk-bool` tokens exist in `tokens.css` (task 009).",
+        "`updateActiveSpec({ body })` accepts a `Partial<RequestSpec>` on `tabsStore`."
+      ],
+      "produces": [
+        "`BodyEditor.tsx` exports `BodyEditor` with the pinned `renderUrlencoded: (rows: readonly Row[], onRowsChange: (r: Row[]) => void) => ReactNode` prop.",
+        "The 6-option `role=radiogroup`/`role=radio`/`aria-checked` selector defaults to `none`; mode panels mount-all + `hidden`-toggle by `body.active`.",
+        "Body writes go through `updateActiveSpec({ body })`; radio + lang-pill early-return on an equal value.",
+        "The `<pre>` + gutter render from the live `body.raw.text`; only `compose()` coloring is debounced via `BODY_HIGHLIGHT_DEBOUNCE_MS`.",
+        "BodyEditor imports zero sibling organisms; the deferred placeholder is BodyEditor's own markup.",
+        "The built elements carry the `data-testid`s named in `design-manifest.json` (`body-code-editor`, `body-toolbar`, `body-radio`, `body-lang-pill`, `body-gutter`, `body-pre`).",
+        "`BodyEditor.css` binds `.tk-*`/code-editor/gutter/pre/toolbar/radio/lang-pill to tokens matching styles.css \u00a78."
+      ],
+      "ac_addressed": [
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-9",
+        "AC-10",
+        "AC-12",
+        "AC-14",
+        "AC-15",
+        "AC-16",
+        "AC-17",
+        "AC-18",
+        "AC-22",
+        "AC-23",
+        "AC-24",
+        "AC-25",
+        "AC-26",
+        "AC-27",
+        "AC-28",
+        "AC-29"
+      ],
+      "doc_refs": [
+        "specs/017-body-editor-shell/data-model.md",
+        "docs/architecture.md"
+      ],
+      "review_checkpoint": true
+    },
+    {
+      "number": "007",
+      "title": "RequestSubTabs body slot",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "008"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/RequestSubTabs.tsx"
+      ],
+      "expects": [
+        "`RequestSubTabs` accepts `params?`/`headers?` slot props and renders `params ?? emptyState` / `headers ?? emptyState`; the `body` key currently falls to `emptyState`.",
+        "The shared `emptyState` element and the mount-all `hidden`-toggle panel loop exist."
+      ],
+      "produces": [
+        "`RequestSubTabs` accepts `body?: ReactNode`.",
+        "The `body` panel renders `body ?? emptyState`.",
+        "The params/auth/headers/tests/code panels are unchanged."
+      ],
+      "ac_addressed": [
+        "AC-3"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "008",
+      "title": "App composition \u2014 wire BodyEditor into the body slot",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "005",
+        "006",
+        "007"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/App.tsx"
+      ],
+      "expects": [
+        "`BodyEditor` exports a `renderUrlencoded: (rows: readonly Row[], onRowsChange: (r: Row[]) => void) => ReactNode` prop (task 006).",
+        "`RequestSubTabs` accepts a `body?: ReactNode` slot (task 007).",
+        "`KVTable` accepts the controlled `{ rows, onRowsChange }` arm (task 005)."
+      ],
+      "produces": [
+        "`App.tsx` passes `body={<BodyEditor renderUrlencoded={(rows, onRowsChange) => <KVTable rows={rows} onRowsChange={onRowsChange} />} />}` to `RequestSubTabs`.",
+        "The existing `params`/`headers` field-mode wiring is unchanged."
+      ],
+      "ac_addressed": [
+        "AC-11",
+        "AC-13"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "009",
+      "title": "tokens.css --tk-* per-theme syntax tokens",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "006",
+        "010"
+      ],
+      "touched_files": [
+        "src/renderer/src/styles/tokens.css"
+      ],
+      "expects": [
+        "`tokens.css` has a `:root` light token block and a `[data-theme=\"dark\"]` token block."
+      ],
+      "produces": [
+        "`tokens.css` defines `--tk-key/--tk-str/--tk-num/--tk-bool` under `:root` with the light hex (#0369a1/#15803d/#b45309/#be185d).",
+        "`tokens.css` defines the same four tokens under `[data-theme=\"dark\"]` with the dark hex (#7dd3fc/#86efac/#fcd34d/#f0abfc).",
+        "No `.tk-*` class rule is added to tokens.css."
+      ],
+      "ac_addressed": [
+        "AC-20",
+        "AC-21",
+        "AC-25"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "010",
+      "title": "BodyEditor CT \u2014 fidelity + behavior",
+      "agent": "qa-engineer",
+      "depends_on": [
+        "004",
+        "006",
+        "009"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/organisms/__tests__/BodyEditor.stories.tsx",
+        "src/renderer/src/components/organisms/__tests__/BodyEditor.ct.tsx"
+      ],
+      "expects": [
+        "`assertComputedStyle`/`assertResolvesToToken` + the fail-closed probe are exported from `test-utils/fidelityAssert.ts` (task 004).",
+        "`BodyEditor` is mountable with a `renderUrlencoded` render-prop and carries the `data-testid`s from `design-manifest.json` (task 006).",
+        "`--tk-key/str/num/bool` tokens exist in tokens.css (task 009)."
+      ],
+      "produces": [
+        "`BodyEditor.stories.tsx` exports light + dark theme wrappers and the seeded body-state mounts.",
+        "`BodyEditor.ct.tsx` asserts the \u00a78 fidelity set (fail-closed) and the behavior set above."
+      ],
+      "ac_addressed": [
+        "AC-6",
+        "AC-7",
+        "AC-8",
+        "AC-9",
+        "AC-10",
+        "AC-14",
+        "AC-16",
+        "AC-17",
+        "AC-18",
+        "AC-19",
+        "AC-20",
+        "AC-21",
+        "AC-22",
+        "AC-23",
+        "AC-24"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "011",
+      "title": "KVTable CT regression \u2014 field + controlled modes",
+      "agent": "qa-engineer",
+      "depends_on": [
+        "005"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/organisms/__tests__/KVTable.stories.tsx",
+        "src/renderer/src/components/organisms/__tests__/KVTable.ct.tsx"
+      ],
+      "expects": [
+        "KVTable accepts the `({field} | {rows, onRowsChange}) & {validVars?}` prop union (task 005).",
+        "The existing `KVTable.ct.tsx` + `KVTable.stories.tsx` field-mode + `.missing` coverage is present."
+      ],
+      "produces": [
+        "`KVTable.stories.tsx` exports a controlled-mode fixture.",
+        "`KVTable.ct.tsx` covers controlled-mode edit round-trip + field-mode regression + `.missing` highlight retention."
+      ],
+      "ac_addressed": [
+        "AC-11"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    }
+  ],
+  "additions": [
+    "None. Two clarifications surfaced in Phase 1/Phase 2 (already inside the plan's decisions, not new files):",
+    "- The codebase CT convention pairs each `*.ct.tsx` with a co-located `*.stories.tsx` fixture (Playwright experimental-ct-react). Task 010 adds `BodyEditor.stories.tsx`; task 011 extends `KVTable.stories.tsx`. Both are covered by the plan's File Impact \"BodyEditor.ct.tsx (Create)\" / \"KVTable.ct.tsx (Create/Extend)\" rows.",
+    "- The shared CT fidelity util lands at `src/renderer/src/test-utils/fidelityAssert.ts` \u2014 the `test-utils/` directory already exists (holds `simulateDrag.ts`)."
+  ],
+  "dependency_graph": "001 (migrate body \u2192 tagged record) \u2500\u2500\u2192 002 (re-export body types) \u2500\u2500\u2192 006 (BodyEditor)\n003 (jsonTokens lib) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2192 006\n009 (--tk-* tokens) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2192 006\n                     \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2192 010\n\n006 (BodyEditor) \u2500\u2500\u2192 008 (App wire)\n007 (RequestSubTabs body slot) \u2500\u2500\u2192 008\n005 (KVTable controlled) \u2500\u2500\u2192 008\n005 \u2500\u2500\u2192 011 (KVTable CT regression)\n\n004 (CT fidelity util) \u2500\u2500\u2192 010 (BodyEditor CT)\n006 \u2500\u2500\u2192 010"
+}

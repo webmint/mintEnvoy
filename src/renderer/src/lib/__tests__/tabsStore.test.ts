@@ -20,7 +20,7 @@
  *   AC-16 — newBlank seeds activeSubTab to 'params'
  */
 import { tabsStore, VALID_KEYS } from '@renderer/lib/tabsStore'
-import type { SubTabKey } from '@renderer/lib/tabsStore'
+import type { SubTabKey, Body } from '@renderer/lib/tabsStore'
 import { makeBlankRequest, isBearerAuth } from '@renderer/lib/requestSpec'
 import { makeSpec, makeTab } from '@renderer/__tests__/fixtures/requestSpec'
 
@@ -229,7 +229,7 @@ describe('newBlank (AC-16)', () => {
     expect(spec.method).toBe('GET')
     expect(spec.url).toBe('')
     expect(spec.name).toBe('')
-    expect(spec.body).toEqual({ lang: '', type: '', text: '' })
+    expect(spec.body).toEqual({ active: 'none', raw: { lang: 'json', text: '' }, urlencoded: { rows: [] } })
     expect(spec.auth).toEqual({ type: 'bearer', token: '{{apiKey}}' })
     expect(spec.headers).toEqual([
       { enabled: true, key: 'Accept', value: 'application/json', description: '' }
@@ -583,6 +583,34 @@ describe('updateActiveSpec (AC-9, AC-10)', () => {
     const tab = tabs.find((t) => t.id === INITIAL_ID)!
     expect(tab.dirty).toBe(false)
   })
+
+  it('body union: patching with a discriminated-union Body value writes spec.body and sets dirty=true', () => {
+    // Start from a clean tab whose body defaults to { active: 'none', ... }
+    tabsStore.setState({
+      tabs: [makeTab(INITIAL_ID)],
+      activeTabId: INITIAL_ID
+    })
+
+    const rawBody: Body = {
+      active: 'raw',
+      raw: { lang: 'json', text: '{"x":1}' },
+      urlencoded: { rows: [] }
+    }
+
+    tabsStore.getState().updateActiveSpec({ body: rawBody })
+
+    const { tabs } = tabsStore.getState()
+    const tab = tabs.find((t) => t.id === INITIAL_ID)!
+
+    // The full body union value is written to spec.body (shallow-merge lands the
+    // `body` key on the spec; the union object replaces the prior { active:'none' }
+    // value rather than being shallow-merged further — verifying the task-001
+    // body-union migration's store contract).
+    expect(tab.spec.body).toEqual(rawBody)
+
+    // The body changed from { active:'none' } to { active:'raw' }, so dirty must flip.
+    expect(tab.dirty).toBe(true)
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -631,6 +659,30 @@ describe('makeBlankRequest — reference independence', () => {
     const a = makeBlankRequest()
     const b = makeBlankRequest()
     expect(a.auth).not.toBe(b.auth)
+  })
+
+  it('two calls return distinct body object references', () => {
+    const a = makeBlankRequest()
+    const b = makeBlankRequest()
+    expect(a.body).not.toBe(b.body)
+  })
+
+  it('two calls return distinct body.raw object references', () => {
+    const a = makeBlankRequest()
+    const b = makeBlankRequest()
+    expect(a.body.raw).not.toBe(b.body.raw)
+  })
+
+  it('two calls return distinct body.urlencoded object references', () => {
+    const a = makeBlankRequest()
+    const b = makeBlankRequest()
+    expect(a.body.urlencoded).not.toBe(b.body.urlencoded)
+  })
+
+  it('two calls return distinct body.urlencoded.rows array references', () => {
+    const a = makeBlankRequest()
+    const b = makeBlankRequest()
+    expect(a.body.urlencoded.rows).not.toBe(b.body.urlencoded.rows)
   })
 })
 

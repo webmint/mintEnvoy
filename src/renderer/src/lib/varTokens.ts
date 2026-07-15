@@ -33,6 +33,26 @@ export type VarSegment =
   | { kind: 'plain'; text: string }
   | { kind: 'var'; name: string; raw: string }
 
+/**
+ * Returns true when a `{{var}}` placeholder should be styled as "missing" —
+ * i.e. the env-var set is loaded (non-empty) AND the var name is unknown.
+ *
+ * When `validVars` is empty (pre-load state), all var tokens render as neutral
+ * `.var` highlights and none are flagged `.missing`. This prevents false
+ * "missing" noise before the env store is populated.
+ *
+ * Centralises the `size > 0 && !known` gate so BodyEditor and KVTable both
+ * derive the flag from a single source of truth (§3.6 DRY).
+ *
+ * @param known     - Whether the var name is present in `validVars`.
+ *                    For ComposeToken tk-var callers this is `token.known`;
+ *                    for VarSegment callers compute `validVars.has(seg.name)`.
+ * @param validVars - The current set of known variable names.
+ */
+export function isMissingVar(known: boolean, validVars: ReadonlySet<string>): boolean {
+  return validVars.size > 0 && !known
+}
+
 // ---------------------------------------------------------------------------
 // Tokeniser
 // ---------------------------------------------------------------------------

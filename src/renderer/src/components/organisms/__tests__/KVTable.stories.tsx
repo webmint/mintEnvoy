@@ -15,12 +15,16 @@
  *     dark-theme token overrides resolve and colour assertions are deterministic.
  */
 
-import '@renderer/styles/tokens.css'
-import { useEffect, useRef, type JSX } from 'react'
+// NOTE: do NOT `import '@renderer/styles/tokens.css'` here — the `@renderer`
+// alias resolves to `src/renderer/src`, so that path ENOENTs (the real file is
+// `src/renderer/styles/tokens.css`) and silently breaks the whole CT build
+// ("N did not run" under a misleading exit 0). The global `playwright/index.tsx`
+// already imports the correct tokens path for every CT page. (ct-tokens-import-alias-trap)
+import { useEffect, useRef, useState, type JSX } from 'react'
 import { tabsStore } from '@renderer/lib/tabsStore'
 import { makeTab } from '@renderer/__tests__/fixtures/requestSpec'
 import { KVTable } from '@renderer/components/organisms/KVTable'
-import type { Row } from '@renderer/lib/requestSpec'
+import type { Row } from '@renderer/lib/tabsStore'
 
 // ---------------------------------------------------------------------------
 // Seed data — module-level constants shared between fixtures (not exported so
@@ -488,6 +492,60 @@ export function KVTableTwoFieldsFixture(): JSX.Element {
         <KVTable field="headers" />
       </div>
       <span ref={ref} />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// KVTableControlledFixture (task 005 controlled arm)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fixture: renders KVTable in CONTROLLED mode — rows live in local component
+ * state, `onRowsChange` replaces them. An edit therefore round-trips through
+ * the callback (never the tabsStore).
+ *
+ * Also renders a live read-out of the ACTIVE tab's stored `params.length` so a
+ * test can assert the store is NEVER written during a controlled-mode edit —
+ * the AC-11 negative arm (carried from the task 005 review). `beforeEach` seeds
+ * `params: []`, so the read-out is `0` and must stay `0` across a controlled edit.
+ *
+ * data-testids:
+ *   ct-kv-ready              — always present (no async seed for local state)
+ *   ct-kv-store-params-count — the live stored params.length (starts at 0)
+ */
+export function KVTableControlledFixture(): JSX.Element {
+  const [rows, setRows] = useState<Row[]>([ROW_ENABLED])
+  const storeParamsCount = tabsStore(
+    (s) => s.tabs.find((t) => t.id === s.activeTabId)?.spec.params.length ?? -1
+  )
+  return (
+    <div data-theme="dark" style={WRAPPER_STYLE}>
+      <KVTable rows={rows} onRowsChange={setRows} />
+      <span data-testid="ct-kv-store-params-count">{storeParamsCount}</span>
+      <span data-testid="ct-kv-ready" />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// KVTableControlledVarFixture (controlled mode + .missing highlight retention)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fixture: controlled mode seeded with `{{x}}` (in validVars) and `{{y}}`
+ * (absent), `validVars={new Set(['x'])}`. Proves the retained `.missing` gate
+ * still fires in controlled mode: `{{x}}` → `.var` only; `{{y}}` → `.var.missing`.
+ *
+ * data-testids:
+ *   ct-kv-ready — always present
+ */
+export function KVTableControlledVarFixture(): JSX.Element {
+  const [rows, setRows] = useState<Row[]>([ROW_VAR_X, ROW_VAR_Y])
+  return (
+    <div data-theme="dark" style={WRAPPER_STYLE}>
+      <KVTable rows={rows} onRowsChange={setRows} validVars={new Set(['x'])} />
+      <span data-testid="ct-kv-ready" />
     </div>
   )
 }

@@ -61,7 +61,10 @@ import {
   RequestSubTabsTwoRequestTabsFixture,
   RequestSubTabsFidelityFixture,
   RequestSubTabsScrollLeakFixture,
-  RequestSubTabsWithKVTableFixture
+  RequestSubTabsWithKVTableFixture,
+  RequestSubTabsWithBodyFixture,
+  RequestSubTabsWithBodyRawFixture,
+  RequestSubTabsWithAllSlotsFixture
 } from './RequestSubTabs.stories'
 
 // ---------------------------------------------------------------------------
@@ -860,5 +863,254 @@ test.describe('RequestSubTabs — AC-9 focus+value survive switch with live KVTa
 
     // Value must survive: KVTable is store-controlled; the store still holds 'new-key'.
     await expect(keyInput).toHaveValue('new-key')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Finding 11 — body-slot + BodyEditor seam CT
+// ---------------------------------------------------------------------------
+
+test.describe('RequestSubTabs — body-slot + BodyEditor seam (Finding 11)', () => {
+  /**
+   * Verifies that when the Body sub-tab is active and the body slot receives a
+   * real BodyEditor component, the BodyEditor toolbar renders inside #panel-body.
+   *
+   * Previously the body panel always fell to emptyState because no CT exercised
+   * the RequestSubTabs body prop → BodyEditor composition path.
+   *
+   * Uses RequestSubTabsWithBodyFixture: one tab seeded with activeSubTab='body'
+   * so the Body panel is immediately visible; the body slot receives a live
+   * BodyEditor instance.
+   */
+  test('BodyEditor toolbar is present inside #panel-body when body slot is active', async ({
+    mount,
+    page
+  }) => {
+    await mount(<RequestSubTabsWithBodyFixture />)
+
+    // Wait for the store seed to complete (useEffect fires after render).
+    await page.waitForSelector('[data-testid="ct-rst-body-ready"]', { state: 'attached' })
+
+    // The Body panel must not be hidden.
+    await expect(page.locator('#panel-body')).not.toHaveAttribute('hidden')
+
+    // BodyEditor's toolbar must be present within the Body panel, not merely
+    // somewhere on the page — scoping the locator to #panel-body confirms the
+    // assembled seam (RequestSubTabs body slot → BodyEditor) is wired correctly.
+    const bodyToolbar = page.locator('#panel-body [data-testid="body-toolbar"]')
+    await expect(bodyToolbar).toBeAttached()
+  })
+
+  /**
+   * Finding 4 — non-body sub-tabs work correctly while the body slot holds a
+   * live BodyEditor.
+   *
+   * Switching away from Body to Params/Headers must:
+   *   - Hide #panel-body (hidden attribute present).
+   *   - Show the target panel (hidden attribute absent).
+   *   - Render the panel's fallback content (EmptyPanel "Panel not yet available")
+   *     when no slot prop is provided for that panel.
+   *
+   * Switching back to Body must restore #panel-body and the BodyEditor toolbar
+   * (mount-all — BodyEditor is never unmounted while its panel is hidden).
+   *
+   * Uses RequestSubTabsWithBodyFixture (body=BodyEditor, no params/headers props)
+   * so non-body panels fall through to the shared EmptyPanel placeholder.
+   */
+  test('switching away from Body to Params/Headers shows those panels; BodyEditor survives switch-back (Finding 4)', async ({
+    mount,
+    page
+  }) => {
+    await mount(<RequestSubTabsWithBodyFixture />)
+    await page.waitForSelector('[data-testid="ct-rst-body-ready"]', { state: 'attached' })
+
+    // Body is initially active.
+    await expect(page.locator('#panel-body')).not.toHaveAttribute('hidden')
+
+    // Switch to Params.
+    await page.getByRole('tab', { name: 'Params' }).click()
+    // #panel-params is now visible; #panel-body is hidden.
+    await expect(page.locator('#panel-params')).not.toHaveAttribute('hidden')
+    await expect(page.locator('#panel-body')).toHaveAttribute('hidden')
+    // No params slot prop in this fixture → EmptyPanel placeholder is shown.
+    await expect(page.locator('#panel-params')).toContainText('Panel not yet available')
+
+    // Switch to Headers.
+    await page.getByRole('tab', { name: 'Headers' }).click()
+    await expect(page.locator('#panel-headers')).not.toHaveAttribute('hidden')
+    await expect(page.locator('#panel-body')).toHaveAttribute('hidden')
+    // No headers slot prop in this fixture → EmptyPanel placeholder is shown.
+    await expect(page.locator('#panel-headers')).toContainText('Panel not yet available')
+
+    // Switch back to Body — BodyEditor must still be mounted (mount-all; no unmount).
+    await page.getByRole('tab', { name: 'Body' }).click()
+    await expect(page.locator('#panel-body')).not.toHaveAttribute('hidden')
+    await expect(page.locator('#panel-body [data-testid="body-toolbar"]')).toBeAttached()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Finding 2 — textarea focus-restoration across body sub-tab switch
+// ---------------------------------------------------------------------------
+
+test.describe('RequestSubTabs — body textarea focus survives sub-tab switch (Finding 2)', () => {
+  /**
+   * When the Body sub-tab is active and body.active = 'raw', the
+   * `<textarea aria-label="Request body">` is rendered and focusable.
+   * Switching away to Params and switching back must restore focus to the
+   * textarea via RequestSubTabs' lastFocusedInPanel / useLayoutEffect
+   * restoration — the same path tested for Params inputs in AC-9.
+   *
+   * Uses RequestSubTabsWithBodyRawFixture: body.active='raw', activeSubTab='body'.
+   */
+  test('textarea in Body panel regains focus after switch-to-Params and switch-back', async ({
+    mount,
+    page
+  }) => {
+    await mount(<RequestSubTabsWithBodyRawFixture />)
+    await page.waitForSelector('[data-testid="ct-rst-body-raw-ready"]', { state: 'attached' })
+
+    // Body panel is immediately visible (activeSubTab='body').
+    await expect(page.locator('#panel-body')).not.toHaveAttribute('hidden')
+
+    const textarea = page.getByLabel('Request body', { exact: true })
+    await expect(textarea).toBeVisible()
+
+    // Focus the textarea — fires onFocus on the Body panel div, recording it
+    // as the last focused element for the 'body' sub-tab in lastFocusedInPanel.
+    await textarea.click()
+    await expect(textarea).toBeFocused()
+
+    // Switch to Params: body panel gets hidden attribute, blurring the textarea.
+    await page.getByRole('tab', { name: 'Params' }).click()
+    await expect(page.locator('#panel-body')).toHaveAttribute('hidden')
+
+    // Switch back to Body: useLayoutEffect fires, finds the recorded textarea,
+    // and calls savedEl.focus() synchronously before the browser paints.
+    await page.getByRole('tab', { name: 'Body' }).click()
+    await expect(page.locator('#panel-body')).not.toHaveAttribute('hidden')
+
+    // The textarea must be focused again (same DOM node — no remount).
+    await expect(textarea).toBeFocused()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Finding 3 — body textarea content preserved across sub-tab switch (scroll seam)
+// ---------------------------------------------------------------------------
+
+test.describe('RequestSubTabs — body textarea content survives sub-tab switch (Finding 3)', () => {
+  /**
+   * The assembled body-panel + sub-tab-switch path. mount-all keeps the body
+   * panel always mounted (hidden attribute, not unmounted), so the textarea
+   * value is preserved across the hidden/shown toggle.
+   *
+   * Uses RequestSubTabsWithBodyRawFixture: seeds body.raw.text='body-raw-content'.
+   *
+   * NOTE: textarea internal scrollTop is NOT preserved across the display:none
+   * toggle by design — accepted/known behavior (the panel-level scroll capture
+   * in handleSubTabChange does not reach the textarea's internal scrollTop).
+   * Only content survival is asserted here; scrollTop preservation is out of scope.
+   */
+  test('textarea content is preserved after switch-to-Params and switch-back (mount-all keeps panel mounted)', async ({
+    mount,
+    page
+  }) => {
+    await mount(<RequestSubTabsWithBodyRawFixture />)
+    await page.waitForSelector('[data-testid="ct-rst-body-raw-ready"]', { state: 'attached' })
+
+    const textarea = page.getByLabel('Request body', { exact: true })
+    await expect(textarea).toBeVisible()
+
+    // Confirm the seeded raw text is present before switching.
+    await expect(textarea).toHaveValue('body-raw-content')
+
+    // Switch away to Params — body panel gets the hidden attribute.
+    await page.getByRole('tab', { name: 'Params' }).click()
+    await expect(page.locator('#panel-body')).toHaveAttribute('hidden')
+
+    // Switch back to Body — mount-all: panel was never unmounted, only unhidden.
+    await page.getByRole('tab', { name: 'Body' }).click()
+    await expect(page.locator('#panel-body')).not.toHaveAttribute('hidden')
+
+    // Content must be preserved — the store still holds the seeded text and the
+    // textarea DOM node was never remounted.
+    // (scrollTop is NOT asserted — see note above.)
+    await expect(textarea).toHaveValue('body-raw-content')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Finding 4 — concurrent-subscription topology (all three slots live)
+// ---------------------------------------------------------------------------
+
+test.describe('RequestSubTabs — concurrent-subscription topology (all slots live, Finding 4)', () => {
+  /**
+   * Asserts store-slice independence when all three slots (params KVTable,
+   * headers KVTable, body BodyEditor) are simultaneously mounted and
+   * subscribed to the same tabsStore — mirroring the real App.tsx composition
+   * root exactly.
+   *
+   * The critical invariant: a write to one slice must NOT bleed into another.
+   *   - handleTextChange → updateActiveSpec({ body: { ...body, raw: ... } })
+   *     must not alter spec.params or spec.headers.
+   *   - KVTable writeRows → updateActiveSpec({ params: [...] }) must not
+   *     alter body.raw.text.
+   *
+   * Fixture: RequestSubTabsWithAllSlotsFixture seeds one tab with:
+   *   params=[{key:'p-key'}], headers=[{key:'h-key'}],
+   *   body={active:'raw', raw.text:'initial-body-text'}, activeSubTab='body'.
+   */
+
+  test('typing in Body raw textarea does not mutate params rows', async ({ mount, page }) => {
+    await mount(<RequestSubTabsWithAllSlotsFixture />)
+    await page.waitForSelector('[data-testid="ct-rst-all-slots-ready"]', { state: 'attached' })
+
+    // Body panel is initially active (activeSubTab='body').
+    await expect(page.locator('#panel-body')).not.toHaveAttribute('hidden')
+
+    // Fill the raw textarea — fires handleTextChange →
+    // updateActiveSpec({ body: { ...body, raw: { ...body.raw, text: newText } } }).
+    // Only body.raw.text changes; spec.params must be untouched.
+    const textarea = page.getByLabel('Request body', { exact: true })
+    await expect(textarea).toBeVisible()
+    await textarea.fill('{"edited":"body"}')
+
+    // Switch to Params and assert the seeded row is unchanged.
+    await page.getByRole('tab', { name: 'Params' }).click()
+    await expect(page.locator('#panel-params')).not.toHaveAttribute('hidden')
+
+    // If the body write had mutated spec.params, the row would be gone or corrupt.
+    const paramsKeyInput = page.locator('.kv-row:not(.empty) .kv-cell.key input').first()
+    await expect(paramsKeyInput).toHaveValue('p-key')
+
+    // Headers share the same updateActiveSpec write path — assert the body write
+    // left the seeded headers row untouched too (qa Gap 4: seeded h-key was unused).
+    await page.getByRole('tab', { name: 'Headers' }).click()
+    await expect(page.locator('#panel-headers')).not.toHaveAttribute('hidden')
+    const headersKeyInput = page.locator('.kv-row:not(.empty) .kv-cell.key input').first()
+    await expect(headersKeyInput).toHaveValue('h-key')
+  })
+
+  test('editing a params row does not mutate body raw text', async ({ mount, page }) => {
+    await mount(<RequestSubTabsWithAllSlotsFixture />)
+    await page.waitForSelector('[data-testid="ct-rst-all-slots-ready"]', { state: 'attached' })
+
+    // Switch to Params.
+    await page.getByRole('tab', { name: 'Params' }).click()
+    await expect(page.locator('#panel-params')).not.toHaveAttribute('hidden')
+
+    // Edit the params key — fires KVTable writeRows →
+    // updateActiveSpec({ params: [...] }). Only spec.params changes.
+    const paramsKeyInput = page.locator('.kv-row:not(.empty) .kv-cell.key input').first()
+    await expect(paramsKeyInput).toBeVisible()
+    await paramsKeyInput.fill('edited-p-key')
+    await expect(paramsKeyInput).toHaveValue('edited-p-key')
+
+    // Switch back to Body and verify body.raw.text is unchanged.
+    await page.getByRole('tab', { name: 'Body' }).click()
+    await expect(page.locator('#panel-body')).not.toHaveAttribute('hidden')
+    const textarea = page.getByLabel('Request body', { exact: true })
+    await expect(textarea).toHaveValue('initial-body-text')
   })
 })

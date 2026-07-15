@@ -40,6 +40,44 @@ export interface Row {
   description: string
 }
 
+// ---------------------------------------------------------------------------
+// Body types
+// ---------------------------------------------------------------------------
+
+/** Discriminant for which body mode the selector shows. */
+export type BodyType = 'none' | 'raw' | 'urlencoded' | 'form-data' | 'binary' | 'graphql'
+
+/** Language hint for the raw body editor. */
+export type RawLang = 'json' | 'xml' | 'html' | 'text'
+
+/** Retained raw-mode draft; persists across mode switches (AC-14). */
+export interface RawBody {
+  lang: RawLang
+  text: string
+}
+
+/** Retained urlencoded-mode draft; persists across mode switches (AC-14). */
+export interface UrlencodedBody {
+  rows: Row[]
+}
+
+/**
+ * Request body. `active` is the discriminant (which mode the selector shows);
+ * `raw` and `urlencoded` are always-present retained sub-records so every
+ * entered mode's value survives a mode switch with the store as the single
+ * source of truth (AC-14). form-data / binary / graphql are payload-free
+ * values of `active` — their mode implementations are Out of Scope.
+ */
+export interface Body {
+  active: BodyType
+  raw: RawBody
+  urlencoded: UrlencodedBody
+}
+
+// ---------------------------------------------------------------------------
+// Auth types
+// ---------------------------------------------------------------------------
+
 /**
  * No-auth variant of the Auth discriminated union.
  * Signals that no authentication header should be derived.
@@ -78,8 +116,8 @@ export interface RequestSpec {
   params: Row[]
   /** Request headers. Auth is NOT mirrored here; no Authorization row is derived. */
   headers: Row[]
-  /** Request body descriptor. */
-  body: { lang: string; type: string; text: string }
+  /** Request body; `active` is the mode discriminant, `raw`/`urlencoded` are always present. */
+  body: Body
   /** Authentication config; narrowed via `isBearerAuth`. */
   auth: Auth
 }
@@ -104,11 +142,25 @@ export function isBearerAuth(auth: Auth): auth is BearerAuth {
 // ---------------------------------------------------------------------------
 
 /**
+ * Canonical blank Body seed. Single source of truth shared with BodyEditor's
+ * fallback (BLANK_BODY in BodyEditor.tsx imports this via tabsStore re-export).
+ * Values are primitives and empty arrays — safe to reference in read-only
+ * contexts; makeBlankRequest freshens BOTH nested sub-objects (a fresh `raw`
+ * and a fresh `urlencoded.rows`) so no blank tab aliases this singleton.
+ */
+export const BLANK_BODY: Body = {
+  active: 'none',
+  raw: { lang: 'json', text: '' },
+  urlencoded: { rows: [] }
+}
+
+/**
  * Creates a fresh blank RequestSpec with canonical seed defaults.
  *
  * A new object is constructed on every call — arrays and nested objects are
  * never shared between calls, so two blank tabs can never alias the same
- * headers or params arrays.
+ * headers or params arrays. `body` spreads BLANK_BODY and freshens BOTH nested
+ * sub-objects (`raw` and `urlencoded`) so no blank tab aliases BLANK_BODY.raw.
  *
  * Seed defaults:
  *   - method:  `'GET'`
@@ -116,7 +168,7 @@ export function isBearerAuth(auth: Auth): auth is BearerAuth {
  *   - name:    `''`
  *   - params:  `[]`
  *   - headers: `[{ enabled: true, key: 'Accept', value: 'application/json', description: '' }]`
- *   - body:    `{ lang: '', type: '', text: '' }`
+ *   - body:    `{ active: 'none', raw: { lang: 'json', text: '' }, urlencoded: { rows: [] } }`
  *   - auth:    `{ type: 'bearer', token: '{{apiKey}}' }` (literal string, not interpolated)
  *
  * @returns A new `RequestSpec` initialised with the canonical blank-tab defaults.
@@ -128,7 +180,7 @@ export function makeBlankRequest(): RequestSpec {
     name: '',
     params: [],
     headers: [{ enabled: true, key: 'Accept', value: 'application/json', description: '' }],
-    body: { lang: '', type: '', text: '' },
+    body: { ...BLANK_BODY, raw: { ...BLANK_BODY.raw }, urlencoded: { rows: [] } },
     auth: { type: 'bearer', token: '{{apiKey}}' }
   }
 }
