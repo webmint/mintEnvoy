@@ -13,11 +13,25 @@
 .kv-cell.key { color: var(--text); }
 .kv-cell.value { color: var(--text-muted); }
 .kv-cell .var { color: var(--accent); }
+/* Parallel to BodyEditor.css `.tk-var.missing` (canonical source there).
+ * Same tokens (--m-delete / line-through dotted) — change both together. */
 .kv-cell .var.missing { color: var(--m-delete); text-decoration: line-through dotted; }
 .kv-actions { display: none; justify-content: center; }
 .kv-row:hover .kv-actions { display: flex; }
+/* WCAG 2.1.1 — reveal delete button when keyboard focus lands anywhere in the
+ * row, so it is reachable without a pointer device (keyboard navigation). */
+.kv-row:focus-within .kv-actions { display: flex; }
 .kv-actions button { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 0; font-size: 12px; }
 .kv-row.empty .kv-cell input::placeholder { color: var(--text-faint); }
+
+/* ── WCAG 2.4.7 — focus rings for keyboard-accessible KVTable inputs ─────── */
+/* Description-column inputs (no overlay wrapper): standard focus ring. */
+.kv-cell input:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+/* Overlay inputs inside .kv-input-wrap (key + value columns): higher specificity
+   overrides the (0,2,1) rule above that sets outline: none on these elements. */
+.kv-cell .kv-input-wrap input:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+/* Delete button in the actions column. */
+.kv-actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ── Overlay structure for {{var}} token highlighting in key / value cells ── */
 

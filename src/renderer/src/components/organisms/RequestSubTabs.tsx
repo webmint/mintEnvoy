@@ -43,6 +43,7 @@ import { tabsStore, VALID_KEYS } from '@renderer/lib/tabsStore'
 import type { SubTabKey } from '@renderer/lib/tabsStore'
 import { Tabs } from '@renderer/components/molecules/Tabs'
 import type { TabDescriptor } from '@renderer/components/molecules/Tabs'
+import { EmptyPanel } from '@renderer/components/atoms/EmptyPanel'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -71,15 +72,19 @@ const SUB_TAB_LABELS: Record<SubTabKey, string> = {
  *
  * @param props.params   - Optional slot content for the Params tabpanel.
  * @param props.headers  - Optional slot content for the Headers tabpanel.
+ * @param props.body     - Optional slot content for the Body tabpanel.
  */
 export function RequestSubTabs({
   params,
-  headers
+  headers,
+  body
 }: {
   /** Optional slot content for the Params tabpanel. */
   params?: ReactNode
   /** Optional slot content for the Headers tabpanel. */
   headers?: ReactNode
+  /** Optional slot content for the Body tabpanel. */
+  body?: ReactNode
 }): JSX.Element {
   // Per-field store selectors — each subscribes independently (constitution §4).
   const activeTabId = tabsStore((s) => s.activeTabId)
@@ -237,8 +242,9 @@ export function RequestSubTabs({
     return <div className="request-sub-tabs request-sub-tabs--no-active" />
   }
 
-  // ONE shared muted empty-state for unbuilt panels and absent slot props (AC-12, D7).
-  const emptyState = <p className="request-sub-tabs__empty">Panel not yet available</p>
+  // ONE shared empty-state for unbuilt panels and absent slot props (AC-12, D7).
+  // EmptyPanel atom centralises the text + styling (§3.6 DRY, Finding 5).
+  const emptyState = <EmptyPanel />
 
   return (
     <div className="request-sub-tabs">
@@ -262,6 +268,8 @@ export function RequestSubTabs({
           content = params ?? emptyState
         } else if (key === 'headers') {
           content = headers ?? emptyState
+        } else if (key === 'body') {
+          content = body ?? emptyState
         } else {
           content = emptyState
         }
@@ -272,7 +280,6 @@ export function RequestSubTabs({
             role="tabpanel"
             id={`panel-${key}`}
             aria-labelledby={`tab-${key}`}
-            aria-selected={key === activeSubTab}
             hidden={key !== activeSubTab}
             className="request-sub-tabs__panel"
             ref={(el) => {

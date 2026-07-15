@@ -19,6 +19,8 @@
  */
 import { create } from 'zustand'
 import { RequestSpec, makeBlankRequest } from '@renderer/lib/requestSpec'
+export type { Body, RawBody, UrlencodedBody, BodyType, RawLang, Row } from '@renderer/lib/requestSpec'
+export { BLANK_BODY } from '@renderer/lib/requestSpec'
 
 // ---------------------------------------------------------------------------
 // Types

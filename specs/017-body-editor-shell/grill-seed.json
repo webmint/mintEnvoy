@@ -1,0 +1,16 @@
+{
+  "seed_version": "1",
+  "source": "grill",
+  "target_stage": "plan",
+  "feature": "specs/017-body-editor-shell",
+  "prior_conclusion": "Cycle-2 F3 fix: D2/D5/D6 debounce the ENTIRE <pre> snapshot — the <pre> renders compose(debouncedText,…) where debouncedText is a trailing-100ms snapshot of body.raw.text, and the gutter derives from that same snapshot. §3.1 (D3) claims the KVTable prop union {field} XOR {rows,onRowsChange} makes both-props 'unrepresentable'.",
+  "invalidating_evidence": "Cycle-3 re-grill (code-reviewer confirmed 2, dismissed 1): Finding 1 (Medium, system_design) — in the chosen transparent-textarea technique (plan Summary L35 'transparent textarea, CSS-Grid alignment, single scroll source'; styles.css:1115-1118 .code-editor pre) the <pre> is the SOLE visible text layer (textarea is color:transparent). Debouncing the whole snapshot freezes the visible TEXT during a typing burst — typed characters invisible until the user pauses (up to ~100ms). §7 c3 sanctions debouncing the expensive TOKENISE pass, not the plain-text render; the fix conflated the cheap text render with the expensive coloring. Finding 3 (Info, best_practice) — §3.1/D3 'both-props unrepresentable / XOR' overstated: a bare object-type union ({field} | {rows;onRowsChange}) & {validVars?} without ?:never companions permits the literal {field,rows,onRowsChange} under TS excess-property rules (non-functional — callers pass one shape, 'rows' in props narrows correctly). Dismissed: AC-23 transient (gutter+pre both derive from the same snapshot → counts match by construction per the spec's verbatim 'rendered line count').",
+  "must_satisfy": "1) Fix F3 correctly: the <pre> must render its plain TEXT from the LIVE body.raw.text (typed characters visible immediately, matching the live textarea), and ONLY the JSON/var coloring/tokenise pass (compose) is debounced/off-keystroke (D6's plain-degrade path is the fallback while coloring is pending). Re-word D2/D5/D6 + data-model highlight-scheduling; keep §7 c3b satisfied (expensive tokenise off the per-keystroke hot path) WITHOUT freezing visible text; keep AC-9/16/17/23 + single-SSOT (§5.2) intact. 2) Correct the §3.1/D3 claim: either add ?:never companions to make {field} XOR {rows,onRowsChange} genuinely mutually exclusive at the type level, OR soften the wording to state runtime narrowing ('rows' in props) — not the type system — enforces exclusivity (do NOT claim 'unrepresentable' for the bare union). FINAL DIRECTED REVISION — proceed to /breakdown after, no cycle-4 grill (bounded-loop cap reached, user-authorized).",
+  "cycle_count": 3,
+  "carried_findings": [
+    "F3-regression (Medium",
+    "MUST FIX): render <pre> plain text live",
+    "debounce ONLY the coloring/tokenise pass — do not debounce the visible text render (transparent-textarea technique); §3.1-XOR (Info): correct the overstated 'both-props unrepresentable' claim — add ?:never companions or soften to runtime-narrowing wording"
+  ],
+  "provenance": "specs/017-body-editor-shell/grill.md"
+}

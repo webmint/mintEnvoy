@@ -1,42 +1,92 @@
 import './KVTable.css'
-import { type JSX, type ClipboardEvent, useRef, useLayoutEffect } from 'react'
+import { type JSX, type ClipboardEvent, useId, useRef, useLayoutEffect } from 'react'
 import { tabsStore } from '@renderer/lib/tabsStore'
 import { cx } from '@renderer/lib/cx'
-import { tokenizeVars } from '@renderer/lib/varTokens'
+import { tokenizeVars, isMissingVar } from '@renderer/lib/varTokens'
 import type { VarSegment } from '@renderer/lib/varTokens'
 import { envVars } from '@renderer/lib/envVars'
-import type { Row } from '@renderer/lib/requestSpec'
+import type { Row } from '@renderer/lib/tabsStore'
 
 const EMPTY_ROWS: readonly Row[] = Object.freeze([])
+
+/**
+ * Stable module-level selector for the controlled arm of the storeRows
+ * subscription. Always returns EMPTY_ROWS (the same reference), so zustand
+ * never re-subscribes when the KVTable is in controlled mode — avoiding dead
+ * work on the hot path (every keystroke in raw body mode triggers a store
+ * write, which would otherwise invoke an inline closure unnecessarily).
+ */
+const EMPTY_ROWS_SELECTOR = (): readonly Row[] => EMPTY_ROWS
 
 type Column = 'key' | 'value' | 'description'
 
 /**
- * Editable key-value table bound to the active tab's `params` or `headers`
- * field in the tabsStore. Renders stored rows plus one virtual trailing empty
- * row for appending. Key and value cells highlight `{{var}}` tokens via an
- * aria-hidden overlay; description renders verbatim. Supports auto-promote,
- * delete-with-focus-recovery, and multi-line paste collapsing.
+ * Discriminated-prop union for KVTable.
  *
- * @param field     - Which RequestSpec field to bind: `'params'` or `'headers'`.
- * @param validVars - Known variable names; absent tokens are marked `.missing`
- *                    when the set is non-empty. Defaults to `envVars()` (empty
- *                    in v1 → all tokens neutral `.var`, none `.missing`).
+ * **Field arm** — store-bound: edits dispatch through `tabsStore.updateActiveSpec`.
+ *   `{ field: 'params' | 'headers'; validVars?: ReadonlySet<string> }`
+ *
+ * **Controlled arm** — caller-owned rows: edits call `onRowsChange` and never
+ *   touch the tabsStore. Used for x-www-form-urlencoded body mode.
+ *   `{ rows: readonly Row[]; onRowsChange: (r: Row[]) => void; validVars?: ReadonlySet<string> }`
+ *
+ * `validVars` — known variable names for the `.missing` highlight gate; applies
+ *   to both arms. Defaults to `envVars()` (empty in v1 → all tokens neutral
+ *   `.var`, none `.missing`).
  */
-export function KVTable({
-  field,
-  validVars = envVars()
-}: {
-  /** The RequestSpec field to bind: 'params' or 'headers'. */
-  field: 'params' | 'headers'
+type KVTableProps = (
+  | {
+      /** The RequestSpec field to bind: 'params' or 'headers'. */
+      field: 'params' | 'headers'
+    }
+  | {
+      /** Caller-owned rows (controlled mode — x-www-form-urlencoded body). */
+      rows: readonly Row[]
+      /** Called with the next full rows array on every edit. */
+      onRowsChange: (r: Row[]) => void
+    }
+) & {
   /** Known variable names for the .missing highlight gate. */
   validVars?: ReadonlySet<string>
-}): JSX.Element {
+}
+
+/**
+ * Editable key-value table. Accepts either a store-bound field arm
+ * (`field: 'params' | 'headers'`) or a controlled arm (`rows` + `onRowsChange`).
+ * Renders stored rows plus one virtual trailing empty row for appending.
+ * Key and value cells highlight `{{var}}` tokens via an aria-hidden overlay;
+ * description renders verbatim. Supports auto-promote, delete-with-focus-recovery,
+ * and multi-line paste collapsing.
+ */
+export function KVTable(props: KVTableProps): JSX.Element {
+  const isControlled = 'rows' in props
+  const validVars = props.validVars ?? envVars()
+
+  // Stable id prefix — prevents duplicate HTML ids when multiple KVTable
+  // instances coexist (e.g. params, headers, and urlencoded on the same page).
+  const kv_id = useId()
+
+  // Both tabsStore subscriptions are unconditional (Rules of Hooks).
   const updateActiveSpec = tabsStore((s) => s.updateActiveSpec)
-  const rows = tabsStore((s): readonly Row[] => {
-    const tab = s.tabs.find((t) => t.id === s.activeTabId)
-    return tab ? tab.spec[field] : EMPTY_ROWS
-  })
+  // In controlled mode use the stable module-level EMPTY_ROWS_SELECTOR so
+  // zustand avoids re-subscribing on every render (inline closures always
+  // produce a new reference, triggering a re-subscribe even though the result
+  // is reference-stable). Field mode still needs an inline closure to capture
+  // props.field; the dead-work optimisation only targets the controlled arm.
+  const storeRows = tabsStore(
+    isControlled
+      ? EMPTY_ROWS_SELECTOR
+      : (s): readonly Row[] => {
+          // Type guard mirrors the original: when props has no 'field', fall
+          // back to EMPTY_ROWS. Unreachable in practice (isControlled === false
+          // guarantees 'field' in props), but required for type narrowing.
+          if (!('field' in props)) return EMPTY_ROWS
+          const tab = s.tabs.find((t) => t.id === s.activeTabId)
+          return tab ? tab.spec[props.field] : EMPTY_ROWS
+        }
+  )
+  // Pick the live rows value after both hooks have run.
+  const rows = isControlled ? props.rows : storeRows
 
   /** Set before a state write that should move focus after the DOM commit. */
   const pendingFocus = useRef<{ rowIndex: number; column: Column } | null>(null)
@@ -71,9 +121,11 @@ export function KVTable({
       if (seg.kind === 'plain') {
         return <span key={i}>{seg.text}</span>
       }
-      const isMissing = validVars.size > 0 && !validVars.has(seg.name)
+      // isMissingVar: shared gate — true only when validVars is non-empty (env
+      // vars loaded) AND the name is absent from the set (§3.6 DRY, Finding 4).
+      const missing = isMissingVar(validVars.has(seg.name), validVars)
       return (
-        <span key={i} className={cx('var', isMissing && 'missing')}>
+        <span key={i} className={cx('var', missing && 'missing')}>
           {seg.raw}
         </span>
       )
@@ -95,9 +147,21 @@ export function KVTable({
     onChange(input.value.slice(0, start) + collapsed + input.value.slice(end))
   }
 
-  /** Dispatches a row update; avoids the computed-property type ambiguity. */
+  /**
+   * Dispatches a row update.
+   * - Controlled mode (`'rows' in props`): calls `onRowsChange` and returns
+   *   immediately — `updateActiveSpec` is NEVER invoked, so the tabsStore is
+   *   never written (AC-11 negative invariant). Downstream tests (tasks 008/011)
+   *   must assert this with a spy on `updateActiveSpec`, not just a positive
+   *   `onRowsChange` call.
+   * - Field mode: dispatches `params`/`headers` through `updateActiveSpec` (unchanged).
+   */
   function writeRows(nextRows: Row[]): void {
-    if (field === 'params') {
+    if ('rows' in props) {
+      props.onRowsChange(nextRows)
+      return
+    }
+    if (props.field === 'params') {
       updateActiveSpec({ params: nextRows })
     } else {
       updateActiveSpec({ headers: nextRows })
@@ -151,11 +215,14 @@ export function KVTable({
 
   return (
     <div className="kv">
+      {/* Column headers carry stable ids so inputs can reference them via
+          aria-describedby — lighter than role=grid/columnheader restructuring
+          and doesn't override the per-row aria-label (Finding 9). */}
       <div className="kv-header">
         <div />
-        <div>KEY</div>
-        <div>VALUE</div>
-        <div>DESCRIPTION</div>
+        <div id={`${kv_id}-col-key`}>KEY</div>
+        <div id={`${kv_id}-col-value`}>VALUE</div>
+        <div id={`${kv_id}-col-desc`}>DESCRIPTION</div>
         <div />
       </div>
 
@@ -188,6 +255,8 @@ export function KVTable({
                   ref={setInputRef(index, 'key')}
                   value={row.key}
                   placeholder="Key"
+                  aria-label={isVirtual ? 'Key for new row' : `Key for row ${index + 1}`}
+                  aria-describedby={`${kv_id}-col-key`}
                   onChange={(e) => {
                     if (isVirtual) {
                       handleVirtualKeyValue('key', e.target.value)
@@ -218,6 +287,8 @@ export function KVTable({
                   ref={setInputRef(index, 'value')}
                   value={row.value}
                   placeholder="Value"
+                  aria-label={isVirtual ? 'Value for new row' : `Value for row ${index + 1}`}
+                  aria-describedby={`${kv_id}-col-value`}
                   onChange={(e) => {
                     if (isVirtual) {
                       handleVirtualKeyValue('value', e.target.value)
@@ -244,6 +315,10 @@ export function KVTable({
                 ref={setInputRef(index, 'description')}
                 value={row.description}
                 placeholder="Description"
+                aria-label={
+                  isVirtual ? 'Description for new row' : `Description for row ${index + 1}`
+                }
+                aria-describedby={`${kv_id}-col-desc`}
                 readOnly={isVirtual}
                 onChange={(e) => {
                   if (!isVirtual) handleRealChange(index, 'description', e.target.value)
@@ -264,7 +339,7 @@ export function KVTable({
               {!isVirtual && (
                 <button
                   type="button"
-                  aria-label="Delete row"
+                  aria-label={`Delete row ${index + 1}`}
                   onClick={() => handleDelete(index, 'key')}
                 >
                   ✕

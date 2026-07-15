@@ -1,0 +1,11 @@
+{
+  "route": "app root (electron-vite dev) → Request pane → click the Body sub-tab; BodyEditor renders in the #panel-body tabpanel",
+  "pairs": [
+    { "anchor_selector": ".code-editor", "built_testid": "body-code-editor" },
+    { "anchor_selector": ".body-toolbar", "built_testid": "body-toolbar" },
+    { "anchor_selector": ".body-radio", "built_testid": "body-radio" },
+    { "anchor_selector": ".lang-pill", "built_testid": "body-lang-pill" },
+    { "anchor_selector": ".code-editor .gutter", "built_testid": "body-gutter" },
+    { "anchor_selector": ".code-editor pre", "built_testid": "body-pre" }
+  ]
+}

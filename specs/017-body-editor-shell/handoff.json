@@ -1,0 +1,518 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/017-body-editor-shell/spec.md",
+  "specify_completed_at": "2026-07-10T14:30:12Z",
+  "classification": {
+    "spec_number": "017",
+    "feature_name": "body-editor-shell",
+    "feature_slug": "body-editor-shell",
+    "spec_type": "greenfield_feature",
+    "spec_type_rationale": "Upstream is /discover (scope-locked greenfield); new BodyEditor organism + JSON syntax tokenizer lib with no existing body-editor/radio-group/lang-pill/code-editor code \u2014 fully design-specified by design/reference.html \u00a78",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "Add a request-body editor shell \u2014 the BodyEditor organism \u2014 to the request panel's Body sub-tab. A 6-option body-type radio selector (none, form-data, x-www-form-urlencoded, raw, binary, GraphQL) drives a mode switch with three live modes (none = empty region; raw = a JSON-default functional lang-pill toolbar over a hand-rolled textarea/<pre>/gutter code area with two-pass {{var}}+JSON highlighting; x-www-form-urlencoded = the existing KVTable). Body becomes a store-owned discriminated union on type in RequestSpec, and design/reference.html \u00a78 visual fidelity is mandatory.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The JSON syntax tokenizer shall exist as a renderer-pure module under src/renderer/src/lib.",
+        "verification_command": "ls src/renderer/src/lib | grep -Eiq 'token|syntax'",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The CT fidelity assertion helpers assertComputedStyle and assertResolvesToToken shall exist in the renderer test utilities.",
+        "verification_command": "grep -rlE 'assertComputedStyle|assertResolvesToToken' src/renderer/src",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE a sub-tab other than Body is active, the RequestSubTabs shell shall render that sub-tab's content unchanged.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The makeBlankRequest factory shall return a RequestSpec whose body is a valid discriminated-union value of type none.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The BodyEditor organism shall exist as a component file under src/renderer/src/components/organisms.",
+        "verification_command": "test -f src/renderer/src/components/organisms/BodyEditor.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user selects a body-type radio option, the BodyEditor shall switch the visible mode panel while keeping all mode panels mounted.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The body-type selector shall present six options \u2014 none, form-data, x-www-form-urlencoded, raw, binary, and GraphQL \u2014 and shall default to none.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE raw mode is active, the BodyEditor shall render a functional lang-pill that defaults to JSON and lets the user select XML, HTML, or Text above the code area.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the raw language is JSON, the code area shall apply a two-pass highlight of a variable pass rendered as var(--accent) and a JSON syntax pass, with the variable pass winning inside JSON strings.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the raw language is not JSON, the code area shall apply only the variable pass and no structural syntax highlighting.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-11",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE x-www-form-urlencoded mode is active, the BodyEditor shall mount the KVTable editor emitting Row arrays.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-12",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the body value changes, the BodyEditor shall write the discriminated-union body to the active tab RequestSpec via updateActiveSpec with a body patch.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-13",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The discriminated-union Body type shall reach the BodyEditor through a tabsStore re-export rather than a direct requestSpec import.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-14",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user switches the body-type away and back, the BodyEditor shall restore each mode's prior value from the RequestSpec.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-15",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the selected body type is form-data or binary or GraphQL, the BodyEditor shall render the shared neutral Panel not yet available placeholder.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-16",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the raw text is empty, the code area shall render an empty editor with zero highlight tokens and shall not throw.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-17",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF the raw JSON text is malformed, THEN the code area shall degrade to plain var(--text) text without throwing and without any error UI.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-18",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The body-type selector shall expose ARIA radiogroup semantics of role radiogroup, role radio, aria-checked, and arrow-key roving focus over the design div-and-dot visuals.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-19",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF the live-renderer computed-style channel is unavailable, THEN the section 8 fidelity acceptance criteria shall be reported UNVERIFIED and never PASS.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-20",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE data-theme is light and the live-renderer computed-style channel is available, the code area shall compute the tk-key color as #0369a1 and tk-str as #15803d and tk-num as #b45309 and tk-bool as #be185d.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-21",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE data-theme is dark and the live-renderer computed-style channel is available, the code area shall compute the tk-key color as #7dd3fc and tk-str as #86efac and tk-num as #fcd34d and tk-bool as #f0abfc.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-22",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The code area shall resolve the tk-null token to var(--text-faint) and tk-punc to var(--text-muted) and tk-var to var(--accent) in both themes.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-23",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the live-renderer computed-style channel is available, the BodyEditor shall keep the gutter row height equal to the computed line-height of the pre element and the gutter node count equal to the rendered line count and a single shared scrollTop.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-24",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The code area shall match design reference section 8 as a code-editor grid of 36px and 1fr with a gutter column and a pre column bound to the generated design tokens.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-25",
+        "subsection": "hooks_gates",
+        "ears_variant": "optional",
+        "statement": "WHERE the feature has a design/reference.html, the design-token provenance check and the runtime design-auditor gate shall apply to the BodyEditor.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-26",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The BodyEditor organism and the JSON syntax tokenizer and the Body discriminated union shall each carry documentation comments describing their contract.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-27",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The changed renderer files shall contain no debug logging calls or debugger statements.",
+        "verification_command": "test -z \"$(grep -rnE 'console\\.log|debugger' src/renderer/src/components/organisms/BodyEditor.tsx 2>/dev/null)\"",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-28",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The BodyEditor and JSON tokenizer shall pass type-check and lint before task completion.",
+        "verification_command": "npm run typecheck && eslint --cache src/renderer/src",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-29",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer body-editor code shall use class-based styling with no inline styles and shall import no Node or Electron APIs.",
+        "verification_command": "! grep -rnE 'style=\\{\\{|from .electron.|require\\(.electron.\\)' src/renderer/src/components/organisms/BodyEditor.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "ci_pipeline": "Renderer-only feature; no CI workflow, pipeline, or build-config changes."
+    },
+    "constraints": [
+      {
+        "kind": "nfr",
+        "content": "CONFIRMED \u2014 Fidelity (mandatory): semantic classes bound to tokens.css; .tk-key/str/num/bool assert LITERAL per-theme hex (:root + [data-theme=dark]); .tk-null/punc/var assert resolves-to-token; gutter<->line alignment (.gutter>div height calc(1.65em), one div/line). No cruft: no data-om-*, __OmT, inline-style, tweaks-panel residue. Layering: lib/ never imports components; Body union import type-only; validVars/highlight spans render-only, never persisted; no wire-format/Content-Type logic in editor (send-time). ADDED (reference silent on edit mechanism -> B4 underspecified-deviate): 1) Editable surface = real <textarea>, highlight <pre> aria-hidden presentation-only, NO contenteditable (native caret + SR; IME/composition safety; caret<->highlight alignment). 2) Three-layer alignment invariant (supersedes gutter<->line): textarea+pre+gutter share identical mono metrics + line-height 1.65 + padding + tab-size; single scroll source (pre+gutter track textarea scrollTop/Left). 3) Highlight perf ceiling (behavior not mechanism): above size/line threshold syntax pass SKIPPED -> pre degrades to plain var(--text); no full-body synchronous tokenise per keystroke (debounce/off-keystroke); bounded gutter node count; threshold = plan-level tunable w/ stated default, not a magic constant. 4) Max body = routing not hard cap: no artificial raw-text limit; large payloads via binary fileRef, never raw buffer. 5) XSS-safe render: tokens as escaped JSX children ONLY; never dangerouslySetInnerHTML/innerHTML of raw body text. 6) a11y on div controls (.body-radio, .lang-pill are divs) DEVIATE-from-underspecified (B1/B4): role=radiogroup/radio + aria-checked + arrow-key nav + visible focus ring; lang-pill = button semantics + aria.",
+        "quantifier": "see discovery report constraints dimension",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "nfr",
+        "content": "Out of scope: CONFIRMED out: form-data/binary/graphql mode implementations \u2014 deferred-mode placeholder slot only (mirrors functional_scope: none/raw/urlencoded live now). Send-time concerns \u2014 serialization, percent-encoding, Content-Type derivation, variable VALUE resolution: T10a/main not editor. Third-party editors \u2014 Monaco rejected; CodeMirror 6 documented future fallback, out. Editor niceties \u2014 multi-cursor, folding, autocomplete, bracket matching. .tk-var.missing strikethrough \u2014 default MATCH neutral .tk-var only; missing-state = opt-in DEVIATE, out. DECISION real syntax tokenizer for XML/HTML/Text = OUT (design-grounded: styles.css ships only JSON token vocab .tk-key/str/num/bool/null/punc; no .tk-tag/attr/comment class exists -> a real XML/HTML tokenizer invents classes the fidelity contract cannot check). JSON syntax tokenizer IN; XML/HTML/Text render plain (var(--text)). CARVE (NOT out): var pass .tk-var for {{var}} applies to ALL raw langs incl text/XML/HTML \u2014 {{var}} highlighting is language-agnostic (varTokens), not JSON-specific; non_goal is structure-aware coloring for non-JSON, not any highlighting. ADDITIONAL out: Response-body rendering (\u00a711 response pane = separate task, reuses same .tk-*/tokenizer lib but T7 = request-body only). Format/Beautify/prettify (no control in export; .body-toolbar .right holds lang-pill only). Gutter interactivity (presentational, line-numbers only; no click-to-select/breakpoint). JSON validation UI (no error markers/lint squiggles/invalid-JSON UI; malformed input degrades to plain, never throws).",
+        "quantifier": "non-goal boundary from scoping session",
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a72.2 Renderer Tier Organization (organisms flow downward only; no sibling-tier imports)",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a75.2 Domain Invariants (requestSpec stays a pure data module \u2014 never imported by components)",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a73.1 Type Safety (strict mode, no any, narrow don't cast)",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a72.1/\u00a72.3 Renderer purity (no Node/Electron; @renderer alias)",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "\u00a74 Prefer design tokens over literal style values",
+        "quantifier": null,
+        "constitution_ref": "constitution.md",
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "varTokens var pass",
+        "files": [
+          "src/renderer/src/lib/varTokens.ts"
+        ],
+        "impact": "reuse tokenizeVars for raw code-area {{var}} highlighting; language-agnostic; validVars-\u2205 selector applied by caller"
+      },
+      {
+        "area": "KVTable urlencoded",
+        "files": [
+          "src/renderer/src/components/organisms/KVTable.tsx"
+        ],
+        "impact": "mount for x-www-form-urlencoded mode; emits Row[]"
+      },
+      {
+        "area": "RequestSubTabs body slot",
+        "files": [
+          "src/renderer/src/components/organisms/RequestSubTabs.tsx"
+        ],
+        "impact": "host; add a body slot prop + wire the body key (currently falls to emptyState L241); BodyEditor mounts here; deferred-mode placeholder mirrors this empty-state"
+      },
+      {
+        "area": "tabsStore updateActiveSpec",
+        "files": [
+          "src/renderer/src/lib/tabsStore.ts"
+        ],
+        "impact": "body write path: updateActiveSpec({body}) shallow-merge; no direct requestSpec import from BodyEditor"
+      },
+      {
+        "area": "requestSpec Body union migration",
+        "files": [
+          "src/renderer/src/lib/requestSpec.ts"
+        ],
+        "impact": "migrate body flat {lang,type,text} (L82) -> discriminated union; update makeBlankRequest seed (L131); Row (L32) reused for urlencoded/form-data rows"
+      },
+      {
+        "area": "BodyEditor organism (new)",
+        "files": [
+          "src/renderer/src/components/organisms"
+        ],
+        "impact": "greenfield BodyEditor.tsx: body-type radio + mode switch + code-editor/gutter/pre + lang-pill; no existing BodyEditor/radio-group/lang-pill/code-editor found"
+      },
+      {
+        "area": "syntax tokenizer (new lib)",
+        "files": [
+          "src/renderer/src/lib"
+        ],
+        "impact": "greenfield JSON syntax tokenizer module (.tk-key/str/num/bool/null/punc); lib never imports components; no existing syntax tokenizer found"
+      },
+      {
+        "area": "internal:src/renderer/src/lib/varTokens.ts",
+        "files": [
+          "src/renderer/src/lib/varTokens.ts"
+        ],
+        "impact": "internal \u2014 existing {{variable}} tokeniser (var pass); pure, renderer-only, returns VarSegment[] plain/var; directly reusable for the raw code-area var pass"
+      },
+      {
+        "area": "internal:src/renderer/src/components/organisms/KVTable.tsx",
+        "files": [
+          "src/renderer/src/components/organisms/KVTable.tsx"
+        ],
+        "impact": "internal \u2014 existing key-value editor emitting Row[]; reuse verbatim for x-www-form-urlencoded mode"
+      },
+      {
+        "area": "internal:src/renderer/src/components/organisms/RequestSubTabs.tsx",
+        "files": [
+          "src/renderer/src/components/organisms/RequestSubTabs.tsx"
+        ],
+        "impact": "internal \u2014 host sub-tab shell; mount-all + hidden-toggle; shared 'Panel not yet available' empty-state (L241) \u2014 the pattern the deferred body-modes placeholder mirrors; BodyEditor mounts in the body slot"
+      },
+      {
+        "area": "internal:src/renderer/src/lib/tabsStore.ts",
+        "files": [
+          "src/renderer/src/lib/tabsStore.ts"
+        ],
+        "impact": "internal \u2014 store write seam (Partial<RequestSpec> shallow-merge + dirty + equality no-op); BodyEditor emits body via updateActiveSpec({body})"
+      },
+      {
+        "area": "internal:src/renderer/src/lib/requestSpec.ts",
+        "files": [
+          "src/renderer/src/lib/requestSpec.ts"
+        ],
+        "impact": "internal \u2014 Body type home; CURRENTLY FLAT {lang,type,text} (L82), NOT a union; Row type (L32) is the actual KV row shape (user called it KVRow). Union migration lands here"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Send-time concerns \u2014 body serialization, percent-encoding, Content-Type derivation, and variable VALUE resolution \u2014 are owned by the send path, not the editor.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Structure-aware syntax highlighting for XML, HTML, and Text; only JSON receives structural highlighting while all raw languages receive the {{var}} pass.",
+        "finding_ref": "F-2026-07-10-request-body-editor-shell-with-a-body-type-selector-plus-8"
+      },
+      {
+        "content": "Third-party code editors (Monaco / CodeMirror 6); the editor is hand-rolled to keep the design-anchor computed-style diff valid. CodeMirror 6 is a documented future fallback only.",
+        "finding_ref": "F-2026-07-10-request-body-editor-shell-with-a-body-type-selector-plus-7"
+      },
+      {
+        "content": "Editor niceties \u2014 multi-cursor, folding, autocomplete, bracket matching, format/beautify, and JSON validation/lint UI.",
+        "finding_ref": ""
+      },
+      {
+        "content": "form-data, binary, and GraphQL mode implementations \u2014 placeholder slot only in this feature.",
+        "finding_ref": ""
+      },
+      {
+        "content": "Response-body rendering; a separate task that will reuse the same tokenizer lib and .tk-* vocabulary.",
+        "finding_ref": ""
+      }
+    ],
+    "open_questions": [
+      {
+        "question_id": "hq-1",
+        "content": "user-supplied mechanism/placement guesses (confirm via Phase 2 fit-check): reuse existing key-value editor component + its tokenise/validVars-\u2205-selector seam; emit body via store to active-tab RequestSpec (no direct requestSpec import); neutral 'not yet available' placeholder mirrors existing sub-tab empty-slot pattern  [blocking]",
+        "category_no_dp_reason": ""
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Spike the three-layer alignment (textarea/<pre>/gutter) + scroll-sync in BOTH themes before building any mode \u2014 proves the hardest fidelity invariant early",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Prototype the CT assertComputedStyle / assertResolvesToToken helper against the .tk-* hex table + live-renderer channel; this is the OPEN dev-lane dependency behind the anti-false-green gate",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Do the flat->union body migration first and let the type-checker enumerate every narrowing site \u2014 confirms the zero-consumer / Low-blast-radius assumption empirically",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "Write a {{var}}-inside-JSON-string fixture and pin the var-pass-wins tie-break before wiring the two-pass tokenizer",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "address before implementation; see derisk plan"
+      },
+      {
+        "risk": "add body slot prop to RequestSubTabs",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      },
+      {
+        "risk": "change RequestSpec.body to union",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      },
+      {
+        "risk": "update makeBlankRequest seed to {type:none}",
+        "likelihood": "High",
+        "impact": "High",
+        "mitigation": "must resolve before implementation"
+      }
+    ],
+    "design_anchor": {
+      "kind": "",
+      "file": "",
+      "selectors": []
+    }
+  },
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/discover/2026-07-10-request-body-editor-shell-with-a-body-type-selector-plus.handoff.json",
+    "upstream_handoff_kind": "discover",
+    "upstream_completed_at": "2026-07-10T11:40:45+00:00"
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}
