@@ -1,0 +1,25 @@
+{
+  "kind": "html",
+  "file": "design/reference.html",
+  "selectors": [
+    ".body-toolbar",
+    ".body-toolbar .right",
+    ".body-radio",
+    ".body-radio:hover",
+    ".body-radio.active .dot",
+    ".dot",
+    ".code-editor",
+    ".code-editor .gutter",
+    ".code-editor .gutter > div",
+    ".code-editor pre",
+    ".lang-pill",
+    ".tk-key",
+    ".tk-str",
+    ".tk-num",
+    ".tk-bool",
+    ".tk-null",
+    ".tk-punc",
+    ".tk-var"
+  ],
+  "source_hash": "eaea752e139a430ade5677df3539f05d3a46a86894549cf02813e37765fe4199"
+}

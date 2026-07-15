@@ -58,6 +58,12 @@
   --status-4xx: #f59e0b;
   --status-5xx: #ef4444;
 
+  /* syntax highlight (017 — §4 fidelity-pinned literal hex, per-theme) */
+  --tk-key: #0369a1;
+  --tk-str: #15803d;
+  --tk-num: #b45309;
+  --tk-bool: #be185d;
+
   /* fonts (016). Inter + JetBrains Mono are self-hosted (fonts.css). Stacks match
      design/styles.css verbatim: 'Inter' is the PRIMARY sans face (loaded, so it
      renders on every platform including macOS). */
@@ -87,7 +93,10 @@
 
   --text: #f4f4f5;
   --text-muted: #a1a1aa;
-  --text-faint: #787881;
+  /* Nudged from #787881 (4.47:1 on --bg #0c0c0d) to #7a7a84 (~4.59:1) to
+     clear WCAG AA 4.5:1 for small text — gutter (11.5px), kv-header (10.5px).
+     Light theme (#6e6e77 at 4.92:1) is unaffected. */
+  --text-faint: #7a7a84;
   --text-inverse: #0c0c0d;
 
   --scrim: color-mix(in oklab, #000 64%, transparent);
@@ -103,6 +112,12 @@
   --m-delete: #f87171;
   --m-options: #94a3b8;
   --m-head: #f472b6;
+
+  /* syntax highlight (017 — §4 fidelity-pinned literal hex, per-theme) */
+  --tk-key: #7dd3fc;
+  --tk-str: #86efac;
+  --tk-num: #fcd34d;
+  --tk-bool: #f0abfc;
 }
 
 .method {

@@ -1,0 +1,294 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/017-body-editor-shell/plan.md",
+  "plan_completed_at": "2026-07-10T20:22:36Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/017-body-editor-shell/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/017-body-editor-shell/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "lib",
+        "what": "Body flat\u2192**tagged record** `{active, raw, urlencoded}` (always-present retained sub-records) + seed `{active:'none', raw:{lang:'json',text:''}, urlencoded:{rows:[]}}`; **no `isRawBody`** (sub-records always present, no narrowing)",
+        "files": "src/renderer/src/lib/requestSpec.ts"
+      },
+      {
+        "layer": "lib",
+        "what": "Re-export `Body`, `RawBody`, `UrlencodedBody`, `BodyType`, `RawLang`, and `Row`; body write path stays `updateActiveSpec({ body })`, no signature change",
+        "files": "src/renderer/src/lib/tabsStore.ts"
+      },
+      {
+        "layer": "lib",
+        "what": "New renderer-pure JSON-only tokenizer (`tk-key/str/num/bool/null/punc`) + pure two-pass compose helper (var-pass-wins)",
+        "files": "src/renderer/src/lib/jsonTokens.ts (new)"
+      },
+      {
+        "layer": "lib",
+        "what": "Reuse `tokenizeVars` for the language-agnostic `{{var}}` pass \u2014 no change",
+        "files": "src/renderer/src/lib/varTokens.ts"
+      },
+      {
+        "layer": "organisms",
+        "what": "New BodyEditor: ARIA radiogroup (div+dot) + mount-all mode switch + lang-pill + three-layer textarea/pre/gutter code area; reads `body.active`/`body.raw`/`body.urlencoded`; re-select early-return on radio (`active`) AND lang-pill (`raw.lang`); `<pre>` text + gutter render from LIVE `body.raw.text`; only the `compose()` coloring is debounced (F3 cycle-3)",
+        "files": "src/renderer/src/components/organisms/BodyEditor.tsx (new) + BodyEditor.css (new)"
+      },
+      {
+        "layer": "organisms",
+        "what": "Prop union `({field} \\",
+        "files": "{rows,onRowsChange}) & { validVars? }` \u2014 `{field}` vs `{rows,onRowsChange}` (runtime-narrowed via `'rows' in props`, not type-level XOR \u2014 see \u00a73.1) intersected with the shared optional `validVars?` (retained, F4); `writeRows` `onRowsChange` early-return; guarded store-read selector; field-mode preserved via CT regression (NOT \"untouched\")"
+      },
+      {
+        "layer": "organisms",
+        "what": "Add `body?` slot prop; wire the `body` panel key (currently falls to `emptyState`); deferred-mode placeholder reuses the same empty-state element",
+        "files": "src/renderer/src/components/organisms/RequestSubTabs.tsx"
+      },
+      {
+        "layer": "composition root",
+        "what": "Pass `body={<BodyEditor renderUrlencoded={(rows,onChange)=><KVTable rows={rows} onRowsChange={onChange}/>} />}` into RequestSubTabs (\u00a72.2)",
+        "files": "src/renderer/src/App.tsx"
+      },
+      {
+        "layer": "styles",
+        "what": "`--tk-key/str/num/bool` per-theme tokens = design literal hex; `.tk-*` bind via `var()`; `.tk-null/punc/var` \u2192 `var(--text-faint/--text-muted/--accent)`; body-toolbar/body-radio/dot/lang-pill/code-editor (grid 36px 1fr)/gutter/pre bound to tokens",
+        "files": "src/renderer/src/styles/tokens.css + BodyEditor.css (new)"
+      },
+      {
+        "layer": "tests",
+        "what": "CT fidelity utils `assertComputedStyle`/`assertResolvesToToken` + live-renderer channel (fail-closed UNVERIFIED); BodyEditor.ct.tsx; KVTable.ct.tsx regression (params/headers/controlled + validVars `.missing`); jsonTokens two-pass unit tests; **`tabsStore.test.ts` migration reseed** (`:232` old-shape assert \u2192 tagged-record seed) + body sub-record reference-independence (F1)",
+        "files": "src/renderer/src/components/organisms/__tests__/ + lib/__tests__/ + shared CT util module"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "**D1** Body model",
+        "chosen_approach": "Tagged record `Body = { active: BodyType; raw: RawBody; urlencoded: UrlencodedBody }`; `BodyType='none'\\",
+        "why": "'raw'\\",
+        "alternatives_rejected": "'urlencoded'\\"
+      },
+      {
+        "decision": "**D2** Store-owned round-trip",
+        "chosen_approach": "Body lives only in `tab.spec.body`; BodyEditor reads via a `tabsStore` selector, writes an immutable full-`Body` patch via `updateActiveSpec({ body })` for raw-text/lang/rows/active edits (mode switch mutates only `active`, carrying both sub-records forward). 6 panels mount-all + `hidden`-toggle. **Re-select early-return** on both the radio (`next === body.active`) and the lang-pill (`next === body.raw.lang`). The store-controlled textarea's `value = body.raw.text` (per-keystroke write \u2192 AC-14 + single SSOT); the `<pre>` overlay + gutter render their TEXT from the LIVE `body.raw.text` (immediate \u2014 the `<pre>` is the sole visible text layer), and ONLY the `compose()` coloring pass is debounced (applied when its snapshot === the live text; plain `var(--text)` while pending), so the expensive tokenise runs on the trailing edge, never synchronously per keystroke (\u00a77 c3b) \u2014 without the visible text lagging",
+        "why": "The STORE (retained `raw`+`urlencoded` sub-records) preserves VALUES \u2192 AC-14; mount-all/`hidden` preserves only DOM-local scroll/caret + satisfies AC-6, NOT values. Store-controlled textarea reading `body.raw.text` keeps the `<pre>` overlay fresh (AC-9, coloring converges within one debounce interval) while surviving switches (AC-14) \u2014 dissolves F-001's both-horns objection with no local draft (\u00a75.2). Re-select early-return needed because the store no-op guard is reference-based (tabsStore.ts:344); debouncing ONLY the coloring pass (not the text render) needed because a store-controlled textarea would otherwise re-tokenise the full body per keystroke (F3, \u00a77 c3b), yet debouncing the whole snapshot would freeze the sole visible text layer (F3 cycle-3 regression)",
+        "alternatives_rejected": "\"mount-all preserves per-mode value\" (F-001: false \u2014 DOM-local only); local component draft state per mode (dual source of truth, \u00a75.2); relying on the store no-op guard to absorb re-selects (F2: reference equality misses fresh-equal objects); render-time `compose(body.raw.text)` on the live store value (F3: bounded-but-still-synchronous full-body tokenise per sub-threshold keystroke, violates \u00a77 c3b); debouncing the ENTIRE `<pre>` snapshot including its text (F3 cycle-3: freezes the sole visible text layer during a burst \u2014 typed chars invisible up to one interval)"
+      },
+      {
+        "decision": "**D3** urlencoded reuses KVTable (the crux)",
+        "chosen_approach": "KVTable props become `({field:'params'\\",
+        "why": "'headers'} \\",
+        "alternatives_rejected": "{rows:readonly Row[]; onRowsChange:(r:Row[])=>void}) & { validVars?: ReadonlySet<string> }` \u2014 a **prop union** `{field}` vs `{rows,onRowsChange}` (runtime-narrowed via `'rows' in props`, not type-level XOR \u2014 see \u00a73.1) **intersected with the retained shared optional `validVars?`** (F4, KVTable.tsx:26-34, gates the `.missing` highlight at renderSegments L74); add an `onRowsChange` **early-return in `writeRows`** before the `field==='params'` branch (`if ('rows' in props){props.onRowsChange(nextRows);return}`), and **guard the store-read selector** so `tab.spec[field]` is indexed only in field mode; BodyEditor injects the controlled KVTable via the `renderUrlencoded` render-prop at App root"
+      },
+      {
+        "decision": "**D4** Body type reaches BodyEditor",
+        "chosen_approach": "`tabsStore` re-exports `Body`, `RawBody`, `UrlencodedBody`, `BodyType`, `RawLang`, `Row`; BodyEditor imports all body/Row types from `@renderer/lib/tabsStore`, never requestSpec. **`isRawBody` no longer exported** (removed in D1)",
+        "why": "AC-13 + \u00a75.2 (requestSpec component-invisible); pre-existing type-only `Row` import in KVTable left unchanged (out of scope; type-only erases at compile)",
+        "alternatives_rejected": "direct requestSpec import in BodyEditor: violates AC-13/\u00a75.2; refactoring KVTable's Row import this feature: out of scope"
+      },
+      {
+        "decision": "**D5** BodyEditor composition",
+        "chosen_approach": "Radio = `role=radiogroup` container + `role=radio`/`aria-checked`/roving arrow-key focus over the design `div+.dot`; on select, write `body.active` only (early-return when `next === body.active`); lang-pill = button semantics + aria, writes `body.raw.lang` only when `next !== body.raw.lang` (early-return otherwise, mirrors the radio guard \u2014 F2); 6 panels mount-all + `hidden`-toggle; urlencoded panel renders the `renderUrlencoded` render-prop slot bound to `body.urlencoded.rows`; code area = real `<textarea>` bound to `body.raw.text` (editable, native caret/IME, per-keystroke store write) + aria-hidden `<pre>` whose TEXT renders from the LIVE `body.raw.text` every keystroke (immediate, plain, no tokenise) and whose COLORING is `compose(snapshot, lang, validVars)` applied only when `snapshot === body.raw.text` (typing paused); while `snapshot` is stale the `<pre>` shows live text as plain `var(--text)` segments (D6 plain-degrade). `snapshot` = trailing-debounced (`BODY_HIGHLIGHT_DEBOUNCE_MS`, default 100ms \u2014 applies ONLY to the coloring pass, F3 cycle-3). `.gutter` node count derives from the LIVE `body.raw.text` (\u21d2 gutter == pre rendered-line-count by construction, AC-23); no `contenteditable`/`innerHTML`; single scroll source = textarea, `<pre>`+gutter track `scrollTop/Left`; identical mono metrics + line-height 1.65 + padding + tab-size (three-layer alignment invariant)",
+        "why": "Meets AC-5/6/8/18/23/24 + \u00a77 constraints 1/2/3/5/6; reuses the proven mount-all/hidden pattern; textarea-not-contenteditable is the \u00a77-mandated safe editable surface; store-controlled textarea + retained `body.raw` survives mode switches (AC-14); rendering the `<pre>` text + gutter from the LIVE `body.raw.text` keeps typed chars + line counts immediate (the `<pre>` is the sole visible text layer), while debouncing ONLY the `compose()` coloring keeps the expensive tokenise off the keystroke hot path (\u00a77 c3b); colored spans swap in on the trailing edge with no layout shift (same text, same metrics, color-only) \u2014 AC-9 converges within one interval; gutter derived from the live text \u21d2 counts match by construction (AC-23)",
+        "alternatives_rejected": "third-party editor: \u00a76 OOS, breaks fidelity diff; contenteditable: caret/IME/XSS hazard (\u00a77); uncontrolled/ref-driven textarea to decouple the overlay (F3 Option b: introduces a second source of truth \u2014 DOM value vs store \u2014 contradicting D2/\u00a75.2 single-SSOT); debouncing the visible text render itself (F3 cycle-3: freezes the sole visible text layer); `useDeferredValue` (no stated interval, behavior varies with render pressure, harder to assert/tune)"
+      },
+      {
+        "decision": "**D6** JSON tokenizer lib",
+        "chosen_approach": "`jsonTokens.ts`: renderer-pure, JSON-only vocab, typed token segments; a pure `compose(text, lang, validVars)` overlays `tokenizeVars` on JSON tokens \u2014 `{{var}}` substrings lift to `.tk-var`, **var-pass-wins** inside strings; var pass applies to ALL raw langs, JSON structural pass only when `lang==='json'`; empty\u2192zero tokens, malformed\u2192single plain `var(--text)` segment, both no-throw; **perf ceiling has TWO parts satisfying \u00a77 c3**: (a) above threshold (tunable, default 50 000 chars) skip the JSON pass \u2192 degrade to plain `var(--text)`; (b) below threshold, `compose()` runs **off-keystroke on a trailing debounce** (`BODY_HIGHLIGHT_DEBOUNCE_MS`, default 100ms \u2014 governs the COLORING pass ONLY, never the plain-text render), never synchronously per keystroke \u2014 BodyEditor calls `compose()` on the debounced snapshot and applies its spans only when the snapshot === the live text; while pending, the `<pre>` renders the live text via the same plain `var(--text)` degrade path as (a); `jsonTokens` itself stays a pure sync function",
+        "why": "Meets AC-1/9/10/16/17/22 + \u00a77 constraint 3 (both clauses a+b); imports nothing renderer-external (\u00a72.2); XSS-safe escaped-JSX render (\u00a77 constraint 5); XML/HTML/Text structural highlight stays OOS (\u00a76) \u2014 render plain, var pass only",
+        "alternatives_rejected": "real XML/HTML tokenizer: \u00a76 OOS, invents `.tk-tag/attr` classes fidelity cannot check; regex-`innerHTML` highlight: XSS + fidelity risk; render-time `compose(body.raw.text)` on the live store value (F3: bounded-but-still-synchronous full-body tokenise per sub-threshold keystroke, violates \u00a77 c3b); unbounded synchronous tokenise per keystroke: perf-ceiling violation"
+      },
+      {
+        "decision": "**D7** CT fidelity infra",
+        "chosen_approach": "`assertComputedStyle(selector,prop,expectedHex)` + `assertResolvesToToken(selector,prop,tokenVar)` over a live-renderer `getComputedStyle` channel; literal hex for tk-key/str/num/bool (AC-20/21), resolves-to-token for tk-null/punc/var (AC-22), grid + gutter/pre alignment (AC-23/24). **Anti-false-green gate = BOTH layers** (qa-engineer): (1) a setup-time channel probe that `test.skip('UNVERIFIED \u2026')` marks the whole fidelity suite when `getComputedStyle` is empty/throws; (2) a per-assertion try/catch guard for mid-run channel loss. Critical: `getPropertyValue('--x')` returns `\"\"` (not a throw) when undefined \u2014 the guard MUST intercept `\"\"` as UNVERIFIED BEFORE any `expect`, else false-green (resolves-to-token) or unrelated hard-fail (computed-style)",
+        "why": "Meets AC-2/19-24; asserts computed style not pixel-diff (reference renders SF on mac); fail-closed prevents the CT-passes-but-untested trap",
+        "alternatives_rejected": "pixel screenshot diff for token colors: font/reference drift \u2192 false results; silent skip when channel absent: false-green (violates AC-19); probe-only: mid-run disconnect still hard-errors; per-assertion-only: no clear suite-level UNVERIFIED signal"
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "src/renderer/src/lib/requestSpec.ts",
+        "action": "Modify",
+        "what_changes": "`body` flat\u2192tagged record `{active,raw,urlencoded}` + `RawBody`/`UrlencodedBody`/`BodyType`/`RawLang`; `makeBlankRequest` seed \u2192 `{active:'none', raw:{lang:'json',text:''}, urlencoded:{rows:[]}}`; **remove `isRawBody`** (D1)"
+      },
+      {
+        "file": "src/renderer/src/lib/tabsStore.ts",
+        "action": "Modify",
+        "what_changes": "Re-export `Body`/`RawBody`/`UrlencodedBody`/`BodyType`/`RawLang`/`Row` (D4); write path unchanged; **no `isRawBody`**"
+      },
+      {
+        "file": "src/renderer/src/lib/jsonTokens.ts",
+        "action": "Create",
+        "what_changes": "Renderer-pure JSON tokenizer + two-pass `compose` (var-pass-wins) + perf ceiling (D6)"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/BodyEditor.tsx",
+        "action": "Create",
+        "what_changes": "Radiogroup + mount-all mode switch + lang-pill + textarea/pre/gutter code area (reads `body.active`/`body.raw`/`body.urlencoded`; re-select early-return on radio AND lang-pill; `<pre>` text + gutter render from LIVE `body.raw.text`; only the `compose()` coloring pass is debounced (`BODY_HIGHLIGHT_DEBOUNCE_MS` default 100ms)) + render-prop urlencoded slot (D5, F2, F3)"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/BodyEditor.css",
+        "action": "Create",
+        "what_changes": "body-toolbar/body-radio/dot/lang-pill/code-editor/gutter/pre bound to tokens; matches styles.css \u00a78 (D5)"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/KVTable.tsx",
+        "action": "Modify",
+        "what_changes": "Prop union `({field} \\"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/RequestSubTabs.tsx",
+        "action": "Modify",
+        "what_changes": "Add `body?: ReactNode` slot prop + `key==='body'` panel branch (was `emptyState`) (D5)"
+      },
+      {
+        "file": "src/renderer/src/App.tsx",
+        "action": "Modify",
+        "what_changes": "Pass `body={<BodyEditor renderUrlencoded={\u2026<KVTable rows onRowsChange/>} />}` slot (\u00a72.2)"
+      },
+      {
+        "file": "src/renderer/src/styles/tokens.css",
+        "action": "Modify",
+        "what_changes": "Add `--tk-key/str/num/bool` per-theme tokens = design literal hex (\u00a74 exception)"
+      },
+      {
+        "file": "src/renderer/src/lib/__tests__/jsonTokens.test.ts",
+        "action": "Create",
+        "what_changes": "Two-pass compose unit tests incl. `{{var}}`-inside-JSON-string tie-break, empty, malformed"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/__tests__/BodyEditor.ct.tsx",
+        "action": "Create",
+        "what_changes": "Fidelity + behavior CT (radiogroup, mode switch, **cross-mode value round-trip AC-14**, alignment)"
+      },
+      {
+        "file": "src/renderer/src/components/organisms/__tests__/KVTable.ct.tsx",
+        "action": "Create/Extend",
+        "what_changes": "CT regression across params + headers (field mode) + controlled mode + the existing `validVars` `.missing`-highlight fixture (F4) \u2014 proves field-mode + missing-var unregressed"
+      },
+      {
+        "file": "src/renderer/src/lib/__tests__/tabsStore.test.ts",
+        "action": "Modify",
+        "what_changes": "**F1**: reseed the `:232` assert `expect(spec.body).toEqual({ lang:'', type:'', text:'' })` \u2192 `{ active:'none', raw:{ lang:'json', text:'' }, urlencoded:{ rows:[] } }`; add body/`body.raw`/`body.urlencoded`/`body.urlencoded.rows` reference-independence cases (mirrors the L617-632 headers/params/auth block); `:593` JSON round-trip needs no edit"
+      },
+      {
+        "file": "src/renderer/src/**/__tests__/ (shared CT util)",
+        "action": "Create",
+        "what_changes": "`assertComputedStyle`/`assertResolvesToToken` + fail-closed channel probe (D7)"
+      }
+    ],
+    "doc_impact": [
+      {
+        "doc_file": "docs/renderer/src/index.md",
+        "action": "Update",
+        "what_changes": "Add BodyEditor organism + jsonTokens lib to the renderer concern inventory"
+      },
+      {
+        "doc_file": "docs/architecture.md",
+        "action": "Update",
+        "what_changes": "Note the Body tagged-record domain model (retained per-mode sub-records) + the render-prop slot-injection convention (App-root composer for parameterized cross-organism reuse)"
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Three-layer textarea/pre/gutter alignment + single-scroll-source drifts across themes",
+        "likelihood": "Med",
+        "impact": "High",
+        "mitigation": "Spike the alignment invariant before any mode (\u00a79); pin line-height/grid via `assertComputedStyle`; fidelity fixes must be structural not CSS-shortcut"
+      },
+      {
+        "risk": "CT live-renderer computed-style channel absent \u2192 false-green fidelity",
+        "likelihood": "Med",
+        "impact": "High",
+        "mitigation": "AC-19 fail-closed UNVERIFIED (D7 both-layers); reproduce full CT styling context \u2014 tokens.css import, `data-theme` attr, production className scope, box-sizing scoped to fixture"
+      },
+      {
+        "risk": "KVTable controlled-mode extension regresses `params`/`headers`",
+        "likelihood": "**Med**",
+        "impact": "High",
+        "mitigation": "F3: blast radius is the L36-39 selector + L99-105 dispatcher (higher than the prior \"untouched\" claim). Discriminated prop union + `writeRows` `onRowsChange` early-return + guarded selector + **CT regression across params/headers/controlled**"
+      },
+      {
+        "risk": "Re-selecting an already-active control spuriously flips `dirty` (store no-op guard is reference-based, tabsStore.ts:344 \u2014 misses a fresh-but-equal `body`)",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "BodyEditor early-returns (emits no write) when `next === body.active` (radio) AND `next === body.raw.lang` (lang-pill); general rule in D2/D5. Urlencoded-rows + raw-text are genuine changes, no guard (F2)"
+      },
+      {
+        "risk": "flat\u2192tagged-record body migration blast radius",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "**No production reader beyond the `makeBlankRequest` seed (verified) \u2014 production-consumer-free.** Real blast radius: \u22651 existing test reseeded (`tabsStore.test.ts:232`, in File Impact); migrate first + let the type-checker enumerate every access site \u2014 do NOT assert its result as pre-verified zero (F1)"
+      },
+      {
+        "risk": "Store-controlled textarea re-tokenises the full body synchronously per sub-threshold keystroke, OR debouncing the render freezes the sole visible text layer (spec \u00a77 c3b)",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "`<pre>` text + gutter render from the LIVE `body.raw.text` (immediate); ONLY the `compose()` coloring pass is debounced (`BODY_HIGHLIGHT_DEBOUNCE_MS`, default 100ms), applied when its snapshot === live text, plain `var(--text)` while pending; `compose()` fires only on the trailing edge (D2/D5/D6, F3 cycle-3)"
+      },
+      {
+        "risk": "var-pass-wins tie-break wrong inside JSON strings",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Pin a `{{var}}`-inside-JSON-string fixture before wiring `compose` (\u00a79); unit-test in isolation"
+      },
+      {
+        "risk": "Render-prop slot misread as \u00a72.2 sibling import \u2192 implementer imports KVTable into BodyEditor",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Document render-prop as sanctioned App-root injection; review asserts BodyEditor imports zero sibling organisms"
+      },
+      {
+        "risk": "`.tk-*` literal-hex vs token-indirection mismatch",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Define `--tk-key/str/num/bool` per-theme tokens = design literals; `.tk-*` bind via `var()`; assert computed resolves to the literal hex (AC-20/21)"
+      },
+      {
+        "risk": "CT-run watchdog stall in /implement",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "Run `npm run test:ct` in main-thread background bash, not inside a review subagent"
+      },
+      {
+        "risk": "Design-fidelity gate (AC-25): design-manifest + runtime design-auditor required at /breakdown + /implement",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "`/breakdown` emits `design-manifest.json` from design-anchor's selectors; `/implement` runs design-token provenance + runtime design-auditor"
+      }
+    ],
+    "specialist_consultation": [
+      {
+        "specialist": "architect (cycle 1)",
+        "sub_question": "Revise Body model per grill F-001 + `must_satisfy`; fold F2/F3 into KVTable reuse; re-verify write path + dirty semantics + \u00a72.2/\u00a75.2/\u00a73.1/\u00a74",
+        "input_summary": "Authored corrected D1 (tagged record `{active,raw,urlencoded}`, no `isRawBody`), D2 (store preserves values / mount-all preserves DOM-local only; re-select early-return), D3 (discriminated prop union + `writeRows` early-return + guarded selector); minimal-change confirmed as the floor; \u00a76 OOS-respect confirmed",
+        "verdict": "accepted",
+        "cites": "own-reasoning; requestSpec.ts:82,131,32,63; tabsStore.ts:344; KVTable.tsx:26-34,36-39,99-105; grill.md F-001"
+      },
+      {
+        "specialist": "architect (cycle 2)",
+        "sub_question": "Fix the 4 re-grill findings F1-F4 without re-opening the closed Body model; choose F3 perf-path HOW",
+        "input_summary": "F1: add `tabsStore.test.ts` to File Impact + split \"production reader (seed-only, true)\" from false \"including-tests zero readers\"; F2: symmetric lang-pill `next===body.raw.lang` guard + general rule (radio+lang-pill only; urlencoded/raw-text exempt); F3: **Option (a)** \u2014 textarea stays store-controlled, `compose()`+gutter render a trailing-debounced snapshot (`BODY_HIGHLIGHT_DEBOUNCE_MS`, default 100ms), rejecting uncontrolled Option (b) as breaking single-SSOT; F4: intersect `validVars?` onto both union arms; all 4 minimal + \u00a76/\u00a72.2/\u00a75.2/\u00a73.1/\u00a74 clean",
+        "verdict": "accepted",
+        "cites": "own-reasoning; KVTable.tsx:26-34,74; tabsStore.ts:344-352; tabsStore.test.ts:232,593,617-632; spec \u00a77 c3, AC-9/14/16/17/23"
+      },
+      {
+        "specialist": "frontend-engineer",
+        "sub_question": "F3: smallest change to keep `compose()` off the per-keystroke hot path while textarea value/caret stay immediate + `raw.text` still writes per keystroke (AC-14) + gutter==pre line count (AC-23); trailing-debounce vs `useDeferredValue`",
+        "input_summary": "Requested by architect; resolved via architect's termination rule (no relay response) \u2014 confirmatory-only on interval/mechanism; architect's Option-(a) debounce decision stands independent",
+        "verdict": "no-response",
+        "cites": "n/a (termination-rule resolved)"
+      },
+      {
+        "specialist": "qa-engineer",
+        "sub_question": "AC-19: minimal fail-closed detection so fidelity helpers report UNVERIFIED (not PASS, not hard error) when the live-renderer getComputedStyle channel is unavailable",
+        "input_summary": "BOTH layers \u2014 setup probe marks whole fidelity suite UNVERIFIED; per-assertion try/catch guard for mid-run channel loss; critical pitfall: `getPropertyValue('--x')` returns `\"\"` (not throw) when undefined, so `\"\"` must be intercepted as UNVERIFIED BEFORE any `expect`, else false-green (assertResolvesToToken) or unrelated hard-fail (assertComputedStyle)",
+        "verdict": "modified",
+        "cites": "own-reasoning; .devforge/memory.md (ct-fidelity-fixture-scoping, ct-baseline-within-tolerance-stale)"
+      }
+    ],
+    "dependencies": [
+      "None. No package to install, no service to configure, no environment variable. Every seam is internal and already present (`varTokens`, `KVTable`, `RequestSubTabs`, `tabsStore.updateActiveSpec`, the `Auth`-union pattern). `react-simple-code-editor` is a technique reference only \u2014 NOT adopted as a dependency."
+    ]
+  }
+}

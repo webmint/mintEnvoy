@@ -1,4 +1,4 @@
-import { tokenizeVars } from '@renderer/lib/varTokens'
+import { tokenizeVars, isMissingVar } from '@renderer/lib/varTokens'
 import type { VarSegment } from '@renderer/lib/varTokens'
 
 // ---------------------------------------------------------------------------
@@ -6,6 +6,24 @@ import type { VarSegment } from '@renderer/lib/varTokens'
 // ---------------------------------------------------------------------------
 const plain = (text: string): VarSegment => ({ kind: 'plain', text })
 const varSeg = (name: string, raw: string): VarSegment => ({ kind: 'var', name, raw })
+
+// ---------------------------------------------------------------------------
+// isMissingVar — missing-var gate
+// ---------------------------------------------------------------------------
+describe('isMissingVar', () => {
+  it('empty validVars → false regardless of known (pre-load neutral state)', () => {
+    expect(isMissingVar(true, new Set())).toBe(false)
+    expect(isMissingVar(false, new Set())).toBe(false)
+  })
+
+  it('non-empty validVars + known=true → false (var is recognised, not missing)', () => {
+    expect(isMissingVar(true, new Set(['x', 'y']))).toBe(false)
+  })
+
+  it('non-empty validVars + known=false → true (env loaded, var is absent)', () => {
+    expect(isMissingVar(false, new Set(['x', 'y']))).toBe(true)
+  })
+})
 
 // ---------------------------------------------------------------------------
 // Core parsing rules

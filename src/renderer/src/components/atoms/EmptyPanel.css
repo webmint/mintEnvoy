@@ -1,0 +1,8 @@
+/* Shared placeholder — muted paragraph for panels not yet available.
+   Matches the former .body-empty (BodyEditor) and .request-sub-tabs__empty
+   (RequestSubTabs) rules, which were identical. */
+.empty-panel {
+  color: var(--text-muted);
+  padding: 16px;
+  margin: 0;
+}

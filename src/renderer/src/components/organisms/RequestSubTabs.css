@@ -169,19 +169,6 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Shared empty-state (.request-sub-tabs__empty)
- *
- * Muted placeholder text for the four panels not yet built (Auth, Body,
- * Tests, Code) and for absent slot props (AC-12, D7).
- * ------------------------------------------------------------------------- */
-
-.request-sub-tabs__empty {
-  color: var(--text-muted);
-  padding: 16px;
-  margin: 0;
-}
-
-/* ---------------------------------------------------------------------------
  * CT fixture scaffold — bounded height so the panel overflows and scrollTop
  * assertions are non-vacuous. NOT production styles.
  * -------------------------------------------------------------------------- */
