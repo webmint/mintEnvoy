@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.1",
+  "research_path": "research/2026-07-16-fix-gutter-line-misalignment.md",
+  "research_completed_at": "2026-07-16T12:42:33+00:00",
+  "mode": "feature_addition",
+  "intent": {
+    "symptom_summary": "Raw-mode hand-rolled code editor (inline in BodyEditor) is crooked: gutter line numbers drift out of alignment with code lines, accumulating downward",
+    "desired_summary": "Extract editor into standalone reusable CodeEditor; pin ONE absolute line-box height (20.625px) across textarea, pre, and gutter rows (never 1.65em on gutter); keep overlay mechanism (transparent textarea over aria-hidden highlighted pre, single scroll container); extract JSON tokenizer to reusable lib. Gutter numbers stay aligned to code rows at any line count",
+    "scope": "feature-wide",
+    "verbatim_prompt": "Fix and extract the raw-mode code editor in the request body editor. Symptom: the hand-rolled code editor (currently inline in BodyEditor) is crooked -- gutter line numbers drift out of alignment with code lines, accumulating downward. Root cause (confirmed in the reference CSS): gutter font-size is 11.5px with `.gutter > div { height: calc(1.65em) }` = 18.975px per row, while the <pre> lines are 12.5px * line-height 1.65 = 20.625px per row -- a per-line mismatch that compounds. Desired: extract the editor out of BodyEditor into a standalone reusable CodeEditor component and reimplement clean; pin ONE absolute line-box height (20.625px) across textarea, pre, and gutter rows (never 1.65em on the gutter); keep the overlay edit mechanism (transparent textarea over aria-hidden highlighted pre, single scroll container) -- the overlay was not the defect, the alignment math was. Extract the JSON syntax tokenizer to a reusable lib (second consumer: response-body). Preserve unchanged: JSON-only .tk-* vocabulary, {{var}}-in-string tie-break (var wins inside JSON strings), malformed JSON degrades to plain var(--text) with no throw, XSS-safe escaped-children render, fidelity asserted from a live-renderer computed-style channel (UNVERIFIED not PASS when absent). Scope: the raw code editor + its tokenizer; BodyEditor raw slot becomes a consumer. Unchanged behavior: none/urlencoded modes, the mode strip, and the token color/grid/gutter contract values (re-verified UNCHANGED vs T7a)."
+  },
+  "spec_seeds": {
+    "spec_type_hint": "feature_addition",
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Search before building (Key Rules #12)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "SOLID, DRY, KISS (Key Rules #11)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Minimal changes / never modify outside scope (Key Rules #3, Never #5)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [],
+    "risks": [
+      {
+        "risk": "Overlay pixel-grid alignment (textarea over pre) is fidelity-sensitive; the shared line-box refactor could shift row height if the var value differs from 20.625px. Mount-all hidden-panel scroll preservation and the AC-23 debounce split must survive the move",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "tbd via /plan"
+      }
+    ],
+    "open_questions": [],
+    "value_semantics": [],
+    "value_production_sites": [],
+    "literal_archaeology": [],
+    "data_flow_chain": null,
+    "design_anchor": {
+      "kind": "",
+      "file": "",
+      "selectors": []
+    }
+  },
+  "plan_seeds": {
+    "recommended_approach_id": "extract_to_codeeditor_with_one_shared_line_box_unit",
+    "recommended_approach_summary": "This approach uniquely satisfies the ticket's literal instruction to pin ONE absolute line-box measure across all three layers of the editor \u2014 the number strip, the highlight layer, and the input layer \u2014 where the current build fixes only the number strip via a duplicated hardcoded literal. It REUSES the exported canonical highlighter at src/renderer/src/lib/jsonTokens.ts:344 (compose()) rather than writing a new one, so the .tk-* palette, {{var}} precedence inside strings, malformed-input degrade-to-plain (AC-17), and XSS-safe escaped-children output are preserved by construction and unchanged_behavior holds. It also removes the reuse fragility (tokens.css defines no single line-box source at present) before another call site is added. Acknowledged uncertainty: the fidelity contract is proven from a live-renderer computed-style channel, so the refactor must be re-checked UNVERIFIED-not-PASS to confirm zero visual movement.",
+    "layer_destination": "tbd",
+    "layer_justification": "multi-layer",
+    "complexity": {
+      "changes": "Med",
+      "risk": "Med",
+      "verify_cost": "Med"
+    },
+    "cited_canonical_patterns": [],
+    "alternatives_considered": [
+      {
+        "id": "verbatim_lift_and_shift_extraction",
+        "summary": "Move the raw-editor markup, state, and CSS as-is into a new CodeEditor component including the current hardcoded calc(12.5px*1.65) gutter literal; BodyEditor consumes it. No token de-duplication.",
+        "rejected_reason": "not recommended; see /plan if needed"
+      }
+    ],
+    "proposed_call_shape": null,
+    "correctness_vetted": false
+  },
+  "probe": {
+    "tier": "1.5",
+    "actor": "llm",
+    "discriminator": {
+      "primary_confirms_if": "tbd \u2014 populated by Step 4 probe-tier classifier",
+      "runner_up_confirms_if": "if test FAILS but with different assertion outcome \u2192 runner-up applies; LLM evaluates output diff",
+      "both_disproved_if": "if test PASSES with current code \u2192 both hypotheses are wrong; widen investigation",
+      "production_site_check": null
+    },
+    "feasibility_check": {
+      "data_shape_only": true,
+      "auth_required": false,
+      "network_dependent": false,
+      "timing_dependent": false,
+      "is_test_code": false
+    },
+    "test_framework": null,
+    "test_path": null,
+    "script_path": "research/2026-07-16-fix-gutter-line-misalignment/probe-script.mjs",
+    "is_first_test_for_file": false
+  },
+  "downstream_links": {
+    "spec_path": null,
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}
