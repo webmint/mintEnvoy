@@ -51,11 +51,11 @@ import { EmptyPanel } from '@renderer/components/atoms/EmptyPanel'
 const BODY_HIGHLIGHT_DEBOUNCE_MS = 100
 
 const BODY_TYPES: Array<{ value: BodyType; label: string }> = [
-  { value: 'none', label: 'None' },
-  { value: 'raw', label: 'Raw' },
+  { value: 'none', label: 'none' },
+  { value: 'form-data', label: 'form-data' },
   { value: 'urlencoded', label: 'x-www-form-urlencoded' },
-  { value: 'form-data', label: 'Form data' },
-  { value: 'binary', label: 'Binary' },
+  { value: 'raw', label: 'raw' },
+  { value: 'binary', label: 'binary' },
   { value: 'graphql', label: 'GraphQL' }
 ]
 
