@@ -3,7 +3,7 @@
 > **Source of truth:** `design/styles.css` (Claude Design export), read directly — NOT reconstructed. Resolved values.
 > **How to use:** feed into `/specify` AC-13 as computed-style targets + CT `getComputedStyle` assertions. **Copy the VALUES, never the CODE.** `var(--token)` ⇒ assert *resolves-to-token*; `color-mix(...)` ⇒ token level.
 > **This file is the MENU, not the per-feature spec.** It describes the whole reference; a feature may ship a simpler element or none. Each feature carries its own MATCH/DEVIATE disposition in its own scope. **And the reference can be under-specified — where it lacks a needed constraint (e.g. no nowrap on a user-typed name), DEVIATE deliberately, don't copy the gap.**
-> **Last full re-sync:** 2026-07-01 from the newest export — WCAG token darkening (B6/B7, light+dark), workspace-pill truncation (B4). Now **per-theme** (light + dark).
+> **Last full re-sync:** 2026-07-09 from the newest export. Deltas vs previous contract: `--font-sans` reordered (Inter first); `.tab-dirty` gained a glow ring; `.split-toggle` right side now fully rounded; chip `.method` letter-spacing 0.05em; `.env-selector` now bordered; `.response-meta` now on a sunken bg. Values otherwise stable; the three documented drifts (`.btn`=500, `.reqbar` gap 8px, `.kbd` ls 0.02em) still present.
 
 ---
 
@@ -26,14 +26,14 @@
 | `--text-muted` | `#6c6c75` |
 | `--text-faint` | `#6e6e77` |
 | `--text-inverse` | `#ffffff` |
+| `--shadow-sm` | `0 1px 0 rgba(24, 24, 27, 0.04), 0 1px 2px rgba(24, 24, 27, 0.04)` |
+| `--shadow-md` | `0 4px 16px -4px rgba(24, 24, 27, 0.08), 0 2px 4px rgba(24, 24, 27, 0.04)` |
+| `--shadow-lg` | `0 16px 32px -8px rgba(24, 24, 27, 0.12), 0 4px 12px rgba(24, 24, 27, 0.06)` |
 | `--radius-sm` | `5px` |
 | `--radius` | `7px` |
 | `--radius-md` | `9px` |
 | `--radius-lg` | `12px` |
-| `--shadow-sm` | `0 1px 0 rgba(24, 24, 27, 0.04), 0 1px 2px rgba(24, 24, 27, 0.04)` |
-| `--shadow-md` | `0 4px 16px -4px rgba(24, 24, 27, 0.08), 0 2px 4px rgba(24, 24, 27, 0.04)` |
-| `--shadow-lg` | `0 16px 32px -8px rgba(24, 24, 27, 0.12), 0 4px 12px rgba(24, 24, 27, 0.06)` |
-| `--font-sans` | `-apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", system-ui, sans-serif` |
+| `--font-sans` | `"Inter", system-ui, -apple-system, sans-serif` |
 | `--font-mono` | `"JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace` |
 | `--m-get` | `#0ea5e9` |
 | `--m-post` | `#22c55e` |
@@ -45,6 +45,8 @@
 | `--status-3xx` | `#2563eb` |
 | `--status-4xx` | `#f59e0b` |
 | `--status-5xx` | `#ef4444` |
+
+> **⚠ `--font-sans` changed this export:** was `-apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", system-ui, sans-serif` → now `"Inter", system-ui, -apple-system, sans-serif`. Inter is now the *primary* face, not a fallback. Any surface asserting `var(--font-sans)` still resolves-to-token; but if the app self-hosts/ships Inter this now materially changes rendered metrics — verify Inter is actually loaded, else the computed face silently falls to system-ui.
 
 ## 1b · Design tokens — DARK (`[data-theme="dark"]` overrides)
 
@@ -74,7 +76,7 @@ Dark overrides only the tokens below; everything else inherits from light. Metho
 | `--m-delete` | `#f87171` |
 | `--m-options` | `#94a3b8` |
 
-> **WCAG note:** light `--text-muted #6c6c75` (4.69:1 on sunken), `--text-faint #6e6e77` (4.55:1). Dark `--text-faint #787881` (4.57:1 on `#08080a`). All pass AA. Dark JSON syntax tokens also differ: `.tk-key #7dd3fc`, `.tk-str #86efac`, `.tk-num #fcd34d`, `.tk-bool #f0abfc`.
+> **WCAG note:** light `--text-muted #6c6c75` (4.69:1 on sunken), `--text-faint #6e6e77` (4.55:1). Dark `--text-faint #787881` (4.57:1 on `#08080a`). All pass AA. **JSON syntax tokens are theme-split:** light `.tk-key #0369a1`, `.tk-str #15803d`, `.tk-num #b45309`, `.tk-bool #be185d`; dark `.tk-key #7dd3fc`, `.tk-str #86efac`, `.tk-num #fcd34d`, `.tk-bool #f0abfc`.
 
 ---
 
@@ -87,7 +89,7 @@ Method trigger `.method-select` (mono 700). Buttons share `.btn`; Save adds `.bt
 | Bar container | `.reqbar` | `display: flex`<br>`padding: 12px 16px`<br>`gap: 8px`<br>`border-bottom: 1px solid var(--border-faint)`<br>`align-items: center` |
 | Method trigger | `.method-select` | `display: flex`<br>`padding: 7px 10px 7px 12px`<br>`gap: 6px`<br>`border: 1px solid var(--border)`<br>`border-radius: var(--radius)`<br>`background: var(--bg-elev)`<br>`font-family: var(--font-mono)`<br>`font-size: 11.5px`<br>`font-weight: 700`<br>`letter-spacing: 0.04em`<br>`min-width: 88px`<br>`align-items: center` |
 | Method label | `.method-select .method` | `font-size: 11.5px`<br>`flex: 1` |
-| Method text base | `.method` | `font-family: var(--font-mono)`<br>`font-size: 10px`<br>`font-weight: 700`<br>`letter-spacing: 0.04em`<br>`text-transform: uppercase`<br>`min-width: 38px` |
+| Method text base | `.method` | `font-family: var(--font-mono)`<br>`font-size: 10px`<br>`font-weight: 700`<br>`letter-spacing: 0.04em`<br>`text-transform: uppercase`<br>`min-width: 38px`<br>`text-align: left`<br>`flex-shrink: 0` |
 | URL field | `.url-bar` | `display: flex`<br>`height: 32px`<br>`padding: 0 12px`<br>`gap: 6px`<br>`border: 1px solid var(--border)`<br>`border-radius: var(--radius)`<br>`background: var(--bg-elev)`<br>`font-family: var(--font-mono)`<br>`flex: 1`<br>`transition: border-color 0.1s`<br>`align-items: center` |
 | URL input | `.url-bar input` | `flex: 1`<br>`font-size: 12.5px` |
 | URL var token | `.url-bar .url-var` | `color: var(--accent)` |
@@ -98,10 +100,12 @@ Method trigger `.method-select` (mono 700). Buttons share `.btn`; Save adds `.bt
 
 ## 3 · Send split-dropdown
 
+Reference-only; the app ships Send with no split-dropdown (DEVIATE — documented in B3).
+
 | element | reference selector | key resolved values |
 |---|---|---|
 | Send left | `.send-split .btn-primary` | `border-top-right-radius: 0`<br>`border-bottom-right-radius: 0`<br>`padding-right: 18px` |
-| Split toggle | `.send-split .split-toggle` | `background: var(--accent)`<br>`color: #fff`<br>`width: 28px`<br>`border-top-right-radius: var(--radius)`<br>`border-left: 1px solid rgba(255, 255, 255, 0.18)` |
+| Split toggle | `.send-split .split-toggle` | `background: var(--accent)`<br>`color: #fff`<br>`width: 28px`<br>`display: grid`<br>`place-items: center`<br>`border-top-right-radius: var(--radius)`<br>`border-bottom-right-radius: var(--radius)`<br>`border-left: 1px solid rgba(255, 255, 255, 0.18)` |
 | Toggle hover | `.send-split .split-toggle:hover` | `background: var(--accent-hover)` |
 
 ## 4 · Method colours (per verb)
@@ -116,36 +120,36 @@ Chip context = token as background; soft = 16% tint.
 | PATCH | `.method.PATCH` | `color: var(--m-patch)` |
 | DELETE | `.method.DELETE` | `color: var(--m-delete)` |
 | OPTIONS | `.method.OPTIONS` | `color: var(--m-options)` |
-| Chip base | `[data-mstyle="chip"] .method` | `font-size: 9.5px`<br>`padding: 0 5px`<br>`min-width: 42px`<br>`height: 17px`<br>`border-radius: 4px`<br>`color: #fff`<br>`box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14)` |
+| Chip base | `[data-mstyle="chip"] .method` | `font-size: 9.5px`<br>`letter-spacing: 0.05em`<br>`padding: 0 5px`<br>`min-width: 42px`<br>`height: 17px`<br>`border-radius: 4px`<br>`color: #fff`<br>`box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14)` |
 | Chip GET | `[data-mstyle="chip"] .method.GET` | `background: var(--m-get)` |
 | Soft GET | `[data-mstyle="soft"] .method.GET` | `background: color-mix(in oklab, var(--m-get) 16%, transparent)`<br>`color: var(--m-get)` |
 
 ## 5 · Tab strip
 
-`.tab{max-width:220px}` + `.tab-label{ellipsis}`. Method chip uses `[data-mstyle="chip"]`.
+`.tab{max-width:220px, min-width:0}` + `.tab-label{ellipsis}`. Method chip uses `[data-mstyle="chip"]`.
 
 | element | reference selector | key resolved values |
 |---|---|---|
-| Tab bar | `.tabbar` | `height: 36px`<br>`background: var(--bg-sunken)`<br>`border-bottom: 1px solid var(--border)` |
-| Tab | `.tab` | `gap: 8px`<br>`padding: 0 10px 0 12px`<br>`max-width: 220px`<br>`font-size: 12.5px`<br>`color: var(--text-muted)`<br>`border-right: 1px solid var(--border)` |
+| Tab bar | `.tabbar` | `height: 36px`<br>`background: var(--bg-sunken)`<br>`border-bottom: 1px solid var(--border)`<br>`padding-right: 8px` |
+| Tab | `.tab` | `gap: 8px`<br>`padding: 0 10px 0 12px`<br>`max-width: 220px`<br>`min-width: 0`<br>`font-size: 12.5px`<br>`color: var(--text-muted)`<br>`border-right: 1px solid var(--border)` |
 | Tab label | `.tab .tab-label` | `white-space: nowrap`<br>`overflow: hidden`<br>`text-overflow: ellipsis`<br>`flex: 1` |
-| Dirty dot | `.tab .tab-dirty` | `width: 7px`<br>`height: 7px`<br>`border-radius: 50%`<br>`background: var(--m-put)` |
+| Dirty dot | `.tab .tab-dirty` | `width: 7px`<br>`height: 7px`<br>`border-radius: 50%`<br>`background: var(--m-put)`<br>`flex-shrink: 0`<br>`box-shadow: 0 0 0 2px color-mix(in oklab, var(--m-put) 22%, transparent)` |
 | Close | `.tab .tab-close` | `width: 16px`<br>`height: 16px`<br>`border-radius: 3px`<br>`color: var(--text-faint)` |
 | Close hover | `.tab .tab-close:hover` | `background: var(--bg-active)`<br>`color: var(--text)` |
-| Rename | `.tab .tab-rename` | `font-size: 12.5px`<br>`border: 1px solid var(--accent)`<br>`border-radius: 4px`<br>`box-shadow: 0 0 0 2px var(--accent-soft)`<br>`background: var(--bg-elev)` |
+| Rename | `.tab .tab-rename` | `font-size: 12.5px`<br>`padding: 1px 5px`<br>`border: 1px solid var(--accent)`<br>`border-radius: 4px`<br>`box-shadow: 0 0 0 2px var(--accent-soft)`<br>`background: var(--bg-elev)`<br>`color: var(--text)` |
 | New (+) | `.tab-new` | `padding: 0 10px`<br>`color: var(--text-muted)` |
 
 ## 6 · Pane tabs
 
 | element | reference selector | key resolved values |
 |---|---|---|
-| Pane tab | `.pane-tab` | `height: 36px`<br>`gap: 6px`<br>`color: var(--text-muted)`<br>`font-size: 12.5px`<br>`font-weight: 500`<br>`margin-right: 14px` |
+| Pane tab | `.pane-tab` | `height: 36px`<br>`padding: 0 4px`<br>`gap: 6px`<br>`color: var(--text-muted)`<br>`font-size: 12.5px`<br>`font-weight: 500`<br>`margin-right: 14px` |
 | Badge | `.pane-tab .badge` | `font-size: 10px`<br>`background: var(--bg-active)`<br>`color: var(--text-muted)`<br>`border-radius: 999px`<br>`padding: 1px 6px`<br>`font-weight: 600` |
 | Active badge | `.pane-tab.active .badge` | `background: var(--accent-soft)`<br>`color: var(--accent)` |
 
 ## 7 · Key-Value editor
 
-Grid `22px 1fr 1fr 1fr 24px`, mono cells.
+Grid `22px 1fr 1fr 1fr 24px`, mono cells. Checkbox is a **native** `<input type="checkbox">` — `accent-color` only; no custom unchecked appearance in the reference (Bug 009 resolution: MATCH-whole-section).
 
 | element | reference selector | key resolved values |
 |---|---|---|
@@ -157,6 +161,7 @@ Grid `22px 1fr 1fr 1fr 24px`, mono cells.
 | Cell | `.kv-row .kv-cell` | `padding: 6px 10px`<br>`gap: 6px`<br>`font-family: var(--font-mono)`<br>`font-size: 12px` |
 | Cell input | `.kv-row .kv-cell input` | `font-family: var(--font-mono)`<br>`font-size: 12px`<br>`background: transparent` |
 | Var | `.kv-row .kv-cell .var` | `color: var(--accent)` |
+| Var missing | `.kv-row .kv-cell .var.missing` | `color: var(--m-delete)`<br>`text-decoration: line-through dotted` |
 | Checkbox | `.kv-row input[type="checkbox"]` | `accent-color: var(--accent)`<br>`width: 12px`<br>`height: 12px` |
 | Disabled | `.kv-row.disabled` | `opacity: 0.55` |
 
@@ -170,7 +175,7 @@ Grid `22px 1fr 1fr 1fr 24px`, mono cells.
 | Radio dot | `.body-radio .dot` | `width: 8px`<br>`height: 8px`<br>`border-radius: 50%`<br>`border: 1.5px solid var(--text-faint)` |
 | Code editor | `.code-editor` | `display: grid`<br>`grid-template-columns: 36px 1fr`<br>`font-family: var(--font-mono)`<br>`font-size: 12.5px`<br>`line-height: 1.65`<br>`padding: 12px 0` |
 | Gutter | `.code-editor .gutter` | `text-align: right`<br>`color: var(--text-faint)`<br>`padding-right: 12px`<br>`font-size: 11.5px` |
-| Lang pill | `.lang-pill` | `gap: 5px`<br>`padding: 3px 8px`<br>`background: var(--bg-sunken)`<br>`border: 1px solid var(--border)` |
+| Lang pill | `.lang-pill` | `gap: 5px`<br>`padding: 3px 8px`<br>`background: var(--bg-sunken)`<br>`border: 1px solid var(--border)`<br>`border-radius: var(--radius-sm)`<br>`font-size: 11px` |
 
 ## 9 · Auth panel
 
@@ -180,9 +185,9 @@ Grid `140px 1fr`, gap `14px 24px`.
 |---|---|---|
 | Panel | `.auth-panel` | `padding: 16px 20px`<br>`display: grid`<br>`grid-template-columns: 140px 1fr`<br>`gap: 14px 24px`<br>`max-width: 700px`<br>`font-size: 12.5px` |
 | Label | `.auth-panel .label` | `color: var(--text-muted)`<br>`padding-top: 8px`<br>`font-weight: 500` |
-| Input | `.auth-panel .input-field` | `height: 32px`<br>`padding: 0 10px`<br>`border: 1px solid var(--border)`<br>`background: var(--bg-elev)` |
+| Input | `.auth-panel .input-field` | `height: 32px`<br>`padding: 0 10px`<br>`border: 1px solid var(--border)`<br>`background: var(--bg-elev)`<br>`border-radius: var(--radius)`<br>`font-family: var(--font-mono)`<br>`font-size: 12px` |
 | Input focus | `.auth-panel .input-field:focus-within` | `border-color: var(--accent)` |
-| Help | `.auth-help` | `font-size: 12px`<br>`color: var(--text-muted)`<br>`gap: 8px`<br>`padding: 10px 12px` |
+| Help | `.auth-help` | `font-size: 12px`<br>`color: var(--text-muted)`<br>`gap: 8px`<br>`padding: 10px 12px`<br>`background: var(--accent-soft)`<br>`border-left: 2px solid var(--accent)`<br>`border-radius: var(--radius)`<br>`line-height: 1.55` |
 | Help icon | `.auth-help svg` | `color: var(--accent)` |
 
 ## 10 · Snippet generator
@@ -197,7 +202,7 @@ Grid `140px 1fr`, gap `14px 24px`.
 
 ## 11 · Response area
 
-Dark JSON tokens differ (see §1b note).
+JSON tokens are theme-split (see §1b note).
 
 | element | reference selector | key resolved values |
 |---|---|---|
@@ -205,13 +210,14 @@ Dark JSON tokens differ (see §1b note).
 | Empty glyph | `.response-empty .glyph` | `width: 56px`<br>`height: 56px`<br>`border-radius: 14px`<br>`background: var(--bg-sunken)`<br>`border: 1px solid var(--border)` |
 | Empty heading | `.response-empty h3` | `font-size: 14px`<br>`color: var(--text)` |
 | Loading | `.response-loading` | `display: grid`<br>`place-items: center`<br>`padding: 40px` |
-| Meta bar | `.response-meta` | `gap: 14px`<br>`padding: 0 16px`<br>`height: 32px`<br>`border-bottom: 1px solid var(--border-faint)` |
+| Meta bar | `.response-meta` | `gap: 14px`<br>`padding: 0 16px`<br>`height: 32px`<br>`border-bottom: 1px solid var(--border-faint)`<br>`background: var(--bg-sunken)`<br>`font-size: 12px`<br>`color: var(--text-muted)` |
 | Stat value | `.response-meta .stat-value` | `font-weight: 600`<br>`font-family: var(--font-mono)` |
-| Status chip | `.status-chip` | `font-family: var(--font-mono)`<br>`font-weight: 700`<br>`font-size: 11.5px`<br>`gap: 6px` |
+| Status chip | `.status-chip` | `font-family: var(--font-mono)`<br>`font-weight: 700`<br>`font-size: 11.5px`<br>`gap: 6px`<br>`padding: 2px 8px`<br>`border-radius: var(--radius-sm)` |
 | Status OK | `.status-chip.ok` | `background: color-mix(in oklab, var(--status-2xx) 15%, transparent)`<br>`color: var(--status-2xx)` |
-| JSON string | `.tk-str` | `color: #15803d` |
-| JSON number | `.tk-num` | `color: #b45309` |
-| JSON key | `.tk-key` | `color: #0369a1` |
+| JSON string | `.tk-str` | `color: #15803d` (dark `#86efac`) |
+| JSON number | `.tk-num` | `color: #b45309` (dark `#fcd34d`) |
+| JSON key | `.tk-key` | `color: #0369a1` (dark `#7dd3fc`) |
+| JSON bool | `.tk-bool` | `color: #be185d` (dark `#f0abfc`) |
 | JSON var | `.tk-var` | `color: var(--accent)`<br>`font-weight: 600` |
 
 ## 12 · Sidebar
@@ -230,7 +236,7 @@ Collections tree, search, sub-tabs, env selector. (No sharing UI — local-only.
 | Row hover | `.tree-row:hover` | `background: var(--bg-hover)` |
 | Row selected | `.tree-row.selected` | `background: var(--bg-active)` |
 | Row label | `.tree-row .row-label` | `flex: 1`<br>`white-space: nowrap`<br>`overflow: hidden`<br>`text-overflow: ellipsis` |
-| Env selector | `.env-selector` | `gap: 6px`<br>`padding: 4px 8px 4px 10px`<br>`border-radius: var(--radius-sm)`<br>`color: var(--text)` |
+| Env selector | `.env-selector` | `gap: 6px`<br>`padding: 4px 8px 4px 10px`<br>`border: 1px solid var(--border)`<br>`border-radius: var(--radius-sm)`<br>`background: var(--bg-elev)`<br>`color: var(--text)`<br>`font-size: 12px`<br>`font-weight: 500` |
 | Env dot | `.env-selector .env-dot` | `width: 7px`<br>`height: 7px`<br>`border-radius: 50%`<br>`background: var(--accent)`<br>`box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 25%, transparent)` |
 
 ## 13 · Status bar
@@ -271,7 +277,7 @@ Shell + scrim; content uses other sections.
 
 ## 16 · Workspace switcher (top bar)
 
-Switches the open local vault (local-only model). **The name truncates — reference now defends against long user-typed names (added 2026-07-01, was the B4 gap).** Truncate the NAME only; avatar + chevron stay (`flex-shrink:0`).
+Switches the open local vault (local-only model). The name truncates — reference defends against long user-typed names. Truncate the NAME only; avatar + chevron stay (`flex-shrink:0`).
 
 | element | reference selector | key resolved values |
 |---|---|---|
@@ -287,6 +293,6 @@ Switches the open local vault (local-only model). **The name truncates — refer
 
 Find the surface by component name; use its resolved values as `getComputedStyle` AC targets. `var(--token)` ⇒ resolves-to-token (assert against the ACTIVE theme — light §1 or dark §1b). `color-mix(...)` ⇒ token level. **Copy the VALUES, never the CODE.**
 
-Two limits: (1) **menu, not spec** — each feature needs its own MATCH/DEVIATE disposition; don't assert elements a feature doesn't ship. (2) **reference can be wrong** — where it omits a needed constraint (long user text without nowrap, etc.), DEVIATE on purpose. B1 (tab cap) and the original B4 (workspace name) are both this pattern; B4 is now folded INTO the reference (§16), so it's a plain MATCH again.
+Two limits: (1) **menu, not spec** — each feature needs its own MATCH/DEVIATE disposition; don't assert elements a feature doesn't ship (e.g. §3 split-dropdown = app DEVIATE). (2) **reference can be wrong** — where it omits a needed constraint, DEVIATE on purpose.
 
-> **Staleness:** snapshot of `styles.css`. Re-run extraction + diff on any re-export. This file was regenerated 2026-07-01 from the newest export (light+dark tokens, workspace truncation).
+> **Staleness:** snapshot of `styles.css`. Re-run extraction + diff on any re-export. Regenerated 2026-07-09 from the newest export. Baseline for the delta note above is the *previous contract's recorded values*, not the previous `styles.css` — a repo re-extract script (dev-lane, open) would make future diffs authoritative.

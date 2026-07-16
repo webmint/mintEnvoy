@@ -356,7 +356,10 @@
       "verify_cost": "Med"
     },
     "recommended_option_id": "A",
-    "recommended_option_rationale": "This is the only option that makes illegal body states unrepresentable and gets round-trip preservation for free by keeping the discriminated-union Body in internal:src/renderer/src/lib/requestSpec.ts with the store (internal:src/renderer/src/lib/tabsStore.ts) as single source of truth \u2014 extending the existing seams rather than building new state. The existing flat body at internal:src/renderer/src/lib/requestSpec.ts (L82) must migrate to the union, but that existing implementation does NOT cover the discriminated-union requirement, and the migration is consumer-free (zero readers of .body.text/lang/type beyond makeBlankRequest), so it is Low-risk. It reuses internal:src/renderer/src/lib/varTokens.ts, internal:src/renderer/src/components/organisms/KVTable.tsx, and internal:src/renderer/src/lib/tabsStore.ts verbatim, and honours the constitution: BodyEditor injects KVTable as a slot prop (no sibling-organism import, \u00a72.2) and receives the Body type via a tabsStore re-export (requestSpec stays component-invisible, \u00a75.2). Option B is rejected as lossy; Option C duplicates the source of truth."
+    "recommended_option_rationale": "This is the only option that makes illegal body states unrepresentable and gets round-trip preservation for free by keeping the discriminated-union Body in internal:src/renderer/src/lib/requestSpec.ts with the store (internal:src/renderer/src/lib/tabsStore.ts) as single source of truth \u2014 extending the existing seams rather than building new state. The existing flat body at internal:src/renderer/src/lib/requestSpec.ts (L82) must migrate to the union, but that existing implementation does NOT cover the discriminated-union requirement, and the migration is consumer-free (zero readers of .body.text/lang/type beyond makeBlankRequest), so it is Low-risk. It reuses internal:src/renderer/src/lib/varTokens.ts, internal:src/renderer/src/components/organisms/KVTable.tsx, and internal:src/renderer/src/lib/tabsStore.ts verbatim, and honours the constitution: BodyEditor injects KVTable as a slot prop (no sibling-organism import, \u00a72.2) and receives the Body type via a tabsStore re-export (requestSpec stays component-invisible, \u00a75.2). Option B is rejected as lossy; Option C duplicates the source of truth.",
+    "_effort_estimate": "Medium",
+    "_overall_fit": "Good",
+    "_derisk_count": 3
   },
   "discovery_block": {
     "overall_fit": "Good",
@@ -476,7 +479,7 @@
     ]
   },
   "downstream_links": {
-    "spec_path": null,
+    "spec_path": "specs/017-request-body-editor-shell-with-a-body-type-selector-plus/spec.md",
     "plan_path": null,
     "execute_task_commit_shas": []
   },

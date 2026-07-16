@@ -120,21 +120,24 @@ On `import-handoff` exit 2 (missing file / invalid JSON / schema validation fail
 
 On `import-handoff` exit 0 with a `warning:` line on stderr (prefixed `import-handoff: warning:`) (re-import would overwrite user-composed `state.overview` / `state.desired_behavior` / AC content): surface the stderr warning text to the user as plain prose alongside the verbatim stdout block, then continue to Phase 1. The helper has already overwritten pre-seeds; the warning is informational so the user knows downstream sections may need re-review at Phase 5 approval.
 
-### Phase 0.5 — Re-entry from `/grill` (conditional — skip if no seed)
+### Phase 0.5 — Re-entry from `/grill` or `/spec-check` (conditional — skip if no seed)
 
-Before beginning the spec work, check for a `/grill` re-entry seed. Glob `specs/*/grill-seed.json`. If any matched file has a `target_stage` equal to `"spec"` (this command's stage), you are re-entering from a `/grill` RE-ENTER-UPSTREAM verdict — the design-time grill proved a plan defect was rooted in THIS spec / scope stage's conclusion, and the re-run must be DIRECTED so it does not re-derive the invalidated conclusion. Read that seed and treat it as a binding directive for this run. Read it DIRECTLY: parse the matched file's flat JSON inline — do NOT call any grill helper or `grill_helper` verb (the orchestrator reads the file itself, so this block stays valid even if `/grill` is ever removed). The seed carries these fields:
+Before beginning the spec work, check for a re-entry seed. Glob `specs/*/*-seed.json`. If any matched file has a `target_stage` equal to `"spec"` (this command's stage), you are re-entering this (upstream) spec stage because a DOWNSTREAM adversarial check found the flaw is rooted here; read the seed's `source` field to know which check fired: `/grill` (a RE-ENTER-UPSTREAM verdict on the plan's design) or `/spec-check` (a REVISE-SPEC verdict on the spec's AC logic). In either case a downstream adversarial check invalidated a conclusion of THIS spec stage, so the re-run must be DIRECTED and must not re-derive the invalidated conclusion. Read that seed and treat it as a binding directive for this run. Read it DIRECTLY: parse the matched file's flat JSON inline — do NOT call any `grill_helper` verb or (once it exists) `spec_check_helper` verb (the orchestrator reads the file itself, so this block stays valid even if `/grill` or `/spec-check` is ever removed). The seed carries these fields:
 
+- `source` — which command emitted this seed (`grill` or `spec-check`); read it first and state up front which command's verdict you are re-entering from (`/grill` RE-ENTER-UPSTREAM, or `/spec-check` REVISE-SPEC).
 - `feature` — the feature this seed was emitted for; read it from the seed and state it up front in your re-entry message (do NOT infer it from the file path).
-- `prior_conclusion` — what the previous spec / scope concluded; it was invalidated, so do NOT re-derive it.
-- `invalidating_evidence` — how `/grill` proved it wrong, grounded in the plan / spec / code.
+- `prior_conclusion` — what the previous spec concluded; it was invalidated, so do NOT re-derive it.
+- `invalidating_evidence` — how the downstream check proved it wrong, grounded in the plan / spec / code.
 - `must_satisfy` — what this re-run must now additionally satisfy; address it explicitly.
 - `carried_findings` — prior findings to carry forward; stay monotonic (never re-surface a finding a prior pass already disproved).
 
-State up front in your first user-facing message that you are running in grill-re-entry mode for the named `feature`, and name how this run addresses `must_satisfy`. Then run Phases 1–5 normally, with the seed's directive constraining the spec.
+State up front in your first user-facing message that you are running in re-entry mode — naming the seed's `source` command (`/grill` or `/spec-check`) — for the named `feature`, and name how this run addresses `must_satisfy`. Then run Phases 1–5 normally, with the seed's directive constraining the spec.
 
-This block only READS the seed's directive. It does NOT delete the seed or change its `cycle_count` — seed lifecycle (deleting or incrementing `cycle_count` after consumption) is handled by the next `/grill` run, which reads `carried_findings` to stay monotonic. That is a v1 simplification; do not add seed-deletion logic here.
+When MORE THAN ONE file matches `target_stage == "spec"` (e.g. a stale `spec-check-seed.json` left by an earlier REVISE-SPEC alongside a later `grill-seed.json`, since this block does not delete a consumed seed), process ALL of them: narrate each seed's `source` up front and address every seed's `must_satisfy`, unioning their `carried_findings`. If only one can be fully addressed this run, name the others explicitly as still-pending in the re-entry message. Do not silently pick one.
 
-When no `specs/*/grill-seed.json` file matches `target_stage == "spec"` (the normal case — `/grill` is opt-in, and no seed is ever produced unless a `/grill` run reaches a RE-ENTER-UPSTREAM verdict), this block is a no-op: proceed directly to Phase 1.
+This block only READS the seed's directive. It does not delete the seed or mutate its `cycle_count` — that lifecycle management, whatever form it takes, is the emitting command's responsibility, not this consumer's. That is a v1 simplification; do not add seed-deletion logic here.
+
+When no `specs/*/*-seed.json` file matches `target_stage == "spec"` (the normal case — both `/grill` and `/spec-check` are opt-in, and no seed is ever produced unless a `/grill` run reaches a RE-ENTER-UPSTREAM verdict or a `/spec-check` run reaches a REVISE-SPEC verdict), this block is a no-op: proceed directly to Phase 1.
 
 ## Phase 1 — Input reads (7 sources)
 

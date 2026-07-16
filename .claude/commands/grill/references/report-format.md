@@ -188,5 +188,5 @@ re-run must additionally satisfy; for REVISE-PLAN, the fix the revised plan must
 meet), `cycle_count` (the bounded-compounding-loop counter), `carried_findings`
 (prior findings carried forward, monotonic), and `provenance` (a pointer to this
 `grill.md` / the plan). The schema is owned by
-`src/devforge/lib/_grill/seed_schema.py` (`ReEntrySeed`); the helper validates and
+`src/devforge/lib/_shared/seed_schema.py` (`ReEntrySeed`); the helper validates and
 atomically writes it — do not hand-author the seed.
