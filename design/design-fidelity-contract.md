@@ -3,7 +3,7 @@
 > **Source of truth:** `design/styles.css` (Claude Design export), read directly — NOT reconstructed. Resolved values.
 > **How to use:** feed into `/specify` AC-13 as computed-style targets + CT `getComputedStyle` assertions. **Copy the VALUES, never the CODE.** `var(--token)` ⇒ assert *resolves-to-token*; `color-mix(...)` ⇒ token level.
 > **This file is the MENU, not the per-feature spec.** It describes the whole reference; a feature may ship a simpler element or none. Each feature carries its own MATCH/DEVIATE disposition in its own scope. **And the reference can be under-specified — where it lacks a needed constraint (e.g. no nowrap on a user-typed name), DEVIATE deliberately, don't copy the gap.**
-> **Last full re-sync:** 2026-07-09 from the newest export. Deltas vs previous contract: `--font-sans` reordered (Inter first); `.tab-dirty` gained a glow ring; `.split-toggle` right side now fully rounded; chip `.method` letter-spacing 0.05em; `.env-selector` now bordered; `.response-meta` now on a sunken bg. Values otherwise stable; the three documented drifts (`.btn`=500, `.reqbar` gap 8px, `.kbd` ls 0.02em) still present.
+> **Last full re-sync:** 2026-07-16 from the newest export ("each tab" redesign). Deltas vs previous contract: **tokens unchanged** (light + dark identical — 0 diff). `.tab-dirty` is now **stateful** — base dot is colourless; `.unsaved` = amber (`--m-put`) glow, `.saved` = green (`--status-2xx`) glow (**drift on the already-built tab bar**). **Body editor gained** `.body-radio:hover`, `.body-radio.active .dot`, `.body-toolbar .right`, `.code-editor pre`, `.code-editor .gutter > div`, and a `.body-empty` drop card. **New GraphQL block** (§8b: `.gql-label`, `.gql-editor`, `::placeholder`). `.kv-header` gained `height:30px` + faint bottom border. JSON tokens `.tk-null`/`.tk-punc` + explicit dark `.tk-*` now in §11. The three documented drifts (`.btn`=500, `.reqbar` gap 8px, `.kbd` ls 0.02em) still present. *(Also, not tracked as fidelity ACs: custom `.pane-body` scrollbar; `.pane-tab .badge-body` min-width 42px.)*
 
 ---
 
@@ -133,7 +133,9 @@ Chip context = token as background; soft = 16% tint.
 | Tab bar | `.tabbar` | `height: 36px`<br>`background: var(--bg-sunken)`<br>`border-bottom: 1px solid var(--border)`<br>`padding-right: 8px` |
 | Tab | `.tab` | `gap: 8px`<br>`padding: 0 10px 0 12px`<br>`max-width: 220px`<br>`min-width: 0`<br>`font-size: 12.5px`<br>`color: var(--text-muted)`<br>`border-right: 1px solid var(--border)` |
 | Tab label | `.tab .tab-label` | `white-space: nowrap`<br>`overflow: hidden`<br>`text-overflow: ellipsis`<br>`flex: 1` |
-| Dirty dot | `.tab .tab-dirty` | `width: 7px`<br>`height: 7px`<br>`border-radius: 50%`<br>`background: var(--m-put)`<br>`flex-shrink: 0`<br>`box-shadow: 0 0 0 2px color-mix(in oklab, var(--m-put) 22%, transparent)` |
+| Dirty dot (base) | `.tab .tab-dirty` | `width: 7px`<br>`height: 7px`<br>`border-radius: 50%`<br>`flex-shrink: 0` *(base colourless — state classes add colour)* |
+| Dirty · unsaved | `.tab .tab-dirty.unsaved` | `background: var(--m-put)`<br>`box-shadow: 0 0 0 2px color-mix(in oklab, var(--m-put) 22%, transparent)` |
+| Dirty · saved | `.tab .tab-dirty.saved` | `background: var(--status-2xx)`<br>`box-shadow: 0 0 0 2px color-mix(in oklab, var(--status-2xx) 22%, transparent)` |
 | Close | `.tab .tab-close` | `width: 16px`<br>`height: 16px`<br>`border-radius: 3px`<br>`color: var(--text-faint)` |
 | Close hover | `.tab .tab-close:hover` | `background: var(--bg-active)`<br>`color: var(--text)` |
 | Rename | `.tab .tab-rename` | `font-size: 12.5px`<br>`padding: 1px 5px`<br>`border: 1px solid var(--accent)`<br>`border-radius: 4px`<br>`box-shadow: 0 0 0 2px var(--accent-soft)`<br>`background: var(--bg-elev)`<br>`color: var(--text)` |
@@ -146,6 +148,7 @@ Chip context = token as background; soft = 16% tint.
 | Pane tab | `.pane-tab` | `height: 36px`<br>`padding: 0 4px`<br>`gap: 6px`<br>`color: var(--text-muted)`<br>`font-size: 12.5px`<br>`font-weight: 500`<br>`margin-right: 14px` |
 | Badge | `.pane-tab .badge` | `font-size: 10px`<br>`background: var(--bg-active)`<br>`color: var(--text-muted)`<br>`border-radius: 999px`<br>`padding: 1px 6px`<br>`font-weight: 600` |
 | Active badge | `.pane-tab.active .badge` | `background: var(--accent-soft)`<br>`color: var(--accent)` |
+| Body badge | `.pane-tab .badge-body` | `min-width: 42px` |
 
 ## 7 · Key-Value editor
 
@@ -155,7 +158,8 @@ Grid `22px 1fr 1fr 1fr 24px`, mono cells. Checkbox is a **native** `<input type=
 |---|---|---|
 | Table | `.kv` | `width: 100%`<br>`font-size: 12.5px` |
 | Header/row grid | `.kv-header, .kv-row` | `display: grid`<br>`grid-template-columns: 22px 1fr 1fr 1fr 24px`<br>`align-items: center` |
-| Header | `.kv-header` | `font-size: 10.5px`<br>`text-transform: uppercase`<br>`letter-spacing: 0.04em`<br>`color: var(--text-faint)`<br>`font-weight: 600` |
+| Header | `.kv-header` | `font-size: 10.5px`<br>`text-transform: uppercase`<br>`letter-spacing: 0.04em`<br>`color: var(--text-faint)`<br>`font-weight: 600`<br>`height: 30px`<br>`border-bottom: 1px solid var(--border-faint)` |
+| Header cell | `.kv-header > div` | `padding: 0 10px` |
 | Row | `.kv-row` | `border-bottom: 1px solid var(--border-faint)`<br>`min-height: 32px`<br>`color: var(--text)` |
 | Row hover | `.kv-row:hover` | `background: var(--bg-hover)` |
 | Cell | `.kv-row .kv-cell` | `padding: 6px 10px`<br>`gap: 6px`<br>`font-family: var(--font-mono)`<br>`font-size: 12px` |
@@ -170,12 +174,29 @@ Grid `22px 1fr 1fr 1fr 24px`, mono cells. Checkbox is a **native** `<input type=
 | element | reference selector | key resolved values |
 |---|---|---|
 | Toolbar | `.body-toolbar` | `gap: 4px`<br>`padding: 8px 16px`<br>`border-bottom: 1px solid var(--border-faint)`<br>`font-size: 12.5px` |
+| Toolbar right | `.body-toolbar .right` | `margin-left: auto`<br>`display: flex`<br>`gap: 4px`<br>`align-items: center`<br>`color: var(--text-muted)` *(holds lang-pill + beautify/copy/edit-toggle — T7e)* |
 | Radio | `.body-radio` | `gap: 5px`<br>`padding: 4px 10px`<br>`color: var(--text-muted)`<br>`border-radius: var(--radius-sm)` |
+| Radio hover | `.body-radio:hover` | `color: var(--text)` |
 | Radio active | `.body-radio.active` | `background: var(--bg-active)`<br>`color: var(--text)` |
 | Radio dot | `.body-radio .dot` | `width: 8px`<br>`height: 8px`<br>`border-radius: 50%`<br>`border: 1.5px solid var(--text-faint)` |
+| Radio dot active | `.body-radio.active .dot` | `background: var(--accent)`<br>`border-color: var(--accent)` |
 | Code editor | `.code-editor` | `display: grid`<br>`grid-template-columns: 36px 1fr`<br>`font-family: var(--font-mono)`<br>`font-size: 12.5px`<br>`line-height: 1.65`<br>`padding: 12px 0` |
+| Code pre | `.code-editor pre` | `margin: 0`<br>`white-space: pre`<br>`color: var(--text)` |
 | Gutter | `.code-editor .gutter` | `text-align: right`<br>`color: var(--text-faint)`<br>`padding-right: 12px`<br>`font-size: 11.5px` |
+| Gutter row | `.code-editor .gutter > div` | `height: calc(1.65em)` — **⚠ alignment trap:** `em` resolves at the gutter's 11.5px = **18.975px/row**, but `pre` lines are 12.5px×1.65 = **20.625px/row** → cumulative downward drift. **DEVIATE:** pin ONE absolute 20.625px across textarea/pre/gutter — do NOT copy `1.65em` (see T7c). |
 | Lang pill | `.lang-pill` | `gap: 5px`<br>`padding: 3px 8px`<br>`background: var(--bg-sunken)`<br>`border: 1px solid var(--border)`<br>`border-radius: var(--radius-sm)`<br>`font-size: 11px` |
+| Empty / drop card | `.body-empty` | `display: flex`<br>`align-items: center`<br>`gap: 9px`<br>`margin: 12px`<br>`padding: 12px 14px`<br>`border: 1px solid var(--border)`<br>`border-radius: 9px`<br>`background: var(--bg-sunken)`<br>`color: var(--text-muted)`<br>`font-size: 12px`<br>`line-height: 1.5` |
+| Empty icon | `.body-empty svg` | `flex-shrink: 0`<br>`color: var(--text-faint)` |
+
+## 8b · GraphQL editor (T24)
+
+Reference ships two **bare** textareas (no highlighting) each under a label. `.gql-editor` = plain mono textarea; per T24 the query area gets the `{{var}}` pass only and the variables area reuses the CodeEditor (JSON). No structural GraphQL token vocabulary exists — do not invent one.
+
+| element | reference selector | key resolved values |
+|---|---|---|
+| Pane label | `.gql-label` | `font-size: 10.5px`<br>`text-transform: uppercase`<br>`letter-spacing: 0.04em`<br>`font-weight: 600`<br>`color: var(--text-faint)`<br>`padding: 10px 12px 4px` |
+| Editor | `.gql-editor` | `width: 100%`<br>`min-height: 0`<br>`padding: 4px 12px 12px`<br>`background: transparent`<br>`color: var(--text)`<br>`font-family: var(--font-mono)`<br>`font-size: 12.5px`<br>`line-height: 1.65`<br>`border: none`<br>`outline: none`<br>`resize: none` |
+| Placeholder | `.gql-editor::placeholder` | `color: var(--text-faint)` |
 
 ## 9 · Auth panel
 
@@ -219,6 +240,8 @@ JSON tokens are theme-split (see §1b note).
 | JSON key | `.tk-key` | `color: #0369a1` (dark `#7dd3fc`) |
 | JSON bool | `.tk-bool` | `color: #be185d` (dark `#f0abfc`) |
 | JSON var | `.tk-var` | `color: var(--accent)`<br>`font-weight: 600` |
+| JSON null | `.tk-null` | `color: var(--text-faint)` *(theme-invariant token)* |
+| JSON punctuation | `.tk-punc` | `color: var(--text-muted)` *(theme-invariant token)* |
 
 ## 12 · Sidebar
 
@@ -295,4 +318,4 @@ Find the surface by component name; use its resolved values as `getComputedStyle
 
 Two limits: (1) **menu, not spec** — each feature needs its own MATCH/DEVIATE disposition; don't assert elements a feature doesn't ship (e.g. §3 split-dropdown = app DEVIATE). (2) **reference can be wrong** — where it omits a needed constraint, DEVIATE on purpose.
 
-> **Staleness:** snapshot of `styles.css`. Re-run extraction + diff on any re-export. Regenerated 2026-07-09 from the newest export. Baseline for the delta note above is the *previous contract's recorded values*, not the previous `styles.css` — a repo re-extract script (dev-lane, open) would make future diffs authoritative.
+> **Staleness:** snapshot of `styles.css`. Re-run extraction + diff on any re-export. Regenerated 2026-07-16 from the "each tab" export via a scripted extract+diff (tokens 0-diff; changes were additive body/GraphQL selectors + stateful `.tab-dirty`). Baseline for the delta note above is the *previous contract's recorded values*. The dev-lane re-extract script (open) would formalise exactly this pass — until then, re-run the same extract+diff on each export.
