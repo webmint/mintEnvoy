@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.1",
+  "research_path": "research/2026-07-19-change-the-raw-mode.md",
+  "research_completed_at": "2026-07-19T15:01:36+00:00",
+  "mode": "feature_addition",
+  "intent": {
+    "symptom_summary": "The raw-mode CodeEditor uses an overlay edit mechanism (transparent textarea stacked over an aria-hidden highlighted pre, per-keystroke debounced re-tokenization, a colored snapshot shown while editing, textarea->pre scroll sync) that diverges from the design's edit/preview toggle and carries avoidable complexity (dual-layer scroll sync, debounce timing, live-vs-snapshot coloring). Change it to a design-matched editing-state toggle.",
+    "desired_summary": "An 'editing' boolean gates the render: editing=true shows a plain textarea (spellCheck off, resize none, native undo/selection/IME, native Tab, white-space:pre with horizontal scroll, no soft-wrap); editing=false shows the highlighted pre (preview). Never both mounted. Transitions: enter edit via (a) clicking the preview \u2014 caret MUST be placed at the clicked character position \u2014 or (b) the toggle button; leave edit (edit->preview) on BOTH textarea blur AND the toggle button. compose() tokenization runs ONCE on the switch-to-preview transition, not per keystroke. Gutter tracks whichever layer is visible within one scroll container. No colored-during-edit snapshot; no textarea->pre scroll sync.",
+    "scope": "feature-wide",
+    "verbatim_prompt": "Change the raw-mode code editor's edit mechanism from an overlay to the design's editing-toggle, in the request body editor's extracted CodeEditor molecule. Current: the CodeEditor layers a transparent textarea over an aria-hidden highlighted pre, with per-keystroke debounced re-tokenization, a colored snapshot shown while editing, and textarea->pre scroll sync. Desired: match the design -- an `editing` state that renders EITHER a plain textarea (while editing) OR the highlighted pre (preview), never both; tokenize once on switch-to-preview, not per keystroke; drop the textarea/pre scroll-sync and the live-vs-debounced colored-during-edit path. Accepted tradeoff: no syntax highlighting while typing (plain in edit, colored in preview). Behavioral contract to pin: the edit surface is a plain textarea (spellCheck off, resize none) with native undo / selection / IME; wrap is white-space pre with horizontal scroll and no soft-wrap; the Tab key stays native; the gutter tracks the visible layer within one scroll container. Out of scope, do not build: auto-indent, bracket/quote auto-close, multi-cursor, find/replace, paste-and-format, and any third-party editor engine. Unchanged, must survive: the single shared line-box unit that keeps textarea, pre, and gutter rows equal at 20.625px; reuse of the existing JSON tokenizer compose lib byte-unchanged; the malformed-JSON degrade-to-plain path; the code data-testids; the reset-on-change signal that resets scroll and invalidates the colored snapshot when the active request tab switches; and none/urlencoded mode behavior. The edit/preview toggle button is a separate concern."
+  },
+  "spec_seeds": {
+    "spec_type_hint": "feature_addition",
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "\u00a76.3 Search Before Building",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "\u00a73.6 Simplicity & Reuse (KISS/DRY)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "\u00a76.1 Minimal Changes",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "\u00a72.2 Renderer Tier Organization",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "\u00a73.4 Testing Requirements",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [],
+    "risks": [
+      {
+        "risk": "Line-box (20.625px) alignment must hold in BOTH toggle states; gutter must track the visible layer in one scroll container; caret-at-click mapping correctness; scroll-position preservation across toggle.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "tbd via /plan"
+      }
+    ],
+    "open_questions": [],
+    "value_semantics": [],
+    "value_production_sites": [],
+    "literal_archaeology": [],
+    "data_flow_chain": null,
+    "design_anchor": {
+      "kind": "html",
+      "file": "design/reference.html",
+      "selectors": [
+        ".code-editor"
+      ]
+    }
+  },
+  "plan_seeds": {
+    "recommended_approach_id": "editing_state_conditional_mount_toggle_state_in_bodyeditor",
+    "recommended_approach_summary": "Option 1 wins on the one non-negotiable the brief states outright: at any instant the DOM must contain just one of the two surfaces, and its test hook must be the sole marker attached. Option 2 retains a dormant second surface and is excluded by that rule. Every must-not-regress item is honored \u2014 the 20.625 px row metric stays a shared constant in either state, the colouring helper is reused unmodified and fires one time on return to preview, the reset scalar's scroll-and-discard signal is kept, and the empty and form-encoded paths are untouched. Two questions stay unresolved and are logged below: retaining the viewport scroll over a state switch, and where the insertion point lands on entry from a pointer press.",
+    "layer_destination": "tbd",
+    "layer_justification": "multi-layer",
+    "complexity": {
+      "changes": "Med",
+      "risk": "Med",
+      "verify_cost": "Med"
+    },
+    "cited_canonical_patterns": [],
+    "alternatives_considered": [
+      {
+        "id": "keep_both_mounted_css_visibility_toggle_runner_up",
+        "summary": "Keep both textarea and pre mounted at all times and toggle only their CSS visibility, reusing BodyEditor's hidden-toggle idiom (BodyEditor.tsx:171). compose() could still run once on entering preview.",
+        "rejected_reason": "not recommended; see /plan if needed"
+      }
+    ],
+    "proposed_call_shape": null,
+    "correctness_vetted": false
+  },
+  "probe": {
+    "tier": "3",
+    "actor": "user",
+    "discriminator": {
+      "primary_confirms_if": "if selectionStart == clicked char offset -> native click-through/mapping suffices (H-B benign); if it lands at 0 or text end -> a manual click-coordinate->char-offset mapping is required before focus (H-B confirmed).",
+      "runner_up_confirms_if": "tbd \u2014 manual observation required",
+      "both_disproved_if": "tbd",
+      "production_site_check": null
+    },
+    "feasibility_check": {
+      "data_shape_only": false,
+      "auth_required": false,
+      "network_dependent": false,
+      "timing_dependent": false,
+      "is_test_code": false
+    },
+    "test_framework": null,
+    "test_path": null,
+    "script_path": null,
+    "is_first_test_for_file": false
+  },
+  "downstream_links": {
+    "spec_path": null,
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  },
+  "outcome": null
+}
