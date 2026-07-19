@@ -1,0 +1,8 @@
+{
+  "route": "app root (electron-vite dev) → Request pane → click the Body sub-tab → select the 'raw' body type; the extracted CodeEditor renders in the raw slot inside the #panel-body tabpanel",
+  "pairs": [
+    { "anchor_selector": ".code-editor", "built_testid": "body-code-editor" },
+    { "anchor_selector": ".code-editor .gutter", "built_testid": "body-gutter" },
+    { "anchor_selector": ".code-editor pre", "built_testid": "body-pre" }
+  ]
+}

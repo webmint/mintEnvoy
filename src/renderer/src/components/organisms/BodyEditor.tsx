@@ -9,17 +9,10 @@
  * active panel is visible (others carry the HTML `hidden` attribute). Panels
  * are never unmounted, preserving scroll position across mode switches.
  *
- * Three-layer code area (raw mode): gutter | [textarea stacked over pre].
- * Textarea is the single scroll source; onScroll syncs pre.scrollTop/Left via
- * ref. Textarea text is `color: transparent`; the aria-hidden pre renders the
- * highlighted tokens on the same pixel grid.  All token text is inserted as
- * escaped JSX children — no innerHTML / dangerouslySetInnerHTML (XSS-safe).
- *
- * Live-immediate / debounced-coloring split (AC-23):
- *  - Plain text renders every keystroke (gutter line count + pre plain span).
- *  - compose() runs on a trailing debounce (BODY_HIGHLIGHT_DEBOUNCE_MS). When
- *    the colored snapshot matches body.raw.text the pre renders token spans;
- *    while typing it plain-degrades to a single var(--text) span.
+ * Raw-mode code area is delegated to the CodeEditor molecule, which owns the
+ * three-layer overlay, debounced highlighting, scroll sync, and reset-on-tab
+ * behaviour. BodyEditor passes resetKey={activeTabId} so CodeEditor resets
+ * scroll and invalidates the color snapshot on tab switch.
  *
  * Urlencoded slot is a render-prop — KVTable is NOT imported here (§2.2).
  * form-data / binary / graphql show a built-in placeholder paragraph.
@@ -30,25 +23,14 @@
  */
 
 import './BodyEditor.css'
-import React, {
-  memo,
-  type ReactNode,
-  useRef,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo
-} from 'react'
+import React, { memo, type ReactNode, useRef, useCallback } from 'react'
 import { tabsStore, BLANK_BODY } from '@renderer/lib/tabsStore'
 import type { RawBody, BodyType, RawLang, Row } from '@renderer/lib/tabsStore'
-import { compose } from '@renderer/lib/jsonTokens'
-import { isMissingVar } from '@renderer/lib/varTokens'
 import { envVars } from '@renderer/lib/envVars'
 import { EmptyPanel } from '@renderer/components/atoms/EmptyPanel'
+import { CodeEditor } from '@renderer/components/molecules/CodeEditor'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const BODY_HIGHLIGHT_DEBOUNCE_MS = 100
 
 const BODY_TYPES: Array<{ value: BodyType; label: string }> = [
   { value: 'none', label: 'none' },
@@ -83,49 +65,6 @@ export const BodyEditor = memo(function BodyEditor({
 
   /** Ref array for roving-tabIndex focus management (one slot per radio). */
   const radioRefs = useRef<(HTMLElement | null)[]>([])
-
-  /** Debounced highlight state: null until first compose() completes. */
-  const [colored, setColored] = useState<{
-    snapshot: string
-    tokens: ReturnType<typeof compose>
-  } | null>(null)
-
-  /** Ref to the <pre> overlay for scroll synchronisation. */
-  const preRef = useRef<HTMLPreElement>(null)
-
-  /** Ref to the raw-body <textarea> — the single scroll source of the code area. */
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-  // On request-tab switch: invalidate the colored snapshot AND reset the inner
-  // code-area scroll. BodyEditor is mounted once (no per-tab key), so its single
-  // textarea persists across request tabs; RequestSubTabs' panel-scrollTop reset
-  // does not reach this nested textarea, so without this the new tab's body would
-  // appear at the previous tab's scroll offset (and the pre overlay would desync).
-  useEffect(() => {
-    setColored(null)
-    if (textareaRef.current) {
-      textareaRef.current.scrollTop = 0
-      textareaRef.current.scrollLeft = 0
-    }
-    if (preRef.current) {
-      preRef.current.scrollTop = 0
-      preRef.current.scrollLeft = 0
-    }
-  }, [activeTabId])
-
-  // Trailing debounce: schedule compose() whenever text, lang, OR the active tab
-  // changes. Effect cleanup (return) clears the timer on re-run AND on unmount.
-  // `activeTabId` is in the deps so a switch to a tab with IDENTICAL raw text+lang
-  // still re-schedules compose() — the setColored(null) above cleared the cache,
-  // and without re-arming here the highlight would stay off permanently on that tab.
-  // envVars() returns a stable singleton (see envVars.ts); calling it here is safe.
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const tokens = compose(body.raw.text, body.raw.lang, envVars())
-      setColored({ snapshot: body.raw.text, tokens })
-    }, BODY_HIGHLIGHT_DEBOUNCE_MS)
-    return () => clearTimeout(timer)
-  }, [body.raw.text, body.raw.lang, activeTabId])
 
   // ─── Typed update helpers ───────────────────────────────────────────────
 
@@ -186,64 +125,14 @@ export const BodyEditor = memo(function BodyEditor({
     setRaw({ ...body.raw, lang: next })
   }
 
-  // ─── Code-area handlers ─────────────────────────────────────────────────
-
-  /** Textarea is the single scroll source; pre follows via ref. */
-  function handleTextareaScroll(e: React.UIEvent<HTMLTextAreaElement>): void {
-    if (preRef.current) {
-      preRef.current.scrollTop = e.currentTarget.scrollTop
-      preRef.current.scrollLeft = e.currentTarget.scrollLeft
-    }
-  }
-
-  function handleTextChange(e: React.ChangeEvent<HTMLTextAreaElement>): void {
-    setRaw({ ...body.raw, text: e.currentTarget.value })
-  }
-
   // ─── Derived values ─────────────────────────────────────────────────────
 
-  // useMemo: split('\n') on large raw bodies is a 50k-char scan; skip it when text
-  // is unchanged (e.g. urlencoded-edit-driven re-renders leave raw text stable).
-  const lineCount = useMemo(() => body.raw.text.split('\n').length, [body.raw.text])
-  /** True only when the debounced snapshot matches the live text (and same lang). */
-  const showColored = colored !== null && colored.snapshot === body.raw.text
-
   /**
-   * Live env-var set — same stable singleton envVars() returns in v1; grows non-empty
-   * once the T14 env store lands. Used in the missing-var render guard below.
+   * Live env-var set — stable singleton from envVars(); passed to CodeEditor
+   * so the missing-var highlight gate uses the same reference as the rest of
+   * the app.
    */
   const validVars = envVars()
-
-  // Memoize gutter line-number divs: Array.from on a large body is a non-trivial
-  // scan; skip it when lineCount is unchanged (finding 2).
-  const gutterDivs = useMemo(
-    () => Array.from({ length: lineCount }, (_, i) => <div key={i}>{i + 1}</div>),
-    [lineCount]
-  )
-
-  // Memoize colored token spans: colored.tokens.map() rebuilds the full React
-  // element tree on every render (incl. every urlencoded keystroke). Skip it when
-  // neither the colored snapshot nor validVars has changed (finding 3).
-  const tokenSpans = useMemo(
-    () =>
-      colored?.tokens.map((t, i) => (
-        <span
-          key={i}
-          className={
-            t.kind === 'plain'
-              ? undefined
-              : // tk-var: apply .missing via shared isMissingVar gate
-                // (§3.6 DRY — same rule as KVTable's renderSegments).
-                t.kind === 'tk-var' && isMissingVar(t.known, validVars)
-                ? 'tk-var missing'
-                : t.kind
-          }
-        >
-          {t.text}
-        </span>
-      )) ?? null,
-    [colored, validVars]
-  )
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
@@ -292,38 +181,15 @@ export const BodyEditor = memo(function BodyEditor({
       {/* none — no payload */}
       <div hidden={body.active !== 'none'} />
 
-      {/* raw — three-layer code area */}
+      {/* raw — three-layer code area (delegated to CodeEditor molecule) */}
       <div hidden={body.active !== 'raw'}>
-        <div className="code-editor" data-testid="body-code-editor">
-          {/* Gutter: one div per line, count matches live textarea line count */}
-          <div className="gutter" data-testid="body-gutter">
-            {gutterDivs}
-          </div>
-
-          {/* Content: textarea (scroll source) + pre (highlight layer) stacked */}
-          <div className="code-editor-content">
-            {/*
-             * pre sits behind the transparent textarea.
-             * showColored: render compose() token spans.
-             * plain-degrade: single span with live text when compose is stale.
-             * All content is escaped JSX text — never innerHTML.
-             */}
-            <pre ref={preRef} data-testid="body-pre" aria-hidden="true">
-              {showColored ? tokenSpans : <span>{body.raw.text}</span>}
-            </pre>
-
-            {/* Textarea drives height + scroll; text is transparent (caret visible). */}
-            <textarea
-              ref={textareaRef}
-              value={body.raw.text}
-              onChange={handleTextChange}
-              onScroll={handleTextareaScroll}
-              spellCheck={false}
-              autoComplete="off"
-              aria-label="Request body"
-            />
-          </div>
-        </div>
+        <CodeEditor
+          resetKey={activeTabId}
+          value={body.raw.text}
+          lang={body.raw.lang}
+          onChange={(text) => setRaw({ ...body.raw, text })}
+          validVars={validVars}
+        />
       </div>
 
       {/* urlencoded — render-prop slot. handleUrlencodedRowsChange is stable via

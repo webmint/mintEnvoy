@@ -1,0 +1,14 @@
+{
+  "seed_version": "1",
+  "source": "grill",
+  "target_stage": "plan",
+  "feature": "specs/018-code-editor-extract",
+  "prior_conclusion": "D3: CodeEditor is self-contained with API exactly {value, lang, onChange, validVars}; File Impact removes BodyEditor's activeTabId-keyed editor state/effects/memos with no substitute; the Layer Map assigns CodeEditor the tab-switch scroll reset + colored-snapshot invalidation.",
+  "invalidating_evidence": "Grill Finding 1 (High, confirmed by code-reviewer): the props-only API carries no activeTabId signal, so when two request tabs hold IDENTICAL raw text+lang the props are unchanged on switch and CodeEditor cannot fire AC-6's reset. Live effects key off activeTabId at BodyEditor.tsx:104-114 (scroll+setColored(null)) and :122-128 (debounce re-arm). Breaks regression CTs BodyEditor.ct.tsx:769 (identical-body re-arm) and :811 (scroll-bleed reset).",
+  "must_satisfy": "The revised plan must give the extracted editor a tab-switch reset trigger that fires even when value+lang are identical — e.g. add a resetKey/activeTabId prop to CodeEditor, or have BodyEditor pass key={activeTabId} to force remount, or retain the reset+re-arm effect in BodyEditor — while keeping CodeEditor's self-contained compose()+debounce+colored state. AC-6 + BodyEditor.ct.tsx:769 and :811 must pass.",
+  "cycle_count": 1,
+  "carried_findings": [
+    "AC-6 tab-switch reset gap: props-only CodeEditor cannot detect an identical-body tab switch"
+  ],
+  "provenance": "specs/018-code-editor-extract/grill.md"
+}

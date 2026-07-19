@@ -25,6 +25,7 @@ import type { Body, Row } from '@renderer/lib/tabsStore'
 import { makeTab } from '@renderer/__tests__/fixtures/requestSpec'
 import { BodyEditor } from '@renderer/components/organisms/BodyEditor'
 import { KVTable } from '@renderer/components/organisms/KVTable'
+import { JSON_ALL_TOKENS } from '@renderer/components/molecules/__tests__/CodeEditor.stories'
 
 // ---------------------------------------------------------------------------
 // Shared constants
@@ -32,16 +33,11 @@ import { KVTable } from '@renderer/components/organisms/KVTable'
 
 /** Fixed width so the `.code-editor` grid tracks (36px 1fr) are deterministic. */
 const WRAPPER_STYLE: React.CSSProperties = { width: '700px' }
-// Height-bounded host so a 100-line raw body actually overflows the textarea —
-// lets the scroll-bleed CT scroll Tab A, switch, and assert the reset to 0.
-const SCROLL_BLEED_WRAPPER_STYLE: React.CSSProperties = { width: '400px', height: '150px' }
 
-/**
- * Multi-line JSON exercising every structural token kind plus a `{{var}}`
- * inside a string: tk-punc, tk-key, tk-num, tk-bool, tk-null, tk-str, tk-var.
- */
-export const JSON_ALL_TOKENS =
-  '{\n  "key": 1,\n  "flag": true,\n  "nil": null,\n  "msg": "a {{x}} b"\n}'
+// JSON_ALL_TOKENS is the canonical seed defined in CodeEditor.stories.tsx (the molecule
+// that owns the code editor); imported above and re-exported here so BodyEditor.ct.tsx
+// can import it from this module without a path change — keeping T7a contract parity in one place.
+export { JSON_ALL_TOKENS }
 
 /** Stub for the urlencoded render-prop slot (BodyEditor requires the prop). */
 const stubUrlencoded = (): JSX.Element => <div data-testid="ct-be-urlencoded-stub" />
@@ -97,17 +93,6 @@ export function BodyEditorRawJsonLightFixture(): JSX.Element {
   const ref = useSeed(RAW_JSON)
   return (
     <div data-theme="light" style={WRAPPER_STYLE}>
-      <BodyEditor renderUrlencoded={stubUrlencoded} />
-      <span ref={ref} />
-    </div>
-  )
-}
-
-/** Raw+JSON body under the DARK theme (AC-21 literal hex). */
-export function BodyEditorRawJsonDarkFixture(): JSX.Element {
-  const ref = useSeed(RAW_JSON)
-  return (
-    <div data-theme="dark" style={WRAPPER_STYLE}>
       <BodyEditor renderUrlencoded={stubUrlencoded} />
       <span ref={ref} />
     </div>
@@ -437,10 +422,12 @@ const CT_BE_SR_TAB_B = 'ct-be-sr-b'
  * Two request tabs BOTH carrying identical raw+JSON bodies.
  *
  * Used for the highlight-lock regression guard: after switching from Tab A to
- * Tab B, the debounce effect must re-arm because `activeTabId` is in its deps
- * (`useEffect([body.raw.text, body.raw.lang, activeTabId])`). Without that
- * dep, `setColored(null)` fires on the tab switch but the debounce never
- * reschedules (text+lang are unchanged), so `.tk-key` spans never reappear.
+ * Tab B, the debounce effect must re-arm because `resetKey` is in CodeEditor's
+ * deps (`useEffect([value, lang, resetKey])`). BodyEditor wires
+ * `resetKey={activeTabId}`, so the dep changes on every tab switch. Without
+ * the `resetKey` dep, `setColored(null)` fires on the tab switch but the
+ * debounce never reschedules (value+lang are unchanged), so `.tk-key` spans
+ * never reappear.
  *
  * Readiness: `ct-be-same-raw-ready` (set after the seed lands).
  * Switch buttons: `ct-be-sr-select-tab-a` / `ct-be-sr-select-tab-b`.
@@ -486,67 +473,140 @@ export function BodyEditorTwoTabsRawSameBodyFixture(): JSX.Element {
 }
 
 // ---------------------------------------------------------------------------
-// Scroll-bleed fixture — textarea scrollTop resets on request-tab switch (Finding 2)
+// Two-request-tabs scroll-reset fixture — org-boundary scroll-reset guard (F4)
 // ---------------------------------------------------------------------------
 
-/** Tab A id for the scroll-bleed fixture. */
-const CT_BE_SB_TAB_A = 'ct-be-sb-a'
+/** Tab A id for the org-boundary scroll-reset fixture. */
+const CT_BE_SC_TAB_A = 'ct-be-sc-a'
 
-/** Tab B id for the scroll-bleed fixture. */
-const CT_BE_SB_TAB_B = 'ct-be-sb-b'
+/** Tab B id for the org-boundary scroll-reset fixture. */
+const CT_BE_SC_TAB_B = 'ct-be-sc-b'
 
 /**
- * Two request tabs BOTH with long multi-line raw bodies in a bounded container.
- *
- * Used for the scroll-bleed regression guard: scroll Tab A's textarea to a
- * non-zero scrollTop, switch to Tab B, and assert the textarea scrollTop is 0.
- * The `useEffect([activeTabId])` in BodyEditor must reset
- * `textareaRef.current.scrollTop` (and `preRef.current.scrollTop`) to 0 on
- * every request-tab switch. Without this, the new tab's body renders at the
- * outgoing tab's scroll offset.
- *
- * The 150px bounded container ensures the textarea can overflow vertically so
- * scrollTop can be set to a non-vacuous non-zero value.
- *
- * Readiness: `ct-be-scroll-bleed-ready` (set after the seed lands).
- * Switch buttons: `ct-be-sb-select-tab-a` / `ct-be-sb-select-tab-b`.
+ * 100 lines × 80 chars each — overflows both axes in a 400 × 150 px container.
+ * Hoisted to module scope so it is computed once, not on each render.
  */
-export function BodyEditorScrollBleedFixture(): JSX.Element {
+const SCROLL_RESET_BODY = Array.from(
+  { length: 100 },
+  (_, i) => `line ${i}: ${'x'.repeat(80)}`
+).join('\n')
+
+/**
+ * Two request tabs carrying identical long raw bodies in a bounded (400 × 150 px) container.
+ *
+ * Used by the org-boundary scroll-reset CT: after setting the textarea to a non-zero scroll
+ * offset and switching the active request tab, the new activeTabId causes BodyEditor to pass
+ * a new resetKey to CodeEditor, which resets textarea + pre scrollTop/scrollLeft to 0.
+ *
+ * data-testids:
+ *   ct-be-sc-ready         — store seed complete; CT must wait for it
+ *   ct-be-sc-select-tab-b  — click to activate Tab B (triggers resetKey change)
+ */
+export function BodyEditorTwoTabsScrollResetFixture(): JSX.Element {
   const ref = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
-    const longText = Array.from({ length: 100 }, (_, i) => `line ${i}: ${'x'.repeat(80)}`).join(
-      '\n'
-    )
-    const longBody = body({ active: 'raw', raw: { lang: 'text', text: longText } })
+    const rawBody = body({ active: 'raw', raw: { lang: 'text', text: SCROLL_RESET_BODY } })
     tabsStore.setState({
       tabs: [
-        makeTab(CT_BE_SB_TAB_A, { body: longBody }),
-        makeTab(CT_BE_SB_TAB_B, { body: longBody })
+        makeTab(CT_BE_SC_TAB_A, { body: rawBody }),
+        makeTab(CT_BE_SC_TAB_B, { body: rawBody })
       ],
-      activeTabId: CT_BE_SB_TAB_A
+      activeTabId: CT_BE_SC_TAB_A
     })
     if (ref.current !== null) {
-      ref.current.setAttribute('data-testid', 'ct-be-scroll-bleed-ready')
+      ref.current.setAttribute('data-testid', 'ct-be-sc-ready')
+    }
+    // Seed is a one-shot effect — store state is stable after mount.
+  }, [])
+
+  function handleSelectTabB(): void {
+    tabsStore.getState().selectActive(CT_BE_SC_TAB_B)
+  }
+
+  return (
+    <div data-theme="light" style={{ width: '400px', height: '150px' }}>
+      <BodyEditor renderUrlencoded={stubUrlencoded} />
+      <button type="button" data-testid="ct-be-sc-select-tab-b" onClick={handleSelectTabB}>
+        Tab B
+      </button>
+      <span ref={ref} />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Two-request-tabs, MIXED modes: Tab A=raw, Tab B=urlencoded (F2 — hidden CodeEditor path)
+// ---------------------------------------------------------------------------
+
+/** Tab A id for the mixed-mode (raw+urlencoded) fixture. */
+const CT_BE_MX_TAB_A = 'ct-be-mx-a'
+
+/** Tab B id for the mixed-mode (raw+urlencoded) fixture. */
+const CT_BE_MX_TAB_B = 'ct-be-mx-b'
+
+/**
+ * 50 JSON entries, each with a long "data" value — overflows both axes in a
+ * 400 × 150 px container (vertical: ~52 lines × ~20.625 px ≈ 1073 px;
+ * horizontal: ~94 chars × ~7 px ≈ 658 px > 400 px). Hoisted to module scope
+ * so it is computed once, not on each render.
+ */
+const MIXED_X_PAD = 'x'.repeat(72)
+const MIXED_BODY_TEXT =
+  '[\n' +
+  Array.from({ length: 50 }, (_, i) => `  {"key": ${i}, "data": "${MIXED_X_PAD}"}`).join(',\n') +
+  '\n]'
+
+/**
+ * Two request tabs: Tab A=raw (JSON, overflowing) + Tab B=urlencoded — exercises
+ * the mixed-mode switch path where CodeEditor's parent panel receives `hidden={true}`
+ * while Tab B is active, then un-hides on return to Tab A.
+ *
+ * Used for the mixed-tab-switch CT: verifies that .tk-key re-attaches (highlight
+ * re-arms through the hidden state) AND all four scroll offsets reset to 0 on
+ * return to Tab A after visiting Tab B.
+ *
+ * data-testids:
+ *   ct-be-mx-ready         — store seed complete; CT must wait for it
+ *   ct-be-mx-select-tab-a  — click to activate Tab A (raw)
+ *   ct-be-mx-select-tab-b  — click to activate Tab B (urlencoded)
+ */
+export function BodyEditorTwoTabsMixedFixture(): JSX.Element {
+  const ref = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    tabsStore.setState({
+      tabs: [
+        makeTab(CT_BE_MX_TAB_A, {
+          body: body({ active: 'raw', raw: { lang: 'json', text: MIXED_BODY_TEXT } })
+        }),
+        makeTab(CT_BE_MX_TAB_B, {
+          body: body({ active: 'urlencoded' })
+        })
+      ],
+      activeTabId: CT_BE_MX_TAB_A
+    })
+    if (ref.current !== null) {
+      ref.current.setAttribute('data-testid', 'ct-be-mx-ready')
     }
     // Seed is a one-shot effect — store state is stable after mount.
   }, [])
 
   function handleSelectTabA(): void {
-    tabsStore.getState().selectActive(CT_BE_SB_TAB_A)
+    tabsStore.getState().selectActive(CT_BE_MX_TAB_A)
   }
 
   function handleSelectTabB(): void {
-    tabsStore.getState().selectActive(CT_BE_SB_TAB_B)
+    tabsStore.getState().selectActive(CT_BE_MX_TAB_B)
   }
 
   return (
-    <div data-theme="light" style={SCROLL_BLEED_WRAPPER_STYLE}>
+    <div data-theme="light" style={{ width: '400px', height: '150px' }}>
       <BodyEditor renderUrlencoded={stubUrlencoded} />
-      <button type="button" data-testid="ct-be-sb-select-tab-a" onClick={handleSelectTabA}>
+      <button type="button" data-testid="ct-be-mx-select-tab-a" onClick={handleSelectTabA}>
         Tab A
       </button>
-      <button type="button" data-testid="ct-be-sb-select-tab-b" onClick={handleSelectTabB}>
+      <button type="button" data-testid="ct-be-mx-select-tab-b" onClick={handleSelectTabB}>
         Tab B
       </button>
       <span ref={ref} />
