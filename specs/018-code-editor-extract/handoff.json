@@ -1,0 +1,370 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/018-code-editor-extract/spec.md",
+  "specify_completed_at": "2026-07-16T18:33:15Z",
+  "classification": {
+    "spec_number": "018",
+    "feature_name": "code-editor-extract",
+    "feature_slug": "code-editor-extract",
+    "spec_type": "refactor",
+    "spec_type_rationale": "Behavior-preserving extraction of the inline raw editor from BodyEditor into a reusable CodeEditor molecule; existing behaviors (mount-all, AC-17, AC-23, tokenizer, fidelity) preserved, structure changed",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "Extract the raw-mode code editor currently inlined in BodyEditor into a standalone, reusable CodeEditor molecule, and single-source its line-box height so gutter numbers stay aligned to code rows at any line count. The JSON syntax highlighting already lives in a reusable lib (jsonTokens.compose()) and is reused unchanged; the extraction relocates only the editor UI (gutter + aria-hidden highlighted pre + transparent textarea overlay) and preserves every existing behavior and the token/grid/gutter fidelity contract.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The BodyEditor component shall no longer declare the inline three-layer code-area overlay markup.",
+        "verification_command": "! grep -q 'code-editor-content' src/renderer/src/components/organisms/BodyEditor.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "behavior_preservation",
+        "ears_variant": "unwanted",
+        "statement": "IF the raw text is not valid JSON, THEN the system shall render it as a single plain segment without throwing.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "behavior_preservation",
+        "ears_variant": "event_driven",
+        "statement": "WHEN a {{var}} placeholder appears inside a JSON string or key, the system shall let the variable overlay win the tie-break.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE an inactive body-mode panel is hidden, the system shall preserve that panel's DOM-local scroll and caret state.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The system shall insert all highlighted token text as escaped children and never via innerHTML.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "behavior_preservation",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the active request tab switches, the system shall reset the code-area scroll offset and invalidate the colored snapshot.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the none or urlencoded body mode is active, the system shall behave identically to the pre-extraction BodyEditor.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The system shall preserve the body-code-editor, body-gutter, and body-pre data-testids on the extracted editor.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide a reusable CodeEditor component module in the molecules tier.",
+        "verification_command": "test -f src/renderer/src/components/molecules/CodeEditor.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall provide a CodeEditor stylesheet co-located with the component.",
+        "verification_command": "test -f src/renderer/src/components/molecules/CodeEditor.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-11",
+        "subsection": "behavior_preservation",
+        "ears_variant": "event_driven",
+        "statement": "WHEN a user edits raw JSON in the CodeEditor, the system shall produce syntax highlighting by reusing the existing jsonTokens compose lib unchanged.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-12",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The CodeEditor shall define one shared line-box unit that sets the row height of the textarea, the highlighted pre lines, and the gutter divs.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-13",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF a consumer overrides the code font metrics, THEN the gutter, pre, and textarea rows shall remain equal in height.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-14",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN a consumer mounts the CodeEditor with value, lang, onChange, and validVars props, the system shall render a self-contained editor that owns its own compose debounce and colored state.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-15",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The CodeEditor shall reside in the molecules tier so an organism can consume it without a sibling-organism import.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-16",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the live-renderer computed-style channel is unavailable, the system shall mark fidelity assertions UNVERIFIED rather than PASS.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-17",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The system shall keep the tk-* token colors, the code-editor grid, and the gutter geometry unchanged from the T7a fidelity contract.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-18",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The documentation shall describe CodeEditor as a reusable molecule and BodyEditor as its consumer.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-19",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall pass type-check and lint after the extraction.",
+        "verification_command": "npm run typecheck && eslint --cache src/renderer/src/components/molecules/CodeEditor.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-20",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The CodeEditor stylesheet shall not use an em-based row height on the gutter.",
+        "verification_command": "! grep -q '1.65em' src/renderer/src/components/molecules/CodeEditor.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-21",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The gutter, pre, and textarea rows shall each compute to the same absolute line-box height derived from the code font-size times its line-height.",
+        "verification_command": "grep -q 'code-line-h' src/renderer/src/components/molecules/CodeEditor.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "ci_pipeline": "No CI/pipeline change \u2014 pure renderer component extraction; existing test jobs cover it",
+      "hooks_gates": "No hooks/gates change \u2014 no new git hooks, pre-commit, or CI gates introduced"
+    },
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "Search before building (Key Rules #12)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "SOLID, DRY, KISS (Key Rules #11)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Minimal changes / never modify outside scope (Key Rules #3, Never #5)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Organisms compose molecules/atoms and never import a sibling organism; CodeEditor lives in molecules so BodyEditor (and a future response-body organism) may consume it",
+        "quantifier": null,
+        "constitution_ref": "2.2",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "Simplicity & Reuse: reuse the existing jsonTokens compose lib rather than re-implement a tokenizer for the extracted editor",
+        "quantifier": null,
+        "constitution_ref": "3.6",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "constitution_anchor",
+        "content": "All intra-renderer imports use the @renderer alias; the CodeEditor import in BodyEditor and its lib imports must follow it",
+        "quantifier": null,
+        "constitution_ref": "2.3",
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "test-utils/fidelityAssert helpers are test-only and must not be imported by production renderer code; CodeEditor CT consumes them, CodeEditor.tsx does not",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "The compose() JSON.parse pre-validation is the malformed-JSON degrade detector \u2014 it must not be removed or bypassed during extraction",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "CodeEditor (new molecule)",
+        "files": [
+          "src/renderer/src/components/molecules/CodeEditor.tsx",
+          "src/renderer/src/components/molecules/CodeEditor.css"
+        ],
+        "impact": "Create new \u2014 extracted three-layer overlay editor + gutter; owns compose()+debounce; --code-line-h shared line-box var drives textarea/pre/gutter rows"
+      },
+      {
+        "area": "BodyEditor (consumer)",
+        "files": [
+          "src/renderer/src/components/organisms/BodyEditor.tsx",
+          "src/renderer/src/components/organisms/BodyEditor.css"
+        ],
+        "impact": "Raw slot (296-327) + editor state/CSS removed; renders <CodeEditor> instead; body-* testids preserved on CodeEditor"
+      },
+      {
+        "area": "CodeEditor tests",
+        "files": [
+          "src/renderer/src/components/molecules/__tests__/CodeEditor.ct.tsx"
+        ],
+        "impact": "Create new \u2014 relocate + extend AC-23 guard to assert textarea/pre/gutter row heights all equal 20.625px; fidelity via computed-style channel"
+      },
+      {
+        "area": "BodyEditor tests (adjust)",
+        "files": [
+          "src/renderer/src/components/organisms/__tests__/BodyEditor.ct.tsx",
+          "src/renderer/src/components/organisms/__tests__/BodyEditor.stories.tsx"
+        ],
+        "impact": "Fidelity/alignment ACs move to CodeEditor CT; BodyEditor CT retains integration + body-* testid assertions"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Building the response-body / JSON response viewer as a second CodeEditor consumer \u2014 that component does not exist yet",
+        "finding_ref": "F-2026-07-16-fix-gutter-line-misalignment-1"
+      },
+      {
+        "content": "Fixing the stale height:calc(1.65em) rule in design/styles.css \u2014 it is the design reference mockup, not shipped app code",
+        "finding_ref": "F-styles-3"
+      },
+      {
+        "content": "Promoting the line-box height to a global design token in design/tokens.json \u2014 the metric is component-internal; a local --code-line-h var is used instead",
+        "finding_ref": "F-tokens-2"
+      },
+      {
+        "content": "Resolving {{var}} values \u2014 the tokeniser stays display-only (var overlay, no resolution)",
+        "finding_ref": ""
+      }
+    ],
+    "open_questions": [],
+    "risks": [
+      {
+        "risk": "Overlay pixel-grid alignment (textarea over pre) is fidelity-sensitive; the shared line-box refactor could shift row height if the var value differs from 20.625px. Mount-all hidden-panel scroll preservation and the AC-23 debounce split must survive the move",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "tbd via /plan"
+      },
+      {
+        "risk": "Overlay pixel-grid desync (transparent textarea over highlighted pre) during the move",
+        "likelihood": "Med",
+        "impact": "High",
+        "mitigation": "Preserve identical padding/box-sizing/font on textarea+pre; assert row-height equality + tk-* colors via the live-renderer computed-style channel (fidelityAssert)"
+      },
+      {
+        "risk": "CodeEditor CT green-but-wrong because the fixture omits the full styling context",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Reproduce tokens.css import + data-mstyle + production className scope in the CT fixture (alias-trap lesson)"
+      },
+      {
+        "risk": "Static/CT fidelity reports CLEAN yet layout drift persists",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "DOM-verify gutter, pre, AND textarea computed row heights are all equal, not just the gutter guard"
+      }
+    ],
+    "design_anchor": {
+      "kind": "",
+      "file": "",
+      "selectors": []
+    }
+  },
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/research/2026-07-16-fix-gutter-line-misalignment/handoff.json",
+    "upstream_handoff_kind": "research",
+    "upstream_completed_at": "2026-07-16T12:42:33+00:00"
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}

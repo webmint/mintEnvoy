@@ -1,0 +1,163 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "plan",
+  "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/018-code-editor-extract/plan.md",
+  "plan_completed_at": "2026-07-16T20:23:48Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/018-code-editor-extract/handoff.json",
+    "upstream_handoff_kind": "specify",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/018-code-editor-extract/spec.md"
+  },
+  "breakdown_seeds": {
+    "layer_map": [
+      {
+        "layer": "Presentation \u2014 molecules",
+        "what": "NEW reusable `CodeEditor`: three-layer overlay (gutter + aria-hidden `<pre>` + transparent `<textarea>`, single scroll source) owning `compose()`+100ms debounce+colored snapshot, `gutterDivs`/`tokenSpans` memos, onScroll sync; scroll-reset + `setColored(null)` invalidation AND the compose-debounce re-arm keyed on the **`resetKey` prop** (verbatim port of BodyEditor.tsx:104-128, parameterized off `activeTabId`\u2192`resetKey`); local `--code-line-h` drives all three grid row heights",
+        "files": "`src/renderer/src/components/molecules/CodeEditor.tsx` (new), `src/renderer/src/components/molecules/CodeEditor.css` (new)"
+      },
+      {
+        "layer": "Presentation \u2014 organisms",
+        "what": "`BodyEditor` consumes `<CodeEditor resetKey={activeTabId} value/lang/onChange/validVars>` in the raw slot (296-327); inline overlay markup + editor state/memos + BOTH `activeTabId`-keyed effects (reset 104-114, re-arm 122-128) + code-area CSS removed \u2014 the reset now fires via `resetKey={activeTabId}`; toolbar/radiogroup/lang-pill/mount-all panels retained",
+        "files": "`src/renderer/src/components/organisms/BodyEditor.tsx` (modify), `src/renderer/src/components/organisms/BodyEditor.css` (modify)"
+      },
+      {
+        "layer": "Support \u2014 lib",
+        "what": "`jsonTokens.compose()` reused UNCHANGED (import only \u2014 AC-11 + JSON.parse detector); `varTokens.isMissingVar`, `envVars` unchanged",
+        "files": "`src/renderer/src/lib/jsonTokens.ts` (read-only)"
+      },
+      {
+        "layer": "Test \u2014 molecules CT",
+        "what": "NEW `CodeEditor.ct.tsx`: relocated AC-23 live/debounced guard + row-height equality (textarea/pre/gutter all = 20.625px) via computed-style channel; the AC-6 reset contracts (identical-body re-arm + scroll-bleed reset) driven via `resetKey`; full styling context (tokens.css import + data-mstyle + `.code-editor` scope)",
+        "files": "`src/renderer/src/components/molecules/__tests__/CodeEditor.ct.tsx` (new)"
+      },
+      {
+        "layer": "Test \u2014 organisms CT",
+        "what": "`BodyEditor` CT/stories retain integration + `body-*` testid assertions + the AC-6 `resetKey={activeTabId}` wiring assertion; fidelity/alignment ACs move to CodeEditor CT",
+        "files": "`src/renderer/src/components/organisms/__tests__/BodyEditor.ct.tsx` (modify), `.../BodyEditor.stories.tsx` (modify)"
+      }
+    ],
+    "key_design_decisions": [
+      {
+        "decision": "D1 Placement",
+        "chosen_approach": "`CodeEditor` in `molecules/`",
+        "why": "\u00a72.2 domain-agnostic \u2192 molecules; lets BodyEditor (and a future response-body organism) consume it downward with no sibling-organism import (AC-9, AC-15). Follows Dropdown/Tabs/Divider precedent \u2014 not a departure.",
+        "alternatives_rejected": "`organisms/` (forces sibling-organism import \u2014 \u00a72.2 violation); `atoms/` (owns compose+debounce+state, not a primitive)"
+      },
+      {
+        "decision": "D2 Line-box unit",
+        "chosen_approach": "ONE local CSS var `--code-line-h = calc(12.5px * 1.65)` = 20.625px scoped to `CodeEditor.css`, driving textarea + pre + gutter row heights",
+        "why": "Single-sources the duplicated literal \u2192 DRY (AC-12); absolute px keeps the gutter off the `1.65em` trap that drifts against the 11.5px gutter font (AC-13, AC-20, AC-21). Component-internal metric \u2192 local var, NOT `tokens.json` (\u00a76).",
+        "alternatives_rejected": "`tokens.json` global token (OOS \u00a76); `1.65em` on gutter (the original bug); per-element repeated literals (breaks DRY + AC-13)"
+      },
+      {
+        "decision": "D3 API shape",
+        "chosen_approach": "Self-contained `CodeEditor`, props `{value, lang, onChange, validVars, resetKey?}`; owns `compose()`+debounce(100ms)+colored snapshot; reuses `jsonTokens.compose()` UNCHANGED",
+        "why": "\u00a73.6 reuse-not-reimplement (AC-11); self-contained controlled-molecule matches Tabs precedent (AC-14 \u2014 the 4 core props still mount stand-alone; `resetKey` is additive/optional). `compose()` JSON.parse malformed-degrade detector untouched (AC-17). `colored` nullable preserved \u2014 `null` plain-degrade exercised by AC-2/AC-17 and by AC-6 invalidation; `{snapshot,tokens}` colored by AC-11/AC-23.",
+        "alternatives_rejected": "Passing composed tokens in as a prop (leaks internals, defeats reuse); forking/editing `compose()` (regresses AC-11 + AC-17 detector)"
+      },
+      {
+        "decision": "D5 Tab-switch reset trigger",
+        "chosen_approach": "Add optional `resetKey?: string \\",
+        "why": "number`; CodeEditor keys its scroll-reset + `setColored(null)` effect AND its compose-debounce re-arm effect on `resetKey` (verbatim port of BodyEditor.tsx:104-128). BodyEditor passes `resetKey={activeTabId}`",
+        "alternatives_rejected": "AC-6 (reset scroll + invalidate colored on tab switch) needs a consumer-driven signal: `value`+`lang` are identical when two tabs hold the same raw body, so a props-only `{value,lang,onChange,validVars}` molecule gets no trigger (grill F-001). A generic `resetKey` keeps CodeEditor domain-agnostic (\u00a72.2 \u2014 no tabsStore/activeTabId awareness). Restores BodyEditor.ct.tsx:769 (identical-body re-arm) + :811 (scroll-bleed reset). Not a DEPARTURE \u2014 establishes the standard React reset-on-change idiom (no prior pattern for signalling an extracted editor)."
+      },
+      {
+        "decision": "D4 testids",
+        "chosen_approach": "Preserve `body-code-editor` / `body-gutter` / `body-pre` on `CodeEditor`",
+        "why": "Zero CT churn; existing BodyEditor CTs stay green (AC-8)",
+        "alternatives_rejected": "Renaming to `code-*` (churns every existing CT, breaks AC-8)"
+      }
+    ],
+    "file_impact": [
+      {
+        "file": "`src/renderer/src/components/molecules/CodeEditor.tsx`",
+        "action": "Create",
+        "what_changes": "Self-contained overlay editor: gutter/pre/textarea + compose+debounce+colored state + scroll-sync + memos; props `{value, lang, onChange, validVars, resetKey?}`; scroll-reset + `setColored(null)` + debounce re-arm keyed on `resetKey`; `body-*` testids"
+      },
+      {
+        "file": "`src/renderer/src/components/molecules/CodeEditor.css`",
+        "action": "Create",
+        "what_changes": "Code-area CSS moved from BodyEditor.css; `--code-line-h` var drives textarea/pre/gutter row heights; tk-* + overlay + focus rules"
+      },
+      {
+        "file": "`src/renderer/src/components/molecules/__tests__/CodeEditor.ct.tsx`",
+        "action": "Create",
+        "what_changes": "Fidelity + alignment CT (row-height equality all three = 20.625px, AC-23 live/debounced guard, tk-* colors via computed-style channel); AC-6 reset via `resetKey` change (identical-body re-arm + scroll-bleed reset); full styling-context fixture"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/BodyEditor.tsx`",
+        "action": "Modify",
+        "what_changes": "Remove inline raw-slot overlay markup + editor state/memos + BOTH `activeTabId`-keyed effects (104-114, 122-128); render `<CodeEditor resetKey={activeTabId} \u2026>` in the raw slot; keep toolbar/radiogroup/lang-pill/mount-all"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/BodyEditor.css`",
+        "action": "Modify",
+        "what_changes": "Remove relocated code-area/overlay rules; keep toolbar/radio/lang-pill styles"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/__tests__/BodyEditor.ct.tsx`",
+        "action": "Modify",
+        "what_changes": "Move fidelity/alignment ACs to CodeEditor CT; retain integration + `body-*` testid assertions + the `resetKey={activeTabId}` wiring assertion (AC-6 at the org level)"
+      },
+      {
+        "file": "`src/renderer/src/components/organisms/__tests__/BodyEditor.stories.tsx`",
+        "action": "Modify",
+        "what_changes": "Adjust fixtures if raw-slot markup structure changes (testids preserved)"
+      }
+    ],
+    "doc_impact": [
+      {
+        "doc_file": "`docs/renderer/src/index.md`",
+        "action": "Update",
+        "what_changes": "Add `CodeEditor` to the molecules roster (with the `resetKey` reset-on-change signal); note BodyEditor as its consumer"
+      },
+      {
+        "doc_file": "`docs/architecture.md`",
+        "action": "Update",
+        "what_changes": "Note CodeEditor as a reusable molecule + the consume relationship + the `resetKey` idiom (AC-18)"
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Overlay pixel-grid desync (transparent textarea over highlighted pre) during the move",
+        "likelihood": "Med",
+        "impact": "High",
+        "mitigation": "Move padding/box-sizing/font verbatim; assert textarea/pre/gutter row-height equality + tk-* colors via the live-renderer computed-style channel (fidelityAssert); UNVERIFIED-not-PASS when channel absent"
+      },
+      {
+        "risk": "`resetKey` reset+re-arm ported imperfectly, stranding AC-6 (identical-body tabs)",
+        "likelihood": "Low",
+        "impact": "High",
+        "mitigation": "Port BodyEditor.tsx:104-128 verbatim, swapping only the `activeTabId` dep \u2192 `resetKey`; keep BOTH effects (reset AND debounce re-arm); regression-guarded by BodyEditor.ct.tsx:769 + :811 relocated to the CodeEditor CT"
+      },
+      {
+        "risk": "CodeEditor CT green-but-wrong because the fixture omits full styling context",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "CT fixture reproduces tokens.css import + data-mstyle + `.code-editor`/production className scope (alias-trap lesson)"
+      },
+      {
+        "risk": "Static/CT fidelity reports CLEAN yet layout drift persists",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "DOM-verify gutter, pre, AND textarea computed row heights are all equal, not just the gutter guard"
+      },
+      {
+        "risk": "`jsonTokens.compose()` accidentally edited (would regress AC-11 reuse + AC-17 JSON.parse detector)",
+        "likelihood": "Low",
+        "impact": "High",
+        "mitigation": "Reuse by import only; compose() stays byte-unchanged \u2014 do NOT touch"
+      },
+      {
+        "risk": "CodeEditor back-imports a sibling organism / uses a deep relative path / gains tabsStore awareness",
+        "likelihood": "Low",
+        "impact": "Med",
+        "mitigation": "CodeEditor imports only lib/ + atoms via `@renderer`, never `organisms/`; `resetKey` stays an opaque scalar (\u00a72.2, \u00a72.3)"
+      }
+    ],
+    "specialist_consultation": [],
+    "dependencies": [
+      "None. No packages to install, no services, no env vars. React 19, `@playwright/experimental-ct-react`, and `jsonTokens` are all already in the stack."
+    ]
+  }
+}
