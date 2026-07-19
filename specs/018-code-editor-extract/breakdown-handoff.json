@@ -1,0 +1,192 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/018-code-editor-extract/tasks",
+  "breakdown_completed_at": "2026-07-16T21:26:07Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/018-code-editor-extract/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/018-code-editor-extract/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/018-code-editor-extract/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "create-codeeditor-molecule",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "002",
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/molecules/CodeEditor.tsx",
+        "src/renderer/src/components/molecules/CodeEditor.css"
+      ],
+      "expects": [
+        "`BodyEditor.tsx` lines 296-327 hold the inline `.code-editor` three-layer overlay markup.",
+        "`compose` is an exported function in `src/renderer/src/lib/jsonTokens.ts`."
+      ],
+      "produces": [
+        "`CodeEditor` is exported from `src/renderer/src/components/molecules/CodeEditor.tsx` with props including `value`, `lang`, `onChange`, `validVars`, and optional `resetKey`.",
+        "`CodeEditor` calls `compose(` from `@renderer/lib/jsonTokens` and never redefines a tokenizer.",
+        "A `useEffect` in `CodeEditor.tsx` lists `resetKey` in its dependency array and resets scroll + calls `setColored(null)`; a second `useEffect` lists `resetKey` and re-schedules `compose`.",
+        "`CodeEditor.css` defines `--code-line-h` and applies `var(--code-line-h)` to the gutter, pre, and textarea rows; the file contains no `1.65em`.",
+        "`data-testid=\"body-code-editor\"`, `data-testid=\"body-gutter\"`, and `data-testid=\"body-pre\"` appear in `CodeEditor.tsx`.",
+        "`CodeEditor.tsx` contains no import from `@renderer/components/organisms` and no `tabsStore` import."
+      ],
+      "ac_addressed": [
+        "AC-2",
+        "AC-3",
+        "AC-5",
+        "AC-6",
+        "AC-9",
+        "AC-10",
+        "AC-11",
+        "AC-12",
+        "AC-13",
+        "AC-14",
+        "AC-15",
+        "AC-17",
+        "AC-19",
+        "AC-20",
+        "AC-21"
+      ],
+      "doc_refs": [
+        "docs/architecture.md"
+      ],
+      "review_checkpoint": true
+    },
+    {
+      "number": "002",
+      "title": "wire-bodyeditor-consumer",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [
+        "004",
+        "005"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/BodyEditor.tsx",
+        "src/renderer/src/components/organisms/BodyEditor.css"
+      ],
+      "expects": [
+        "`CodeEditor` is exported from `src/renderer/src/components/molecules/CodeEditor.tsx` with a `resetKey` prop (Task 001 Produces)."
+      ],
+      "produces": [
+        "`BodyEditor.tsx` imports `CodeEditor` from `@renderer/components/molecules/CodeEditor`.",
+        "`BodyEditor.tsx` renders `<CodeEditor` with a `resetKey={activeTabId}` attribute in the raw slot.",
+        "`BodyEditor.tsx` no longer contains a `.code-editor` inline overlay, a `preRef`, or a `useEffect` whose dependency array is `[activeTabId]`.",
+        "`BodyEditor.tsx` retains the body-type `role=\"radiogroup\"`, the `lang-pill`, and the six `hidden`-toggled mode panels.",
+        "`BodyEditor.css` no longer contains a `.code-editor` rule."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-4",
+        "AC-6",
+        "AC-7",
+        "AC-19"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "003",
+      "title": "codeeditor-fidelity-ct",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [
+        "004"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/molecules/__tests__/CodeEditor.ct.tsx"
+      ],
+      "expects": [
+        "`CodeEditor` is exported from `src/renderer/src/components/molecules/CodeEditor.tsx` (Task 001 Produces).",
+        "`@renderer/test-utils/fidelityAssert` exists and exports `assertComputedStyle` / `assertResolvesToToken` / `skipIfChannelUnavailable` (test-only; consumed by the CT, never by `CodeEditor.tsx`)."
+      ],
+      "produces": [
+        "`CodeEditor.ct.tsx` asserts the `.gutter > div`, `pre`, and `textarea` computed row heights are equal.",
+        "`CodeEditor.ct.tsx` calls `skipIfChannelUnavailable` before its computed-style fidelity assertions.",
+        "`CodeEditor.ct.tsx` contains a `resetKey`-driven reset test that holds `value`+`lang` constant (molecule-level port of BodyEditor.ct.tsx:769) and a scroll-reset test (port of :811).",
+        "Fixtures are inline in `CodeEditor.ct.tsx`; no `molecules/CodeEditor.stories.tsx` is created."
+      ],
+      "ac_addressed": [
+        "AC-16",
+        "AC-6",
+        "AC-12",
+        "AC-13",
+        "AC-17",
+        "AC-19",
+        "AC-21",
+        "AC-23"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "004",
+      "title": "update-bodyeditor-ct",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "002",
+        "003"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/organisms/__tests__/BodyEditor.ct.tsx",
+        "src/renderer/src/components/organisms/__tests__/BodyEditor.stories.tsx"
+      ],
+      "expects": [
+        "`BodyEditor.tsx` renders `<CodeEditor resetKey={activeTabId} \u2026>` (Task 002 Produces).",
+        "`CodeEditor.ct.tsx` covers the row-height equality, fidelity, and `resetKey` reset tests (Task 003 Produces)."
+      ],
+      "produces": [
+        "`BodyEditor.ct.tsx` retains assertions referencing `body-code-editor`, `body-gutter`, and `body-pre`.",
+        "`BodyEditor.ct.tsx` contains an assertion that `resetKey` is wired to the active tab id at the BodyEditor boundary.",
+        "`BodyEditor.ct.tsx` no longer contains the molecule-level fidelity/row-height tests (re-homed to the CodeEditor CT)."
+      ],
+      "ac_addressed": [
+        "AC-8",
+        "AC-19"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "005",
+      "title": "docs-codeeditor-molecule",
+      "agent": "tech-writer",
+      "depends_on": [
+        "002"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "docs/renderer/src/index.md",
+        "docs/architecture.md"
+      ],
+      "expects": [
+        "`BodyEditor.tsx` consumes `CodeEditor` (Task 002 Produces)."
+      ],
+      "produces": [
+        "`docs/renderer/src/index.md` mentions `CodeEditor` in the molecules roster.",
+        "`docs/architecture.md` describes `CodeEditor` as a reusable molecule and `BodyEditor` as its consumer."
+      ],
+      "ac_addressed": [
+        "AC-18"
+      ],
+      "doc_refs": [
+        "docs/architecture.md"
+      ],
+      "review_checkpoint": false
+    }
+  ],
+  "additions": [
+    "None \u2014 all task files map to the plan's File Impact rows (7 source/test files + 2 docs files), no cascading files discovered in Phase 1."
+  ],
+  "dependency_graph": "001 (create-codeeditor-molecule) \u2500\u2500\u2192 002 (wire-bodyeditor-consumer) \u2500\u2500\u2192 004 (update-bodyeditor-ct)\n                                 \u2500\u2500\u2192 003 (codeeditor-fidelity-ct) \u2500\u2500\u2500\u2500\u2500\u2192 004\n                                                                    002 \u2500\u2500\u2192 005 (docs-codeeditor-molecule)"
+}

@@ -15,3 +15,4 @@
 {"git_sha": "7882d062907171d8ec49e83e13e54ef247b7a8ce", "spec_path": "specs/015-request-sub-tabs/spec.md", "stamped_at": "2026-07-06T09:13:37Z"}
 {"git_sha": "11428808151c1fc89db419c7353a544c65fc45b4", "spec_path": "specs/016-load-design-fonts/spec.md", "stamped_at": "2026-07-09T15:52:54Z"}
 {"git_sha": "d8f582cbeffa570441881f805704eca94db0faed", "spec_path": "specs/017-body-editor-shell/spec.md", "stamped_at": "2026-07-10T14:20:16Z"}
+{"git_sha": "2c62839902c504660b096d18123695a4adf930ce", "spec_path": "specs/018-code-editor-extract/spec.md", "stamped_at": "2026-07-16T18:32:51Z"}

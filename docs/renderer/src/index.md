@@ -12,7 +12,7 @@ source_stamp: 655524082efc56ac
 
 ## Purpose
 
-The React 19 renderer application, organized by atomic design: atoms (Icon, EmptyPanel), molecules (Divider, Dropdown, Modal, Tabs, Toast — Dropdown and Modal wrap Radix primitives), and organisms (RequestBar, RequestSubTabs, KVTable, BodyEditor, TabBar, Sidebar, plus the app shell: Titlebar, Statusbar, PaneSplit, Shell). State lives in module-level zustand stores under lib/ (tabsStore, toastStore, settingsStore); lib/ also holds the renderer-only request domain model (requestSpec), pure utilities (cx, httpMethods), the display-only {{variable}} tokeniser (varTokens) plus its envVars seam and icons-glue resolver, and the renderer-pure two-pass JSON + {{var}} body tokeniser (jsonTokens). App.tsx composes the Shell and mounts the single ToastProvider; main.tsx is the React root. All modules are renderer-pure (no node/electron imports) and bind color and geometry to design tokens.
+The React 19 renderer application, organized by atomic design: atoms (Icon, EmptyPanel), molecules (Divider, Dropdown, Modal, Tabs, Toast, CodeEditor — Dropdown and Modal wrap Radix primitives), and organisms (RequestBar, RequestSubTabs, KVTable, BodyEditor, TabBar, Sidebar, plus the app shell: Titlebar, Statusbar, PaneSplit, Shell). State lives in module-level zustand stores under lib/ (tabsStore, toastStore, settingsStore); lib/ also holds the renderer-only request domain model (requestSpec), pure utilities (cx, httpMethods), the display-only {{variable}} tokeniser (varTokens) plus its envVars seam and icons-glue resolver, and the renderer-pure two-pass JSON + {{var}} body tokeniser (jsonTokens). App.tsx composes the Shell and mounts the single ToastProvider; main.tsx is the React root. All modules are renderer-pure (no node/electron imports) and bind color and geometry to design tokens.
 
 ## Structure
 
@@ -38,6 +38,8 @@ src/renderer/src/
 │   │   └── icons.ts  # Project icon set — 16x16 currentColor paths
 │   ├── molecules
 │   │   ├── __tests__
+│   │   │   ├── CodeEditor.ct.tsx
+│   │   │   ├── CodeEditor.stories.tsx
 │   │   │   ├── Divider.ct.tsx
 │   │   │   ├── Divider.stories.tsx
 │   │   │   ├── Divider.test.tsx
@@ -55,6 +57,8 @@ src/renderer/src/
 │   │   │   ├── Toast.test.tsx
 │   │   │   ├── nested-overlays.ct.tsx
 │   │   │   └── nested-overlays.stories.tsx
+│   │   ├── CodeEditor.css  # CodeEditor styles from design tokens
+│   │   ├── CodeEditor.tsx  # Self-contained three-layer overlay editor (gutter + aria-hidden pre highlight + transparent textarea); --code-line-h single-sources 20.625px line-box across all three layers; resetKey prop resets scroll + invalidates color snapshot; reuses jsonTokens.compose; consumed by BodyEditor
 │   │   ├── Divider.css  # Divider styles bound to design tokens
 │   │   ├── Divider.tsx  # ARIA splitter drag-handle for resizable panes
 │   │   ├── Dropdown.css  # Dropdown styles from design tokens
@@ -92,7 +96,7 @@ src/renderer/src/
 │   │   │   ├── Titlebar.css  # Titlebar styles from design tokens
 │   │   │   └── Titlebar.tsx  # Top chrome: logo, env selector, palette trigger
 │   │   ├── BodyEditor.css  # BodyEditor styles bound to design tokens
-│   │   ├── BodyEditor.tsx  # Body-type ARIA radiogroup + mount-all mode switch + textarea/pre/gutter code area (memo-wrapped)
+│   │   ├── BodyEditor.tsx  # Body-type ARIA radiogroup + mount-all mode switch; raw slot delegates to CodeEditor (memo-wrapped)
 │   │   ├── KVTable.css  # KVTable styles from design tokens
 │   │   ├── KVTable.tsx  # Key/value row table editor; field mode (params/headers) + controlled render-prop mode (urlencoded)
 │   │   ├── RequestBar.css  # RequestBar styles from design tokens
@@ -170,3 +174,14 @@ textarea {
 ```
 
 **Hazard: BodyEditor's mount-all/hidden pattern preserves DOM-local state only — mode values live in the store.** All 6 body-mode panels are always mounted; inactive panels carry the HTML `hidden` attribute. This preserves DOM-local state (scroll position, caret position) across mode switches, but it does NOT preserve mode values. `body.raw.text`, `body.raw.lang`, and `body.urlencoded.rows` are owned by the tagged-record `Body` in the store (`tab.spec.body`). Mode values survive switches because the `Body` record always carries both `raw` and `urlencoded` sub-objects simultaneously — the store is the SSOT, not the DOM.
+
+**Hazard: CodeEditor gutter row height must use `var(--code-line-h)`, not `1.65em`.** The gutter's own `font-size` is 11.5px; the code rows are 12.5px × 1.65 = 20.625px (the value of `--code-line-h`). Setting `.gutter > div { height: 1.65em }` resolves against the 11.5px gutter font (= 18.975px) and drifts ~1.65px per line against the `<pre>` and `<textarea>` layers. Always drive the gutter row height with `var(--code-line-h)` — never an em-based height.
+
+<!-- src/renderer/src/components/molecules/CodeEditor.css:23-27 -->
+```css
+/* Gutter line-number rows must match the CODE line box height, not the gutter's
+ * own 11.5px font. Code lines = .code-editor font-size 12.5px × line-height 1.65
+ * = 20.625px (var(--code-line-h)). Using 1.65em here would resolve against the
+ * gutter's 11.5px font (18.975px) and drift ~1.65px per line vs the code lines. */
+.code-editor .gutter > div { height: var(--code-line-h); }
+```
