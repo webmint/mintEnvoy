@@ -1,0 +1,194 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "breakdown",
+  "tasks_dir": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/019-code-editor-toggle/tasks",
+  "breakdown_completed_at": "2026-07-21T07:45:08Z",
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/019-code-editor-toggle/plan-handoff.json",
+    "upstream_handoff_kind": "plan",
+    "plan_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/019-code-editor-toggle/plan.md",
+    "spec_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/specs/019-code-editor-toggle/spec.md"
+  },
+  "tasks": [
+    {
+      "number": "001",
+      "title": "Rebuild CodeEditor as edit-preview toggle molecule",
+      "agent": "frontend-engineer",
+      "depends_on": [],
+      "blocks": [
+        "002",
+        "003"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/molecules/CodeEditor.tsx",
+        "src/renderer/src/components/molecules/CodeEditor.css"
+      ],
+      "expects": [
+        "`CodeEditor.tsx` currently renders the three-layer overlay (`handleTextareaScroll`, `showColored`, `colored` useState, debounce useEffect, container `.code-editor` / testid `body-code-editor`, `body-pre`).",
+        "`compose` is exported from `src/renderer/src/lib/jsonTokens.ts` and `cx` from `src/renderer/src/lib/cx.ts`; `isMissingVar` from `varTokens`."
+      ],
+      "produces": [
+        "`CodeEditorProps` declares `editing` and `onEditingChange` in `CodeEditor.tsx`.",
+        "`CodeEditor.tsx` contains no `handleTextareaScroll` and no `showColored`.",
+        "`CodeEditor.tsx` calls `textareaRef.current?.focus()` inside a `useEffect` keyed on `editing`.",
+        "`CodeEditor.tsx` calls `setSelectionRange` and `caretPositionFromPoint` (caret-at-click helper).",
+        "`CodeEditor.tsx` invokes `compose(` inside a `useMemo` (no `setTimeout` debounce remains).",
+        "`CodeEditor.css` contains `--code-line-h` and no `1.65em`."
+      ],
+      "ac_addressed": [
+        "AC-1",
+        "AC-2",
+        "AC-4",
+        "AC-5",
+        "AC-8",
+        "AC-9",
+        "AC-10",
+        "AC-11",
+        "AC-12",
+        "AC-13",
+        "AC-14",
+        "AC-15",
+        "AC-16",
+        "AC-17",
+        "AC-18",
+        "AC-19",
+        "AC-21",
+        "AC-22",
+        "AC-23"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "002",
+      "title": "Add edit/preview toggle + render-phase reset to BodyEditor",
+      "agent": "frontend-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [
+        "004",
+        "005"
+      ],
+      "touched_files": [
+        "src/renderer/src/components/organisms/BodyEditor.tsx",
+        "src/renderer/src/components/organisms/BodyEditor.css"
+      ],
+      "expects": [
+        "`CodeEditor` accepts `editing` and `onEditingChange` props (task 001 Produces).",
+        "`BodyEditor.tsx` subscribes to `activeTabId` via `tabsStore` and renders `<CodeEditor>` in the hidden raw panel with `resetKey={activeTabId}`.",
+        "The toolbar right slot (`div.right`) hosts the `body-lang-pill` button."
+      ],
+      "produces": [
+        "`BodyEditor.tsx` declares `const [editing, setEditing] = useState(false)` and `const [prevTab, setPrevTab] = useState(activeTabId)`.",
+        "`BodyEditor.tsx` contains a render-phase `if (activeTabId !== prevTab)` block calling `setEditing(false)` (no `useEffect` and no ref for this reset).",
+        "`BodyEditor.tsx` contains `body-edit-toggle` and an `onMouseDown` handler calling `preventDefault`.",
+        "`BodyEditor.tsx` passes `editing` and `onEditingChange` to `<CodeEditor>`."
+      ],
+      "ac_addressed": [
+        "AC-3",
+        "AC-6",
+        "AC-7",
+        "AC-16",
+        "AC-21"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "003",
+      "title": "CodeEditor CT + stories (toggle/caret/focus/recolor)",
+      "agent": "qa-engineer",
+      "depends_on": [
+        "001"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/molecules/__tests__/CodeEditor.ct.tsx",
+        "src/renderer/src/components/molecules/__tests__/CodeEditor.stories.tsx"
+      ],
+      "expects": [
+        "CodeEditor exposes `body-code-editor` container, `body-pre` (preview), and the textarea (edit) testids, and a focus-on-mount effect keyed on `editing` (task 001 Produces).",
+        "CodeEditor accepts `editing`/`onEditingChange` props."
+      ],
+      "produces": [
+        "`CodeEditor.ct.tsx` asserts `document.activeElement` equals the textarea after keyboard-Enter entry.",
+        "`CodeEditor.ct.tsx` asserts only the visible layer's testid is present per `editing` state.",
+        "`CodeEditor.ct.tsx` asserts a single compose per switch-to-preview (no per-keystroke recolor).",
+        "`CodeEditor.stories.tsx` exports an edit-state and a preview-state fixture."
+      ],
+      "ac_addressed": [
+        "AC-9",
+        "AC-10",
+        "AC-11",
+        "AC-12",
+        "AC-13",
+        "AC-14",
+        "AC-17",
+        "AC-18"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": false
+    },
+    {
+      "number": "004",
+      "title": "BodyEditor CT + stories (toggle/AC-6/focus)",
+      "agent": "qa-engineer",
+      "depends_on": [
+        "002"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "src/renderer/src/components/organisms/__tests__/BodyEditor.ct.tsx",
+        "src/renderer/src/components/organisms/__tests__/BodyEditor.stories.tsx"
+      ],
+      "expects": [
+        "BodyEditor renders `body-edit-toggle` with an `onMouseDown` preventDefault handler and owns `editing`/`prevTab` state (task 002 Produces).",
+        "BodyEditor passes `editing`/`onEditingChange` to CodeEditor."
+      ],
+      "produces": [
+        "`BodyEditor.ct.tsx` asserts clicking the toggle while editing lands in preview (F-002).",
+        "`BodyEditor.ct.tsx` asserts `document.activeElement` is the textarea after a toggle-button entry.",
+        "`BodyEditor.ct.tsx` asserts the immediate post-tab-switch read is `body-pre` (not textarea) when a tab switch occurs while editing (AC-6).",
+        "`BodyEditor.stories.tsx` reflects preview vs edit toggle state."
+      ],
+      "ac_addressed": [
+        "AC-6",
+        "AC-11",
+        "AC-16"
+      ],
+      "doc_refs": [],
+      "review_checkpoint": true
+    },
+    {
+      "number": "005",
+      "title": "Document CodeEditor edit/preview toggle in architecture.md",
+      "agent": "tech-writer",
+      "depends_on": [
+        "002"
+      ],
+      "blocks": [],
+      "touched_files": [
+        "docs/architecture.md"
+      ],
+      "expects": [
+        "CodeEditor is implemented as an edit/preview toggle (tasks 001, 002 complete).",
+        "`docs/architecture.md` currently describes CodeEditor as a three-layer overlay."
+      ],
+      "produces": [
+        "`docs/architecture.md` describes CodeEditor as an edit/preview toggle whose highlighting runs on switch-to-preview."
+      ],
+      "ac_addressed": [
+        "AC-20"
+      ],
+      "doc_refs": [
+        "docs/architecture.md"
+      ],
+      "review_checkpoint": false
+    }
+  ],
+  "additions": [
+    "None \u2014 every touched file is in the plan's File Impact table."
+  ],
+  "dependency_graph": "001 (CodeEditor toggle molecule) \u2500\u2500\u2192 002 (BodyEditor toggle + reset) \u2500\u2500\u2192 004 (BodyEditor CT)\n                                 \u2502                                    \u2514\u2500\u2192 005 (docs)\n                                 \u2514\u2500\u2192 003 (CodeEditor CT)"
+}

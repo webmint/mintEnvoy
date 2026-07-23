@@ -1,0 +1,417 @@
+{
+  "schema_version": "1.0",
+  "handoff_kind": "specify",
+  "spec_path": "specs/019-code-editor-toggle/spec.md",
+  "specify_completed_at": "2026-07-19T18:54:33Z",
+  "classification": {
+    "spec_number": "019",
+    "feature_name": "code-editor-toggle",
+    "feature_slug": "code-editor-toggle",
+    "spec_type": "feature_addition",
+    "spec_type_rationale": "pre-seeded from research handoff at research/2026-07-19-change-the-raw-mode/handoff.json",
+    "status": "Draft"
+  },
+  "spec_seeds": {
+    "overview": "Replace the raw-mode CodeEditor's overlay edit mechanism with a design-matched edit/preview toggle. An 'editing' boolean (owned by BodyEditor) gates the render so the code area shows EITHER a plain textarea (editing) OR the highlighted pre (preview) \u2014 never both mounted \u2014 and the JSON tokenizer runs once on the switch-to-preview transition instead of on every keystroke. A visible toggle button plus click-to-edit (caret placed at the clicked character) drive the state, shedding the transparent-textarea/absolute-pre stack, the textarea->pre scroll sync, the per-keystroke debounce, and the colored-during-edit snapshot.",
+    "acceptance_criteria": [
+      {
+        "ac_id": "AC-1",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The CodeEditor shall not declare a textarea-to-pre scroll-synchronisation handler.",
+        "verification_command": "! grep -q 'handleTextareaScroll' src/renderer/src/components/molecules/CodeEditor.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-2",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The CodeEditor shall not declare a debounced colored-snapshot state for the editing surface.",
+        "verification_command": "! grep -q 'showColored' src/renderer/src/components/molecules/CodeEditor.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-3",
+        "subsection": "tooling_artifact_presence",
+        "ears_variant": "ubiquitous",
+        "statement": "The BodyEditor shall provide an edit/preview toggle control carrying a stable data-testid.",
+        "verification_command": "grep -q 'body-edit-toggle' src/renderer/src/components/organisms/BodyEditor.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-4",
+        "subsection": "behavior_preservation",
+        "ears_variant": "unwanted",
+        "statement": "IF the raw text is not valid JSON, THEN the CodeEditor shall render it as a single plain segment without throwing.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-5",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The CodeEditor shall reuse the existing jsonTokens compose library unchanged for syntax highlighting.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-6",
+        "subsection": "behavior_preservation",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the active request tab switches, the CodeEditor shall reset the code-area scroll offset and return to preview.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-7",
+        "subsection": "behavior_preservation",
+        "ears_variant": "state_driven",
+        "statement": "WHILE the none or urlencoded body mode is active, the BodyEditor shall behave identically to its pre-change behavior.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-8",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The CodeEditor shall insert all highlighted token text as escaped children and never via innerHTML.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-9",
+        "subsection": "behavior_preservation",
+        "ears_variant": "ubiquitous",
+        "statement": "The CodeEditor shall keep the gutter, the preview, and the edit textarea rows on one shared line-box height in both states.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-10",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE editing is false the CodeEditor shall render only the preview pre, and while editing is true it shall render only the plain textarea, never mounting both together.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-11",
+        "subsection": "behavior_change",
+        "ears_variant": "ubiquitous",
+        "statement": "The CodeEditor shall expose only the currently visible layer data-testid, namely body-pre in preview and the textarea in edit.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-12",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the user clicks the preview, the CodeEditor shall enter edit mode and place the caret at the clicked character.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-13",
+        "subsection": "behavior_change",
+        "ears_variant": "unwanted",
+        "statement": "IF a preview click lands past the end of a line or below the text, THEN the CodeEditor shall clamp the caret to the nearest character.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-14",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the CodeEditor switches to preview, the system shall run the tokenizer exactly once for that transition rather than per keystroke.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-15",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE editing is true, the textarea shall disable spellcheck, disable resize, keep the Tab key native, and wrap with white-space pre giving horizontal scroll and no soft-wrap.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-16",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN the textarea loses focus or the toggle control is activated, the CodeEditor shall leave edit mode and return to preview.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-17",
+        "subsection": "behavior_change",
+        "ears_variant": "event_driven",
+        "statement": "WHEN a request raw code area first mounts, the CodeEditor shall start in preview.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-18",
+        "subsection": "behavior_change",
+        "ears_variant": "optional",
+        "statement": "WHERE the user operates by keyboard, the preview shall be focusable and Enter or Space shall enter edit mode.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-19",
+        "subsection": "behavior_change",
+        "ears_variant": "state_driven",
+        "statement": "WHILE either layer is visible, the gutter shall track that layer within one scroll container.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-20",
+        "subsection": "documentation",
+        "ears_variant": "ubiquitous",
+        "statement": "The documentation shall describe the CodeEditor as an edit/preview toggle whose highlighting runs on switch-to-preview.",
+        "verification_command": "",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-21",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The renderer shall pass type-check and lint after the change.",
+        "verification_command": "npm run typecheck && eslint --cache src/renderer/src/components/molecules/CodeEditor.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-22",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The CodeEditor stylesheet shall not use an em-based gutter row height.",
+        "verification_command": "! grep -q '1.65em' src/renderer/src/components/molecules/CodeEditor.css",
+        "test_anchor": "",
+        "n_a_reason": ""
+      },
+      {
+        "ac_id": "AC-23",
+        "subsection": "hygiene",
+        "ears_variant": "ubiquitous",
+        "statement": "The CodeEditor component shall not use inline element styles for the toggle states.",
+        "verification_command": "! grep -q 'style={{' src/renderer/src/components/molecules/CodeEditor.tsx",
+        "test_anchor": "",
+        "n_a_reason": ""
+      }
+    ],
+    "ac_subsection_na": {
+      "ci_pipeline": "No CI/pipeline change \u2014 pure renderer component change covered by existing vitest + playwright CT jobs",
+      "hooks_gates": "No new git hooks, pre-commit, or CI gates introduced"
+    },
+    "constraints": [
+      {
+        "kind": "follow",
+        "content": "\u00a76.3 Search Before Building",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "\u00a73.6 Simplicity & Reuse (KISS/DRY)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "\u00a76.1 Minimal Changes",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "\u00a72.2 Renderer Tier Organization",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "\u00a73.4 Testing Requirements",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Editing is ephemeral UI state owned by BodyEditor local component state, never a tabsStore domain field (raw text still round-trips through updateActiveSpec unchanged)",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "follow",
+        "content": "Commits follow Conventional Commits and include the Co-Authored-By: Claude attribution trailer",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      },
+      {
+        "kind": "not_break",
+        "content": "compose()'s JSON.parse pre-validation is the malformed-JSON degrade-to-plain detector \u2014 it must not be removed or bypassed",
+        "quantifier": null,
+        "constitution_ref": null,
+        "protocol": null,
+        "contract_doc_ref": null
+      }
+    ],
+    "affected_areas": [
+      {
+        "area": "CodeEditor (molecule)",
+        "files": [
+          "src/renderer/src/components/molecules/CodeEditor.tsx",
+          "src/renderer/src/components/molecules/CodeEditor.css"
+        ],
+        "impact": "Add editing/onEditingChange props; conditionally mount textarea XOR pre; tokenize once on switch-to-preview; add click-to-edit (caret-at-click, clamped) + preview focus/Enter entry; remove scroll-sync handler, debounced re-tokenize effect, colored-during-edit snapshot; CSS drops absolute-overlay stacking, keeps --code-line-h line-box + horizontal-scroll on the single visible layer"
+      },
+      {
+        "area": "BodyEditor (organism, consumer + state owner)",
+        "files": [
+          "src/renderer/src/components/organisms/BodyEditor.tsx",
+          "src/renderer/src/components/organisms/BodyEditor.css"
+        ],
+        "impact": "Own the editing boolean (default preview; reset to preview on activeTabId change); render the edit/preview toggle button in the toolbar and wire it + pass editing/onEditingChange to CodeEditor"
+      },
+      {
+        "area": "CodeEditor tests",
+        "files": [
+          "src/renderer/src/components/molecules/__tests__/CodeEditor.ct.tsx",
+          "src/renderer/src/components/molecules/__tests__/CodeEditor.stories.tsx"
+        ],
+        "impact": "Split the AC-12/13/21 line-box co-read into edit-state and preview-state reads; add toggle/click-to-edit/caret/entry coverage; drop the live/debounced (018 AC-23) colored-during-edit assertions"
+      },
+      {
+        "area": "BodyEditor tests",
+        "files": [
+          "src/renderer/src/components/organisms/__tests__/BodyEditor.ct.tsx",
+          "src/renderer/src/components/organisms/__tests__/BodyEditor.stories.tsx"
+        ],
+        "impact": "Cover the toggle button + editing-state ownership + reset-to-preview-on-tab-switch; adjust testid assertions to only-visible-layer"
+      },
+      {
+        "area": "Docs",
+        "files": [
+          "docs/architecture.md"
+        ],
+        "impact": "Update the CodeEditor molecule description from three-layer overlay to edit/preview toggle (editing prop, tokenize-on-preview)"
+      }
+    ],
+    "out_of_scope": [
+      {
+        "content": "Any third-party editor engine (CodeMirror, Monaco, etc.) \u2014 the edit surface stays a native textarea",
+        "finding_ref": "F-2026-07-19-change-the-raw-mode-6"
+      },
+      {
+        "content": "Auto-indent, bracket/quote auto-close, multi-cursor, find/replace, and paste-and-format",
+        "finding_ref": ""
+      },
+      {
+        "content": "Syntax highlighting while typing \u2014 plain-while-editing is the accepted tradeoff (colored only in preview)",
+        "finding_ref": "F-spec-2"
+      },
+      {
+        "content": "Changing the jsonTokens compose library or its token vocabulary \u2014 reused byte-unchanged",
+        "finding_ref": "F-constitution-2"
+      },
+      {
+        "content": "Any other CodeEditor consumer (response-body viewer, GraphQL variables) \u2014 none exists; BodyEditor is the sole consumer",
+        "finding_ref": ""
+      }
+    ],
+    "open_questions": [
+      {
+        "question_id": "Q-1",
+        "content": "Caret-at-click implementation: whether native textarea focus already lands the caret at the clicked character, or a click-coordinate to character-offset mapping is required (research runtime-probe pinned; either satisfies AC-12).",
+        "category_no_dp_reason": ""
+      },
+      {
+        "question_id": "Q-2",
+        "content": "Whether textarea scroll/selection must be retained across an edit->preview->edit round trip within the same tab, or may reset (research open uncertainty).",
+        "category_no_dp_reason": ""
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Line-box (20.625px) alignment must hold in BOTH toggle states; gutter must track the visible layer in one scroll container; caret-at-click mapping correctness; scroll-position preservation across toggle.",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "tbd via /plan"
+      },
+      {
+        "risk": "Conditional-mount does not preserve textarea scroll/selection across a toggle; display:none/unmount loses scrollTop and focus() can re-clobber it",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Decide scroll retention in /plan (Q-2); if required, capture scrollTop/selection at switch and restore after mount with focus({preventScroll:true})"
+      },
+      {
+        "risk": "CodeEditor/BodyEditor Playwright CT cannot mount in the local harness (pre-existing break)",
+        "likelihood": "High",
+        "impact": "Med",
+        "mitigation": "Verify statically + live-verify per 018; leave test:ct Done-When UNVERIFIED rather than burning repair rounds; reproduce tokens.css import + data-mstyle + production className scope in fixtures"
+      },
+      {
+        "risk": "CT AC-12/13/21 line-box co-read of pre+textarea in one state breaks once only one layer mounts at a time",
+        "likelihood": "High",
+        "impact": "Low",
+        "mitigation": "Split the line-box assertion into an edit-state read (textarea) and a preview-state read (pre); both must equal the shared line-box height"
+      },
+      {
+        "risk": "Line-box row height could drift between the edit and preview states if the single mounted layer inherits different metrics",
+        "likelihood": "Med",
+        "impact": "Med",
+        "mitigation": "Both states bind the same --code-line-h var + identical font/padding/box-sizing; DOM-verify equal row heights per state"
+      }
+    ],
+    "design_anchor": {
+      "kind": "",
+      "file": "",
+      "selectors": []
+    }
+  },
+  "provenance": {
+    "upstream_handoff_path": "/Users/mykolakudlyk/Projects/private/mintEnvoy/research/2026-07-19-change-the-raw-mode/handoff.json",
+    "upstream_handoff_kind": "research",
+    "upstream_completed_at": "2026-07-19T15:01:36+00:00"
+  },
+  "downstream_links": {
+    "plan_path": null,
+    "execute_task_commit_shas": []
+  }
+}

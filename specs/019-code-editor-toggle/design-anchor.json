@@ -1,0 +1,8 @@
+{
+  "kind": "html",
+  "file": "design/reference.html",
+  "selectors": [
+    ".code-editor"
+  ],
+  "source_hash": "ce2144b424fa6127c1ab65c3cc35fdb33e288514f4416a77145873c8501e1c3a"
+}
