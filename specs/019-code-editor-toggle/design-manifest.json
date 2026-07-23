@@ -1,0 +1,6 @@
+{
+  "route": "Main window → Request editor → Body tab → raw mode (the CodeEditor code area rendered inside BodyEditor's raw panel)",
+  "pairs": [
+    { "anchor_selector": ".code-editor", "built_testid": "body-code-editor" }
+  ]
+}

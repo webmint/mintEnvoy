@@ -99,6 +99,29 @@ export function BodyEditorRawJsonLightFixture(): JSX.Element {
   )
 }
 
+/**
+ * Raw+JSON body under LIGHT theme with a neutral blur-target button beside the
+ * editor — for the toggle / F-002 / blur-exit / toggle-entry-focus CTs (task 004).
+ *
+ * The `ct-be-blur-target` button is a plain focusable element OUTSIDE the code
+ * editor: clicking it moves focus off the textarea (a real blur) WITHOUT the
+ * `preventDefault` the toggle button uses and WITHOUT changing the body mode, so
+ * the AC-16 blur-exit test can isolate CodeEditor's blur handler from the toggle
+ * path (the toggle's own onClick also fires onEditingChange(false)).
+ */
+export function BodyEditorRawJsonToggleFixture(): JSX.Element {
+  const ref = useSeed(RAW_JSON)
+  return (
+    <div data-theme="light" style={WRAPPER_STYLE}>
+      <BodyEditor renderUrlencoded={stubUrlencoded} />
+      <button type="button" data-testid="ct-be-blur-target">
+        outside
+      </button>
+      <span ref={ref} />
+    </div>
+  )
+}
+
 /** Default `none` body (AC-7 default, AC-6 mount-all). */
 export function BodyEditorNoneFixture(): JSX.Element {
   const ref = useSeed(body({ active: 'none' }))
@@ -385,31 +408,7 @@ export function BodyEditorNoneDirtyProbeFixture(): JSX.Element {
 }
 
 // ---------------------------------------------------------------------------
-// Horizontal scroll fixture (scroll-sync CT — scrollLeft axis)
-// ---------------------------------------------------------------------------
-
-/**
- * Raw body with a SINGLE very long line — for the textarea→pre horizontal
- * scroll-sync test. The narrow container (300 × 200 px) forces the textarea
- * into horizontal overflow so textarea.scrollLeft can be set to a non-zero
- * offset and the scroll handler's scrollLeft sync is verified.
- *
- * Mirrors BodyEditorScrollFixture but isolates the scrollLeft axis: a single
- * line with no newlines avoids confounding vertical-scroll state.
- */
-export function BodyEditorScrollHFixture(): JSX.Element {
-  const longLine = 'word '.repeat(200) // ~1000 chars — wider than the 300px container
-  const ref = useSeed(body({ active: 'raw', raw: { lang: 'text', text: longLine } }))
-  return (
-    <div data-theme="light" style={{ width: '300px', height: '200px' }}>
-      <BodyEditor renderUrlencoded={stubUrlencoded} />
-      <span ref={ref} />
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Two-request-tabs, SAME raw body — highlight re-arms regression guard (Finding 1)
+// Two-request-tabs, SAME raw body — AC-6 tab-switch-while-editing fixture
 // ---------------------------------------------------------------------------
 
 /** Tab A id for the same-raw-body isolation fixture. */
@@ -419,15 +418,16 @@ const CT_BE_SR_TAB_A = 'ct-be-sr-a'
 const CT_BE_SR_TAB_B = 'ct-be-sr-b'
 
 /**
- * Two request tabs BOTH carrying identical raw+JSON bodies.
+ * Two request tabs BOTH carrying identical raw+JSON bodies, each with its own
+ * switch button — both tabs are raw so the `body-edit-toggle` is available on
+ * either.
  *
- * Used for the highlight-lock regression guard: after switching from Tab A to
- * Tab B, the debounce effect must re-arm because `resetKey` is in CodeEditor's
- * deps (`useEffect([value, lang, resetKey])`). BodyEditor wires
- * `resetKey={activeTabId}`, so the dep changes on every tab switch. Without
- * the `resetKey` dep, `setColored(null)` fires on the tab switch but the
- * debounce never reschedules (value+lang are unchanged), so `.tk-key` spans
- * never reappear.
+ * Used by the AC-6 tab-switch-while-editing CT: enter edit on Tab A (toggle →
+ * textarea), switch to Tab B, and assert the immediate post-switch DOM is
+ * preview (`body-pre` mounted, textarea NOT) — proving BodyEditor's render-phase
+ * reset (`if (activeTabId !== prevTab) setEditing(false)`) commits editing=false
+ * atomically with the tab switch. Identical bodies keep the switch a pure
+ * activeTabId change (no value/lang confound).
  *
  * Readiness: `ct-be-same-raw-ready` (set after the seed lands).
  * Switch buttons: `ct-be-sr-select-tab-a` / `ct-be-sr-select-tab-b`.

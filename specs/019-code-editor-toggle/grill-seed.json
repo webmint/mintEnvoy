@@ -1,0 +1,15 @@
+{
+  "seed_version": "1",
+  "source": "grill",
+  "target_stage": "plan",
+  "feature": "specs/019-code-editor-toggle",
+  "prior_conclusion": "plan.md:74-75 a11y-preview-entry decision moves focus to the freshly-mounted textarea in ONLY the caret-at-click path ('setSelectionRange after mount+focus'); the keyboard Enter/Space and toggle-button entry paths specify no textarea focus-move",
+  "invalidating_evidence": "Confirmed grill finding (Medium, blind_spot): entering edit unmounts the focused pre and F-002's onMouseDown preventDefault (plan.md:69) suppresses the toggle's focus-steal, so after a non-click entry focus falls to document.body — the newly-mounted textarea is unfocused and a keyboard user who entered edit mode cannot type, undermining AC-18 operability while a naive 'textarea mounted' check still passes",
+  "must_satisfy": "Revised plan must move focus to the freshly-mounted textarea on ALL edit-entry paths (click, keyboard Enter/Space, toggle button), not just caret-at-click — e.g. a focus-on-mount effect keyed on editing→true that calls textareaRef.focus() (the click path still additionally runs setSelectionRange for caret placement). Add a Risk row for the focus-on-entry interaction and CTs asserting document.activeElement === the textarea after keyboard-Enter entry AND after toggle-button entry.",
+  "cycle_count": 6,
+  "carried_findings": [
+    "F1 ref→useState AC-6 reset (resolved cycle 5",
+    "must stay fixed); focus-on-entry gap for keyboard+toggle paths (AC-18)"
+  ],
+  "provenance": "specs/019-code-editor-toggle/grill.md"
+}
