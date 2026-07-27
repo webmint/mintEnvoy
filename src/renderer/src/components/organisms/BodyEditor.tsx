@@ -23,7 +23,7 @@
  */
 
 import './BodyEditor.css'
-import React, { memo, type ReactNode, useRef, useCallback } from 'react'
+import React, { memo, type ReactNode, useRef, useCallback, useState } from 'react'
 import { tabsStore, BLANK_BODY } from '@renderer/lib/tabsStore'
 import type { RawBody, BodyType, RawLang, Row } from '@renderer/lib/tabsStore'
 import { envVars } from '@renderer/lib/envVars'
@@ -62,6 +62,24 @@ export const BodyEditor = memo(function BodyEditor({
   const updateActiveSpec = tabsStore((s) => s.updateActiveSpec)
   const activeTabId = tabsStore((s) => s.activeTabId)
   const body = tabsStore((s) => s.tabs.find((t) => t.id === s.activeTabId)?.spec.body ?? BLANK_BODY)
+
+  /** Ephemeral editing state: true = textarea edit mode, false = highlighted preview. */
+  const [editing, setEditing] = useState(false)
+  /**
+   * Render-phase reset (AC-6 return-to-preview): detect an activeTabId change
+   * during rendering and reset editing to false in the same render cycle.
+   *
+   * This is React's documented set-state-in-render idiom — NOT a useEffect and
+   * NOT a ref written during render. The reset is atomic with the tab switch:
+   * React discards the current render output, immediately re-renders with
+   * editing=false, and the user never sees a flash of the stale editing mode on
+   * the newly-selected tab.
+   */
+  const [prevTab, setPrevTab] = useState(activeTabId)
+  if (activeTabId !== prevTab) {
+    setPrevTab(activeTabId)
+    setEditing(false)
+  }
 
   /** Ref array for roving-tabIndex focus management (one slot per radio). */
   const radioRefs = useRef<(HTMLElement | null)[]>([])
@@ -162,6 +180,25 @@ export const BodyEditor = memo(function BodyEditor({
         </div>
 
         <div className="right">
+          {/* Edit/preview toggle: only meaningful in raw mode, mirrors lang-pill gating.
+              onMouseDown calls preventDefault so clicking while editing does not blur
+              the textarea before onClick fires the toggle. */}
+          <button
+            type="button"
+            className="body-edit-toggle"
+            data-testid="body-edit-toggle"
+            // Toggle-button a11y: aria-pressed carries the current edit/preview
+            // state to AT (WCAG 4.1.2 Name/Role/Value). NO aria-label — the button's
+            // visible text ("Edit"/"Preview") is its accessible name, so Label-in-Name
+            // (WCAG 2.5.3) holds (a stable aria-label like "Edit mode" would NOT
+            // contain the visible "Preview" text and would violate 2.5.3).
+            aria-pressed={editing}
+            hidden={body.active !== 'raw'}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setEditing((v) => !v)}
+          >
+            {editing ? 'Preview' : 'Edit'}
+          </button>
           {/* Lang pill: only meaningful in raw mode */}
           <button
             type="button"
@@ -189,6 +226,8 @@ export const BodyEditor = memo(function BodyEditor({
           lang={body.raw.lang}
           onChange={(text) => setRaw({ ...body.raw, text })}
           validVars={validVars}
+          editing={editing}
+          onEditingChange={setEditing}
         />
       </div>
 

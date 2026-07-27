@@ -1,70 +1,319 @@
 /**
- * CodeEditor.ct.tsx — Playwright component tests for the CodeEditor molecule.
+ * CodeEditor.ct.tsx — Playwright component tests for the rebuilt CodeEditor
+ * molecule (task 001: edit/preview conditional-mount toggle).
  *
  * Fixtures live in CodeEditor.stories.tsx (Playwright experimental-ct-react
  * cannot mount components defined inline in a test file — the CT bundler
  * statically extracts mountable components from importable modules only).
  *
- * Two halves:
- *  - Fidelity: §8 computed-style assertions via test-utils/fidelityAssert.ts
- *    (fail-closed — UNVERIFIED, never PASS, when the live computed-style channel
- *    is unavailable; AC-19). Row-height equality (AC-12/13/21). Grid geometry
- *    (.code-editor grid-template-columns: 36px gutter + flexible content column).
- *    Per-theme literal hex (AC-16 light, AC-16 dark), token-binding resolution (AC-17).
- *  - Behavior: two-pass highlight/debounce split (AC-23); resetKey-driven reset
- *    and re-arm (AC-6); resetKey-driven scroll-reset (AC-6).
+ * New model these tests target (vs the 018-era debounced two-layer editor):
+ *  - Conditional mount: editing=true mounts ONLY the <textarea>; editing=false
+ *    mounts ONLY the highlighted <pre>. Never both (AC-10/11).
+ *  - Synchronous tokenisation: a {value,lang}-snapshot useMemo gated to !editing.
+ *    There is NO debounce and NO setColored — `.tk-*` spans are present on the
+ *    first preview render (AC-17), so no page.clock / fastForward is needed.
+ *  - Edit entry focuses the textarea on every path (click / Enter-Space / toggle)
+ *    via a focus-on-mount effect keyed on `editing` (AC-18).
+ *  - The textarea has NO data-testid by design — it is located by its accessible
+ *    name, getByLabel('Request body', { exact: true }); the pre carries a longer
+ *    aria-label so `exact: true` disambiguates the two.
  *
- * Highlight coloring is debounced (~100ms), so token spans (`.tk-*`) appear
- * shortly after mount — every fidelity/highlight assertion first waits for
- * the relevant span to attach (Playwright auto-polling) before reading its style.
+ * NOTE: the local Playwright CT harness cannot mount these molecule fixtures
+ * (pre-existing break — see MEMORY `ct-organism-fixtures-cannot-mount-locally`).
+ * These tests are verified statically + downstream live-verify; `test:ct` is
+ * left UNVERIFIED for this task.
  */
 
 import { test, expect } from '@playwright/experimental-ct-react'
+import type { Page } from 'playwright-core'
 import {
   assertComputedStyle,
   assertResolvesToToken,
   skipIfChannelUnavailable
 } from '@renderer/test-utils/fidelityAssert'
 import {
-  CodeEditorLightFixture,
+  CodeEditorPreviewFixture,
+  CodeEditorEditFixture,
   CodeEditorDarkFixture,
-  CodeEditorResetKeyFixture,
+  CodeEditorToggleFixture,
+  CodeEditorEmptyToggleFixture,
   CodeEditorScrollFixture,
   CodeEditorFontOverrideFixture,
   CodeEditorMalformedFixture,
-  CodeEditorMissingVarFixture,
-  JSON_ALL_TOKENS
+  CodeEditorMissingVarFixture
 } from './CodeEditor.stories'
 
+// The structural token classes emitted by compose() for highlighted JSON.
+const TK_SELECTORS = '.tk-key, .tk-str, .tk-num, .tk-bool, .tk-null, .tk-punc, .tk-var'
+
+/**
+ * Caret-CT precondition (G-5): caretPositionFromPoint maps a click coordinate
+ * against the RENDERED font metrics. If JetBrains Mono has not loaded, the click
+ * is measured against a fallback font and the predicted selectionStart is wrong
+ * / flaky (MEMORY `fontsource-vite-relative-url`). Assert the mono face is loaded
+ * before any caret-offset assertion.
+ */
+async function assertMonoFontLoaded(page: Page): Promise<void> {
+  const loaded = await page.evaluate(async () => {
+    await document.fonts.load('400 12.5px "JetBrains Mono"')
+    await document.fonts.ready
+    return document.fonts.check('400 12.5px "JetBrains Mono"')
+  })
+  expect(loaded, 'JetBrains Mono must be loaded for caret-metric accuracy').toBe(true)
+}
+
 // ===========================================================================
-// Fidelity — row-height equality (AC-12/13/21)
+// Conditional mount — only-visible-layer testids (AC-10 / AC-11)
 // ===========================================================================
 
 /**
- * AC-12/13/21 — gutter div, pre, and textarea all share the 20.625 px line-box height.
+ * AC-10 / AC-11 — exactly one layer is in the DOM per `editing` state.
  *
- * The CSS uses `--code-line-h: calc(12.5px * 1.65) = 20.625px` as the single
- * source of truth:
- *   .gutter > div    { height: var(--code-line-h); }   ← explicit height
- *   pre              { line-height: var(--code-line-h); } ← explicit line-height
- *   textarea         { line-height: var(--code-line-h); } ← explicit line-height
- *
- * If any regresses (e.g. gutter reverts to `1.65em` at 11.5px font = 18.975px,
- * or pre/textarea lose the override and inherit the unitless 1.65 resolved
- * against 12.5px = 20.625px — same value but fragile), this CT catches it.
- * Mirrors BodyEditor.ct.tsx's AC-23 gutter-height test.
+ * editing=false → the highlighted <pre> (`body-pre`) is attached and the
+ * textarea (`getByLabel('Request body')`) is NOT. editing=true → the reverse.
+ * The static single-layer fixtures assert each end; the toggle test below
+ * asserts the swap is atomic across a real edit entry.
  */
-test('AC-12/13/21 — gutter div, pre, and textarea share the 20.625px line-box height', async ({
+test('AC-10/11 — preview mounts pre only; edit mounts textarea only', async ({ mount, page }) => {
+  const preview = await mount(<CodeEditorPreviewFixture />)
+  await expect(preview.getByTestId('ce-preview-ready')).toBeAttached()
+  await expect(page.getByTestId('body-pre')).toBeAttached()
+  await expect(page.getByLabel('Request body', { exact: true })).not.toBeAttached()
+
+  await preview.unmount()
+
+  const edit = await mount(<CodeEditorEditFixture />)
+  await expect(edit.getByTestId('ce-edit-ready')).toBeAttached()
+  await expect(page.getByLabel('Request body', { exact: true })).toBeAttached()
+  await expect(page.getByTestId('body-pre')).not.toBeAttached()
+})
+
+/**
+ * AC-10/11 (swap) — clicking the preview swaps pre → textarea in one transition;
+ * the pre detaches and the textarea attaches (never both mounted at once).
+ */
+test('AC-10/11 — clicking preview swaps the mounted layer (pre → textarea)', async ({
   mount,
   page
 }) => {
-  const c = await mount(<CodeEditorLightFixture />)
-  await expect(c.getByTestId('ce-ready')).toBeAttached()
+  const c = await mount(<CodeEditorToggleFixture />)
+  await expect(c.getByTestId('ce-toggle-ready')).toBeAttached()
+
+  const pre = page.getByTestId('body-pre')
+  const textarea = page.getByLabel('Request body', { exact: true })
+
+  await expect(pre).toBeAttached()
+  await expect(textarea).not.toBeAttached()
+
+  await pre.click()
+
+  await expect(textarea).toBeAttached()
+  await expect(pre).not.toBeAttached()
+})
+
+// ===========================================================================
+// Synchronous recolor — first-mount colored + recolor-in-preview (AC-17 / AC-14)
+// ===========================================================================
+
+/**
+ * AC-17 — first-mount preview is colored SYNCHRONOUSLY.
+ *
+ * Replaces the deleted 018-era two-pass debounce test (G-1). There is no
+ * setColored state and no ~100ms timer any more — compose() runs inside a
+ * useMemo during the first preview render, so `.tk-key` is present immediately.
+ * No page.clock / fastForward is used: `toBeAttached` resolves on first poll.
+ */
+test('AC-17 — preview is tokenised synchronously on first mount (no debounce)', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<CodeEditorPreviewFixture />)
+  await expect(c.getByTestId('ce-preview-ready')).toBeAttached()
+
+  // Colored immediately — no clock advance needed.
+  await expect(page.locator('.tk-key').first()).toBeAttached()
+})
+
+/**
+ * AC-14 — recolor is bound to the visible-layer transition, NOT to keystrokes.
+ *
+ * Behavioural framing (G-4): a CT cannot read the useMemo invocation count, so
+ * we assert the observable evidence instead — while editing=true the <pre> is
+ * unmounted so NO `.tk-*` span exists; switching back to preview re-mounts the
+ * pre and the tokens reappear. A lang-cycle while in preview recolors without a
+ * keystroke (the tokens remain present after the lang changes). We never claim
+ * "composed exactly once" — that once-per-transition guarantee is a code-review
+ * property the CT cannot prove.
+ */
+test('AC-14 — tokens absent while editing, present in preview; lang-cycle recolors', async ({
+  mount,
+  page
+}) => {
+  // Start in edit mode: the pre is unmounted, so no token spans exist.
+  const c = await mount(<CodeEditorToggleFixture startEditing={true} />)
+  await expect(c.getByTestId('ce-toggle-ready')).toBeAttached()
+  await expect(page.locator(TK_SELECTORS)).toHaveCount(0)
+
+  // Leave edit mode (blur the textarea) → preview re-mounts → tokens reappear.
+  await page.getByLabel('Request body', { exact: true }).blur()
+  await expect(page.locator('.tk-key').first()).toBeAttached()
+
+  // Lang-cycle in preview (json → xml) recolors without any keystroke. Prove the
+  // recolor is REAL, not a no-op: capture the pre's token-class signature (the
+  // ordered join of every span className), cycle the lang, and assert the
+  // signature CHANGES to a still-tokenised value.
+  //
+  // `preTokenSignature` is a FUNCTION that RE-QUERIES the DOM on every call.
+  // `expect.poll(preTokenSignature)` therefore re-evaluates it each poll tick
+  // until the matcher passes — it never compares a stale snapshot. Passing the
+  // resolved string instead would make the poll a constant and prove nothing.
+  const preTokenSignature = (): Promise<string> =>
+    page
+      .getByTestId('body-pre')
+      .evaluate((el) => Array.from(el.querySelectorAll('span'), (s) => s.className).join('|'))
+
+  const jsonSignature = await preTokenSignature()
+  expect(jsonSignature).toContain('tk-key') // json genuinely highlights object keys
+
+  await page.getByTestId('ce-cycle-lang').click()
+
+  // json→xml recolor must CHANGE the token composition. A tokeniser that ignored
+  // the lang change would leave the signature identical, so this poll would time
+  // out and fail (it re-queries the live DOM each tick, not the captured string).
+  await expect.poll(preTokenSignature).not.toBe(jsonSignature)
+
+  // Guard against a blanked/crashed pre: `.not.toBe(jsonSignature)` alone would
+  // also pass if the pre rendered empty, so assert the post-cycle layer is still
+  // tokenised (≥1 token span) AND its signature is non-empty.
+  await expect(page.locator(TK_SELECTORS).first()).toBeAttached()
+  const xmlSignature = await preTokenSignature()
+  expect(xmlSignature.length).toBeGreaterThan(0)
+})
+
+// ===========================================================================
+// Caret-at-click — enter edit with caret at clicked offset (AC-12 / AC-13)
+// ===========================================================================
+
+/**
+ * AC-12 — clicking a preview character enters edit mode with the caret at the
+ * clicked offset. AC-13 — clicking past end-of-line / below the text clamps the
+ * caret to the nearest character (≤ value.length).
+ *
+ * Precondition (G-5): JetBrains Mono must be loaded, else caretPositionFromPoint
+ * maps against a fallback font and the offset is calibrated wrong.
+ */
+test('AC-12/13 — click preview places caret at clicked offset; past-end clamps', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<CodeEditorToggleFixture />)
+  await expect(c.getByTestId('ce-toggle-ready')).toBeAttached()
+  await assertMonoFontLoaded(page)
+
+  const pre = page.getByTestId('body-pre')
+  const box = await pre.boundingBox()
+  expect(box).not.toBeNull()
+
+  // Click a point a few characters into the first line (not the very start).
+  await page.mouse.click(box!.x + 40, box!.y + 6)
+
+  const textarea = page.getByLabel('Request body', { exact: true })
+  await expect(textarea).toBeFocused()
+
+  // AC-12: caret landed at a non-zero, in-range offset near the click.
+  const midOffset = await textarea.evaluate((el) => (el as HTMLTextAreaElement).selectionStart)
+  const len = await textarea.evaluate((el) => (el as HTMLTextAreaElement).value.length)
+  expect(midOffset).toBeGreaterThan(0)
+  expect(midOffset).toBeLessThanOrEqual(len)
+
+  // Return to preview and click far past the end of the text (bottom-right of
+  // the box). AC-13: the offset clamps to value.length, never beyond.
+  await textarea.blur()
+  await expect(pre).toBeAttached()
+  const box2 = await pre.boundingBox()
+  await page.mouse.click(box2!.x + box2!.width - 4, box2!.y + box2!.height - 4)
+
+  const clampedOffset = await page
+    .getByLabel('Request body', { exact: true })
+    .evaluate((el) => (el as HTMLTextAreaElement).selectionStart)
+  expect(clampedOffset).toBeLessThanOrEqual(len)
+})
+
+/**
+ * Whole-area click-to-edit (empty body) — with an empty body the preview `<pre>`
+ * collapses to ~one line at the top of a taller editor, leaving dead space below.
+ * Clicking that dead space (the `.code-editor` container, well below the `<pre>`)
+ * must enter edit mode: the preview onClick is hoisted from the `<pre>` to the
+ * container, so a short/empty body is fully clickable rather than a dead zone.
+ * Guards the empty-body regression (clicking an empty editor did nothing).
+ */
+test('empty body — clicking the code area below the near-empty pre enters edit', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<CodeEditorEmptyToggleFixture />)
+  await expect(c.getByTestId('ce-empty-ready')).toBeAttached()
+
+  const container = page.getByTestId('body-code-editor')
+  const textarea = page.getByLabel('Request body', { exact: true })
+
+  // Preview default: pre mounted, textarea not.
+  await expect(page.getByTestId('body-pre')).toBeAttached()
+  await expect(textarea).not.toBeAttached()
+
+  // Click the dead zone near the bottom of the container, well below the ~1-line pre.
+  const box = await container.boundingBox()
+  expect(box).not.toBeNull()
+  await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height - 8)
+
+  // The whole-area click-to-edit entered edit → the textarea mounts and focuses.
+  await expect(textarea).toBeAttached()
+  await expect(textarea).toBeFocused()
+})
+
+// ===========================================================================
+// Keyboard entry focus — Enter on the focused preview focuses the textarea (AC-18)
+// ===========================================================================
+
+/**
+ * AC-18 — with the preview <pre> focused, pressing Enter enters edit mode and
+ * the textarea receives focus.
+ *
+ * Assertion-formula constraint (G-7/G-8): locate the textarea by its accessible
+ * name and assert `toBeFocused()` — NEVER `document.activeElement ===
+ * textareaRef.current` (an internal React ref inaccessible from the CT context).
+ */
+test('AC-18 — Enter on the focused preview focuses the textarea', async ({ mount, page }) => {
+  const c = await mount(<CodeEditorToggleFixture />)
+  await expect(c.getByTestId('ce-toggle-ready')).toBeAttached()
+
+  const pre = page.getByTestId('body-pre')
+  await pre.focus()
+  await expect(pre).toBeFocused()
+
+  await pre.press('Enter')
+
+  await expect(page.getByLabel('Request body', { exact: true })).toBeFocused()
+})
+
+// ===========================================================================
+// Line-box split — edit-state read + preview-state read both = --code-line-h (AC-9)
+// ===========================================================================
+
+/**
+ * AC-9 (preview read) — the gutter row and the <pre> line share the 20.625px
+ * `--code-line-h` line-box. Under conditional mount the textarea is NOT present
+ * in preview, so its row height is verified separately by the edit-state read.
+ *
+ * --code-line-h: calc(12.5px * 1.65) = 20.625px is the single source of truth:
+ *   .gutter > div { height: var(--code-line-h); }
+ *   pre           { line-height: var(--code-line-h); }
+ */
+test('AC-9 (preview) — gutter row and pre share the 20.625px line-box', async ({ mount, page }) => {
+  const c = await mount(<CodeEditorPreviewFixture />)
+  await expect(c.getByTestId('ce-preview-ready')).toBeAttached()
   await skipIfChannelUnavailable(page) // AC-19 fail-closed gate
 
-  // Gutter line-number div: height = var(--code-line-h) = 20.625px.
-  // calc(12.5px * 1.65); if regressed to 1.65em (11.5px gutter font) → 18.975px,
-  // causing all line numbers to drift vs the code text. (Mirrors AC-23 in BodyEditor.ct.)
   const gutterHeight = await page
     .getByTestId('body-gutter')
     .locator('> div')
@@ -72,41 +321,153 @@ test('AC-12/13/21 — gutter div, pre, and textarea share the 20.625px line-box 
     .evaluate((el) => window.getComputedStyle(el).height)
   expect(gutterHeight).toBe('20.625px')
 
-  // Pre overlay: line-height = var(--code-line-h) = 20.625px.
-  // Explicit override on .code-editor-content > pre ensures the highlight layer
-  // sits on the same pixel grid as the gutter.
   const preLineHeight = await page
     .getByTestId('body-pre')
     .evaluate((el) => window.getComputedStyle(el).lineHeight)
   expect(preLineHeight).toBe('20.625px')
+})
 
-  // Textarea: line-height = var(--code-line-h) = 20.625px.
-  // Must match the pre line-height exactly so the transparent textarea caret
-  // aligns with the coloured highlight layer — caret desync is a visual defect.
-  // Uses locator('textarea') rather than getByLabel for a pure style read —
-  // CodeEditor renders exactly one textarea (Finding 1: decouple from aria-label).
+/**
+ * AC-9 (edit read) — the textarea row shares the same 20.625px `--code-line-h`
+ * line-box, so the caret sits on the identical pixel grid as the preview it
+ * replaced. Read from the edit-state fixture (editing=true) where the textarea
+ * is the mounted layer.
+ */
+test('AC-9 (edit) — textarea shares the 20.625px line-box', async ({ mount, page }) => {
+  const c = await mount(<CodeEditorEditFixture />)
+  await expect(c.getByTestId('ce-edit-ready')).toBeAttached()
+  await skipIfChannelUnavailable(page) // AC-19 fail-closed gate
+
   const taLineHeight = await page
-    .locator('textarea')
+    .getByLabel('Request body', { exact: true })
     .evaluate((el) => window.getComputedStyle(el).lineHeight)
   expect(taLineHeight).toBe('20.625px')
 })
 
 // ===========================================================================
-// Fidelity — tk-* computed colors (AC-16/17) + fail-closed gate (AC-19)
+// AC-15 — textarea horizontal-scroll / no-soft-wrap contract
 // ===========================================================================
 
 /**
- * AC-16 — light-theme tk-* colors resolve to the design literals.
- *
- * Literal hex values sourced from BodyEditor.ct.tsx AC-20 block (T7a contract —
- * CodeEditor uses the same CSS token classes and the same per-theme token vars
- * as BodyEditor's code area; the literals must be identical between the two).
+ * AC-15 — the edit textarea disables spellcheck, disables user-resize, and uses
+ * `white-space: pre` (horizontal scroll, no soft-wrap). Guards against a
+ * regression to `pre-wrap` (which would soft-wrap long lines) or a native resize
+ * handle appearing.
+ */
+test('AC-15 — textarea: spellcheck off, resize none, white-space pre', async ({ mount, page }) => {
+  const c = await mount(<CodeEditorEditFixture />)
+  await expect(c.getByTestId('ce-edit-ready')).toBeAttached()
+  await skipIfChannelUnavailable(page) // AC-19 fail-closed gate
+
+  const attrs = await page.getByLabel('Request body', { exact: true }).evaluate((el) => {
+    const ta = el as HTMLTextAreaElement
+    const cs = window.getComputedStyle(ta)
+    return { spellcheck: ta.spellcheck, resize: cs.resize, whiteSpace: cs.whiteSpace }
+  })
+  expect(attrs.spellcheck).toBe(false)
+  expect(attrs.resize).toBe('none')
+  expect(attrs.whiteSpace).toBe('pre')
+})
+
+/**
+ * Textarea grows to its full content height — the edit textarea sets
+ * `rows={lineCount}` so it is exactly as tall as its content, like the preview
+ * <pre>. Guards the regression where the textarea kept its intrinsic 2-row height
+ * and clipped any line past the second (e.g. a closing brace on line 3 was hidden
+ * in edit mode). JSON_ALL_TOKENS is 6 lines, so rows must be 6 and the content is
+ * not vertically clipped within the textarea.
+ */
+test('edit — textarea rows match the line count so no line is clipped', async ({ mount, page }) => {
+  const c = await mount(<CodeEditorEditFixture />)
+  await expect(c.getByTestId('ce-edit-ready')).toBeAttached()
+
+  const metrics = await page.getByLabel('Request body', { exact: true }).evaluate((el) => {
+    const ta = el as HTMLTextAreaElement
+    return {
+      rows: ta.rows,
+      lineCount: ta.value.split('\n').length,
+      clipped: ta.scrollHeight > ta.clientHeight + 1
+    }
+  })
+  // JSON_ALL_TOKENS has 6 lines; rows tracks that so the box fits every line.
+  expect(metrics.rows).toBe(metrics.lineCount)
+  expect(metrics.rows).toBe(6)
+  expect(metrics.clipped).toBe(false)
+})
+
+// ===========================================================================
+// AC-19 — gutter tracks the visible layer within one scroll container
+// ===========================================================================
+
+/**
+ * AC-19 — the gutter is present and its rows align to the visible layer's line
+ * box in BOTH states. One gutter row per source line; each row height equals the
+ * visible layer's line-height (20.625px), so the numbers stay row-aligned with
+ * the code within the single `.code-editor` grid.
+ */
+test('AC-19 — gutter row count and height track the visible layer (preview)', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<CodeEditorPreviewFixture />)
+  await expect(c.getByTestId('ce-preview-ready')).toBeAttached()
+  await skipIfChannelUnavailable(page) // AC-19 fail-closed gate
+
+  // JSON_ALL_TOKENS has 6 lines → 6 gutter rows.
+  await expect(page.getByTestId('body-gutter').locator('> div')).toHaveCount(6)
+
+  const rowHeight = await page
+    .getByTestId('body-gutter')
+    .locator('> div')
+    .first()
+    .evaluate((el) => window.getComputedStyle(el).height)
+  const preLineHeight = await page
+    .getByTestId('body-pre')
+    .evaluate((el) => window.getComputedStyle(el).lineHeight)
+  expect(rowHeight).toBe(preLineHeight)
+})
+
+/**
+ * AC-19 (edit mode) — the gutter is rendered OUTSIDE the editing conditional, so
+ * it tracks the visible layer in edit mode too: one row per source line, each row
+ * height equal to the textarea's line box (20.625px). Guards against the gutter
+ * being accidentally coupled to the <pre> and vanishing / mis-sizing when the
+ * textarea is the mounted layer.
+ */
+test('AC-19 — gutter row count and height track the textarea (edit mode)', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<CodeEditorEditFixture />)
+  await expect(c.getByTestId('ce-edit-ready')).toBeAttached()
+  await skipIfChannelUnavailable(page) // AC-19 fail-closed gate
+
+  // JSON_ALL_TOKENS has 6 lines → 6 gutter rows, same as preview.
+  await expect(page.getByTestId('body-gutter').locator('> div')).toHaveCount(6)
+
+  const rowHeight = await page
+    .getByTestId('body-gutter')
+    .locator('> div')
+    .first()
+    .evaluate((el) => window.getComputedStyle(el).height)
+  const taLineHeight = await page
+    .getByLabel('Request body', { exact: true })
+    .evaluate((el) => window.getComputedStyle(el).lineHeight)
+  expect(rowHeight).toBe(taLineHeight)
+})
+
+// ===========================================================================
+// Fidelity — tk-* computed colors (AC-16) + fail-closed gate (AC-19)
+// ===========================================================================
+
+/**
+ * AC-16 — light-theme tk-* colors resolve to the design literals. Tokens are
+ * present synchronously (no debounce), so the wait is a plain `toBeAttached`.
  */
 test('AC-16 — light-theme tk-* colors resolve to the design literals', async ({ mount, page }) => {
-  const c = await mount(<CodeEditorLightFixture />)
-  await expect(c.getByTestId('ce-ready')).toBeAttached()
+  const c = await mount(<CodeEditorPreviewFixture />)
+  await expect(c.getByTestId('ce-preview-ready')).toBeAttached()
   await skipIfChannelUnavailable(page) // AC-19 fail-closed gate
-  // Wait for the 100ms debounce to fire and populate the token spans.
   await expect(page.locator('.tk-key').first()).toBeAttached()
 
   await assertComputedStyle(page, '.tk-key', 'color', 'rgb(3, 105, 161)', 'light tk-key')
@@ -116,10 +477,8 @@ test('AC-16 — light-theme tk-* colors resolve to the design literals', async (
 })
 
 /**
- * AC-16 dark-theme counterpart.
- *
- * Mirrors BodyEditor.ct.tsx AC-21. The same CSS token classes must resolve to
- * the dark-theme literals when data-theme="dark" is in scope.
+ * AC-16 dark-theme counterpart — the same CSS token classes resolve to the
+ * dark-theme literals when data-theme="dark" is in scope.
  */
 test('AC-16 dark — dark-theme tk-* colors resolve to the design literals', async ({
   mount,
@@ -137,20 +496,14 @@ test('AC-16 dark — dark-theme tk-* colors resolve to the design literals', asy
 })
 
 /**
- * AC-17 — tk-null/punc/var resolve to their bound CSS custom properties.
- *
- * These three classes use `var(--token)` rather than a per-theme literal hex.
- * `assertResolvesToToken` injects a probe element to resolve the token to its
- * computed value and compares against the element's computed color — this proves
- * the CSS binding is correct regardless of which theme literal the token resolves to.
- *
- * Mirrors BodyEditor.ct.tsx AC-22 (T7a contract consistency).
+ * AC-17 — tk-null/punc/var resolve to their bound CSS custom properties (rather
+ * than a per-theme literal hex), proving the CSS binding is correct regardless
+ * of which theme literal each token resolves to.
  */
 test('AC-17 — tk-null/punc/var resolve to their bound tokens', async ({ mount, page }) => {
-  const c = await mount(<CodeEditorLightFixture />)
-  await expect(c.getByTestId('ce-ready')).toBeAttached()
+  const c = await mount(<CodeEditorPreviewFixture />)
+  await expect(c.getByTestId('ce-preview-ready')).toBeAttached()
   await skipIfChannelUnavailable(page) // AC-19 fail-closed gate
-  // Wait for the debounce — tk-var appears in the JSON body ("{{x}}" inside tk-str).
   await expect(page.locator('.tk-var').first()).toBeAttached()
 
   await assertResolvesToToken(page, '.tk-null', 'color', '--text-faint', 'tk-null → --text-faint')
@@ -159,201 +512,16 @@ test('AC-17 — tk-null/punc/var resolve to their bound tokens', async ({ mount,
 })
 
 // ===========================================================================
-// Behavior — AC-23 live/debounced split
+// AC-13 — row height is independent of ancestor font metrics
 // ===========================================================================
 
 /**
- * AC-23 — plain span renders immediately (pre-debounce); `.tk-key` appears only
- * after the ~100ms debounce.
- *
- * On first paint, `colored` is null → `showColored` is false → the <pre> renders
- * `<span>{value}</span>` (plain-degrade path). This makes the typed text visible
- * immediately via the transparent textarea caret before the highlight pass fires.
- * After 100ms the debounce fires, compose() produces token spans, and .tk-key
- * attaches.
- *
- * Mirrors BodyEditor.ct.tsx's F3 regression guard.
- *
- * Determinism: Playwright's clock API freezes the page's virtual clock before
- * mount so the 100ms setTimeout in the debounce effect is held at t=0. The
- * pre-debounce assertions therefore CANNOT race a real-time expiry, making this
- * test repeatable on slow runners. `page.clock.fastForward(150)` then crosses
- * the debounce threshold and triggers compose() → setColored().
+ * AC-13 — the gutter row and the <pre> stay pinned to the fixed 20.625px
+ * `--code-line-h` even when an ancestor declares `font-size: 20px` and
+ * `line-height: 3`. `--code-line-h` is re-declared on `.code-editor` as a fixed
+ * px calc, so an inherited font metric cannot propagate into the line box.
  */
-test('AC-23 — plain span is visible before debounce; .tk-key attaches after debounce', async ({
-  mount,
-  page
-}) => {
-  // Install fake clock BEFORE mount so the debounce setTimeout is controlled by
-  // the virtual clock from the first render. Any real-time expiry is impossible
-  // while the clock is frozen at t=0, eliminating the prior count() race.
-  await page.clock.install()
-  const c = await mount(<CodeEditorLightFixture />)
-  await expect(c.getByTestId('ce-ready')).toBeAttached()
-
-  const pre = page.getByTestId('body-pre')
-
-  // At virtual t=0 the debounce timer is frozen. Assert the plain-degrade path:
-  // raw text is present and NO .tk-* span exists.
-  // '{\n  "key": 1,' is the leading 14 chars of JSON_ALL_TOKENS.
-  await expect(pre).toContainText(JSON_ALL_TOKENS.slice(0, 14))
-
-  // Retrying form (toHaveCount) instead of point-in-time count() for clarity;
-  // under the fake clock this is provably 0 (the timer cannot have fired yet).
-  await expect(page.locator('[data-testid="body-pre"] .tk-key')).toHaveCount(0)
-
-  // Advance virtual time by 150ms (> the 100ms BODY_HIGHLIGHT_DEBOUNCE_MS) to
-  // fire the setTimeout callback: compose() runs, setColored() updates state,
-  // React re-renders with structural token spans.
-  await page.clock.fastForward(150)
-
-  // After the debounce fires, .tk-key must attach. Playwright auto-retries.
-  await expect(page.locator('.tk-key').first()).toBeAttached()
-})
-
-// ===========================================================================
-// Behavior — AC-6 resetKey-driven reset + re-arm
-// ===========================================================================
-
-/**
- * AC-6 — resetKey change clears colored state (setColored null → .tk-key detaches)
- * then re-arms the debounce and reattaches .tk-key — even when value+lang are
- * identical across the resetKey change.
- *
- * Port of BodyEditor.ct.tsx line 769 (highlight re-arms after tab switch):
- * the same causal chain — setColored(null) clears spans; debounce re-arms because
- * resetKey is in its deps; compose() fires and re-populates spans. The molecule
- * form is driven by a prop change rather than an activeTabId / tab switch.
- *
- * The intermediate detach assertion (`.not.toBeAttached`) pins the causal chain:
- * a broken impl that never clears but also never re-arms would appear to pass
- * the final assertion on stale spans — analogous to BodyEditor.ct line 787.
- */
-test('AC-6 — resetKey bump clears .tk-key then re-arms debounce (value+lang constant)', async ({
-  mount,
-  page
-}) => {
-  const c = await mount(<CodeEditorResetKeyFixture />)
-  await expect(c.getByTestId('ce-ready')).toBeAttached()
-
-  // Wait for the initial debounce to fire: .tk-key attaches on first mount.
-  await expect(page.locator('.tk-key').first()).toBeAttached()
-
-  // Bump resetKey (value+lang are unchanged — same JSON_ALL_TOKENS, same 'json').
-  // This triggers useEffect([resetKey]): setColored(null) fires synchronously.
-  await page.getByTestId('ce-bump-resetkey').click()
-
-  // Intermediate assertion: setColored(null) must CLEAR the token spans first.
-  // Without this check, stale Tab-A spans could make the final toBeAttached
-  // appear to pass even if the debounce never re-armed.
-  await expect(page.locator('.tk-key').first()).not.toBeAttached()
-
-  // After ~100ms the debounce re-arms (resetKey is in the debounce effect deps)
-  // and compose() fires again. .tk-key must reattach. Playwright auto-retries.
-  await expect(page.locator('.tk-key').first()).toBeAttached()
-})
-
-// ===========================================================================
-// Behavior — AC-6 resetKey-driven scroll reset
-// ===========================================================================
-
-/**
- * AC-6 scroll reset — resetKey resets textarea.scrollTop, textarea.scrollLeft,
- * pre.scrollTop, and pre.scrollLeft to 0.
- *
- * Port of BodyEditor.ct.tsx line 811 (scroll-bleed switching request tabs resets
- * scrollTop). The molecule form drives the reset via a resetKey prop change rather
- * than an activeTabId store change.
- *
- * CodeEditor's useEffect([resetKey]):
- *   textareaRef.current.scrollTop  = 0
- *   textareaRef.current.scrollLeft = 0
- *   preRef.current.scrollTop       = 0
- *   preRef.current.scrollLeft      = 0
- *
- * The test constrains the textarea to 100px height and sets both axes non-zero
- * (mirrors the scroll-sync CT pattern in BodyEditor.ct.tsx). The scroll event
- * dispatched to the textarea triggers handleTextareaScroll, which syncs the
- * pre overlay — so all four DOM properties are non-zero before the resetKey bump.
- */
-test('AC-6 scroll reset — resetKey resets textarea+pre scrollTop+scrollLeft to 0', async ({
-  mount,
-  page
-}) => {
-  const c = await mount(<CodeEditorScrollFixture />)
-  await expect(c.getByTestId('ce-scroll-ready')).toBeAttached()
-
-  const textarea = page.getByLabel('Request body', { exact: true })
-  const pre = page.getByTestId('body-pre')
-
-  // Force the textarea into a bounded, internally-scrollable box and set non-zero
-  // scroll offsets on BOTH axes. The scroll event drives handleTextareaScroll,
-  // which syncs pre.scrollTop/scrollLeft — so all four DOM properties are non-zero.
-  const before = await textarea.evaluate((el) => {
-    const ta = el as HTMLTextAreaElement
-    ta.style.height = '100px'
-    ta.style.overflow = 'auto'
-    ta.scrollTop = 60 // browser may clamp to max — return the actual value
-    ta.scrollLeft = 40
-    ta.dispatchEvent(new Event('scroll', { bubbles: true }))
-    return { top: ta.scrollTop, left: ta.scrollLeft }
-  })
-  // Confirm both axes genuinely scrolled (non-vacuous pre-condition).
-  expect(before.top).toBeGreaterThan(0)
-  expect(before.left).toBeGreaterThan(0)
-
-  // The <pre> overlay tracks the textarea via handleTextareaScroll.
-  // Confirm it is non-zero so the post-reset assertion to 0 is non-vacuous
-  // (mirrors BodyEditor.ct.tsx scroll-bleed test at lines 838-840).
-  const preBefore = await pre.evaluate((el) => ({ top: el.scrollTop, left: el.scrollLeft }))
-  expect(preBefore.top).toBeGreaterThan(0)
-  expect(preBefore.left).toBeGreaterThan(0)
-
-  // Bump resetKey — triggers useEffect([resetKey]) in CodeEditor which resets
-  // all four scroll offsets to 0 synchronously via the textarea and pre refs.
-  await page.getByTestId('ce-bump-resetkey-scroll').click()
-
-  // expect.poll retries until the React effect has executed. React effects are
-  // asynchronous (microtask queue) so a single point-in-time evaluate could race
-  // the effect — polling is the correct pattern (mirrors BodyEditor.ct line 852).
-  // Assert ALL FOUR resets (textarea + pre, vertical + horizontal): removing any
-  // one reset line in the source causes this guard to fail.
-  await expect
-    .poll(async () => {
-      const ta = await textarea.evaluate((el) => {
-        const t = el as HTMLTextAreaElement
-        return { top: t.scrollTop, left: t.scrollLeft }
-      })
-      const pr = await pre.evaluate((el) => ({ top: el.scrollTop, left: el.scrollLeft }))
-      return { taTop: ta.top, taLeft: ta.left, preTop: pr.top, preLeft: pr.left }
-    })
-    .toEqual({ taTop: 0, taLeft: 0, preTop: 0, preLeft: 0 })
-})
-
-// ===========================================================================
-// Fidelity — AC-13 row-height independence from ancestor font metrics
-// ===========================================================================
-
-/**
- * AC-13 — gutter div, pre, and textarea all remain pinned to the fixed
- * 20.625px `--code-line-h` even when an ancestor container declares
- * `font-size: 20px` and `line-height: 3`.
- *
- * `--code-line-h: calc(12.5px * 1.65)` is re-declared on `.code-editor` as a
- * fixed px calc — it is NOT relative to any inherited font metric. The gutter
- * uses `height: var(--code-line-h)`, the pre uses `line-height: var(--code-line-h)`,
- * and the textarea uses `line-height: var(--code-line-h)` — all three must stay
- * at 20.625 px when an ancestor overrides font metrics.
- *
- * Note on `--code-line-h` override feasibility via parent wrapper: the
- * `.code-editor` class rule re-declares the property at element scope, so a
- * parent container's inherited value is shadowed and cannot propagate. A consumer
- * CAN override via inline style directly on `.code-editor`, but that is not
- * reachable from a fixture without modifying the component's internals — that
- * variant is therefore omitted. AC-13 is fully verified through the
- * font-independence path here. (See CodeEditorFontOverrideFixture's JSDoc.)
- */
-test('AC-13 — row heights remain 20.625px when ancestor sets font-size:20px / line-height:3', async ({
+test('AC-13 — row heights remain 20.625px under ancestor font-size:20px / line-height:3', async ({
   mount,
   page
 }) => {
@@ -361,8 +529,6 @@ test('AC-13 — row heights remain 20.625px when ancestor sets font-size:20px / 
   await expect(c.getByTestId('ce-font-override-ready')).toBeAttached()
   await skipIfChannelUnavailable(page) // AC-19 fail-closed gate
 
-  // Gutter: height = var(--code-line-h) = 20.625px — must not drift to
-  // ancestor's `line-height: 3` or `font-size: 20px` resolved values.
   const gutterHeight = await page
     .getByTestId('body-gutter')
     .locator('> div')
@@ -370,77 +536,50 @@ test('AC-13 — row heights remain 20.625px when ancestor sets font-size:20px / 
     .evaluate((el) => window.getComputedStyle(el).height)
   expect(gutterHeight).toBe('20.625px')
 
-  // Pre overlay: line-height = var(--code-line-h) = 20.625px.
   const preLineHeight = await page
     .getByTestId('body-pre')
     .evaluate((el) => window.getComputedStyle(el).lineHeight)
   expect(preLineHeight).toBe('20.625px')
-
-  // Textarea: line-height = var(--code-line-h) = 20.625px.
-  // locator('textarea') rather than getByLabel — pure style read (Finding 1).
-  const taLineHeight = await page
-    .locator('textarea')
-    .evaluate((el) => window.getComputedStyle(el).lineHeight)
-  expect(taLineHeight).toBe('20.625px')
 })
 
 // ===========================================================================
-// Behavior — AC-17 / AC-2 malformed JSON degrades to plain span
+// AC-4 — malformed JSON degrades to a single plain span (synchronous)
 // ===========================================================================
 
 /**
- * AC-17 / AC-2 — malformed JSON at `lang="json"` degrades to a plain <span>
- * after the debounce; no structural `.tk-*` token spans appear at any point.
+ * AC-4 — malformed JSON at `lang="json"` degrades to a plain <span> IMMEDIATELY
+ * on mount; no structural `.tk-*` token span ever appears.
  *
  * Degrade path in compose() (jsonTokens.ts): JSON.parse throws SyntaxError →
- * `return [{ kind: 'plain', text }]`. CodeEditor renders this single plain token
- * as a `<span>` with no className. The MEMORY note "jsonTokens JSON.parse is the
- * AC-17 detector" confirms: JSON.parse IS the degrade detector — the pre-validation
- * is intentional and must not be removed.
- *
- * The invariant holds both pre-debounce (showColored=false → plain span) AND
- * post-debounce (showColored=true with a single plain token). Waiting for the
- * pre to contain the raw text confirms the debounce has fired and the degrade
- * path produced the plain span, not an error UI.
- *
- * Mirrors BodyEditor.ct.tsx AC-17 (BodyEditorMalformedJsonFixture).
+ * `return [{ kind: 'plain', text }]`. Under the synchronous useMemo model the
+ * plain span is present on first render — there is NO debounce to wait out (this
+ * is the key behavioural difference from the deleted 018-era CT). MEMORY
+ * `jsontokens-jsonparse-is-ac17-detector`: JSON.parse IS the degrade detector.
  */
-test('AC-17 / AC-2 — malformed JSON degrades: no structural .tk-* spans; raw text in plain span', async ({
+test('AC-4 — malformed JSON degrades to a plain span synchronously; no .tk-* spans', async ({
   mount,
   page
 }) => {
   const c = await mount(<CodeEditorMalformedFixture />)
   await expect(c.getByTestId('ce-malformed-ready')).toBeAttached()
 
-  // Wait for the pre to contain the raw body text — Playwright auto-retries, so
-  // this resolves only after the debounce has fired and the pre has rendered the
-  // plain-degrade span. `{ "key":` is a substring of MALFORMED_JSON_BODY.
+  // Raw text is in the pre from first render (no debounce). `{ "key":` is a
+  // substring of MALFORMED_JSON_BODY.
   await expect(page.getByTestId('body-pre')).toContainText('{ "key":')
 
-  // No structural token spans should exist — the degrade path is plain only.
-  // Mirrors the STRUCTURAL selector pattern from BodyEditor.ct.tsx AC-17.
-  await expect(page.locator('.tk-key, .tk-str, .tk-num, .tk-bool, .tk-punc')).toHaveCount(0)
+  // The degrade path is plain-only — no structural token spans at any point.
+  await expect(page.locator(TK_SELECTORS)).toHaveCount(0)
 })
 
 // ===========================================================================
-// Behavior — .tk-var.missing unresolved variable (AC-2, deferred from Task 001)
+// .tk-var.missing — unresolved variable treatment
 // ===========================================================================
 
 /**
- * Unresolved `{{missing}}` renders with the `.tk-var.missing` CSS class and its
- * strikethrough / `--m-delete` color treatment.
- *
- * CodeEditor.css:
- *   .tk-var.missing { color: var(--m-delete); text-decoration: line-through dotted; }
- *
- * Mechanism: compose() emits `{ kind: 'tk-var', known: false }` when the var name
- * is absent from validVars; `isMissingVar(known=false, validVars)` returns true
- * (validVars is non-empty) → CodeEditor applies className `'tk-var missing'`.
- *
- * Positive counterpart (`.tk-var` WITHOUT `.missing`) is already covered by the
- * AC-17 test which uses CodeEditorLightFixture: `{{x}}` is in VALID_VARS, so it
- * renders `.tk-var` (not `.tk-var.missing`) and `assertResolvesToToken` asserts it
- * binds to `--accent`.
+ * Unresolved `{{missing}}` renders with the `.tk-var.missing` class and its
+ * strikethrough / `--m-delete` color treatment. compose() emits
+ * `{ kind: 'tk-var', known: false }`; isMissingVar(known=false, non-empty vars)
+ * → true → CodeEditor applies `'tk-var missing'`.
  */
 test('.tk-var.missing — unresolved var renders with strikethrough and --m-delete color', async ({
   mount,
@@ -449,10 +588,8 @@ test('.tk-var.missing — unresolved var renders with strikethrough and --m-dele
   const c = await mount(<CodeEditorMissingVarFixture />)
   await expect(c.getByTestId('ce-missing-var-ready')).toBeAttached()
   await skipIfChannelUnavailable(page) // AC-19 fail-closed gate
-  // Wait for the debounce to fire and the .tk-var.missing span to attach.
   await expect(page.locator('.tk-var.missing').first()).toBeAttached()
 
-  // Color must resolve to --m-delete (the delete / unresolved-var design token).
   await assertResolvesToToken(
     page,
     '.tk-var.missing',
@@ -460,9 +597,6 @@ test('.tk-var.missing — unresolved var renders with strikethrough and --m-dele
     '--m-delete',
     'tk-var.missing → --m-delete'
   )
-
-  // text-decoration-line must be line-through (the dotted strikethrough treatment).
-  // CSS: text-decoration: line-through dotted; → text-decoration-line: line-through.
   await assertComputedStyle(
     page,
     '.tk-var.missing',
@@ -473,39 +607,66 @@ test('.tk-var.missing — unresolved var renders with strikethrough and --m-dele
 })
 
 // ===========================================================================
-// Fidelity — grid geometry (.code-editor grid-template-columns)
+// Grid geometry — .code-editor grid-template-columns
 // ===========================================================================
 
 /**
- * Grid geometry — .code-editor grid-template-columns has a 36px gutter track and
- * a flexible content column.
- *
- * CodeEditor.css declares:
- *   .code-editor { display: grid; grid-template-columns: 36px 1fr; }
- *
- * Browsers resolve `1fr` to an absolute px value in getComputedStyle (e.g. `664px`
- * inside the 700px fixture wrapper). This test asserts the first track is exactly
- * `36px` and there are exactly two tracks — so any change to the gutter width is
- * caught immediately regardless of how the browser serialises the 1fr track.
- *
- * `skipIfChannelUnavailable(page)` is required because this is a computed-style
- * assertion through the fidelity channel (AC-19 fail-closed gate).
+ * Grid geometry — `.code-editor` has a 36px gutter track and a flexible content
+ * column. Browsers resolve `1fr` to px in getComputedStyle, so we assert the
+ * first track is exactly 36px and there are exactly two tracks.
  */
 test('grid — .code-editor grid-template-columns: 36px gutter track + flexible content column', async ({
   mount,
   page
 }) => {
-  const c = await mount(<CodeEditorLightFixture />)
-  await expect(c.getByTestId('ce-ready')).toBeAttached()
+  const c = await mount(<CodeEditorPreviewFixture />)
+  await expect(c.getByTestId('ce-preview-ready')).toBeAttached()
   await skipIfChannelUnavailable(page) // AC-19 fail-closed gate
 
   const gridCols = await page
     .getByTestId('body-code-editor')
     .evaluate((el) => window.getComputedStyle(el).gridTemplateColumns)
 
-  // Browsers resolve `1fr` to a px value, so assert only the first track (gutter).
-  // The value is a space-separated list of resolved track sizes, e.g. '36px 664px'.
   expect(gridCols.startsWith('36px ')).toBe(true)
-  // Confirm exactly two tracks — no accidental third track from a CSS regression.
   expect(gridCols.trim().split(/\s+/)).toHaveLength(2)
+})
+
+// ===========================================================================
+// Scroll reset — resetKey resets the visible layer's scroll (AC-6, single-layer)
+// ===========================================================================
+
+/**
+ * AC-6 scroll reset (single-layer rewrite) — the old 018-era test drove
+ * `handleTextareaScroll` on BOTH pre + textarea from one mount; that handler is
+ * deleted and only one layer mounts now. Rewritten for the conditional-mount
+ * model: in preview the <pre> is the single scrollable layer. After scrolling it
+ * on both axes, a resetKey bump fires `useEffect([resetKey])` in CodeEditor,
+ * which resets the mounted layer's scrollTop/scrollLeft to 0.
+ */
+test('AC-6 — resetKey resets the preview pre scrollTop+scrollLeft to 0', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<CodeEditorScrollFixture />)
+  await expect(c.getByTestId('ce-scroll-ready')).toBeAttached()
+
+  const pre = page.getByTestId('body-pre')
+
+  // Scroll the pre on both axes; confirm non-zero (non-vacuous pre-condition).
+  const before = await pre.evaluate((el) => {
+    el.scrollTop = 60
+    el.scrollLeft = 40
+    return { top: el.scrollTop, left: el.scrollLeft }
+  })
+  expect(before.top).toBeGreaterThan(0)
+  expect(before.left).toBeGreaterThan(0)
+
+  // Bump resetKey → useEffect([resetKey]) resets the mounted pre's scroll to 0.
+  await page.getByTestId('ce-bump-resetkey-scroll').click()
+
+  // Poll: React effects run on the microtask queue, so a point-in-time read
+  // could race the effect.
+  await expect
+    .poll(async () => pre.evaluate((el) => ({ top: el.scrollTop, left: el.scrollLeft })))
+    .toEqual({ top: 0, left: 0 })
 })

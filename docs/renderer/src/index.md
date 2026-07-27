@@ -58,7 +58,7 @@ src/renderer/src/
 │   │   │   ├── nested-overlays.ct.tsx
 │   │   │   └── nested-overlays.stories.tsx
 │   │   ├── CodeEditor.css  # CodeEditor styles from design tokens
-│   │   ├── CodeEditor.tsx  # Self-contained three-layer overlay editor (gutter + aria-hidden pre highlight + transparent textarea); --code-line-h single-sources 20.625px line-box across all three layers; resetKey prop resets scroll + invalidates color snapshot; reuses jsonTokens.compose; consumed by BodyEditor
+│   │   ├── CodeEditor.tsx  # Edit/preview toggle molecule (controlled via editing/onEditingChange owned by BodyEditor); mounts textarea XOR highlighted pre — never both; --code-line-h single-sources 20.625px line-box; highlighting runs on switch-to-preview via a {value,lang} snapshot-cache useMemo; resetKey prop resets scroll on the mounted layer; reuses jsonTokens.compose; consumed by BodyEditor
 │   │   ├── Divider.css  # Divider styles bound to design tokens
 │   │   ├── Divider.tsx  # ARIA splitter drag-handle for resizable panes
 │   │   ├── Dropdown.css  # Dropdown styles from design tokens

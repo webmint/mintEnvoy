@@ -1,9 +1,10 @@
-/* ── CodeEditor molecule — three-layer overlay code area ─────────────────── */
+/* ── CodeEditor molecule — edit/preview toggle ─────────────────────────────── */
 
-/* Single scroll source: textarea (z-index 1) stacked over aria-hidden pre
- * (z-index 0). onScroll syncs pre.scrollTop/Left to textarea.
+/* Conditional-mount toggle: editing=true mounts a plain <textarea>;
+ * editing=false mounts the highlighted <pre>. Only one layer is ever in the DOM.
  * --code-line-h is the single source of truth for the line-box height so the
- * gutter rows, pre lines, and textarea rows all share one identical pixel grid. */
+ * gutter rows, pre lines, and textarea rows share one identical pixel grid in
+ * both states (AC-9, AC-19). */
 
 .code-editor {
   --code-line-h: calc(12.5px * 1.65); /* = 20.625px */
@@ -12,18 +13,31 @@
   font-family: var(--font-mono);
   font-size: 12.5px;
   line-height: 1.65;
-  padding: 12px 0;
+  /* Right gutter (Postman-parity): the editor otherwise fills flush to the pane /
+   * window right edge, so a horizontally-scrolled long line bleeds to the physical
+   * edge (the pre/textarea's own padding-right collapses under scroll). This 12px
+   * lives OUTSIDE the scrolling layers, so it always keeps content off the edge.
+   * Left stays 0 — the 36px line-number gutter provides the left inset. */
+  padding: 12px 12px 12px 0;
   min-height: 100%;
 }
 
-.code-editor .gutter { text-align: right; color: var(--text-faint); padding-right: 12px; user-select: none; font-size: 11.5px; line-height: 1.65; padding-top: 0; }
+/* Whole-area click-to-edit: the container fills the panel and carries the preview
+ * onClick, so the empty space below a short body still reads as an editable text
+ * surface. Scoped to preview via data-editing — in edit mode the textarea owns the
+ * cursor, so the container must not paint a misleading text cursor over dead space. */
+.code-editor[data-editing='false'] { cursor: text; }
+
+/* Gutter keeps a default cursor (line numbers are not a text surface) even though
+ * the preview text cursor is set on the container above. */
+.code-editor .gutter { text-align: right; color: var(--text-faint); padding-right: 12px; user-select: none; font-size: 11.5px; line-height: 1.65; padding-top: 0; cursor: default; }
 
 .code-editor pre { margin: 0; white-space: pre; color: var(--text); }
 
 /* Gutter line-number rows must match the CODE line box height, not the gutter's
  * own 11.5px font. Code lines = .code-editor font-size 12.5px × line-height 1.65
- * = 20.625px (var(--code-line-h)). Using 1.65em here would resolve against the
- * gutter's 11.5px font (18.975px) and drift ~1.65px per line vs the code lines. */
+ * = 20.625px (var(--code-line-h)). An em-based value here would resolve against
+ * the gutter's 11.5px font (~18.975px) and drift ~1.65px per line vs the code. */
 .code-editor .gutter > div { height: var(--code-line-h); }
 
 .tk-key  { color: var(--tk-key); }
@@ -42,75 +56,71 @@
  * The JS gate is `isMissingVar` (§3.6 DRY — shared with KVTable renderSegments). */
 .tk-var.missing { color: var(--m-delete); text-decoration: line-through dotted; }
 
-/* ── Three-layer code area overlay ──────────────────────────────────────────
+/* ── Single visible layer — shared metrics ───────────────────────────────────
  *
- * Layout: textarea is position:relative (in-flow, drives wrapper height).
- *         pre is position:absolute; inset:0 (overlaid behind, z-index 0).
- *         Textarea is on top (z-index 1), text transparent, caret visible.
- *         onScroll handler syncs pre.scrollTop/Left to textarea each scroll.
- *         pre uses overflow:auto so scrollTop assignment takes effect;
- *         its scrollbars are hidden (behind textarea + scrollbar-width:none).
+ * Only one of <pre> or <textarea> is mounted at a time (conditional-mount).
+ * Both bind the same --code-line-h + identical font/padding/box-sizing so the
+ * gutter rows align with code lines in either state (AC-9).
  *
- * All font/size/padding values are token-bound or inherit from .code-editor.
- * DEVIATE from design/styles.css §8 reference (pre has no horizontal padding):
- * `padding: 0 12px` on BOTH pre and textarea is an interactive-editor layout
- * constant — it must match exactly so the transparent textarea text overlays
- * the pre highlight on the same pixel grid. Setting both to 0px would push
- * typed text against the gutter edge; setting them asymmetrically would
- * desync the caret from the coloured highlight layer.
+ * white-space: pre gives horizontal scroll and no soft-wrap (AC-15).
+ * --code-line-h is the only line-height source; em-based row heights are never used (AC-22).
+ *
+ * Layout: .code-editor-content is the second grid column item. The CSS grid
+ * stretches it to the row height set by the gutter (lineCount × --code-line-h),
+ * so vertical alignment between gutter and code layer is guaranteed (AC-19).
  * ─────────────────────────────────────────────────────────────────────────── */
 
 .code-editor-content {
-  position: relative;
-  overflow: hidden; /* clips abs-positioned pre to wrapper bounds */
+  overflow: hidden; /* clip horizontal overflow to the grid column */
 }
 
-/* pre: overlay layer — behind transparent textarea */
-.code-editor-content > pre {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: auto;            /* allows scrollTop sync from textarea handler */
-  scrollbar-width: none;     /* Firefox: hide scrollbar (textarea is scroll UI) */
-  /* Inherit all font metrics from .code-editor so text grids align exactly */
-  font: inherit;
-  line-height: var(--code-line-h); /* explicit: matches gutter row height + textarea line box */
-  padding: 0 12px;           /* must match textarea padding below */
-  tab-size: 2;
-  box-sizing: border-box;
-}
-
-.code-editor-content > pre::-webkit-scrollbar {
-  display: none; /* WebKit: hide scrollbar */
-}
-
-/* textarea: scroll-source layer — on top, transparent text, visible caret.
-   Single consolidated rule: layout props (display/position/z-index/width/
-   padding/tab-size/box-sizing) + §8 visual props (color/caret/bg/border/
-   outline/resize/font/line-height/white-space/overflow) in one place. */
+/* Shared metrics for both layers — identical values keep the single line-box
+ * contract between pre and textarea (§3.6 DRY). */
+.code-editor-content > pre,
 .code-editor-content > textarea {
   display: block;
-  position: relative;
-  z-index: 1;
   width: 100%;
-  padding: 0 12px;           /* must match pre padding above */
+  margin: 0;
+  font: inherit;
+  line-height: var(--code-line-h); /* single source; matches gutter row height (AC-9) */
+  padding: 0 12px;
   tab-size: 2;
   box-sizing: border-box;
-  color: transparent;
+  white-space: pre;
+  overflow: auto;
+}
+
+/* pre: preview layer — highlighted, focusable, click-to-edit */
+.code-editor-content > pre {
+  color: var(--text);
+  cursor: text; /* indicates click-to-edit affordance */
+}
+
+/* Preview <pre> focus ring — KEYBOARD focus only (Postman/CodeMirror parity).
+ * The pre is a role="button" with no text caret, so a keyboard user tabbing to it
+ * needs a visible focus indicator (WCAG 2.4.7). A mouse click on the pre enters
+ * edit immediately, so :focus-visible (keyboard-only) is the right scope — no ring
+ * flashes on a mouse click, only on Tab navigation. */
+.code-editor-content > pre:focus {
+  outline: none;
+}
+.code-editor-content > pre:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* textarea: edit layer — visible text, no resize, no border */
+.code-editor-content > textarea {
+  color: var(--text);
   caret-color: var(--text);
   background: transparent;
   border: 0;
   outline: 0;
   resize: none;
-  font: inherit;
-  line-height: var(--code-line-h); /* single source: matches gutter row + pre line box */
-  white-space: pre;
-  overflow: auto;
 }
 
-/* WCAG 2.4.7 — visible focus ring for the code-editor textarea.
- * Ring is placed on the containing .code-editor-content wrapper via :focus-within
- * so it doesn't displace the transparent-text-over-pre overlay (outline doesn't
- * affect layout and is unaffected by the wrapper's own overflow:hidden). */
-.code-editor-content:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* No container-level focus ring on the EDIT textarea (Postman/CodeMirror parity):
+ * a text field's blinking caret IS its focus indicator (WCAG 2.4.7 is satisfied by
+ * the caret for text inputs), so an extra bright border would be redundant and
+ * departs from the design's borderless editor. The KEYBOARD focus ring for the
+ * caret-less preview <pre> is defined above (`> pre:focus-visible`). */

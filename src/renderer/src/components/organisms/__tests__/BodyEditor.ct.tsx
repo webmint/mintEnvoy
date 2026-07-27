@@ -1,22 +1,32 @@
 /**
  * BodyEditor.ct.tsx — Playwright component tests for BodyEditor (organism level).
  *
- * Molecule-level fidelity tests (per-theme hex colors, token bindings, grid
- * geometry, row heights) were re-homed to CodeEditor.ct.tsx (AC-12/13/16/17/21).
+ * Molecule-level fidelity + code-editor mechanics (per-theme hex, token bindings,
+ * grid geometry, row heights, caret-at-click, conditional-mount internals) live in
+ * CodeEditor.ct.tsx. This file proves the ORGANISM behaviors the molecule CT cannot:
+ * the radiogroup, the lang-pill, per-request-tab body isolation, the urlencoded
+ * assembled path, and — new for the edit/preview toggle (tasks 001/002) — the
+ * `body-edit-toggle` control, the F-002 preventDefault exit, the toggle-entry
+ * focus, the standalone blur exit, and the AC-6 tab-switch-while-editing reset.
  *
- * Behavior: radiogroup + roving focus (AC-18), default/mode switch (AC-6/7),
- * lang-pill cycle (AC-8), two-pass highlight (AC-9/10), empty/malformed
- * degrade (AC-16/17), cross-mode retention (AC-14), scroll sync, BLANK_BODY,
- * org-boundary wiring (resetKey passthrough), per-request-tab isolation.
+ * Model note (post-018 rebuild): CodeEditor is an edit/preview CONDITIONAL-MOUNT
+ * toggle. In raw mode BodyEditor starts in PREVIEW (editing=false) — only the
+ * highlighted <pre> (`body-pre`) is mounted; the <textarea> mounts ONLY after an
+ * edit entry (toggle click / pre click / Enter). Tokenisation is SYNCHRONOUS
+ * (useMemo) — `.tk-*` spans are present on first preview render, so there is NO
+ * debounce to wait out and NO page.clock machinery. The old always-mounted-overlay
+ * scroll-sync (`handleTextareaScroll`) is gone — only one layer is ever in the DOM.
  *
- * Highlight coloring is debounced (~100ms), so token spans (`.tk-*`) appear
- * shortly after mount — highlight assertions first wait for the relevant span
- * to attach (Playwright auto-polling) before asserting.
+ * NOTE: the local Playwright CT harness cannot mount these organism fixtures
+ * (pre-existing break — MEMORY `ct-organism-fixtures-cannot-mount-locally`).
+ * These tests are verified statically + downstream live-verify; `test:ct` is
+ * left UNVERIFIED for this task.
  */
 
 import { test, expect } from '@playwright/experimental-ct-react'
 import {
   BodyEditorRawJsonLightFixture,
+  BodyEditorRawJsonToggleFixture,
   BodyEditorNoneFixture,
   BodyEditorRawXmlFixture,
   BodyEditorUrlencodedFixture,
@@ -28,7 +38,6 @@ import {
   BodyEditorTwoTabsFixture,
   BodyEditorNoneDirtyProbeFixture,
   BodyEditorUrlencodedNegativeInvariantFixture,
-  BodyEditorScrollHFixture,
   BodyEditorTwoTabsRawSameBodyFixture,
   BodyEditorTwoTabsScrollResetFixture,
   BodyEditorTwoTabsMixedFixture,
@@ -138,6 +147,226 @@ test('AC-6 — the raw code-editor stays mounted even when none is active', asyn
 })
 
 // ===========================================================================
+// Behavior — edit/preview toggle control (AC-3 / AC-11 / AC-16 / F-002)
+// ===========================================================================
+
+/**
+ * AC-3 — the `body-edit-toggle` control renders in the toolbar right slot in raw
+ * mode and is hidden in non-raw modes (mirrors the lang-pill gating).
+ */
+test('AC-3 — body-edit-toggle is present+visible in raw mode, hidden in non-raw', async ({
+  mount,
+  page
+}) => {
+  const raw = await mount(<BodyEditorRawJsonLightFixture />)
+  await expect(raw.getByTestId('ct-be-ready')).toBeAttached()
+  await expect(page.getByTestId('body-edit-toggle')).toBeVisible()
+
+  await raw.unmount()
+
+  const none = await mount(<BodyEditorNoneFixture />)
+  await expect(none.getByTestId('ct-be-ready')).toBeAttached()
+  // Present in the DOM (mount-all raw panel) but hidden because active !== 'raw'.
+  await expect(page.getByTestId('body-edit-toggle')).not.toBeVisible()
+})
+
+/**
+ * AC-3 (a11y) — the toggle is a proper WAI-ARIA toggle button: `aria-pressed`
+ * reflects the current edit/preview state (false in preview, true in edit), and
+ * the button carries NO aria-label so its visible text ("Edit"/"Preview") is its
+ * accessible name (WCAG 2.5.3 Label-in-Name). Guards the aria-pressed semantics
+ * and the deliberate absence of a stale aria-label.
+ */
+test('AC-3 — toggle exposes aria-pressed state and text-based accessible name', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<BodyEditorRawJsonToggleFixture />)
+  await expect(c.getByTestId('ct-be-ready')).toBeAttached()
+
+  const toggle = page.getByTestId('body-edit-toggle')
+
+  // Preview (default): not pressed; no aria-label (text is the accessible name).
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  await expect(toggle).not.toHaveAttribute('aria-label')
+  await expect(toggle).toHaveText('Edit')
+
+  // Enter edit → pressed flips to true; visible text (the accessible name) updates.
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+  await expect(toggle).toHaveText('Preview')
+})
+
+/**
+ * AC-11 — only the visible layer is mounted per editing state. In preview
+ * (default) the <pre> is mounted and the textarea is NOT; after a toggle entry
+ * the textarea is mounted and the <pre> is NOT.
+ */
+test('AC-11 — only the visible layer is mounted (preview=pre, edit=textarea)', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<BodyEditorRawJsonLightFixture />)
+  await expect(c.getByTestId('ct-be-ready')).toBeAttached()
+
+  const pre = page.getByTestId('body-pre')
+  const textarea = page.getByLabel('Request body', { exact: true })
+
+  // Preview default: pre mounted, textarea not.
+  await expect(pre).toBeAttached()
+  await expect(textarea).not.toBeAttached()
+
+  // Enter edit via the toggle: textarea mounts, pre unmounts.
+  await page.getByTestId('body-edit-toggle').click()
+  await expect(textarea).toBeAttached()
+  await expect(pre).not.toBeAttached()
+})
+
+/**
+ * AC-16 / AC-18 — clicking the toggle from preview enters edit mode AND focuses
+ * the freshly-mounted textarea (the focus-on-mount effect keyed on `editing`).
+ * Located by accessible name (G-7), never by an internal textareaRef.
+ */
+test('AC-16/18 — toggle entry from preview focuses the mounted textarea', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<BodyEditorRawJsonToggleFixture />)
+  await expect(c.getByTestId('ct-be-ready')).toBeAttached()
+
+  await page.getByTestId('body-edit-toggle').click()
+  await expect(page.getByLabel('Request body', { exact: true })).toBeFocused()
+})
+
+/**
+ * F-002 — clicking the toggle WHILE EDITING lands in preview (a single clean
+ * flip), proving the toggle's `onMouseDown` preventDefault suppresses the
+ * blur-then-click double-fire.
+ *
+ * Without preventDefault: mousedown blurs the textarea → onBlur fires
+ * onEditingChange(false) → preview; THEN the toggle's onClick reads editing=false
+ * and flips it back to true → the editor bounces back to edit mode. With
+ * preventDefault the textarea never blurs on mousedown, so the single onClick
+ * flips edit→preview and stays there.
+ */
+test('F-002 — clicking the toggle while editing lands in preview (preventDefault suppresses blur bounce)', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<BodyEditorRawJsonToggleFixture />)
+  await expect(c.getByTestId('ct-be-ready')).toBeAttached()
+
+  const toggle = page.getByTestId('body-edit-toggle')
+  const pre = page.getByTestId('body-pre')
+  const textarea = page.getByLabel('Request body', { exact: true })
+
+  // Enter edit.
+  await toggle.click()
+  await expect(textarea).toBeAttached()
+
+  // Click the toggle again WHILE editing → must land in PREVIEW (not bounce back).
+  await toggle.click()
+
+  // This assertion is a GENUINE discriminator, not a vacuous pass: the toggle's
+  // onClick is `setEditing((v) => !v)` (a flip), NOT an idempotent
+  // `setEditing(false)`. So the BROKEN path (no preventDefault) lands in EDIT, not
+  // preview — mousedown blurs → onBlur sets editing=false → onClick flips it back
+  // to TRUE → textarea. Only the CORRECT path (preventDefault suppresses the blur,
+  // the lone onClick flips true→false) leaves the textarea unmounted. Asserting the
+  // textarea is NOT attached therefore fails iff preventDefault is missing.
+  await expect(pre).toBeAttached()
+  await expect(textarea).not.toBeAttached()
+})
+
+/**
+ * AC-16 blur exit (standalone, isolated from the toggle) — entering edit then
+ * removing focus by clicking an UNRELATED element (not the toggle) returns to
+ * preview. This isolates CodeEditor's blur handler: the F-002 test above also
+ * fires the toggle's onClick(onEditingChange(false)), so a bug where the blur
+ * handler called onEditingChange(TRUE) would slip through without this test.
+ */
+test('AC-16 — blurring the textarea (click outside, not the toggle) returns to preview', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<BodyEditorRawJsonToggleFixture />)
+  await expect(c.getByTestId('ct-be-ready')).toBeAttached()
+
+  await page.getByTestId('body-edit-toggle').click()
+  await expect(page.getByLabel('Request body', { exact: true })).toBeAttached()
+
+  // Click a neutral focusable element OUTSIDE the editor (does not change mode).
+  await page.getByTestId('ct-be-blur-target').click()
+
+  // The textarea blur → onEditingChange(false) → preview <pre> re-mounts.
+  await expect(page.getByTestId('body-pre')).toBeAttached()
+  await expect(page.getByLabel('Request body', { exact: true })).not.toBeAttached()
+})
+
+/**
+ * Toggle swaps to a FRESH layer at scrollTop 0 — each toggle unmounts the current
+ * layer and mounts the other, so the new layer always starts at the top. Height-
+ * bounded fixture (per CT-harness constraint 5) so the preview <pre> genuinely
+ * overflows and can be scrolled non-zero before the toggle.
+ */
+test('toggle — entering edit mounts a fresh textarea at scrollTop 0 (layer swap resets scroll)', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<BodyEditorScrollFixture />)
+  await expect(c.getByTestId('ct-be-ready')).toBeAttached()
+
+  const pre = page.getByTestId('body-pre')
+  // Scroll the preview pre non-zero (non-vacuous precondition).
+  const preTop = await pre.evaluate((el) => {
+    el.scrollTop = 60
+    return el.scrollTop
+  })
+  expect(preTop).toBeGreaterThan(0)
+
+  // Toggle into edit — the textarea is a fresh mount, so it starts at scrollTop 0.
+  await page.getByTestId('body-edit-toggle').click()
+  const taTop = await page
+    .getByLabel('Request body', { exact: true })
+    .evaluate((el) => (el as HTMLTextAreaElement).scrollTop)
+  expect(taTop).toBe(0)
+})
+
+// ===========================================================================
+// Behavior — AC-6 return-to-preview on tab switch while editing
+// ===========================================================================
+
+/**
+ * AC-6 (render-phase reset) — a request-tab switch WHILE EDITING lands in preview
+ * for the new tab: the immediate post-switch DOM has the <pre> mounted and the
+ * textarea NOT. BodyEditor's set-state-in-render reset (`if (activeTabId !==
+ * prevTab) setEditing(false)`) commits editing=false ATOMICALLY with the tab
+ * switch — the forbidden passive-useEffect form would first commit editing=true /
+ * textarea for the new tab, then reset on a later effect, showing a stale edit frame.
+ */
+test('AC-6 — switching request tabs while editing returns to preview for the new tab', async ({
+  mount,
+  page
+}) => {
+  const c = await mount(<BodyEditorTwoTabsRawSameBodyFixture />)
+  await expect(c.getByTestId('ct-be-same-raw-ready')).toBeAttached()
+
+  const pre = page.getByTestId('body-pre')
+  const textarea = page.getByLabel('Request body', { exact: true })
+
+  // Enter edit on Tab A.
+  await page.getByTestId('body-edit-toggle').click()
+  await expect(textarea).toBeAttached()
+
+  // Switch to Tab B (activeTabId changes) → render-phase reset → preview.
+  await page.getByTestId('ct-be-sr-select-tab-b').click()
+
+  // Immediate post-switch state: preview pre mounted, textarea gone.
+  await expect(pre).toBeAttached()
+  await expect(textarea).not.toBeAttached()
+})
+
+// ===========================================================================
 // Behavior — lang-pill cycle (AC-8)
 // ===========================================================================
 
@@ -179,7 +408,7 @@ test('lang-pill is visible in raw mode', async ({ mount, page }) => {
 })
 
 // ===========================================================================
-// Behavior — two-pass highlight (AC-9 var-pass-wins JSON / AC-10 var-only non-JSON)
+// Behavior — preview highlight (AC-9 var-pass-wins JSON / AC-10 var-only non-JSON)
 // ===========================================================================
 
 test('AC-9 — JSON var-pass-wins: {{x}} is a tk-var beside tk-str content', async ({
@@ -188,6 +417,7 @@ test('AC-9 — JSON var-pass-wins: {{x}} is a tk-var beside tk-str content', asy
 }) => {
   const c = await mount(<BodyEditorRawJsonLightFixture />)
   await expect(c.getByTestId('ct-be-ready')).toBeAttached()
+  // Preview is tokenised synchronously (useMemo) — spans are present on first render.
   const varSpan = page.locator('.tk-var').first()
   await expect(varSpan).toBeAttached()
   await expect(varSpan).toHaveText('{{x}}')
@@ -207,59 +437,6 @@ test('AC-10 — non-JSON (xml) highlights only {{var}}, no structural tokens', a
 })
 
 // ===========================================================================
-// Behavior — F3 regression guard: pre plain-text render before debounce
-// ===========================================================================
-
-/**
- * F3 regression guard — typed characters are NEVER invisible during the 100 ms
- * compose() debounce window.
- *
- * The BodyEditor pre renders two exclusive paths:
- *   showColored=true  → colored token spans (compose() snapshot)
- *   showColored=false → <span>{body.raw.text}</span>  (plain-degrade)
- *
- * On first paint, `colored` state is null so `showColored` is always false.
- * The plain-degrade span must be in the DOM immediately, making every typed
- * character visible (via the transparent textarea caret) before the highlight
- * pass fires. If this path were removed or made conditional, characters would
- * appear invisible for 100 ms on every keystroke — the F3 regression.
- *
- * Every other highlight CT waits for `.tk-key` to attach (i.e. waits for the
- * debounce). This test intentionally does NOT wait for `.tk-key` — it asserts
- * the raw text is present BEFORE any token span appears.
- */
-test('F3 regression guard — pre shows live raw text as plain span before debounce fires', async ({
-  mount,
-  page
-}) => {
-  // Install fake clock BEFORE mount so the 100ms debounce setTimeout is held at t=0.
-  // This eliminates the point-in-time count() race: under a frozen virtual clock the
-  // debounce timer cannot fire between mount and the pre-debounce assertion.
-  // Mirrors CodeEditor.ct.tsx's AC-23 deterministic pattern exactly.
-  await page.clock.install()
-
-  // Use the existing raw-JSON fixture: JSON_ALL_TOKENS is the seeded body text.
-  const c = await mount(<BodyEditorRawJsonLightFixture />)
-  await expect(c.getByTestId('ct-be-ready')).toBeAttached()
-
-  const pre = page.getByTestId('body-pre')
-
-  // At virtual t=0 the debounce timer is frozen. Assert the plain-degrade path:
-  // raw text is present and NO .tk-key span exists.
-  await expect(pre).toContainText(JSON_ALL_TOKENS.slice(0, 14)) // '{\n  "key": 1,' substring
-
-  // Retrying form (toHaveCount) instead of point-in-time count() — under the fake
-  // clock this is provably 0 (the debounce timer cannot have fired yet).
-  await expect(page.locator('[data-testid="body-pre"] .tk-key')).toHaveCount(0)
-
-  // Advance virtual time past the 100ms debounce to confirm the highlight fires.
-  await page.clock.fastForward(150)
-
-  // After the debounce fires, .tk-key must attach. Playwright auto-retries.
-  await expect(page.locator('.tk-key').first()).toBeAttached()
-})
-
-// ===========================================================================
 // Behavior — degrade paths (AC-16 empty / AC-17 malformed)
 // ===========================================================================
 
@@ -272,6 +449,7 @@ test('AC-16 — empty raw text renders zero highlight tokens, no error', async (
 test('AC-17 — malformed JSON degrades to plain text, no error UI', async ({ mount, page }) => {
   const c = await mount(<BodyEditorMalformedJsonFixture />)
   await expect(c.getByTestId('ct-be-ready')).toBeAttached()
+  // Synchronous degrade (JSON.parse throws → single plain span) — no debounce wait.
   await expect(page.getByTestId('body-pre').locator(STRUCTURAL)).toHaveCount(0)
   await expect(page.getByTestId('body-pre')).toContainText('{ bad json')
   // No error UI: malformed JSON degrades silently — no alert/error banner rendered.
@@ -282,19 +460,27 @@ test('AC-17 — malformed JSON degrades to plain text, no error UI', async ({ mo
 // Behavior — cross-mode retention (AC-14)
 // ===========================================================================
 
-test('AC-14 — raw text survives a switch away and back', async ({ mount, page }) => {
+test('AC-14 — raw text survives a switch away and back (read via the edit textarea)', async ({
+  mount,
+  page
+}) => {
   const c = await mount(<BodyEditorRawJsonLightFixture />)
   await expect(c.getByTestId('ct-be-ready')).toBeAttached()
-  const textarea = page.getByLabel('Request body', { exact: true })
-  await expect(textarea).toHaveValue(/"msg": "a \{\{x\}\} b"/)
 
   const radios = page.getByTestId('body-radio')
+  // Preview shows the seeded text tokenised.
+  await expect(page.getByTestId('body-pre')).toContainText('msg')
+
   await radios.nth(2).click() // urlencoded (index 2)
   await expect(radios.nth(2)).toHaveAttribute('aria-checked', 'true')
   await radios.nth(3).click() // back to raw (index 3)
   await expect(radios.nth(3)).toHaveAttribute('aria-checked', 'true')
 
-  await expect(textarea).toHaveValue(/"msg": "a \{\{x\}\} b"/) // retained from the store
+  // Enter edit and read the textarea value — retained from the store round-trip.
+  await page.getByTestId('body-edit-toggle').click()
+  await expect(page.getByLabel('Request body', { exact: true })).toHaveValue(
+    /"msg": "a \{\{x\}\} b"/
+  )
 })
 
 // ===========================================================================
@@ -302,15 +488,16 @@ test('AC-14 — raw text survives a switch away and back', async ({ mount, page 
 // ===========================================================================
 
 /**
- * Finding 2 — Two distinct request tabs carry independent body states.
- *
- * BodyEditor reads `spec.body` for the ACTIVE tab only. Switching the active
- * request tab must cause BodyEditor to reflect the incoming tab's own body
- * state (active mode + raw text / urlencoded rows) — not the outgoing tab's.
+ * Finding 2 — Two distinct request tabs carry independent body states. BodyEditor
+ * reads `spec.body` for the ACTIVE tab only; switching the active request tab must
+ * reflect the incoming tab's own body (mode + raw text / urlencoded rows).
  *
  * Fixture seeds:
  *   Tab A — active='raw',        raw.text='tab-a-text'
  *   Tab B — active='urlencoded', urlencoded.rows=[{ key:'b-key' }]
+ *
+ * Raw text is asserted via the preview <pre> content (editing defaults to preview),
+ * not the textarea (which is unmounted until an edit entry).
  */
 test('body-isolation — each request tab shows its own body type independently (Finding 2)', async ({
   mount,
@@ -320,12 +507,11 @@ test('body-isolation — each request tab shows its own body type independently 
   await expect(c.getByTestId('ct-be-two-tabs-ready')).toBeAttached()
 
   const radios = page.getByTestId('body-radio')
-  const textarea = page.getByLabel('Request body', { exact: true })
 
-  // Tab A is initially active: raw mode (radio index 3) is checked.
+  // Tab A is initially active: raw mode (radio index 3) is checked; preview shows text.
   await expect(radios.nth(3)).toHaveAttribute('aria-checked', 'true') // raw (index 3)
   await expect(radios.nth(0)).toHaveAttribute('aria-checked', 'false') // none
-  await expect(textarea).toHaveValue('tab-a-text')
+  await expect(page.getByTestId('body-pre')).toContainText('tab-a-text')
 
   // Switch to Tab B: BodyEditor must now show Tab B's urlencoded mode.
   await page.getByTestId('ct-be-select-tab-b').click()
@@ -333,7 +519,6 @@ test('body-isolation — each request tab shows its own body type independently 
   await expect(radios.nth(3)).toHaveAttribute('aria-checked', 'false') // raw not active (index 3)
 
   // Tab B's urlencoded row data must be visible in the live KVTable (row-data isolation).
-  // The fixture seeded b-key for Tab B; if isolation breaks, Tab A's empty rows would show.
   const bKeyInput = page.locator('.kv-row:not(.empty) .kv-cell.key input').first()
   await expect(bKeyInput).toBeAttached()
   await expect(bKeyInput).toHaveValue('b-key')
@@ -341,10 +526,9 @@ test('body-isolation — each request tab shows its own body type independently 
   // Switch back to Tab A: BodyEditor must restore Tab A's raw mode and text.
   await page.getByTestId('ct-be-select-tab-a').click()
   await expect(radios.nth(3)).toHaveAttribute('aria-checked', 'true') // raw again (index 3)
-  await expect(textarea).toHaveValue('tab-a-text') // raw text unchanged
+  await expect(page.getByTestId('body-pre')).toContainText('tab-a-text') // raw text unchanged
 
   // Tab A has no urlencoded rows and is in raw mode — Tab B's b-key row must be gone.
-  // Tab A's body.urlencoded.rows is [] so the KVTable renders zero non-empty rows.
   await expect(page.locator('.kv-row:not(.empty) .kv-cell.key input')).toHaveCount(0)
 })
 
@@ -352,15 +536,6 @@ test('body-isolation — each request tab shows its own body type independently 
 // Behavior — AC-14 mirror: urlencoded rows survive a body-type switch (Finding 3)
 // ===========================================================================
 
-/**
- * Finding 3 — Mirror of the existing AC-14 (raw text retention) for the
- * urlencoded direction: seeded urlencoded rows must be present after switching
- * away to raw mode and switching back to urlencoded.
- *
- * BodyEditor's mount-all / hidden-toggle architecture keeps all panels always
- * mounted; the tagged-record SSOT (`body.urlencoded.rows` in the store) ensures
- * rows survive any mode switch without needing the panel to remain visible.
- */
 test('AC-14 mirror — urlencoded rows survive a switch to raw and back (Finding 3)', async ({
   mount,
   page
@@ -369,7 +544,6 @@ test('AC-14 mirror — urlencoded rows survive a switch to raw and back (Finding
   await expect(c.getByTestId('ct-be-ready')).toBeAttached()
 
   const radios = page.getByTestId('body-radio')
-  // The live KVTable rendered via renderUrlencodedLive exposes its key cell input.
   const keyInput = page.locator('.kv-row:not(.empty) .kv-cell.key input').first()
 
   // Start in urlencoded mode: the row seeded by the fixture is visible.
@@ -379,12 +553,12 @@ test('AC-14 mirror — urlencoded rows survive a switch to raw and back (Finding
 
   // Switch to raw.
   await radios.nth(3).click() // raw is index 3
-  await expect(radios.nth(3)).toHaveAttribute('aria-checked', 'true') // raw now active (index 3)
+  await expect(radios.nth(3)).toHaveAttribute('aria-checked', 'true')
   await expect(radios.nth(2)).toHaveAttribute('aria-checked', 'false')
 
   // Switch back to urlencoded.
   await radios.nth(2).click()
-  await expect(radios.nth(2)).toHaveAttribute('aria-checked', 'true') // urlencoded again
+  await expect(radios.nth(2)).toHaveAttribute('aria-checked', 'true')
 
   // Rows must survive the round-trip: the store's `body.urlencoded.rows` is unchanged.
   await expect(keyInput).toHaveValue('init-key')
@@ -394,14 +568,6 @@ test('AC-14 mirror — urlencoded rows survive a switch to raw and back (Finding
 // Behavior — already-active radio early-return guard (Finding 7)
 // ===========================================================================
 
-/**
- * Verifies that clicking the already-active body-type radio does NOT dirty the
- * tab. The early-return guard in `handleRadioSelect` (`if (next === body.active)
- * return`) must block the `updateActiveSpec` call so `dirty` stays false.
- *
- * DirtyProbe (BodyEditor.stories.tsx) reflects the store's dirty flag as a
- * `data-dirty` attribute so the CT can assert state without window hacks.
- */
 test('early-return — clicking the already-active radio does not dirty the tab', async ({
   mount,
   page
@@ -423,62 +589,6 @@ test('early-return — clicking the already-active radio does not dirty the tab'
   await expect(radios.nth(0)).toHaveAttribute('aria-checked', 'true')
   // dirty flag must remain false — updateActiveSpec was NOT called.
   await expect(dirtyProbe).toHaveAttribute('data-dirty', 'false')
-})
-
-// ===========================================================================
-// Behavior — textarea → pre scroll sync
-// ===========================================================================
-
-test('scroll — the pre overlay tracks the textarea scrollTop', async ({ mount, page }) => {
-  const c = await mount(<BodyEditorScrollFixture />)
-  await expect(c.getByTestId('ct-be-ready')).toBeAttached()
-  const textarea = page.getByLabel('Request body', { exact: true })
-
-  // Force the textarea into a bounded, internally-scrollable box so scrollTop
-  // sticks (its natural height grows to content, which would otherwise clamp
-  // scrollTop to 0). This isolates the onScroll → pre-sync handler under test.
-  const taTop = await textarea.evaluate((el) => {
-    const ta = el as HTMLTextAreaElement
-    ta.style.height = '100px'
-    ta.style.overflow = 'auto'
-    ta.scrollTop = 60 // the browser may clamp to the max scrollable offset
-    ta.dispatchEvent(new Event('scroll', { bubbles: true }))
-    return ta.scrollTop // the ACTUAL (possibly clamped) offset the handler saw
-  })
-
-  expect(taTop).toBeGreaterThan(0) // the textarea genuinely scrolled
-  const preTop = await page.getByTestId('body-pre').evaluate((el) => el.scrollTop)
-  expect(preTop).toBe(taTop) // the pre overlay mirrors the textarea exactly
-})
-
-/**
- * Horizontal scroll sync — handleTextareaScroll syncs BOTH scrollTop AND
- * scrollLeft to the pre overlay ref, but the existing scrollTop CT only covers
- * the vertical axis. This test drives scrollLeft via a single very long line
- * (BodyEditorScrollHFixture) and asserts pre.scrollLeft === textarea.scrollLeft.
- *
- * handleTextareaScroll:
- *   preRef.current.scrollTop  = e.currentTarget.scrollTop
- *   preRef.current.scrollLeft = e.currentTarget.scrollLeft   ← this axis
- */
-test('scroll — the pre overlay tracks the textarea scrollLeft', async ({ mount, page }) => {
-  const c = await mount(<BodyEditorScrollHFixture />)
-  await expect(c.getByTestId('ct-be-ready')).toBeAttached()
-  const textarea = page.getByLabel('Request body', { exact: true })
-
-  // The fixture seeds a single ~1000-char line in a 300px container.
-  // The textarea's `white-space: pre` / `overflow: auto` lets scrollLeft go
-  // to ~700px+. Setting 100px is well within the scrollable range.
-  const taLeft = await textarea.evaluate((el) => {
-    const ta = el as HTMLTextAreaElement
-    ta.scrollLeft = 100 // the browser may clamp to the max scrollable offset
-    ta.dispatchEvent(new Event('scroll', { bubbles: true }))
-    return ta.scrollLeft // the ACTUAL (possibly clamped) offset the handler saw
-  })
-
-  expect(taLeft).toBeGreaterThan(0) // textarea genuinely scrolled horizontally
-  const preLeft = await page.getByTestId('body-pre').evaluate((el) => el.scrollLeft)
-  expect(preLeft).toBe(taLeft) // the pre overlay mirrors textarea scrollLeft exactly
 })
 
 // ===========================================================================
@@ -519,9 +629,6 @@ test('AC-11 + AC-12 — urlencoded real KVTable: key edit propagates through onR
   const c = await mount(<BodyEditorUrlencodedLiveFixture />)
   await expect(c.getByTestId('ct-be-ready')).toBeAttached()
 
-  // The fixture seeds active=urlencoded with one real row (key='init-key').
-  // KVTable key cell uses a .kv-input-wrap overlay input (color: transparent)
-  // on top of the .kv-highlight div; the overlay input carries the live value.
   const keyInput = page.locator('.kv-row:not(.empty) .kv-cell.key input').first()
   await expect(keyInput).toBeAttached()
 
@@ -529,10 +636,8 @@ test('AC-11 + AC-12 — urlencoded real KVTable: key edit propagates through onR
   // BodyEditor's handleUrlencodedRowsChange → updateActiveSpec({ body: ... }).
   await keyInput.fill('edited-key')
 
-  // KVTable is in controlled mode: it renders only what the store says.
-  // If the store write did NOT occur, the value would revert to 'init-key' on
-  // the next re-render. Asserting 'edited-key' proves the full round-trip:
-  // edit → handleUrlencodedRowsChange → store write → re-render (AC-11 + AC-12).
+  // KVTable is controlled: it renders only what the store says. Asserting
+  // 'edited-key' proves the full round-trip (edit → store write → re-render).
   await expect(keyInput).toHaveValue('edited-key')
 })
 
@@ -541,19 +646,9 @@ test('AC-11 + AC-12 — urlencoded real KVTable: key edit propagates through onR
 // ===========================================================================
 
 /**
- * AC-11 negative invariant — the plan requires that `handleUrlencodedRowsChange`
- * writes ONLY `body.urlencoded.rows` and leaves `spec.params` + `spec.headers`
- * untouched (plan KVTable.tsx:152-156).
- *
- * SpecProbe (BodyEditor.stories.tsx) reflects `spec.params.length` and
- * `spec.headers.length` as DOM data attributes so the CT can compare
- * before/after without needing direct module access from page.evaluate().
- *
- * makeBlankRequest() seeds: params=[] (len 0), headers=[Accept] (len 1).
- * Editing the KVTable row triggers the full chain:
- *   edit → onRowsChange → handleUrlencodedRowsChange → updateActiveSpec({ body: ... })
- * The spread `{ ...currentBody, urlencoded: { rows: next } }` must not alter
- * `params` or `headers`.
+ * AC-11 negative invariant — `handleUrlencodedRowsChange` writes ONLY
+ * `body.urlencoded.rows` and leaves `spec.params` + `spec.headers` + `body.raw`
+ * untouched. SpecProbe reflects those lengths + raw.text as DOM data attributes.
  */
 test('AC-11 negative invariant — urlencoded row edit writes ONLY body.urlencoded.rows; spec.params and spec.headers are untouched', async ({
   mount,
@@ -564,14 +659,10 @@ test('AC-11 negative invariant — urlencoded row edit writes ONLY body.urlencod
 
   const probe = page.getByTestId('ct-be-spec-probe')
 
-  // Assert the LIVE seeded values first — this proves SpecProbe is actually
-  // subscribed to the seeded tab (params=[] len 0, headers=[Accept] len 1).
-  // Without this, a broken probe (tabId miss → -1 sentinel both before/after)
-  // would make the capture-then-compare below trivially pass on '-1' === '-1'.
+  // Assert the LIVE seeded values first — proves SpecProbe is subscribed to the
+  // seeded tab (else a -1 sentinel both before/after would pass trivially).
   await expect(probe).toHaveAttribute('data-params-len', '0')
   await expect(probe).toHaveAttribute('data-headers-len', '1')
-  // AC-11 body.raw preservation: fixture seeds raw.text='raw-preserved-text'
-  // so this assertion is non-vacuous (not just checking an empty string).
   await expect(probe).toHaveAttribute('data-raw-text', 'raw-preserved-text')
 
   // Edit the KVTable row key — fires handleUrlencodedRowsChange → updateActiveSpec.
@@ -580,391 +671,221 @@ test('AC-11 negative invariant — urlencoded row edit writes ONLY body.urlencod
   await keyInput.fill('edited-key')
   await expect(keyInput).toHaveValue('edited-key')
 
-  // params.length and headers.length must be UNCHANGED after the body write.
-  // Any change would mean updateActiveSpec clobbered a non-body spec field.
+  // params/headers/raw must be UNCHANGED after the body write.
   await expect(probe).toHaveAttribute('data-params-len', '0')
   await expect(probe).toHaveAttribute('data-headers-len', '1')
-  // body.raw.text must also be UNCHANGED — the `{...currentBody, urlencoded}`
-  // spread in handleUrlencodedRowsChange preserved the raw slice.
   await expect(probe).toHaveAttribute('data-raw-text', 'raw-preserved-text')
 })
 
 // ===========================================================================
-// Behavior — raw textarea onChange chain: typing propagates to store (coverage gap)
+// Behavior — raw textarea onChange chain: typing propagates to store
 // ===========================================================================
 
 /**
- * Locks the primary raw-mode workflow against regression: a user typing in the
- * raw code-area must propagate through the full onChange chain and update the
- * store's body.raw.text.
+ * Locks the raw-mode edit workflow: entering edit mode and typing must propagate
+ * through the full onChange chain into the store's body.raw.text. Under the toggle
+ * model the textarea mounts only after an edit entry, so the test toggles in first.
  *
- * Chain under test:
- *   textarea onChange → CodeEditor.handleTextChange → CodeEditor.props.onChange
- *   → BodyEditor: (text) => setRaw({ ...body.raw, text })
- *   → updateActiveSpec({ body: ... }) → tabsStore write.
- *
- * The textarea renders `value={body.raw.text}` from the store (controlled
- * component). If the chain fails to write the store, React re-renders with the
- * old store value and the textarea reverts — so toHaveValue('typed body text')
- * proves the full chain fired. Mirrors the AC-11 + AC-12 store-proof pattern
- * (controlled-value assertion) applied to the raw text path.
+ * Chain: textarea onChange → CodeEditor.handleTextChange → props.onChange →
+ * BodyEditor setRaw → updateActiveSpec → tabsStore write. The textarea renders
+ * `value={body.raw.text}` (controlled) so a broken chain reverts the value — thus
+ * toHaveValue('typed body text') proves the full round-trip.
  */
-test('onChange — typing in the raw code-area updates the store body.raw.text', async ({
+test('onChange — typing in the raw code-area (edit mode) updates the store body.raw.text', async ({
   mount,
   page
 }) => {
   const c = await mount(<BodyEditorRawJsonLightFixture />)
   await expect(c.getByTestId('ct-be-ready')).toBeAttached()
 
+  // Enter edit mode so the textarea is mounted.
+  await page.getByTestId('body-edit-toggle').click()
   const textarea = page.getByLabel('Request body', { exact: true })
+  await expect(textarea).toBeAttached()
 
-  // fill() dispatches input events; React's synthetic onChange observes them on
-  // the controlled textarea and propagates the value through the chain above.
   await textarea.fill('typed body text')
 
-  // Controlled-value round-trip: React re-renders with the new store value.
-  // If the onChange → setRaw → updateActiveSpec chain is broken, the store is
-  // not updated and React reverts the textarea to the original seed value —
-  // toHaveValue('typed body text') would fail, catching the regression.
+  // Controlled-value round-trip: a broken chain would revert to the seed value.
   await expect(textarea).toHaveValue('typed body text')
 })
 
 // ===========================================================================
-// Finding 5 — UrlencodedKVTable memo render-skip (SKIPPED — not testable from outside)
-// ===========================================================================
-//
-// `UrlencodedKVTable` is a memo-wrapped KVTable defined inside `App.tsx` as a
-// module-level `const` that is NOT exported. This makes it impossible to import
-// or mount directly from this CT file without introducing a production test-hook
-// (export or forwardRef with a render-count probe), which would violate the
-// constitution's minimal-change rule and the KISS principle.
-//
-// The memo optimization's correctness rests on two source-level guarantees that
-// can be verified by reading the code — no CT instrumentation is required:
-//
-//   1. `handleUrlencodedRowsChange` in BodyEditor.tsx is stabilized via
-//      `useCallback([updateActiveSpec])`. `updateActiveSpec` is a zustand action
-//      whose identity never changes across renders, so `handleUrlencodedRowsChange`
-//      gets the same reference on every BodyEditor re-render.
-//
-//   2. `body.urlencoded.rows` is reference-stable between raw-mode keystrokes
-//      because each `updateActiveSpec({ body: { ...body, raw: ... } })` call
-//      carries through the SAME `body.urlencoded` reference — only `body.raw` is
-//      replaced. Shallow spreading does not create a new `urlencoded` object when
-//      the urlencoded state is unchanged.
-//
-// Consequence: when the user types in raw mode, BodyEditor calls
-// `renderUrlencoded(body.urlencoded.rows, stableCallback)`. `UrlencodedKVTable`'s
-// memo sees stable `rows` + stable `onRowsChange` → skips re-render. This
-// optimization is structural (derivable from the code) rather than behavioral,
-// so it is documented here rather than force-tested via a production hook.
-//
-// Decision: SKIP the instrumented CT for this path. If `UrlencodedKVTable` is
-// ever exported or the implementation changes, add a render-counter CT here.
-//
-// Source-pass (spec/017) additions confirmed NOT to affect this skip:
-//   - Gutter/token span useMemo inside BodyEditor — BodyEditor-internal only.
-//   - setColored(null) on activeTabId (now in CodeEditor, driven by resetKey prop) — no impact on
-//     UrlencodedKVTable's memo props (rows + callback remain stable). Accurate.
-
-// ===========================================================================
-// Behavior — org-boundary wiring: BodyEditor passes resetKey={activeTabId}
+// Behavior — org-boundary wiring: resetKey={activeTabId} resets scroll on tab switch
 // ===========================================================================
 
 /**
- * Org-boundary wiring assertion — BodyEditor passes `resetKey={activeTabId}` to
- * CodeEditor. When the active request tab changes, CodeEditor receives a new
- * resetKey, which triggers setColored(null) then re-arms the debounce.
+ * Org-boundary scroll-reset — BodyEditor passes `resetKey={activeTabId}` to
+ * CodeEditor; switching the active request tab changes resetKey, and CodeEditor's
+ * useEffect([resetKey]) resets the mounted layer's scroll to 0.
  *
- * Fixture: two tabs, both `active='raw'`, same JSON body — identical text+lang
- * ensures the debounce would NOT re-arm without the resetKey dep in CodeEditor's
- * useEffect. Failure mode: .tk-key spans never reappear after the tab switch
- * (colored stays null) because the debounce effect sees no input change.
- *
- * This test asserts the BodyEditor→CodeEditor wiring at the organism boundary,
- * not the molecule reset mechanics (those are CodeEditor.ct's AC-6 tests).
+ * Under the conditional-mount model only ONE layer is mounted at a time. In
+ * preview the <pre> is the scrollable layer; the old dual-layer (textarea+pre)
+ * scroll-sync driver is gone. This drives the preview <pre> scroll, switches tab,
+ * and asserts the reset — the organism-boundary counterpart to CodeEditor.ct's
+ * molecule AC-6 scroll-reset.
  */
-test('wiring — BodyEditor passes resetKey={activeTabId}: switching tabs re-arms the CodeEditor highlight', async ({
-  mount,
-  page
-}) => {
-  const c = await mount(<BodyEditorTwoTabsRawSameBodyFixture />)
-  await expect(c.getByTestId('ct-be-same-raw-ready')).toBeAttached()
-
-  // Wait for Tab A's initial debounce to fire — .tk-key attaches.
-  await expect(page.locator('.tk-key').first()).toBeAttached()
-
-  // Switch to Tab B (same raw text + lang as Tab A).
-  // BodyEditor's activeTabId changes → resetKey={activeTabId} changes →
-  // CodeEditor's useEffect([resetKey]) fires: setColored(null) clears spans,
-  // then the debounce re-arms because resetKey is in its deps.
-  await page.getByTestId('ct-be-sr-select-tab-b').click()
-
-  // Causal chain pin: setColored(null) must first CLEAR the spans. Without this
-  // intermediate detach check, stale Tab A spans would make the final assertion
-  // vacuously pass even if the debounce never re-armed.
-  await expect(page.locator('.tk-key').first()).not.toBeAttached()
-
-  // After ~100ms the debounce re-fires and compose() populates .tk-key spans.
-  // Playwright auto-retries within the default timeout.
-  await expect(page.locator('.tk-key').first()).toBeAttached()
-})
-
-// ===========================================================================
-// Behavior — org-boundary scroll-reset: activeTabId → resetKey → scroll-to-0
-// ===========================================================================
-
-/**
- * Org-boundary scroll-reset — switching the active request tab resets the
- * CodeEditor's textarea + pre scrollTop/scrollLeft to 0.
- *
- * BodyEditor passes `resetKey={activeTabId}` to CodeEditor. When activeTabId
- * changes (tab switch), CodeEditor's useEffect([resetKey]) fires and resets all
- * four scroll offsets (textarea.scrollTop, textarea.scrollLeft, pre.scrollTop,
- * pre.scrollLeft) to 0. This test proves the wiring at the organism boundary.
- *
- * Mirrors CodeEditor.ct.tsx's AC-6 scroll-reset test (molecule form), but drives
- * the reset via a tab switch (activeTabId → resetKey prop change) rather than a
- * direct prop change — proving the BodyEditor→CodeEditor wiring carries the signal.
- */
-test('org-scroll-reset — switching request tabs resets textarea+pre scrollTop+scrollLeft to 0', async ({
+test('org-scroll-reset — switching request tabs resets the preview pre scroll to 0', async ({
   mount,
   page
 }) => {
   const c = await mount(<BodyEditorTwoTabsScrollResetFixture />)
   await expect(c.getByTestId('ct-be-sc-ready')).toBeAttached()
 
-  const textarea = page.getByLabel('Request body', { exact: true })
   const pre = page.getByTestId('body-pre')
 
-  // Force the textarea into a bounded, internally-scrollable state and set non-zero
-  // scroll offsets on BOTH axes, then dispatch scroll so the pre overlay syncs
-  // (mirrors CodeEditor.ct.tsx AC-6 scroll-reset test pattern exactly).
-  const before = await textarea.evaluate((el) => {
-    const ta = el as HTMLTextAreaElement
-    ta.style.height = '100px'
-    ta.style.overflow = 'auto'
-    ta.scrollTop = 60 // browser may clamp to max — return the actual value
-    ta.scrollLeft = 40
-    ta.dispatchEvent(new Event('scroll', { bubbles: true }))
-    return { top: ta.scrollTop, left: ta.scrollLeft }
+  // Scroll the preview pre non-zero on both axes (non-vacuous precondition).
+  const before = await pre.evaluate((el) => {
+    el.scrollTop = 60
+    el.scrollLeft = 40
+    return { top: el.scrollTop, left: el.scrollLeft }
   })
-  // Non-vacuous pre-condition: both axes genuinely scrolled.
   expect(before.top).toBeGreaterThan(0)
   expect(before.left).toBeGreaterThan(0)
 
-  // The <pre> overlay syncs via handleTextareaScroll — confirm it is non-zero.
-  const preBefore = await pre.evaluate((el) => ({ top: el.scrollTop, left: el.scrollLeft }))
-  expect(preBefore.top).toBeGreaterThan(0)
-  expect(preBefore.left).toBeGreaterThan(0)
-
-  // Switch to Tab B — activeTabId changes → BodyEditor passes a new resetKey to
-  // CodeEditor → CodeEditor's useEffect([resetKey]) resets all four offsets to 0.
+  // Switch to Tab B — activeTabId → new resetKey → useEffect([resetKey]) resets scroll.
   await page.getByTestId('ct-be-sc-select-tab-b').click()
 
-  // expect.poll retries until the React effect has executed (async microtask queue).
-  // Assert ALL FOUR resets (textarea + pre, vertical + horizontal).
+  // Poll: React effects run on the microtask queue after the click.
   await expect
-    .poll(async () => {
-      const ta = await textarea.evaluate((el) => {
-        const t = el as HTMLTextAreaElement
-        return { top: t.scrollTop, left: t.scrollLeft }
-      })
-      const pr = await pre.evaluate((el) => ({ top: el.scrollTop, left: el.scrollLeft }))
-      return { taTop: ta.top, taLeft: ta.left, preTop: pr.top, preLeft: pr.left }
-    })
-    .toEqual({ taTop: 0, taLeft: 0, preTop: 0, preLeft: 0 })
+    .poll(async () => pre.evaluate((el) => ({ top: el.scrollTop, left: el.scrollLeft })))
+    .toEqual({ top: 0, left: 0 })
 })
 
 // ===========================================================================
-// Behavior — mixed-mode tab switch: raw → urlencoded → raw (F2)
+// Behavior — mixed-mode tab switch: raw → urlencoded → raw (hidden CodeEditor)
 // ===========================================================================
 
 /**
- * Mixed-mode switch: Tab A=raw (JSON, overflowing), Tab B=urlencoded.
- *
- * When the user visits Tab B (urlencoded), the CodeEditor's parent panel receives
- * `hidden={true}` — CodeEditor stays mounted but is hidden. On return to Tab A:
- *  1. Highlight re-arms: .tk-key spans must re-attach after the debounce fires
- *     through the now-visible CodeEditor panel (resetKey effect in CodeEditor).
- *  2. Scroll resets: textarea + pre scrollTop/scrollLeft return to 0 (the
- *     resetKey useEffect in CodeEditor resets all four offsets).
- *
- * Mirrors the org-scroll-reset test structure but with Tab B in a DIFFERENT mode
- * (urlencoded, not raw), specifically exercising the hidden=true CodeEditor path.
+ * Mixed-mode switch: Tab A=raw (JSON, overflowing), Tab B=urlencoded. Visiting
+ * Tab B hides the raw panel (CodeEditor stays mounted, `hidden={true}`); returning
+ * to Tab A un-hides it. Asserts the two organism-boundary guarantees under the
+ * synchronous/conditional-mount model:
+ *   1. Highlight: `.tk-key` present on Tab A (synchronous), absent while Tab B
+ *      (urlencoded, raw body '') is active, present again on return to Tab A.
+ *   2. Scroll: the preview pre scroll resets to 0 on the return tab switch.
  */
-test('mixed-tab-switch — highlight re-arms and scroll resets after visiting urlencoded tab (hidden CodeEditor)', async ({
+test('mixed-tab-switch — highlight and scroll behave across a visit to the urlencoded tab (hidden CodeEditor)', async ({
   mount,
   page
 }) => {
   const c = await mount(<BodyEditorTwoTabsMixedFixture />)
   await expect(c.getByTestId('ct-be-mx-ready')).toBeAttached()
 
-  const textarea = page.getByLabel('Request body', { exact: true })
   const pre = page.getByTestId('body-pre')
 
-  // Wait for Tab A's initial debounce to fire — .tk-key spans attach.
+  // Tab A raw JSON: tokens present synchronously.
   await expect(page.locator('.tk-key').first()).toBeAttached()
 
-  // Force the textarea into a bounded, internally-scrollable state with non-zero
-  // scroll offsets on BOTH axes (mirrors org-scroll-reset test pattern exactly).
-  const before = await textarea.evaluate((el) => {
-    const ta = el as HTMLTextAreaElement
-    ta.style.height = '100px'
-    ta.style.overflow = 'auto'
-    ta.scrollTop = 60 // browser may clamp to max — return the actual value
-    ta.scrollLeft = 40
-    ta.dispatchEvent(new Event('scroll', { bubbles: true }))
-    return { top: ta.scrollTop, left: ta.scrollLeft }
+  // Scroll the preview pre non-zero (non-vacuous precondition).
+  const before = await pre.evaluate((el) => {
+    el.scrollTop = 60
+    el.scrollLeft = 40
+    return { top: el.scrollTop, left: el.scrollLeft }
   })
-  // Non-vacuous pre-condition: both axes genuinely scrolled.
   expect(before.top).toBeGreaterThan(0)
   expect(before.left).toBeGreaterThan(0)
 
-  // The <pre> overlay syncs via handleTextareaScroll — confirm it is non-zero.
-  const preBefore = await pre.evaluate((el) => ({ top: el.scrollTop, left: el.scrollLeft }))
-  expect(preBefore.top).toBeGreaterThan(0)
-  expect(preBefore.left).toBeGreaterThan(0)
-
-  // Switch to Tab B (urlencoded) — CodeEditor's parent div gains hidden={true}.
-  // resetKey changes to Tab B's id → setColored(null) fires in CodeEditor.
+  // Switch to Tab B (urlencoded, raw body ''): raw panel hidden; the mounted
+  // preview reflects Tab B's empty raw body → no tk-key spans.
   await page.getByTestId('ct-be-mx-select-tab-b').click()
-
-  // Causal chain pin: .tk-key must detach. Tab B body.raw.text is '' so even when
-  // the debounce re-fires after the resetKey change, no tk-key spans appear.
   await expect(page.locator('.tk-key').first()).not.toBeAttached()
 
-  // Switch back to Tab A — CodeEditor's panel loses hidden; resetKey changes again.
-  // useEffect([resetKey]) in CodeEditor fires: setColored(null) then debounce re-arms
-  // with Tab A's JSON body → .tk-key spans reappear after ~100 ms.
+  // Return to Tab A — tokens reappear (synchronous) and the pre scroll resets to 0.
   await page.getByTestId('ct-be-mx-select-tab-a').click()
-
-  // Assert highlight re-arms through the hidden→visible transition. Playwright auto-retries.
   await expect(page.locator('.tk-key').first()).toBeAttached()
-
-  // Assert ALL FOUR scroll offsets reset to 0 (mirrors org-scroll-reset assertion).
   await expect
-    .poll(async () => {
-      const ta = await textarea.evaluate((el) => {
-        const t = el as HTMLTextAreaElement
-        return { top: t.scrollTop, left: t.scrollLeft }
-      })
-      const pr = await pre.evaluate((el) => ({ top: el.scrollTop, left: el.scrollLeft }))
-      return { taTop: ta.top, taLeft: ta.left, preTop: pr.top, preLeft: pr.left }
-    })
-    .toEqual({ taTop: 0, taLeft: 0, preTop: 0, preLeft: 0 })
+    .poll(async () =>
+      page.getByTestId('body-pre').evaluate((el) => ({ top: el.scrollTop, left: el.scrollLeft }))
+    )
+    .toEqual({ top: 0, left: 0 })
 })
 
 // ===========================================================================
-// Behavior — AC-4 scroll-PRESERVATION: same-tab mode switch keeps scroll intact
+// Behavior — AC-4 scroll+caret PRESERVATION across a same-tab mode switch
 // ===========================================================================
 
 /**
- * AC-4 scroll+caret preservation (full) — a same-tab mode switch (raw →
- * urlencoded → raw) does NOT reset the CodeEditor's textarea+pre scroll offsets
- * OR the textarea's caret (selectionStart/selectionEnd).
+ * AC-4 scroll+caret preservation — a same-tab mode switch (raw → urlencoded →
+ * raw) does NOT reset the edit textarea's scroll or caret. activeTabId is
+ * UNCHANGED, so `resetKey={activeTabId}` is unchanged and CodeEditor's
+ * useEffect([resetKey]) does NOT fire. The render-phase editing reset also does
+ * NOT fire (it keys on activeTabId, not body.active), so `editing` stays true and
+ * the textarea remains mounted (hidden via the mount-all panel) — Chromium
+ * preserves scrollTop/scrollLeft and selectionStart/selectionEnd across the
+ * display:none toggle natively.
  *
- * When the active body mode changes on the SAME request tab, activeTabId is
- * UNCHANGED, so resetKey={activeTabId} passed from BodyEditor to CodeEditor is
- * UNCHANGED. CodeEditor's useEffect([resetKey]) does NOT fire, so the scroll
- * reset does NOT happen. The `<div hidden={body.active !== 'raw'}>` wrapper
- * keeps CodeEditor mounted throughout, so the browser preserves both
- * textarea.scrollTop/scrollLeft and pre.scrollTop/scrollLeft natively. The
- * same native-preservation mechanism also keeps selectionStart/selectionEnd
- * intact across the hidden/display:none toggle.
- *
- * This is the OPPOSITE assertion from org-scroll-reset and mixed-tab-switch:
- * those tests assert scroll IS reset (tab switch → resetKey changes); this
- * test asserts scroll+caret are NOT reset (same-tab mode switch → resetKey
- * unchanged).
- *
- * Spec Risk table entry: "Mount-all hidden-panel scroll preservation."
+ * Opposite of org-scroll-reset (tab switch → resetKey changes → reset): here the
+ * SAME tab's mode changes, so nothing resets.
  */
-test('AC-4 — code-area scroll and caret state are preserved across a same-tab mode switch (raw → urlencoded → raw)', async ({
+test('AC-4 — edit-mode scroll and caret are preserved across a same-tab mode switch (raw → urlencoded → raw)', async ({
   mount,
   page
 }) => {
   const c = await mount(<BodyEditorScrollFixture />)
   await expect(c.getByTestId('ct-be-ready')).toBeAttached()
 
-  const textarea = page.getByLabel('Request body', { exact: true })
-  const pre = page.getByTestId('body-pre')
   const radios = page.getByTestId('body-radio')
 
-  // Force the textarea into a bounded, internally-scrollable state with non-zero
-  // scroll offsets on BOTH axes, then dispatch scroll so the pre overlay syncs
-  // (mirrors org-scroll-reset test setup pattern exactly).
+  // Enter edit mode so the textarea is the mounted layer.
+  await page.getByTestId('body-edit-toggle').click()
+  const textarea = page.getByLabel('Request body', { exact: true })
+  await expect(textarea).toBeAttached()
+
+  // Set non-zero scroll on both axes + a non-collapsed caret (all within body length).
   const before = await textarea.evaluate((el) => {
     const ta = el as HTMLTextAreaElement
     ta.style.height = '100px'
     ta.style.overflow = 'auto'
     ta.scrollTop = 60 // browser may clamp to max — return the actual value
     ta.scrollLeft = 40
-    ta.dispatchEvent(new Event('scroll', { bubbles: true }))
-    return { top: ta.scrollTop, left: ta.scrollLeft }
-  })
-  // Non-vacuous pre-condition: both axes genuinely scrolled.
-  expect(before.top).toBeGreaterThan(0)
-  expect(before.left).toBeGreaterThan(0)
-
-  // The <pre> overlay syncs via handleTextareaScroll — confirm it is non-zero.
-  const preBefore = await pre.evaluate((el) => ({ top: el.scrollTop, left: el.scrollLeft }))
-  expect(preBefore.top).toBeGreaterThan(0)
-  expect(preBefore.left).toBeGreaterThan(0)
-
-  // Set + capture caret (AC-4 caret dimension). Non-collapsed selection so both
-  // endpoints are meaningful. Values are within the seeded body length.
-  const caretBefore = await textarea.evaluate((el) => {
-    const ta = el as HTMLTextAreaElement
     ta.selectionStart = 25
     ta.selectionEnd = 40
-    return { start: ta.selectionStart, end: ta.selectionEnd }
+    return {
+      top: ta.scrollTop,
+      left: ta.scrollLeft,
+      selStart: ta.selectionStart,
+      selEnd: ta.selectionEnd
+    }
   })
-  // Non-vacuous pre-condition: caret was actually placed where we asked.
-  expect(caretBefore.start).toBe(25)
-  expect(caretBefore.end).toBe(40)
+  expect(before.top).toBeGreaterThan(0)
+  expect(before.left).toBeGreaterThan(0)
+  expect(before.selStart).toBe(25)
+  expect(before.selEnd).toBe(40)
 
-  // Switch to urlencoded on the SAME tab (index 2). activeTabId is UNCHANGED,
-  // so resetKey is UNCHANGED. The raw panel becomes hidden but CodeEditor
-  // stays mounted (mount-all architecture); scroll and caret are NOT reset.
+  // Switch to urlencoded then back to raw on the SAME tab. Three invariants make
+  // the preservation non-vacuous:
+  //   1. activeTabId is UNCHANGED → resetKey unchanged → CodeEditor's
+  //      useEffect([resetKey]) does not fire (no scroll reset).
+  //   2. The render-phase editing reset keys on activeTabId, not body.active, so
+  //      editing stays true → the textarea stays mounted (hidden), not remounted.
+  //   3. handleRadioSelect writes `{ ...body, active: next }` — it changes ONLY
+  //      body.active and preserves body.raw.text, so the controlled textarea's
+  //      `value` is byte-identical across the round-trip (no value change → no
+  //      React remount that would drop scroll/caret).
+  // Chromium then preserves scrollTop/scrollLeft + selectionStart/End across the
+  // display:none toggle natively.
   await radios.nth(2).click() // urlencoded (index 2)
   await expect(radios.nth(2)).toHaveAttribute('aria-checked', 'true')
-
-  // Switch back to raw (index 3). Still the same tab — resetKey still unchanged.
   await radios.nth(3).click() // raw (index 3)
   await expect(radios.nth(3)).toHaveAttribute('aria-checked', 'true')
 
-  // Assert scroll AND caret are PRESERVED. The resetKey effect did NOT fire
-  // (activeTabId unchanged), so no reset occurred. Chromium preserves both
-  // scroll offsets and selectionStart/selectionEnd across the hidden toggle
-  // natively. expect.poll retries until the React render settles.
+  // Assert scroll + caret PRESERVED (no reset fired). Poll until the render settles.
   await expect
-    .poll(async () => {
-      const ta = await textarea.evaluate((el) => {
-        const t = el as HTMLTextAreaElement
+    .poll(async () =>
+      page.getByLabel('Request body', { exact: true }).evaluate((el) => {
+        const ta = el as HTMLTextAreaElement
         return {
-          top: t.scrollTop,
-          left: t.scrollLeft,
-          selStart: t.selectionStart,
-          selEnd: t.selectionEnd
+          top: ta.scrollTop,
+          left: ta.scrollLeft,
+          selStart: ta.selectionStart,
+          selEnd: ta.selectionEnd
         }
       })
-      const pr = await pre.evaluate((el) => ({ top: el.scrollTop, left: el.scrollLeft }))
-      return {
-        taTop: ta.top,
-        taLeft: ta.left,
-        preTop: pr.top,
-        preLeft: pr.left,
-        taSelStart: ta.selStart,
-        taSelEnd: ta.selEnd
-      }
-    })
+    )
     .toEqual({
-      taTop: before.top,
-      taLeft: before.left,
-      preTop: preBefore.top,
-      preLeft: preBefore.left,
-      taSelStart: caretBefore.start,
-      taSelEnd: caretBefore.end
+      top: before.top,
+      left: before.left,
+      selStart: before.selStart,
+      selEnd: before.selEnd
     })
 })

@@ -20,6 +20,19 @@
  * `[hidden] { display: none }` rule (higher specificity). This rule restores
  * the hidden behaviour without touching base.css. */
 .lang-pill[hidden] { display: none; }
+/* Match the token-bound focus ring every other interactive toolbar control
+ * carries (body-edit-toggle / body-radio); without it the pill fell back to the
+ * inconsistent UA outline. */
+.lang-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ── Edit/preview toggle button ──────────────────────────────────────────── */
+.body-edit-toggle { display: flex; align-items: center; padding: 3px 8px; background: var(--bg-sunken); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 11px; font-weight: 500; color: var(--text-muted); }
+/* Scoped override: `.body-edit-toggle { display: flex }` above wins over the UA
+ * `[hidden] { display: none }` rule (higher specificity). This rule restores
+ * the hidden behaviour without touching base.css. */
+.body-edit-toggle[hidden] { display: none; }
+.body-edit-toggle:hover { color: var(--text); }
+.body-edit-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ── Focus ring for roving-tabIndex radiogroup ───────────────────────────── */
 .body-radio:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

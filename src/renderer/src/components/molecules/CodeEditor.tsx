@@ -1,30 +1,34 @@
 /**
  * CodeEditor — molecule
  *
- * Three-layer overlay code editor: gutter + aria-hidden <pre> (highlight layer)
- * + transparent <textarea> (single scroll source). The textarea drives height and
- * scroll position; onScroll syncs pre.scrollTop/Left via ref on each scroll event.
- * Textarea text is `color: transparent`; the aria-hidden pre renders syntax-colored
- * token spans on the same pixel grid. All token text is inserted as escaped JSX
- * children — no innerHTML / dangerouslySetInnerHTML (XSS-safe).
+ * Edit/preview toggle code editor: mounts a plain textarea (editing=true) XOR
+ * a highlighted <pre> (editing=false) — never both. The `editing` boolean is
+ * controlled by the parent (BodyEditor); CodeEditor holds NO store awareness.
  *
- * resetKey contract: supply an opaque scalar (tab ID, request ID, etc.) that changes
- * whenever the consumer wants the editor to reset to scroll-top and invalidate the
- * debounced color snapshot. A new resetKey synchronously scrolls textarea and pre to
- * (0,0) and clears `colored`, then re-schedules compose() on the trailing debounce.
+ * Preview → edit: click the preview (caret placed at clicked character) or press
+ * Enter/Space while the preview is focused. A shared focus-on-mount useEffect
+ * (keyed on `editing`) focuses the textarea on ALL entry paths (click / keyboard
+ * Enter-Space / toggle button).
+ * Edit → preview: textarea blur OR onEditingChange(false) from parent (toggle).
  *
- * Holds NO tabsStore or activeTabId awareness — all context flows in via props.
+ * Tokenize (F-001): compose() runs via a {value,lang}-snapshot-cache useMemo
+ * gated to !editing — once per switch-to-preview, first mount, and tab-switch /
+ * lang-cycle. Never per keystroke (the pre is unmounted while editing, so compose
+ * is unreachable during edit).
+ *
+ * resetKey contract: supply an opaque scalar that changes whenever the consumer
+ * wants the editor to reset scroll to (0,0). Scroll also resets on every toggle
+ * via the natural fresh-mount of the swapped layer.
+ *
+ * All token text is inserted as escaped JSX children — no innerHTML (AC-8).
  */
 
 import './CodeEditor.css'
-import React, { memo, useRef, useState, useEffect, useMemo } from 'react'
+import React, { memo, useRef, useEffect, useMemo } from 'react'
 import type { RawLang } from '@renderer/lib/tabsStore'
 import { compose } from '@renderer/lib/jsonTokens'
 import { isMissingVar } from '@renderer/lib/varTokens'
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-const BODY_HIGHLIGHT_DEBOUNCE_MS = 100
+import { cx } from '@renderer/lib/cx'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -38,10 +42,21 @@ interface CodeEditorProps {
   /** Known env-var names; vars absent from this set render as missing. */
   validVars: ReadonlySet<string>
   /**
-   * Opaque reset scalar — change it to reset scroll to (0,0) and invalidate the
-   * debounced color snapshot. Typically the active tab/request ID.
+   * Opaque reset scalar — change it to reset the code-area scroll to (0,0).
+   * Typically the active tab/request ID.
    */
   resetKey?: string | number
+  /**
+   * Whether the editor is in edit mode (textarea visible) or preview mode
+   * (highlighted pre visible). Controlled by the parent; defaults to false
+   * (preview). Wired by BodyEditor (task 002).
+   */
+  editing?: boolean
+  /**
+   * Called when the edit/preview state should change. Provided by the parent.
+   * Wired by BodyEditor (task 002).
+   */
+  onEditingChange?: (next: boolean) => void
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -49,33 +64,33 @@ interface CodeEditorProps {
 /**
  * CodeEditor is memo-wrapped so parent re-renders (e.g. tab switches or store
  * updates unrelated to the editor's props) do not cascade into this component.
- * Shallow-equality on props is sufficient: value/lang/resetKey are primitives;
- * validVars is a stable singleton reference from envVars().
+ * Shallow-equality on props is sufficient: value/lang/resetKey/editing are
+ * primitives; validVars is a stable singleton reference from envVars().
  */
 export const CodeEditor = memo(function CodeEditor({
   value,
   lang,
   onChange,
   validVars,
-  resetKey
+  resetKey,
+  editing = false,
+  onEditingChange
 }: CodeEditorProps): React.JSX.Element {
-  /** Debounced highlight state: null until first compose() completes. */
-  const [colored, setColored] = useState<{
-    snapshot: string
-    tokens: ReturnType<typeof compose>
-  } | null>(null)
-
-  /** Ref to the <pre> overlay for scroll synchronisation. */
+  /** Ref to the <pre> preview — used for caret-at-click coordinate mapping. */
   const preRef = useRef<HTMLPreElement>(null)
 
-  /** Ref to the <textarea> — the single scroll source of the code area. */
+  /** Ref to the <textarea> — focused on every edit-mode entry. */
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // On resetKey change: invalidate the colored snapshot AND reset the inner
-  // code-area scroll. Without this, switching between tabs/requests would render
-  // the new content at the previous scroll offset and desync the pre overlay.
+  /**
+   * Stashes the caret offset computed at preview click time so the
+   * focus-on-mount effect can apply setSelectionRange after the textarea mounts.
+   */
+  const pendingCaretOffset = useRef<number | null>(null)
+
+  // On resetKey change: reset the visible layer's scroll to (0,0). Only one
+  // ref is non-null at a time (conditional-mount); both are null-guarded.
   useEffect(() => {
-    setColored(null)
     if (textareaRef.current) {
       textareaRef.current.scrollTop = 0
       textareaRef.current.scrollLeft = 0
@@ -86,28 +101,90 @@ export const CodeEditor = memo(function CodeEditor({
     }
   }, [resetKey])
 
-  // Trailing debounce: schedule compose() whenever text, lang, OR resetKey
-  // changes. Effect cleanup clears the timer on re-run AND on unmount.
-  // resetKey is in the deps so a switch to a request with identical raw text+lang
-  // still re-schedules compose() — the setColored(null) above cleared the cache,
-  // and without re-arming here the highlight would stay off permanently on that tab.
+  // Shared focus-on-mount effect: on every editing false→true transition, focus
+  // the freshly-mounted textarea and apply any stashed caret offset.
+  // Covers ALL edit-entry paths (click / keyboard Enter-Space / toggle button).
+  // Keyed on `editing` alone — focus() is idempotent, no editingViaClick flag needed.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const tokens = compose(value, lang, validVars)
-      setColored({ snapshot: value, tokens })
-    }, BODY_HIGHLIGHT_DEBOUNCE_MS)
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- validVars is the stable envVars() singleton; it is a frozen reference that never changes between renders, so omitting it from deps is safe
-  }, [value, lang, resetKey])
-
-  // ─── Code-area handlers ─────────────────────────────────────────────────
-
-  /** Textarea is the single scroll source; pre follows via ref. */
-  function handleTextareaScroll(e: React.UIEvent<HTMLTextAreaElement>): void {
-    if (preRef.current) {
-      preRef.current.scrollTop = e.currentTarget.scrollTop
-      preRef.current.scrollLeft = e.currentTarget.scrollLeft
+    if (editing && textareaRef.current) {
+      textareaRef.current.focus()
+      if (pendingCaretOffset.current !== null) {
+        const offset = pendingCaretOffset.current
+        pendingCaretOffset.current = null
+        textareaRef.current.setSelectionRange(offset, offset)
+      }
     }
+  }, [editing])
+
+  // ─── Caret-at-click helper ──────────────────────────────────────────────
+
+  /**
+   * Maps pointer coordinates on the <pre> to a character offset in `value`.
+   * Uses caretPositionFromPoint (standard) with caretRangeFromPoint
+   * (WebKit/Chromium/Electron fallback). Returns end-of-text on a null hit;
+   * clamps the result to [0, value.length].
+   */
+  function computeCaretOffset(x: number, y: number): number {
+    const pre = preRef.current
+    if (!pre) return value.length
+
+    let targetNode: Node | null = null
+    let targetOffset = 0
+
+    if (document.caretPositionFromPoint) {
+      // Standard (Firefox, Chromium 128+)
+      const pos = document.caretPositionFromPoint(x, y)
+      if (pos !== null) {
+        targetNode = pos.offsetNode
+        targetOffset = pos.offset
+      }
+    } else if (document.caretRangeFromPoint) {
+      // WebKit / Electron
+      const range = document.caretRangeFromPoint(x, y)
+      if (range !== null) {
+        targetNode = range.startContainer
+        targetOffset = range.startOffset
+      }
+    }
+
+    if (targetNode === null) return value.length
+
+    // Measure text length from the <pre> start to the caret hit point
+    const rangeFromStart = document.createRange()
+    rangeFromStart.setStart(pre, 0)
+    rangeFromStart.setEnd(targetNode, targetOffset)
+    const charOffset = rangeFromStart.toString().length
+    return Math.max(0, Math.min(charOffset, value.length))
+  }
+
+  // ─── Event handlers ─────────────────────────────────────────────────────
+
+  /**
+   * Click anywhere in the code area (preview): stash the caret offset and enter
+   * edit mode. Hoisted from the <pre> to the grid container so a short/empty body
+   * — whose <pre> only spans the rendered lines — is still fully clickable rather
+   * than leaving dead space below the text. The offset is still measured against
+   * the <pre>; a click below the last line clamps to end-of-text (AC-13).
+   */
+  function handlePreviewClick(e: React.MouseEvent<HTMLDivElement>): void {
+    pendingCaretOffset.current = computeCaretOffset(e.clientX, e.clientY)
+    onEditingChange?.(true)
+  }
+
+  /**
+   * Keydown on the focusable preview <pre>: Enter or Space enters edit mode.
+   * The shared focus-on-mount effect will focus the textarea post-mount.
+   */
+  function handlePreviewKeyDown(e: React.KeyboardEvent<HTMLPreElement>): void {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onEditingChange?.(true)
+    }
+  }
+
+  /** Textarea blur: exit edit mode, return to preview (F-002 blur half). */
+  function handleTextareaBlur(): void {
+    onEditingChange?.(false)
   }
 
   function handleTextChange(e: React.ChangeEvent<HTMLTextAreaElement>): void {
@@ -120,8 +197,17 @@ export const CodeEditor = memo(function CodeEditor({
   // is unchanged (e.g. store updates unrelated to the raw text leave it stable).
   const lineCount = useMemo(() => value.split('\n').length, [value])
 
-  /** True only when the debounced snapshot matches the live text. */
-  const showColored = colored !== null && colored.snapshot === value
+  /**
+   * Tokenize gate (F-001): compose() runs ONLY when the pre is the mounted
+   * layer (!editing). Keyed on {value, lang} so compose runs once per
+   * switch-to-preview, first mount, and tab-switch/lang-cycle — never per
+   * keystroke (the pre is unmounted while editing, making this gate unreachable).
+   * validVars is the stable envVars() singleton; included for dep completeness.
+   */
+  const tokenResult = useMemo(
+    () => (!editing ? compose(value, lang, validVars) : null),
+    [editing, value, lang, validVars]
+  )
 
   // Memoize gutter line-number divs: Array.from on a large body is a non-trivial
   // scan; skip it when lineCount is unchanged.
@@ -130,61 +216,81 @@ export const CodeEditor = memo(function CodeEditor({
     [lineCount]
   )
 
-  // Memoize colored token spans: colored.tokens.map() rebuilds the full React
-  // element tree on every render. Skip it when neither the colored snapshot nor
-  // validVars has changed.
+  // Memoize token spans: rebuilds the full React element tree; skip when neither
+  // the token result nor validVars has changed.
   const tokenSpans = useMemo(
     () =>
-      colored?.tokens.map((t, i) => (
+      tokenResult?.map((t, i) => (
         <span
           key={i}
           className={
             t.kind === 'plain'
               ? undefined
-              : // tk-var: apply .missing via shared isMissingVar gate
-                // (§3.6 DRY — same rule as KVTable's renderSegments).
-                t.kind === 'tk-var' && isMissingVar(t.known, validVars)
-                ? 'tk-var missing'
+              : // tk-var: compose .missing via cx() + the shared isMissingVar gate
+                // (§4 cx() conditional-class rule; §3.6 DRY — same as KVTable).
+                t.kind === 'tk-var'
+                ? cx('tk-var', isMissingVar(t.known, validVars) && 'missing')
                 : t.kind
           }
         >
           {t.text}
         </span>
       )) ?? null,
-    [colored, validVars]
+    [tokenResult, validVars]
   )
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="code-editor" data-testid="body-code-editor">
-      {/* Gutter: one div per line, count matches live textarea line count */}
+    <div
+      className="code-editor"
+      data-testid="body-code-editor"
+      data-editing={editing}
+      // Whole-area click-to-edit (preview only): the <pre> spans only the rendered
+      // lines, so a short/empty body would leave most of the editor a dead zone.
+      // Hoisting onClick to the container makes the full surface enter edit; in
+      // edit mode the textarea owns clicks so the handler is detached. This is a
+      // purely additive hit target — the focusable `<pre role="button">` below
+      // remains the single accessible (keyboard-named) edit-entry control, so the
+      // container stays an unmarked presentational wrapper (no role/tabIndex).
+      onClick={editing ? undefined : handlePreviewClick}
+    >
+      {/* Gutter: one div per line, count matches the visible layer's line count */}
       <div className="gutter" data-testid="body-gutter" aria-hidden="true">
         {gutterDivs}
       </div>
 
-      {/* Content: textarea (scroll source) + pre (highlight layer) stacked */}
+      {/* Content: textarea (edit) XOR pre (preview) — never both mounted (AC-10) */}
       <div className="code-editor-content">
-        {/*
-         * pre sits behind the transparent textarea.
-         * showColored: render compose() token spans.
-         * plain-degrade: single span with live text when compose is stale.
-         * All content is escaped JSX text — never innerHTML.
-         */}
-        <pre ref={preRef} data-testid="body-pre" aria-hidden="true">
-          {showColored ? tokenSpans : <span>{value}</span>}
-        </pre>
-
-        {/* Textarea drives height + scroll; text is transparent (caret visible). */}
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={handleTextChange}
-          onScroll={handleTextareaScroll}
-          spellCheck={false}
-          autoComplete="off"
-          aria-label="Request body"
-        />
+        {editing ? (
+          /* Edit mode: plain textarea, visible text colour, native UX */
+          <textarea
+            ref={textareaRef}
+            // rows={lineCount} so the textarea grows to its full content height like
+            // the preview <pre> does. Without it the textarea keeps its intrinsic
+            // 2-row height and clips any line past the second (e.g. a brace on line
+            // 3 was hidden); the outer editor container owns the scroll.
+            rows={lineCount}
+            value={value}
+            onChange={handleTextChange}
+            onBlur={handleTextareaBlur}
+            spellCheck={false}
+            autoComplete="off"
+            aria-label="Request body"
+          />
+        ) : (
+          /* Preview mode: highlighted <pre>, focusable, click / Enter-Space enters edit */
+          <pre
+            ref={preRef}
+            data-testid="body-pre"
+            role="button"
+            tabIndex={0}
+            onKeyDown={handlePreviewKeyDown}
+            aria-label="Request body preview — press Enter or Space to edit"
+          >
+            {tokenSpans}
+          </pre>
+        )}
       </div>
     </div>
   )
